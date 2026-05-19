@@ -7,7 +7,10 @@
     background: "dots",
     viewport: { x: 80, y: 80, scale: 1 },
     nodes: [],
+    edges: [],
     selectedNodeId: "",
+    pendingEdgeFrom: "",
+    edgeError: "",
     drag: null,
     pointers: new Map()
   };
@@ -17,7 +20,14 @@
     if (state.projectId !== normalizedId) {
       state.projectId = normalizedId;
       state.nodes = normalizedId ? root.nodes?.defaultNodes?.() || [] : [];
+      state.edges = normalizedId ? [
+        root.workflows.createEdge("node_prompt", "node_config"),
+        root.workflows.createEdge("node_image", "node_config"),
+        root.workflows.createEdge("node_config", "node_output")
+      ] : [];
       state.selectedNodeId = state.nodes[0]?.id || "";
+      state.pendingEdgeFrom = "";
+      state.edgeError = "";
       state.viewport = { x: 80, y: 80, scale: 1 };
     }
     elements.canvasListView?.classList.toggle("hidden", Boolean(normalizedId));
@@ -34,7 +44,7 @@
     if (!board || !viewport) return;
     board.dataset.background = state.background;
     viewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
-    viewport.innerHTML = state.nodes.map((node) => nodeTemplate(node)).join("");
+    viewport.innerHTML = edgeTemplate() + state.nodes.map((node) => nodeTemplate(node)).join("");
     renderInspector();
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.classList.toggle("active", button.dataset.canvasBackground === state.background);
@@ -44,16 +54,33 @@
   function nodeTemplate(node) {
     const selected = node.id === state.selectedNodeId ? " selected" : "";
     const locked = node.locked ? " locked" : "";
+    const pending = node.id === state.pendingEdgeFrom ? " pending-link" : "";
     const status = node.type === "output" ? `<small data-status="${escapeHtml(node.data.status || "idle")}">${escapeHtml(node.data.status || "idle")}</small>` : "";
     const body = node.type === "config"
       ? `${node.data.model} · ${node.data.size} · ${node.data.quality} · ${node.data.candidateCount}x`
       : node.data.prompt || node.data.body || node.data.imageUrl || "";
-    return `<button class="canvas-demo-node canvas-node canvas-node-${node.type}${selected}${locked}" type="button" data-node-id="${node.id}" style="left:${node.x}px;top:${node.y}px">
+    return `<button class="canvas-demo-node canvas-node canvas-node-${node.type}${selected}${locked}${pending}" type="button" data-node-id="${node.id}" style="left:${node.x}px;top:${node.y}px">
       <span><i class="${root.nodes.meta[node.type].icon}"></i>${root.nodes.meta[node.type].label}</span>
       <strong>${escapeHtml(node.data.title || root.nodes.meta[node.type].label)}</strong>
       <em>${escapeHtml(body)}</em>
       ${status}
     </button>`;
+  }
+
+  function edgeTemplate() {
+    const lines = state.edges.map((edge) => {
+      const source = state.nodes.find((node) => node.id === edge.sourceId);
+      const target = state.nodes.find((node) => node.id === edge.targetId);
+      if (!source || !target) return "";
+      const active = [source.id, target.id].includes(state.selectedNodeId) ? " active" : "";
+      const x1 = Number(source.x || 0) + 220;
+      const y1 = Number(source.y || 0) + 66;
+      const x2 = Number(target.x || 0);
+      const y2 = Number(target.y || 0) + 66;
+      const mid = Math.max(60, Math.abs(x2 - x1) / 2);
+      return `<path class="canvas-edge${active}" data-edge-id="${edge.id}" d="M ${x1} ${y1} C ${x1 + mid} ${y1}, ${x2 - mid} ${y2}, ${x2} ${y2}" />`;
+    }).join("");
+    return `<svg class="canvas-edges" width="2400" height="1600" viewBox="-400 -300 2400 1600">${lines}</svg>`;
   }
 
   function renderInspector() {
@@ -68,11 +95,32 @@
       <div class="canvas-inspector-actions">
         <button type="button" data-node-action="duplicate"><i class="ri-file-copy-line"></i><span>Copy</span></button>
         <button type="button" data-node-action="lock"><i class="${node.locked ? "ri-lock-unlock-line" : "ri-lock-line"}"></i><span>${node.locked ? "Unlock" : "Lock"}</span></button>
+        <button type="button" data-node-action="link"><i class="ri-link"></i><span>Start link</span></button>
         <button type="button" data-node-action="delete"><i class="ri-delete-bin-line"></i><span>Delete</span></button>
       </div>
+      ${connectionPanel(node)}
       ${field("title", "Title", node.data.title || "")}
       ${nodeFields(node)}
     `;
+  }
+
+  function connectionPanel(node) {
+    const incoming = state.edges.filter((edge) => edge.targetId === node.id);
+    const outgoing = state.edges.filter((edge) => edge.sourceId === node.id);
+    const summary = node.type === "config" ? root.workflows.configInputSummary(state.nodes, state.edges, node.id) : null;
+    const conflict = summary?.hasConflict
+      ? `<div class="canvas-input-warning">Input conflict: keep one prompt and one image upstream.</div>`
+      : "";
+    const upstream = summary
+      ? `<div class="canvas-upstream"><strong>${summary.mode}</strong><span>${summary.prompts.length} prompt · ${summary.images.length} image</span></div>`
+      : "";
+    const error = state.edgeError ? `<div class="canvas-input-warning">${escapeHtml(state.edgeError)}</div>` : "";
+    const pending = state.pendingEdgeFrom ? `<div class="canvas-linking">Linking from ${escapeHtml(labelFor(state.pendingEdgeFrom))}</div>` : "";
+    const rows = [...incoming, ...outgoing].map((edge) => {
+      const other = edge.sourceId === node.id ? edge.targetId : edge.sourceId;
+      return `<button type="button" data-edge-delete="${edge.id}"><i class="ri-close-line"></i><span>${escapeHtml(edge.sourceId === node.id ? "to" : "from")} ${escapeHtml(labelFor(other))}</span></button>`;
+    }).join("");
+    return `${error}${pending}${upstream}${conflict}${rows ? `<div class="canvas-edge-list">${rows}</div>` : ""}`;
   }
 
   function nodeFields(node) {
@@ -164,6 +212,11 @@
     if (nodeButton) {
       const node = state.nodes.find((item) => item.id === nodeButton.dataset.nodeId);
       if (!node) return;
+      if (state.pendingEdgeFrom && state.pendingEdgeFrom !== node.id) {
+        createEdge(state.pendingEdgeFrom, node.id);
+        renderBoard();
+        return;
+      }
       state.selectedNodeId = node.id;
       state.drag = node.locked ? null : {
         type: "node",
@@ -236,6 +289,7 @@
     const node = root.nodes.createNode({ type, x, y });
     state.nodes.push(node);
     state.selectedNodeId = node.id;
+    state.edgeError = "";
     renderBoard();
   }
 
@@ -255,6 +309,7 @@
     if (!action || !node) return;
     if (action === "delete") {
       state.nodes = state.nodes.filter((item) => item.id !== node.id);
+      state.edges = state.edges.filter((edge) => edge.sourceId !== node.id && edge.targetId !== node.id);
       state.selectedNodeId = state.nodes[0]?.id || "";
     }
     if (action === "duplicate") {
@@ -264,12 +319,41 @@
         state.selectedNodeId = duplicate.id;
       }
     }
+    if (action === "link") {
+      state.pendingEdgeFrom = node.id;
+      state.edgeError = "";
+    }
     if (action === "lock") node.locked = !node.locked;
     renderBoard();
   }
 
+  function createEdge(sourceId, targetId) {
+    const result = root.workflows.canConnect(state.edges, sourceId, targetId);
+    state.pendingEdgeFrom = "";
+    if (!result.ok) {
+      state.edgeError = result.reason === "cycle" ? "Cycle links are blocked." : "This link cannot be created.";
+      return;
+    }
+    state.edges.push(root.workflows.createEdge(sourceId, targetId));
+    state.selectedNodeId = targetId;
+    state.edgeError = "";
+  }
+
+  document.addEventListener("click", (event) => {
+    const edgeId = event.target.closest?.("[data-edge-delete]")?.dataset.edgeDelete;
+    if (!edgeId) return;
+    state.edges = state.edges.filter((edge) => edge.id !== edgeId);
+    state.edgeError = "";
+    renderBoard();
+  });
+
   function selectedNode() {
     return state.nodes.find((node) => node.id === state.selectedNodeId) || null;
+  }
+
+  function labelFor(nodeId) {
+    const node = state.nodes.find((item) => item.id === nodeId);
+    return node?.data?.title || nodeId;
   }
 
   function distance(a, b) {

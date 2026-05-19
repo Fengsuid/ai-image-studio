@@ -504,6 +504,25 @@ a {
   will-change: transform;
 }
 
+.canvas-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-edge {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 3;
+}
+
+.canvas-edge.active {
+  stroke: #0f766e;
+  stroke-width: 4;
+}
+
 .canvas-demo-node {
   position: absolute;
   width: 220px;
@@ -523,6 +542,11 @@ a {
 .canvas-demo-node.locked {
   cursor: default;
   opacity: 0.72;
+}
+
+.canvas-demo-node.pending-link {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 16px 36px rgba(15, 23, 42, 0.14);
 }
 
 .canvas-node-image span {
@@ -605,7 +629,8 @@ a {
   gap: 8px;
 }
 
-.canvas-inspector-actions button {
+.canvas-inspector-actions button,
+.canvas-edge-list button {
   height: 34px;
   padding: 0 10px;
   border: 1px solid #cbd5e1;
@@ -615,6 +640,48 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.canvas-edge-list {
+  display: grid;
+  gap: 8px;
+}
+
+.canvas-edge-list button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.canvas-upstream,
+.canvas-linking,
+.canvas-input-warning {
+  display: grid;
+  gap: 3px;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.canvas-upstream {
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.canvas-upstream span,
+.canvas-linking,
+.canvas-input-warning {
+  font-size: 12px;
+}
+
+.canvas-linking {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.canvas-input-warning {
+  background: #fff7ed;
+  color: #c2410c;
+  font-weight: 800;
 }
 
 .canvas-field {
