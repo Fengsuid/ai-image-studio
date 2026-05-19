@@ -280,6 +280,20 @@ function getOpenAIEditEndpoint(settings = {}) {
   return `${cleanBase}/v1/images/edits`;
 }
 
+function isSafeRemoteImageUrl(value = "") {
+  try {
+    const parsed = new URL(String(value || ""));
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    const host = parsed.hostname.toLowerCase();
+    if (host === "localhost" || host.endsWith(".localhost")) return false;
+    if (/^(127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host)) return false;
+    if (host === "::1" || host.startsWith("fc") || host.startsWith("fd")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function providerCapabilities(settings = {}) {
   const model = String(settings.model || DEFAULT_MODEL).toLowerCase();
   const configured = settings.providerCapabilityConfig && typeof settings.providerCapabilityConfig === "object"
@@ -1887,6 +1901,36 @@ function generationResponse(generation) {
     imageUrl: `/api/images/${generation.id}/file`,
     sourceImageUrl: sourceImageUrlForGeneration(generation),
     ...sourceImageAuditFields(generation)
+  };
+}
+
+function promptLeaderboardResponse(prompt) {
+  return {
+    id: `prompt_${prompt.id}`,
+    kind: "prompt",
+    promptId: prompt.id,
+    title: prompt.title || "",
+    prompt: prompt.prompt || "",
+    imageUrl: `/api/prompt-images/${prompt.id}/file`,
+    sourceImageUrl: "",
+    sourceImageId: "",
+    sourcePrompt: "",
+    originGalleryId: "",
+    publishOriginal: false,
+    conversation: [],
+    publicTags: prompt.tags || [],
+    userId: "",
+    userName: prompt.author || prompt.sourceRepo || prompt.source || "Prompt DB",
+    model: prompt.modelHint || "",
+    isPublic: prompt.status === "active",
+    archived: false,
+    createdAt: prompt.createdAt,
+    publishedAt: prompt.createdAt,
+    likeCount: Number(prompt.likeCount || 0),
+    likedByCurrentUser: Boolean(prompt.likedByCurrentUser),
+    promptType: prompt.promptType || "text-to-image",
+    source: prompt.source || "",
+    sourceRepo: prompt.sourceRepo || ""
   };
 }
 
@@ -3619,6 +3663,45 @@ async function routeApi(req, res, url) {
     return sendJson(res, 200, { generations });
   }
 
+  const promptImageMatch = url.pathname.match(/^\/api\/prompt-images\/(\d+)\/file$/);
+  if (promptImageMatch && (req.method === "GET" || req.method === "HEAD")) {
+    const current = await getCurrentUser(req);
+    const prompt = await store.getPromptById(promptImageMatch[1]);
+    if (!prompt || (prompt.status !== "active" && current?.user?.role !== "admin")) {
+      throw httpError("Prompt image not found", 404);
+    }
+    const sourceUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
+    if (!isSafeRemoteImageUrl(sourceUrl)) {
+      throw httpError("Prompt image is not proxyable", 404);
+    }
+    const upstream = await fetchWithTimeout("Prompt image proxy", sourceUrl, {
+      method: "GET",
+      headers: { Accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8" }
+    }, 20_000);
+    if (!upstream.ok) {
+      throw httpError(`Prompt image upstream returned ${upstream.status}`, upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502);
+    }
+    const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+    if (!contentType.toLowerCase().startsWith("image/")) {
+      throw httpError("Prompt image upstream is not an image", 502);
+    }
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    res.writeHead(200, withSecurityHeaders({
+      "Content-Type": contentType,
+      "Content-Length": bytes.length,
+      "Cache-Control": "public, max-age=3600",
+      "X-Image-Variant": url.searchParams.get("variant") === "thumb" ? "thumb" : "original",
+      "X-AI-Content-Source": "prompt-database-image",
+      "Vary": "Accept"
+    }));
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    res.end(bytes);
+    return;
+  }
+
   const galleryLikeMatch = url.pathname.match(/^\/api\/gallery\/([^/]+)\/like$/);
   if (galleryLikeMatch && (req.method === "POST" || req.method === "DELETE")) {
     const current = await getCurrentUser(req);
@@ -3650,14 +3733,30 @@ async function routeApi(req, res, url) {
       ? url.searchParams.get("range")
       : "week";
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 30, 100);
-    const generations = (await store.listGenerationLeaderboard({
+    const type = url.searchParams.get("type") || "";
+    const generationItems = (await store.listGenerationLeaderboard({
       range,
       tag: url.searchParams.get("tag") || "",
-      type: url.searchParams.get("type") || "",
+      type,
       limit,
       currentUserId: current?.user?.id || "",
       includeBroken: current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1"
     })).map(generationResponse);
+    const promptItems = type === "image-to-image"
+      ? []
+      : (await store.listPromptImageLeaderboard({
+        range,
+        limit,
+        currentUserId: current?.user?.id || "",
+        includeHidden: current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1"
+      })).map(promptLeaderboardResponse);
+    const generations = [...generationItems, ...promptItems]
+      .sort((left, right) => {
+        const likes = Number(right.likeCount || 0) - Number(left.likeCount || 0);
+        if (likes) return likes;
+        return new Date(right.publishedAt || right.createdAt || 0) - new Date(left.publishedAt || left.createdAt || 0);
+      })
+      .slice(0, limit);
     return sendJson(res, 200, { generations, range });
   }
 

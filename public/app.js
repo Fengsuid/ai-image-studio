@@ -1103,6 +1103,15 @@ function imageVariantUrl(url, variant = "thumb") {
   return `${url}${joiner}variant=${encodeURIComponent(variant)}`;
 }
 
+function promptImageDisplayUrl(prompt = {}) {
+  const raw = prompt.coverUrl || prompt.preview || prompt.image || prompt.imageUrl || "";
+  if (!raw) return "";
+  if (prompt.kind !== "square" && /^\d+$/.test(String(prompt.id || "")) && /^https?:\/\//i.test(raw)) {
+    return `/api/prompt-images/${encodeURIComponent(prompt.id)}/file`;
+  }
+  return raw;
+}
+
 function imageFallbackContainerAttrs(label = text("imageUnavailable")) {
   return `data-image-fallback="${escapeHtml(label)}"`;
 }
@@ -1184,6 +1193,9 @@ function generationEntryFromApi(generation = {}, fallback = {}) {
   return {
     ...fallback,
     id: generation.id || fallback.id,
+    kind: generation.kind || fallback.kind || "",
+    promptId: generation.promptId || fallback.promptId || "",
+    title: generation.title || fallback.title || "",
     prompt: generation.prompt || fallback.prompt || "",
     images: generation.imageUrl ? [generation.imageUrl] : fallback.images || [],
     sourceImageUrl: generation.sourceImageUrl || fallback.sourceImageUrl || "",
@@ -1503,7 +1515,10 @@ function formatElapsed(ms) {
 function setView(view) {
   state.view = view;
   const showingChatWorkspace = view === "home" && !shouldShowHero();
-  if (view !== "home") elements.app.classList.remove("session-panel-open");
+  if (view !== "home" || !showingChatWorkspace) {
+    elements.app.classList.remove("session-panel-open");
+    elements.app.classList.remove("chat-panel-collapsed");
+  }
   elements.app.classList.toggle("editor-mode", view === "editor");
   elements.app.classList.toggle("chat-panel-visible", showingChatWorkspace);
   elements.homeView.classList.toggle("hidden", view !== "home" || (!shouldShowHero() && view === "home"));
@@ -3286,20 +3301,31 @@ function renderGalleryLeaderboard() {
         </div>
       </div>
       <div class="gallery-leaderboard-list">
-        ${items.length ? items.map((item, index) => `
+        ${items.length ? items.map((item, index) => {
+          const isPromptItem = item.kind === "prompt";
+          const openAttr = isPromptItem
+            ? `data-open-prompt="${escapeHtml(item.promptId || String(item.id).replace(/^prompt_/, ""))}"`
+            : `data-open-square="${escapeHtml(`square_${item.id}`)}"`;
+          const likeButton = isPromptItem
+            ? `<button type="button" data-like-prompt="${escapeHtml(item.promptId || String(item.id).replace(/^prompt_/, ""))}" class="${item.likedByCurrentUser ? "liked" : ""}">
+                <i class="${item.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(item.likeCount || 0)}
+              </button>`
+            : `<button type="button" data-like-gallery="${escapeHtml(item.id)}" class="${item.likedByCurrentUser ? "liked" : ""}">
+                <i class="${item.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(item.likeCount || 0)}
+              </button>`;
+          return `
           <article class="gallery-rank-card ${index < 3 ? `top-${index + 1}` : ""}">
-            <button type="button" class="gallery-rank-visual" data-open-square="${escapeHtml(`square_${item.id}`)}" ${imageFallbackContainerAttrs()}>
+            <button type="button" class="gallery-rank-visual" ${openAttr} ${imageFallbackContainerAttrs()}>
               <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 70))}">
               <em>#${index + 1}</em>
             </button>
             <div>
               <p>${escapeHtml(truncate(item.prompt, 64))}</p>
-              <button type="button" data-like-gallery="${escapeHtml(item.id)}" class="${item.likedByCurrentUser ? "liked" : ""}">
-                <i class="${item.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(item.likeCount || 0)}
-              </button>
+              ${likeButton}
             </div>
           </article>
-        `).join("") : `<div class="gallery-rank-empty">${state.lang === "zh" ? "暂无榜单作品" : "No ranked works yet"}</div>`}
+        `;
+        }).join("") : `<div class="gallery-rank-empty">${state.lang === "zh" ? "暂无榜单作品" : "No ranked works yet"}</div>`}
       </div>
     </section>
   `;
@@ -3341,7 +3367,7 @@ function getSourceCount(source) {
 function promptCardHtml(prompt) {
   const promptText = prompt.prompt;
   const title = prompt.title;
-  const coverUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
+  const coverUrl = promptImageDisplayUrl(prompt);
   const tagsHtml = (prompt.tags || [prompt.tag].filter(Boolean)).slice(0, 3).map((tag) => {
     const info = tagInfo(tag);
     return `
@@ -3472,6 +3498,12 @@ function bindPromptCards(root) {
           body: JSON.stringify({ liked: !prompt.likedByCurrentUser })
         });
         state.promptItems = state.promptItems.map((item) => String(item.id) === String(prompt.id) ? { ...item, ...data.prompt } : item);
+        state.galleryLeaderboard = state.galleryLeaderboard.map((item) => {
+          const promptId = item.promptId || (String(item.id || "").startsWith("prompt_") ? String(item.id).slice(7) : "");
+          return String(promptId) === String(prompt.id)
+            ? { ...item, likeCount: data.prompt.likeCount, likedByCurrentUser: data.prompt.likedByCurrentUser }
+            : item;
+        });
         renderLibrary();
       } catch (error) {
         showToast(error.message, "ri-error-warning-line");
@@ -4499,7 +4531,7 @@ function openSquarePreview(prompt, options = {}) {
 
 function openPromptDetailModal(prompt) {
   if (!prompt) return;
-  const imageUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
+  const imageUrl = promptImageDisplayUrl(prompt);
   const tags = Array.isArray(prompt.tags) ? prompt.tags : (prompt.tag ? [prompt.tag] : []);
   const isAdmin = state.user?.role === "admin";
   const author = prompt.author || (state.lang === "zh" ? "公开来源" : "Public source");
