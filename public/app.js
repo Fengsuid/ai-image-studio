@@ -75,7 +75,7 @@ const state = {
   continuationMode: localStorage.getItem("imageStudio.continuationMode") || "auto",
   continuationLockedSessionId: "",
   continuationLastImageUrl: "",
-  tagsLibrary: { bySlug: {}, list: [], summary: null, loadedAt: 0 },
+  tagsLibrary: { bySlug: {}, list: [], categories: [], categoriesBySlug: {}, summary: null, loadedAt: 0 },
   csrfToken: ""
 };
 
@@ -1150,6 +1150,32 @@ function tagInfo(slug) {
   // fallback：旧版 tagLabels 还能用，颜色用本地 tagColor 的 fallback。
   const fallback = tagLabels[state.lang]?.[slug] || slug;
   return { slug, label: fallback, hue: 0, status: "active" };
+}
+
+function categoryInfo(slug) {
+  const key = String(slug || "").toLowerCase();
+  const entry = state.tagsLibrary?.categoriesBySlug?.[key];
+  if (entry) {
+    const label = entry.labelZh || (state.lang === "en" ? entry.labelEn : "") || entry.labelEn || entry.slug;
+    return {
+      slug: entry.slug,
+      label,
+      category: entry.slug,
+      description: entry.descriptionZh || (state.lang === "en" ? entry.descriptionEn : "") || "",
+      status: entry.status || "active",
+      sortOrder: Number(entry.sortOrder || 0)
+    };
+  }
+  const fallback = tagCategoryLabels.zh?.[key] || tagCategoryLabels[state.lang]?.[key] || key;
+  return { slug: key, label: fallback, category: key, status: "active", sortOrder: 0 };
+}
+
+function tagCategoryLabel(slug) {
+  return categoryInfo(slug).label;
+}
+
+function isCategoryFilter(value) {
+  return String(value || "").startsWith("category:");
 }
 
 function displayTag(tag) {
@@ -2808,6 +2834,17 @@ function filterableSystemTags() {
     .sort(sortGalleryTags);
 }
 
+function promptCategoriesForFilters() {
+  const list = Array.isArray(state.tagsLibrary?.categories) ? state.tagsLibrary.categories : [];
+  const source = list.length
+    ? list
+    : Object.keys(tagCategoryLabels.zh || {}).map((slug, index) => ({ slug, labelZh: tagCategoryLabels.zh[slug], sortOrder: index * 10 }));
+  return source
+    .filter((category) => category?.slug && category.status !== "hidden")
+    .sort((left, right) => Number(left.sortOrder || 0) - Number(right.sortOrder || 0) || String(left.slug).localeCompare(String(right.slug)))
+    .map((category) => ({ ...category, ...categoryInfo(category.slug) }));
+}
+
 function sortGalleryTags(left, right) {
   const pinned = { "text-to-image": 1, "image-to-image": 2 };
   const leftPinned = pinned[left.slug] || 0;
@@ -2880,6 +2917,7 @@ function renderLibrary() {
   const source = getLibrarySource();
   const counts = getTagCounts(source);
   const systemTags = filterableSystemTags();
+  const categories = promptCategoriesForFilters();
   const known = new Set(systemTags.map((tag) => tag.slug));
   const dynamicTags = Object.keys(counts)
     .filter((tag) => !known.has(tag) && !tags.includes(tag))
@@ -2888,15 +2926,21 @@ function renderLibrary() {
     .map((slug) => ({ ...tagInfo(slug), slug, contentCount: counts[slug] || 0, category: "general" }));
   const filterTags = [
     { slug: "all", label: tagLabels[state.lang].all, contentCount: source.length, category: "core" },
+    ...categories.map((category) => {
+      const count = systemTags
+        .filter((tag) => (tag.category || "general") === category.slug)
+        .reduce((sum, tag) => sum + Number(counts[tag.slug] || tag.contentCount || 0), 0);
+      return { ...category, slug: `category:${category.slug}`, categorySlug: category.slug, contentCount: count, isCategory: true };
+    }),
     ...systemTags,
     ...dynamicTags
   ];
   elements.tagFilters.innerHTML = filterTags.map((tag) => {
-    const info = tag.slug === "all" ? tag : tagInfo(tag.slug);
+    const info = tag.slug === "all" ? tag : tag.isCategory ? tag : tagInfo(tag.slug);
     const count = tag.slug === "all" ? source.length : (counts[tag.slug] || info.contentCount || 0);
     const empty = tag.slug !== "all" && count === 0;
-    const category = info.category && info.category !== "core"
-      ? tagCategoryLabels[state.lang]?.[info.category] || info.category
+    const category = !tag.isCategory && info.category && info.category !== "core"
+      ? tagCategoryLabel(info.category)
       : "";
     const title = `${info.slug}${info.aliases?.length ? ` · ${info.aliases.join(" · ")}` : ""}`;
     return `
@@ -2916,9 +2960,13 @@ function renderLibrary() {
   });
 
   const query = state.librarySearch.trim().toLowerCase();
+  const selectedCategory = isCategoryFilter(state.libraryTag) ? state.libraryTag.replace(/^category:/, "") : "";
   const filtered = source.filter((prompt) => {
     const promptTags = Array.isArray(prompt.tags) ? prompt.tags : [prompt.tag].filter(Boolean);
-    const matchesTags = state.libraryTag === "all" || promptTags.includes(state.libraryTag);
+    const matchesTags = state.libraryTag === "all"
+      || (selectedCategory
+        ? promptTags.some((slug) => (tagInfo(slug).category || "general") === selectedCategory)
+        : promptTags.includes(state.libraryTag));
     const haystack = `${prompt.title} ${prompt.prompt} ${promptTags.join(" ")} ${prompt.author || ""} ${promptTags.map(tagSearchText).join(" ")}`.toLowerCase();
     return matchesTags && (!query || haystack.includes(query));
   });
@@ -2936,7 +2984,11 @@ function renderLibrary() {
       <div><strong>${Number(summary.emptyCount || 0)}</strong><span>${text("tagStatsEmpty")}</span></div>
     </div>
   `;
-  const selectedInfo = state.libraryTag !== "all" ? tagInfo(state.libraryTag) : null;
+  const selectedInfo = state.libraryTag !== "all"
+    ? selectedCategory
+      ? categoryInfo(selectedCategory)
+      : tagInfo(state.libraryTag)
+    : null;
   elements.promptGrid.innerHTML = state.promptLoading
     ? `<div class="empty-message">${text("loadingPrompts")}</div>`
     : filtered.length
@@ -4525,11 +4577,16 @@ async function loadTags() {
     const includeHidden = state.user?.role === "admin";
     const data = await api(`/api/tags?limit=500${includeHidden ? "&includeHidden=1" : ""}`);
     const list = Array.isArray(data?.tags) ? data.tags : [];
+    const categories = Array.isArray(data?.categories) ? data.categories : [];
     const bySlug = {};
     for (const tag of list) {
       if (tag?.slug) bySlug[String(tag.slug).toLowerCase()] = tag;
     }
-    state.tagsLibrary = { bySlug, list, summary: data?.summary || null, loadedAt: Date.now() };
+    const categoriesBySlug = {};
+    for (const category of categories) {
+      if (category?.slug) categoriesBySlug[String(category.slug).toLowerCase()] = category;
+    }
+    state.tagsLibrary = { bySlug, list, categories, categoriesBySlug, summary: data?.summary || null, loadedAt: Date.now() };
   } catch (error) {
     console.warn("[ImageStudio] /api/tags unavailable", error);
   }
@@ -5440,7 +5497,7 @@ async function openTagsAdminModal() {
             <option value="active"${tag.status !== "hidden" ? " selected" : ""}>${escapeHtml(text("tagsStatusActive"))}</option>
             <option value="hidden"${tag.status === "hidden" ? " selected" : ""}>${escapeHtml(text("tagsStatusHidden"))}</option>
           </select>
-          <input data-tag-field="category" value="${escapeHtml(tag.category || "")}" placeholder="category" maxlength="32">
+          <input data-tag-field="category" value="${escapeHtml(tag.category || "")}" placeholder="分类 slug" maxlength="32">
           <input data-tag-field="sortOrder" value="${Number(tag.sortOrder || 0)}" type="number" placeholder="sort">
           <label class="tags-admin-inline"><input data-tag-field="showInFilter" type="checkbox"${tag.showInFilter !== false ? " checked" : ""}> filter</label>
           <small style="color:#94a3b8;display:block;margin-top:4px;">${escapeHtml(text("tagsUsage"))}: ${tag.usageCount || 0}</small>

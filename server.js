@@ -1419,6 +1419,7 @@ function buildPromptPayload(body, { partial } = { partial: false }) {
 }
 
 const TAG_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
+const CATEGORY_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9_-]{0,30}[a-z0-9])?$/;
 
 function sanitizeTagAliases(value) {
   const list = Array.isArray(value) ? value : String(value || "").split(/[,\n]/);
@@ -1469,6 +1470,34 @@ function buildTagPayload(body, { partial } = { partial: false }) {
     return Number.isFinite(hue) ? Math.max(0, Math.min(359, hue)) : undefined;
   });
   set("showInFilter", (value) => value !== false && value !== "false" && value !== "0");
+  set("sortOrder", (value) => {
+    const order = Number.parseInt(value, 10);
+    return Number.isFinite(order) ? order : 0;
+  });
+  return payload;
+}
+
+function buildPromptCategoryPayload(body, { partial } = { partial: false }) {
+  const payload = {};
+  if (!partial) {
+    const slug = String(body?.slug || "").trim().toLowerCase();
+    if (!CATEGORY_SLUG_PATTERN.test(slug)) {
+      throw httpError("Category slug must be 1-32 chars: a-z, 0-9, hyphen, underscore", 400);
+    }
+    payload.slug = slug;
+  }
+  const set = (key, transform) => {
+    if (Object.hasOwn(body, key)) {
+      payload[key] = transform(body[key]);
+    } else if (!partial) {
+      payload[key] = transform(undefined);
+    }
+  };
+  set("labelZh", (value) => String(value || "").trim().slice(0, 48));
+  set("labelEn", (value) => String(value || "").trim().slice(0, 48));
+  set("descriptionZh", (value) => String(value || "").trim().slice(0, 255));
+  set("descriptionEn", (value) => String(value || "").trim().slice(0, 255));
+  set("status", (value) => String(value || "active").trim().toLowerCase() === "hidden" ? "hidden" : "active");
   set("sortOrder", (value) => {
     const order = Number.parseInt(value, 10);
     return Number.isFinite(order) ? order : 0;
@@ -2126,8 +2155,60 @@ async function routeApi(req, res, url) {
     const current = await getCurrentUser(req);
     const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 500, 2000);
-    const tags = await store.listTags({ includeHidden, limit });
-    return sendJson(res, 200, { tags, summary: tagSummary(tags) });
+    const [tags, categories] = await Promise.all([
+      store.listTags({ includeHidden, limit }),
+      store.listPromptCategories({ includeHidden })
+    ]);
+    return sendJson(res, 200, { tags, categories, summary: tagSummary(tags) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/prompt-categories") {
+    const current = await getCurrentUser(req);
+    const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
+    const categories = await store.listPromptCategories({ includeHidden });
+    return sendJson(res, 200, { categories });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/prompt-categories") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const body = await readJsonBody(req);
+    const payload = buildPromptCategoryPayload(body, { partial: false });
+    const existing = await store.getPromptCategoryBySlug(payload.slug);
+    if (existing) throw httpError(`Category '${payload.slug}' already exists`, 409);
+    const category = await store.upsertPromptCategory(payload);
+    await writeAdminAudit(current, req, "create_prompt_category", "prompt_category", category.slug, {
+      labelZh: category.labelZh,
+      status: category.status
+    });
+    return sendJson(res, 201, { category });
+  }
+
+  const promptCategoryMatch = url.pathname.match(/^\/api\/prompt-categories\/([a-z0-9][a-z0-9_-]{0,30}[a-z0-9]|[a-z0-9])$/i);
+  if (promptCategoryMatch && req.method === "PATCH") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const existing = await store.getPromptCategoryBySlug(promptCategoryMatch[1]);
+    if (!existing) throw httpError("Category not found", 404);
+    const body = await readJsonBody(req);
+    const payload = buildPromptCategoryPayload({ ...existing, ...body, slug: existing.slug }, { partial: false });
+    const category = await store.upsertPromptCategory(payload);
+    await writeAdminAudit(current, req, "update_prompt_category", "prompt_category", category.slug, {
+      fields: Object.keys(body)
+    });
+    return sendJson(res, 200, { category });
+  }
+  if (promptCategoryMatch && req.method === "DELETE") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const existing = await store.getPromptCategoryBySlug(promptCategoryMatch[1]);
+    if (!existing) throw httpError("Category not found", 404);
+    const category = await store.upsertPromptCategory({ ...existing, status: "hidden" });
+    await writeAdminAudit(current, req, "hide_prompt_category", "prompt_category", category.slug, {});
+    return sendJson(res, 200, { category });
   }
 
   if (req.method === "POST" && url.pathname === "/api/tags") {

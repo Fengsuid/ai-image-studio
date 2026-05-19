@@ -6,6 +6,7 @@ const adminState = {
   generations: [],
   prompts: [],
   tags: [],
+  promptCategories: [],
   publicImages: [],
   reports: [],
   promptDuplicates: [],
@@ -236,13 +237,14 @@ async function loadAll() {
     `;
     return;
   }
-  const [version, settings, users, generations, prompts, tags, publicImages, galleryFileChecks, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
+  const [version, settings, users, generations, prompts, tags, promptCategories, publicImages, galleryFileChecks, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
     api("/api/version"),
     api("/api/admin/settings"),
     api("/api/admin/users"),
     api("/api/admin/generations?limit=500"),
     api("/api/prompts?includeHidden=1&limit=2000"),
     api("/api/tags?includeHidden=1&limit=2000"),
+    api("/api/prompt-categories?includeHidden=1"),
     api("/api/admin/public-images?status=queue&limit=120"),
     api("/api/admin/gallery-file-checks?status=broken&limit=120"),
     api("/api/admin/credit-ledger?limit=120"),
@@ -264,6 +266,7 @@ async function loadAll() {
   adminState.generations = generations.records || [];
   adminState.prompts = prompts.prompts || [];
   adminState.tags = tags.tags || [];
+  adminState.promptCategories = promptCategories.categories || tags.categories || [];
   adminState.tagSummary = tags.summary || null;
   adminState.publicImages = publicImages.generations || [];
   adminState.galleryFileChecks = galleryFileChecks.checks || [];
@@ -587,7 +590,29 @@ function renderPrompts() {
 
 function renderTags() {
   const items = filtered(adminState.tags, ["slug", "labelZh", "labelEn", "category", "status"]);
+  const categories = [...(adminState.promptCategories || [])]
+    .sort((left, right) => Number(left.sortOrder || 0) - Number(right.sortOrder || 0) || String(left.slug).localeCompare(String(right.slug)));
   return `${toolbar("搜索 slug、中文名、分类", ["active", "hidden"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>提示词分类</h2><button type="button" data-create-category>新建分类</button></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Slug</th><th>中文/英文</th><th>说明</th><th>状态</th><th>排序</th><th></th></tr></thead>
+          <tbody>
+            ${categories.map((category) => `
+              <tr>
+                <td><strong>${escapeHtml(category.slug)}</strong></td>
+                <td>${escapeHtml(category.labelZh || "")}<small>${escapeHtml(category.labelEn || "")}</small></td>
+                <td><small>${escapeHtml(category.descriptionZh || category.descriptionEn || "-")}</small></td>
+                <td><span class="admin-badge" data-status="${escapeHtml(category.status)}">${escapeHtml(category.status)}</span></td>
+                <td>${fmtNumber(category.sortOrder || 0)}</td>
+                <td><button type="button" data-detail="category:${escapeHtml(category.slug)}">编辑</button></td>
+              </tr>
+            `).join("") || `<tr><td colspan="6">暂无分类</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>标签库</h2><button type="button" data-create-tag>新建标签</button></div>
       <div class="admin-table-wrap">
@@ -1300,6 +1325,61 @@ function promptDrawer(prompt = {}) {
   });
 }
 
+function categoryDrawer(category = {}) {
+  const isNew = !category.slug;
+  openDrawer(isNew ? "新建提示词分类" : "编辑提示词分类", `
+    <form id="drawerCategoryForm" class="admin-form-grid single">
+      <label>Slug<input name="slug" value="${escapeHtml(category.slug || "")}" ${isNew ? "required" : "readonly"}></label>
+      <label>中文名<input name="labelZh" value="${escapeHtml(category.labelZh || "")}" required></label>
+      <label>英文名<input name="labelEn" value="${escapeHtml(category.labelEn || "")}"></label>
+      <label>中文说明<textarea name="descriptionZh" rows="3">${escapeHtml(category.descriptionZh || "")}</textarea></label>
+      <label>英文说明<textarea name="descriptionEn" rows="3">${escapeHtml(category.descriptionEn || "")}</textarea></label>
+      <label>状态<select name="status"><option value="active"${category.status !== "hidden" ? " selected" : ""}>active</option><option value="hidden"${category.status === "hidden" ? " selected" : ""}>hidden</option></select></label>
+      <label>排序<input name="sortOrder" type="number" value="${escapeHtml(category.sortOrder || 0)}"></label>
+      <button type="submit">${isNew ? "创建" : "保存"}</button>
+      ${isNew ? "" : `<button type="button" class="danger" data-hide-category>停用分类</button>`}
+    </form>
+  `);
+  $("#drawerCategoryForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    if (form.get("status") === "hidden" && !(await confirmAction({
+      title: "停用分类",
+      message: "确认停用该分类？前台筛选将不再展示停用分类名。",
+      confirmText: "停用",
+      danger: true
+    }))) return;
+    const payload = {
+      slug: String(form.get("slug") || "").trim().toLowerCase(),
+      labelZh: form.get("labelZh"),
+      labelEn: form.get("labelEn"),
+      descriptionZh: form.get("descriptionZh"),
+      descriptionEn: form.get("descriptionEn"),
+      status: form.get("status"),
+      sortOrder: Number(form.get("sortOrder") || 0)
+    };
+    await api(isNew ? "/api/prompt-categories" : `/api/prompt-categories/${encodeURIComponent(category.slug)}`, {
+      method: isNew ? "POST" : "PATCH",
+      body: JSON.stringify(payload)
+    });
+    recordAudit(isNew ? "create_prompt_category" : "update_prompt_category", payload.slug, payload.labelZh || "");
+    await refreshAndRender();
+    closeDrawer();
+  });
+  $("[data-hide-category]")?.addEventListener("click", async () => {
+    if (!(await confirmAction({
+      title: "停用分类",
+      message: "确认停用该分类？已有标签不会删除。",
+      confirmText: "停用",
+      danger: true
+    }))) return;
+    await api(`/api/prompt-categories/${encodeURIComponent(category.slug)}`, { method: "DELETE" });
+    recordAudit("hide_prompt_category", category.slug, category.labelZh || "");
+    await refreshAndRender();
+    closeDrawer();
+  });
+}
+
 function tagDrawer(tag = {}) {
   const isNew = !tag.slug;
   openDrawer(isNew ? "新建标签" : "编辑标签", `
@@ -1538,6 +1618,7 @@ function bindActions() {
       if (type === "prompt") promptDrawer(adminState.prompts.find((item) => String(item.id) === id));
       if (type === "promptAudit") await promptAuditDrawer(id);
       if (type === "tag") tagDrawer(adminState.tags.find((item) => item.slug === id));
+      if (type === "category") categoryDrawer(adminState.promptCategories.find((item) => item.slug === id));
       if (type === "provider") providerDrawer(adminState.providers.find((item) => item.id === id));
       if (type === "announcement") announcementDrawer(adminState.announcements.find((item) => item.id === id));
     });
@@ -1646,6 +1727,7 @@ function bindActions() {
     });
   });
   bindPromptAuditActions(document);
+  $("[data-create-category]")?.addEventListener("click", () => categoryDrawer());
   $("[data-create-tag]")?.addEventListener("click", () => tagDrawer());
   $("#adminSettingsForm")?.addEventListener("submit", saveSettings);
   $("[data-clear-key]")?.addEventListener("click", async () => {

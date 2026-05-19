@@ -306,6 +306,21 @@ function mapGalleryFileCheck(row) {
   };
 }
 
+function mapPromptCategory(row) {
+  if (!row) return null;
+  return {
+    slug: row.slug || "",
+    labelZh: row.label_zh || "",
+    labelEn: row.label_en || "",
+    descriptionZh: row.description_zh || "",
+    descriptionEn: row.description_en || "",
+    status: row.status || "active",
+    sortOrder: Number(row.sort_order || 0),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
 function mapGenerationRequest(row) {
   if (!row) return null;
   let generationIds = [];
@@ -906,6 +921,21 @@ async function runMigrations() {
   await db.execute("UPDATE app_settings SET default_provider_id = 'prv_default' WHERE id = 1 AND default_provider_id = ''");
 
   await db.query(`
+    CREATE TABLE IF NOT EXISTS prompt_categories (
+      slug VARCHAR(32) NOT NULL PRIMARY KEY,
+      label_zh VARCHAR(48) NOT NULL DEFAULT '',
+      label_en VARCHAR(48) NOT NULL DEFAULT '',
+      description_zh VARCHAR(255) NOT NULL DEFAULT '',
+      description_en VARCHAR(255) NOT NULL DEFAULT '',
+      status VARCHAR(16) NOT NULL DEFAULT 'active',
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      INDEX idx_prompt_categories_status_order (status, sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS prompts (
       id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
       title VARCHAR(200) NOT NULL DEFAULT '',
@@ -1061,6 +1091,7 @@ async function initializeDatabase(options = {}) {
     charset: "utf8mb4"
   });
   await runMigrations();
+  await seedPromptCategories();
   await deleteExpiredSessions();
 }
 
@@ -3363,6 +3394,18 @@ const SYSTEM_TAG_CATEGORIES = [
   "technique"
 ];
 
+const PROMPT_CATEGORY_SEED = [
+  { slug: "style", labelZh: "风格", labelEn: "Style", descriptionZh: "视觉风格、艺术流派和画面质感", descriptionEn: "Visual styles, art directions, and rendering texture", sortOrder: 10 },
+  { slug: "subject", labelZh: "题材", labelEn: "Subject", descriptionZh: "人物、产品、场景和核心主体", descriptionEn: "People, products, scenes, and main subjects", sortOrder: 20 },
+  { slug: "use_case", labelZh: "用途", labelEn: "Use", descriptionZh: "海报、封面、头像、UI、电商等使用场景", descriptionEn: "Posters, covers, avatars, UI, ecommerce, and other uses", sortOrder: 30 },
+  { slug: "camera", labelZh: "镜头", labelEn: "Camera", descriptionZh: "景别、镜头语言、构图和摄影参数", descriptionEn: "Shot type, lens language, composition, and camera settings", sortOrder: 40 },
+  { slug: "lighting", labelZh: "灯光", labelEn: "Lighting", descriptionZh: "光线方向、氛围和影调控制", descriptionEn: "Light direction, atmosphere, and tonal control", sortOrder: 50 },
+  { slug: "mood", labelZh: "情绪", labelEn: "Mood", descriptionZh: "画面情绪、叙事感和审美倾向", descriptionEn: "Mood, narrative feeling, and aesthetic tone", sortOrder: 60 },
+  { slug: "color", labelZh: "颜色", labelEn: "Color", descriptionZh: "配色、色调和色彩关系", descriptionEn: "Palettes, tones, and color relationships", sortOrder: 70 },
+  { slug: "technique", labelZh: "技法", labelEn: "Technique", descriptionZh: "摄影技法、渲染技法和后期效果", descriptionEn: "Photo techniques, rendering methods, and post effects", sortOrder: 80 },
+  { slug: "general", labelZh: "其他", labelEn: "Other", descriptionZh: "暂未归类或跨分类提示词", descriptionEn: "Uncategorized or cross-category prompts", sortOrder: 999 }
+];
+
 function systemTagMeta(index) {
   if (SYSTEM_TAG_SEED[index]?.category === "core") {
     return {
@@ -3384,6 +3427,10 @@ function normalizeAliasInput(value) {
 
 function isValidTagSlug(value) {
   return typeof value === "string" && /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/.test(value);
+}
+
+function isValidCategorySlug(value) {
+  return typeof value === "string" && /^[a-z0-9](?:[a-z0-9_-]{0,30}[a-z0-9])?$/.test(value);
 }
 
 // 简单稳定 hash → 0..359 hue。crypto.createHash 已经在 server.js 导入；store 这里独立 require。
@@ -3448,6 +3495,62 @@ async function loadTagCoverageCounts() {
   addJsonTagCounts(promptRows, "tags_json", promptCounts);
   addJsonTagCounts(galleryRows, "public_tags_json", galleryCounts);
   return { promptCounts, galleryCounts };
+}
+
+async function seedPromptCategories() {
+  for (const item of PROMPT_CATEGORY_SEED) {
+    await getPool().execute(
+      `INSERT INTO prompt_categories
+          (slug, label_zh, label_en, description_zh, description_en, status, sort_order)
+       VALUES (?, ?, ?, ?, ?, 'active', ?)
+       ON DUPLICATE KEY UPDATE
+          label_zh = IF(label_zh = '', VALUES(label_zh), label_zh),
+          label_en = IF(label_en = '', VALUES(label_en), label_en),
+          description_zh = IF(description_zh = '', VALUES(description_zh), description_zh),
+          description_en = IF(description_en = '', VALUES(description_en), description_en)`,
+      [item.slug, item.labelZh, item.labelEn, item.descriptionZh, item.descriptionEn, item.sortOrder]
+    );
+  }
+}
+
+async function listPromptCategories({ includeHidden = false } = {}) {
+  const where = includeHidden ? "" : "WHERE status = 'active'";
+  const [rows] = await getPool().execute(
+    `SELECT * FROM prompt_categories ${where} ORDER BY sort_order ASC, slug ASC`
+  );
+  return rows.map(mapPromptCategory);
+}
+
+async function getPromptCategoryBySlug(slug) {
+  const cleaned = String(slug || "").trim().toLowerCase();
+  if (!cleaned) return null;
+  const [rows] = await getPool().execute("SELECT * FROM prompt_categories WHERE slug = ? LIMIT 1", [cleaned]);
+  return mapPromptCategory(rows[0]);
+}
+
+async function upsertPromptCategory(payload) {
+  const slug = String(payload.slug || "").trim().toLowerCase();
+  if (!isValidCategorySlug(slug)) throw new Error("invalid category slug");
+  const labelZh = String(payload.labelZh || "").trim().slice(0, 48);
+  const labelEn = String(payload.labelEn || "").trim().slice(0, 48);
+  const descriptionZh = String(payload.descriptionZh || "").trim().slice(0, 255);
+  const descriptionEn = String(payload.descriptionEn || "").trim().slice(0, 255);
+  const status = payload.status === "hidden" ? "hidden" : "active";
+  const sortOrder = Number.isFinite(Number(payload.sortOrder)) ? Number(payload.sortOrder) : 0;
+  await getPool().execute(
+    `INSERT INTO prompt_categories
+        (slug, label_zh, label_en, description_zh, description_en, status, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+        label_zh = VALUES(label_zh),
+        label_en = VALUES(label_en),
+        description_zh = VALUES(description_zh),
+        description_en = VALUES(description_en),
+        status = VALUES(status),
+        sort_order = VALUES(sort_order)`,
+    [slug, labelZh, labelEn, descriptionZh, descriptionEn, status, sortOrder]
+  );
+  return getPromptCategoryBySlug(slug);
 }
 
 async function listTags({ includeHidden = false, limit = 500 } = {}) {
@@ -3866,6 +3969,9 @@ module.exports = {
   updatePrompt,
   softDeletePrompt,
   seedPromptsIfEmpty,
+  listPromptCategories,
+  getPromptCategoryBySlug,
+  upsertPromptCategory,
   // gallery_tags
   listTags,
   getTagBySlug,
