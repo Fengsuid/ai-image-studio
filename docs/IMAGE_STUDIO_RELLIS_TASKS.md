@@ -41,14 +41,13 @@
 已完成、提交并通过本轮线上 smoke：
 
 - 画廊可靠性与榜单基础：`AIS-RLS-001` 到 `AIS-RLS-007`。
-- 提示词分类、远程来源、无封面详情：`AIS-RLS-008` 到 `AIS-RLS-012`。
+- 提示词分类、远程来源、无封面详情、点赞与排序：`AIS-RLS-008` 到 `AIS-RLS-013`。
 - 画布 MVP 主链路：`AIS-RLS-015` 到 `AIS-RLS-025`。
 - 标签管理与合并：`AIS-RLS-035`。
 - 开发与上线 QA 清单：`AIS-RLS-038`。
 
 尚未完成，保持 Backlog：
 
-- `AIS-RLS-013` 提示词点赞与热度排序增强。
 - `AIS-RLS-014` 大模型提示词重复审核接口。
 - `AIS-RLS-026` 到 `AIS-RLS-034`。
 - `AIS-RLS-036`、`AIS-RLS-037`。
@@ -61,6 +60,7 @@
 - `7de7aeb` 标签合并 JSON 迁移。
 - `0698983` QA release checklist。
 - `32d5475` 公开开发文档与 Rellis 任务清单更新。
+- 本轮提示词排序补齐：`sort=hot|new|used|liked`、前台排序切换。
 
 本轮线上检查结果：
 
@@ -428,7 +428,7 @@
 优先级：P1  
 标签：`frontend`, `backend`, `database`, `prompt`  
 依赖：`AIS-RLS-009`  
-建议状态：Backlog
+建议状态：Done
 
 目标：
 
@@ -445,6 +445,14 @@
 - 用户不能重复点赞同一提示词。
 - 取消点赞后计数准确。
 - 热度排序稳定。
+
+完成记录：
+
+- `prompt_likes` 表使用 `(prompt_id, user_id)` 主键防止重复点赞。
+- 点赞和取消点赞后重新统计 `prompts.like_count`。
+- 使用提示词时通过 `/api/prompts/:id/use` 累加 `prompts.use_count`。
+- `/api/prompts` 支持 `sort=hot|new|used|liked`。
+- 前台提示词库新增热门、最新、常用、最赞排序切换。
 
 ### AIS-RLS-014：大模型提示词重复审核接口
 

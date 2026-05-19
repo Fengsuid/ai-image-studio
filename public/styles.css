@@ -2324,6 +2324,34 @@ a {
   font-size: 13px;
 }
 
+.library-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.library-sort button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  padding: 8px 11px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.library-sort button.active {
+  background: #0f172a;
+  color: #fff;
+}
+
 .tag-filters {
   display: flex;
   flex-wrap: wrap;

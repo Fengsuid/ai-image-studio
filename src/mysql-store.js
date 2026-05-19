@@ -3334,8 +3334,14 @@ async function listPrompts({ includeHidden = false, limit = 500, sort = "default
   const where = includeHidden ? "" : "WHERE p.status = 'active'";
   const heatExpr = "(p.like_count * 3 + p.use_count + GREATEST(0, 30 - TIMESTAMPDIFF(DAY, p.created_at, NOW())) / 10)";
   const order = sort === "hot"
-    ? `ORDER BY heat_score DESC, p.like_count DESC, p.sort_order DESC, p.id ASC`
-    : `ORDER BY p.sort_order DESC, p.id ASC`;
+    ? "ORDER BY heat_score DESC, p.like_count DESC, p.use_count DESC, p.created_at DESC, p.id DESC"
+    : sort === "new"
+      ? "ORDER BY p.created_at DESC, p.id DESC"
+      : sort === "used"
+        ? "ORDER BY p.use_count DESC, p.like_count DESC, p.created_at DESC, p.id DESC"
+        : sort === "liked"
+          ? "ORDER BY p.like_count DESC, p.use_count DESC, p.created_at DESC, p.id DESC"
+          : "ORDER BY p.sort_order DESC, p.id ASC";
   const [rows] = await getPool().execute(
     `SELECT p.*, ${heatExpr} AS heat_score,
             ${currentUserId ? "CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END" : "0"} AS liked_by_current_user
@@ -3366,7 +3372,7 @@ async function setPromptLike(promptId, userId, liked) {
     [id, new Date(), id]
   );
   const [rows] = await getPool().execute(
-    `SELECT p.*, (p.like_count * 3 + p.use_count) AS heat_score,
+    `SELECT p.*, (p.like_count * 3 + p.use_count + GREATEST(0, 30 - TIMESTAMPDIFF(DAY, p.created_at, NOW())) / 10) AS heat_score,
             CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END AS liked_by_current_user
        FROM prompts p
        LEFT JOIN prompt_likes pl ON pl.prompt_id = p.id AND pl.user_id = ?

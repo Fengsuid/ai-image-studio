@@ -42,6 +42,9 @@ const state = {
   canvasProjectId: "",
   libraryTag: "all",
   librarySearch: "",
+  librarySort: ["hot", "new", "used", "liked"].includes(new URLSearchParams(window.location.search).get("sort"))
+    ? new URLSearchParams(window.location.search).get("sort")
+    : "hot",
   promptItems: [],
   promptVisible: 20,
   promptLoading: true,
@@ -179,6 +182,11 @@ const i18n = {
     libraryTitle: "探索公开作品",
     librarySubtitle: "浏览用户公开的图片、路线和提示词，一键带入生成台。",
     librarySearchLabel: "画廊",
+    promptSortLabel: "提示词排序",
+    promptSortHot: "热门",
+    promptSortNew: "最新",
+    promptSortUsed: "常用",
+    promptSortLiked: "最赞",
     search: "搜索",
     all: "全部",
     noResults: "没有找到匹配的作品",
@@ -493,6 +501,11 @@ const i18n = {
     libraryTitle: "Explore Public Works",
     librarySubtitle: "Browse public images, routes, and prompts, then send one straight to the composer.",
     librarySearchLabel: "Gallery",
+    promptSortLabel: "Prompt sort",
+    promptSortHot: "Hot",
+    promptSortNew: "New",
+    promptSortUsed: "Used",
+    promptSortLiked: "Liked",
     search: "Search",
     all: "All",
     noResults: "No matching works found",
@@ -1528,6 +1541,7 @@ function routeState(extra = {}) {
     galleryId,
     libraryTag: state.libraryTag,
     librarySearch: state.librarySearch,
+    librarySort: state.librarySort,
     canvasProjectId: state.canvasProjectId,
     ...extra
   };
@@ -1543,6 +1557,7 @@ function routeUrl(route = routeState()) {
   if (route.view === "library") {
     if (route.libraryTag && route.libraryTag !== "all") params.set("tag", route.libraryTag);
     if (route.librarySearch) params.set("q", route.librarySearch);
+    if (route.librarySort && route.librarySort !== "hot") params.set("sort", route.librarySort);
   }
   const query = params.toString();
   const hash = route.galleryId
@@ -1568,6 +1583,7 @@ function routeFromLocation() {
     galleryId,
     libraryTag: params.get("tag") || "all",
     librarySearch: params.get("q") || "",
+    librarySort: ["hot", "new", "used", "liked"].includes(params.get("sort")) ? params.get("sort") : "hot",
     canvasProjectId
   };
 }
@@ -1594,6 +1610,7 @@ function navigate(view, options = {}) {
     closeModal();
     if (options.route?.libraryTag) state.libraryTag = options.route.libraryTag;
     if (Object.hasOwn(options.route || {}, "librarySearch")) state.librarySearch = options.route.librarySearch || "";
+    if (options.route?.librarySort) state.librarySort = options.route.librarySort;
   }
   if (view === "canvas") {
     state.forceHero = true;
@@ -1614,6 +1631,7 @@ function applyRoute(route = {}) {
   closeModal();
   state.libraryTag = route.libraryTag || state.libraryTag || "all";
   state.librarySearch = route.librarySearch || "";
+  state.librarySort = route.librarySort || "hot";
   state.canvasProjectId = route.canvasProjectId || "";
   state.forceHero = route.view === "home" ? route.forceHero !== false : true;
   setView(route.view || "home");
@@ -3144,6 +3162,21 @@ function renderLibrary() {
   const visible = filtered.slice(0, state.promptVisible);
   const sourceCount = getSourceCount(source);
   const summary = state.tagsLibrary?.summary || {};
+  const sortOptions = [
+    ["hot", "ri-fire-line", text("promptSortHot")],
+    ["new", "ri-time-line", text("promptSortNew")],
+    ["used", "ri-arrow-right-circle-line", text("promptSortUsed")],
+    ["liked", "ri-heart-line", text("promptSortLiked")]
+  ];
+  const sortControl = `
+    <div class="library-sort" role="tablist" aria-label="${escapeHtml(text("promptSortLabel"))}">
+      ${sortOptions.map(([value, icon, label]) => `
+        <button type="button" role="tab" aria-selected="${state.librarySort === value ? "true" : "false"}" class="${state.librarySort === value ? "active" : ""}" data-prompt-sort="${escapeHtml(value)}">
+          <i class="${icon}"></i>${escapeHtml(label)}
+        </button>
+      `).join("")}
+    </div>
+  `;
   const stats = `
     <div class="library-stats">
       <div><strong>${source.length.toLocaleString()}+</strong><span>${text("totalPrompts")}</span></div>
@@ -3169,9 +3202,22 @@ function renderLibrary() {
         : `<div class="empty-message">${text("noResults")}</div>`;
   const statsTarget = $(".library-stats");
   if (statsTarget) statsTarget.remove();
+  const sortTarget = $(".library-sort");
+  if (sortTarget) sortTarget.remove();
   const adminCreate = $(".library-admin-create");
   if (adminCreate) adminCreate.remove();
+  $(".library-hero").insertAdjacentHTML("beforeend", sortControl);
   $(".library-hero").insertAdjacentHTML("beforeend", stats);
+  $$("[data-prompt-sort]", elements.libraryView).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const nextSort = button.dataset.promptSort;
+      if (!nextSort || nextSort === state.librarySort) return;
+      state.librarySort = nextSort;
+      state.promptVisible = 20;
+      replaceRoute();
+      await loadPromptLibrary();
+    });
+  });
   if (state.user?.role === "admin") {
     $(".library-hero").insertAdjacentHTML("beforeend", `
       <button class="library-admin-create" type="button" data-prompt-create>
@@ -4640,7 +4686,10 @@ async function loadPromptLibrary() {
   let usedFallback = false;
   let lastError = null;
   try {
-    const data = await api(state.user?.role === "admin" ? "/api/prompts?includeHidden=1&sort=hot" : "/api/prompts?sort=hot");
+    const sort = ["hot", "new", "used", "liked"].includes(state.librarySort) ? state.librarySort : "hot";
+    const data = await api(state.user?.role === "admin"
+      ? `/api/prompts?includeHidden=1&sort=${encodeURIComponent(sort)}`
+      : `/api/prompts?sort=${encodeURIComponent(sort)}`);
     items = Array.isArray(data?.prompts) ? data.prompts : [];
   } catch (error) {
     lastError = error;
@@ -6034,6 +6083,7 @@ async function bootstrap() {
   state.forceHero = initialRoute.view === "home" ? initialRoute.forceHero !== false : true;
   state.libraryTag = initialRoute.libraryTag || "all";
   state.librarySearch = initialRoute.librarySearch || "";
+  state.librarySort = initialRoute.librarySort || "hot";
   renderAll();
   replaceRoute(initialRoute);
   if (initialRoute.modal === "works") {
