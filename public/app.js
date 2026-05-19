@@ -1106,7 +1106,7 @@ function imageVariantUrl(url, variant = "thumb") {
 function promptImageDisplayUrl(prompt = {}) {
   const raw = prompt.coverUrl || prompt.preview || prompt.image || prompt.imageUrl || "";
   if (!raw) return "";
-  if (prompt.kind !== "square" && /^\d+$/.test(String(prompt.id || "")) && /^https?:\/\//i.test(raw)) {
+  if (prompt.kind !== "square" && /^\d+$/.test(String(prompt.id || "")) && !/^(data:|blob:)/i.test(raw)) {
     return `/api/prompt-images/${encodeURIComponent(prompt.id)}/file`;
   }
   return raw;

@@ -36,7 +36,7 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "1.00";
+const APP_VERSION = process.env.APP_VERSION || "20260519-gallery-thumbs-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -1944,6 +1944,25 @@ function imageFileRelativePath(kind, filename) {
   return `${kind === "source" ? "sources" : "generated"}/${path.basename(String(filename || ""))}`;
 }
 
+function promptLocalImageAbsolutePath(sourceUrl = "") {
+  let pathname = "";
+  try {
+    pathname = new URL(sourceUrl, "http://local").pathname;
+  } catch {
+    return "";
+  }
+  let decodedPathname = "";
+  try {
+    decodedPathname = decodeURIComponent(pathname);
+  } catch {
+    return "";
+  }
+  if (!decodedPathname.startsWith("/prompt-thumbs/")) return "";
+  const absolutePath = path.normalize(path.join(PUBLIC_DIR, decodedPathname));
+  if (absolutePath !== PUBLIC_DIR && !absolutePath.startsWith(PUBLIC_DIR + path.sep)) return "";
+  return absolutePath;
+}
+
 async function galleryFileCheckFor(target, kind, filename) {
   const absolutePath = imageFileAbsolutePath(kind, filename);
   const relativePath = imageFileRelativePath(kind, filename);
@@ -3671,6 +3690,35 @@ async function routeApi(req, res, url) {
       throw httpError("Prompt image not found", 404);
     }
     const sourceUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
+    if (sourceUrl.startsWith("/")) {
+      const absolutePath = promptLocalImageAbsolutePath(sourceUrl);
+      if (!absolutePath) {
+        throw httpError("Prompt local image is not allowed", 404);
+      }
+      const stat = await fs.stat(absolutePath).catch(() => null);
+      if (!stat?.isFile()) {
+        throw httpError("Prompt local image not found", 404);
+      }
+      const extension = path.extname(absolutePath).toLowerCase();
+      const contentType = mimeTypes.get(extension) || "application/octet-stream";
+      if (!contentType.toLowerCase().startsWith("image/")) {
+        throw httpError("Prompt local image is not an image", 404);
+      }
+      res.writeHead(200, withSecurityHeaders({
+        "Content-Type": contentType,
+        "Content-Length": stat.size,
+        "Cache-Control": "public, max-age=3600",
+        "X-Image-Variant": url.searchParams.get("variant") === "thumb" ? "thumb" : "original",
+        "X-AI-Content-Source": "prompt-database-image",
+        "Vary": "Accept"
+      }));
+      if (req.method === "HEAD") {
+        res.end();
+        return;
+      }
+      res.end(await fs.readFile(absolutePath));
+      return;
+    }
     if (!isSafeRemoteImageUrl(sourceUrl)) {
       throw httpError("Prompt image is not proxyable", 404);
     }
@@ -4482,6 +4530,12 @@ async function serveStatic(req, res, url) {
     }));
     res.end(bytes);
   } catch {
+    if (
+      pathname.startsWith("/prompt-thumbs/") ||
+      /\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i.test(pathname)
+    ) {
+      return sendError(res, 404, "Static asset not found");
+    }
     const html = await fs.readFile(path.join(PUBLIC_DIR, "index.html"), "utf8");
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": "text/html; charset=utf-8",
