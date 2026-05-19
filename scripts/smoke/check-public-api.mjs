@@ -59,6 +59,22 @@ async function fetchText(pathSuffix, accept = "text/plain,*/*") {
   }
 }
 
+async function fetchHead(pathSuffix, accept = "*/*") {
+  const url = `${baseUrl}${pathSuffix}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      headers: { Accept: accept },
+      signal: controller.signal
+    });
+    return { status: response.status, headers: response.headers };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function assert(condition, message) {
   if (!condition) {
     failure(message);
@@ -76,15 +92,18 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/styles.css"), "/ missing styles.css reference");
   assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
 
   const styleMatch = home.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
   const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
   const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
+  const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
+  const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
   assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
@@ -116,6 +135,13 @@ async function checkHomeResources() {
   assert(minimap.status === 200, `${minimapPath} status=${minimap.status}`);
   assert(minimap.body.includes("root.minimap"), `${minimapPath} should register canvas minimap module`);
   assert(minimap.body.includes("viewportFromEvent"), `${minimapPath} should support minimap viewport navigation`);
+
+  log(`GET ${galleryModelPath}`);
+  const galleryModel = await fetchText(galleryModelPath, "application/javascript,*/*");
+  assert(galleryModel.status === 200, `${galleryModelPath} status=${galleryModel.status}`);
+  assert(galleryModel.body.includes("ImageStudioGalleryModel"), `${galleryModelPath} should register gallery model helpers`);
+  assert(galleryModel.body.includes("promptImageDisplayUrl"), `${galleryModelPath} should normalize prompt image URLs`);
+  assert(galleryModel.body.includes("generationEntryFromApi"), `${galleryModelPath} should normalize gallery API entries`);
   log("/ resources ok:", "asset version", appVersion || "none");
 }
 
@@ -244,6 +270,10 @@ async function checkPublicGallery() {
     if (item.publishOriginal) {
       assert(typeof item.sourceImageUrl === "string" && item.sourceImageUrl.startsWith("/api/images/"), `public item ${item.id} sourceImageUrl invalid when publishOriginal=true`);
     }
+    const thumbPath = `${item.imageUrl}${item.imageUrl.includes("?") ? "&" : "?"}variant=thumb`;
+    const image = await fetchHead(thumbPath, "image/*,*/*;q=0.8");
+    assert(image.status === 200, `public item ${item.id} image HEAD ${thumbPath} status=${image.status}`);
+    assert((image.headers.get("content-type") || "").toLowerCase().startsWith("image/"), `public item ${item.id} image content-type invalid`);
   }
 }
 

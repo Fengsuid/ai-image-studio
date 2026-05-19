@@ -1104,12 +1104,7 @@ function imageVariantUrl(url, variant = "thumb") {
 }
 
 function promptImageDisplayUrl(prompt = {}) {
-  const raw = prompt.coverUrl || prompt.preview || prompt.image || prompt.imageUrl || "";
-  if (!raw) return "";
-  if (prompt.kind !== "square" && /^\d+$/.test(String(prompt.id || "")) && !/^(data:|blob:)/i.test(raw)) {
-    return `/api/prompt-images/${encodeURIComponent(prompt.id)}/file`;
-  }
-  return raw;
+  return window.ImageStudioGalleryModel?.promptImageDisplayUrl?.(prompt) || "";
 }
 
 function imageFallbackContainerAttrs(label = text("imageUnavailable")) {
@@ -1190,43 +1185,7 @@ function publicTagsForKind(kind, tags = []) {
 }
 
 function generationEntryFromApi(generation = {}, fallback = {}) {
-  return {
-    ...fallback,
-    id: generation.id || fallback.id,
-    kind: generation.kind || fallback.kind || "",
-    promptId: generation.promptId || fallback.promptId || "",
-    title: generation.title || fallback.title || "",
-    prompt: generation.prompt || fallback.prompt || "",
-    images: generation.imageUrl ? [generation.imageUrl] : fallback.images || [],
-    sourceImageUrl: generation.sourceImageUrl || fallback.sourceImageUrl || "",
-    sourceImageId: generation.sourceImageId || fallback.sourceImageId || "",
-    sourcePrompt: generation.sourcePrompt || fallback.sourcePrompt || "",
-    originGalleryId: generation.originGalleryId || fallback.originGalleryId || "",
-    publishOriginal: Boolean(generation.publishOriginal ?? fallback.publishOriginal),
-    conversation: generation.conversation || fallback.conversation || [],
-    publicTags: generation.publicTags || fallback.publicTags || [],
-    userId: generation.userId || fallback.userId || state.user?.id || "",
-    userName: generation.userName || fallback.userName || state.user?.name || "",
-    status: fallback.status || "done",
-    time: generation.createdAt || fallback.time,
-    elapsedMs: Number(generation.durationMs || 0) || fallback.elapsedMs || null,
-    model: generation.model || fallback.model,
-    isPublic: Boolean(generation.isPublic ?? fallback.isPublic),
-    archived: Boolean(generation.archived ?? fallback.archived),
-    publishedAt: generation.publishedAt || fallback.publishedAt || "",
-    publicRewardStatus: generation.publicRewardStatus || fallback.publicRewardStatus || "none",
-    publicRewardAmount: Number(generation.publicRewardAmount || fallback.publicRewardAmount || 0),
-    likeCount: Number(generation.likeCount || fallback.likeCount || 0),
-    likedByCurrentUser: Boolean(generation.likedByCurrentUser ?? fallback.likedByCurrentUser),
-    withdrawalStatus: generation.withdrawalStatus || fallback.withdrawalStatus || "none",
-    withdrawalRequestedAt: generation.withdrawalRequestedAt || fallback.withdrawalRequestedAt || "",
-    options: fallback.options || {
-      size: generation.size,
-      quality: generation.quality,
-      background: generation.background,
-      outputFormat: generation.outputFormat
-    }
-  };
+  return window.ImageStudioGalleryModel?.generationEntryFromApi?.(generation, fallback, { currentUser: state.user }) || fallback;
 }
 
 function tagInfo(slug) {
@@ -1579,7 +1538,7 @@ function routeUrl(route = routeState()) {
     ? ""
     : route.view === "canvas"
       ? `#/canvas${route.canvasProjectId ? `/${encodeURIComponent(route.canvasProjectId)}` : ""}`
-      : (window.location.hash || "");
+      : "";
   return `${window.location.pathname}${query ? `?${query}` : ""}${hash}`;
 }
 

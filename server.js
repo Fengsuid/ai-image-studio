@@ -37,7 +37,7 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260520-canvas-minimap-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260520-gallery-model-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -2003,6 +2003,27 @@ function imageFileAbsolutePath(kind, filename) {
   return path.join(base, safeName);
 }
 
+async function imageFileExists(kind, filename) {
+  if (!filename) return false;
+  const absolutePath = imageFileAbsolutePath(kind, filename);
+  try {
+    const stat = await fs.stat(absolutePath);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
+}
+
+async function filterGenerationsWithImageFiles(generations = []) {
+  const visible = [];
+  for (const generation of generations) {
+    if (await imageFileExists("generated", generation?.filename)) {
+      visible.push(generation);
+    }
+  }
+  return visible;
+}
+
 function imageFileRelativePath(kind, filename) {
   return `${kind === "source" ? "sources" : "generated"}/${path.basename(String(filename || ""))}`;
 }
@@ -3775,7 +3796,9 @@ async function routeApi(req, res, url) {
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 60, 120);
     const sort = url.searchParams.get("sort") === "likes" ? "likes" : "recent";
     const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
-    const generations = (await store.listPublicGenerations(limit, { includeBroken, currentUserId: current?.user?.id || "", sort })).map((generation) => ({
+    const rawGenerations = await store.listPublicGenerations(limit, { includeBroken, currentUserId: current?.user?.id || "", sort });
+    const visibleGenerations = includeBroken ? rawGenerations : await filterGenerationsWithImageFiles(rawGenerations);
+    const generations = visibleGenerations.map((generation) => ({
       ...generation,
       imageUrl: `/api/images/${generation.id}/file`,
       sourceImageUrl: sourceImageUrlForGeneration(generation),
@@ -3884,14 +3907,17 @@ async function routeApi(req, res, url) {
       : "week";
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 30, 100);
     const type = url.searchParams.get("type") || "";
-    const generationItems = (await store.listGenerationLeaderboard({
+    const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
+    const rawGenerationItems = await store.listGenerationLeaderboard({
       range,
       tag: url.searchParams.get("tag") || "",
       type,
       limit,
       currentUserId: current?.user?.id || "",
-      includeBroken: current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1"
-    })).map(generationResponse);
+      includeBroken
+    });
+    const visibleGenerationItems = includeBroken ? rawGenerationItems : await filterGenerationsWithImageFiles(rawGenerationItems);
+    const generationItems = visibleGenerationItems.map(generationResponse);
     const promptItems = type === "image-to-image"
       ? []
       : (await store.listPromptImageLeaderboard({
@@ -3915,7 +3941,8 @@ async function routeApi(req, res, url) {
     const current = await getCurrentUser(req);
     const generation = await store.getGenerationById(galleryDetailMatch[1]);
     const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
-    if (!generation || (!includeHidden && !isPubliclyVisibleGeneration(generation))) {
+    const imageMissing = generation && !(await imageFileExists("generated", generation.filename));
+    if (!generation || (!includeHidden && (!isPubliclyVisibleGeneration(generation) || imageMissing))) {
       throw httpError("Gallery image not found", 404);
     }
     return sendJson(res, 200, { generation: generationResponse(generation) });
@@ -4557,7 +4584,10 @@ async function routeApi(req, res, url) {
     }
     const absolutePath = path.join(SOURCE_DIR, generation.sourceFilename);
     const extension = path.extname(generation.sourceFilename).toLowerCase();
-    const bytes = await fs.readFile(absolutePath);
+    const bytes = await fs.readFile(absolutePath).catch((error) => {
+      if (error?.code === "ENOENT") throw httpError("Image file not found", 404);
+      throw error;
+    });
     const variant = url.searchParams.get("variant") === "thumb" ? "thumb" : "original";
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
@@ -4591,7 +4621,10 @@ async function routeApi(req, res, url) {
     }
     const absolutePath = path.join(GENERATED_DIR, generation.filename);
     const extension = path.extname(generation.filename).toLowerCase();
-    const bytes = await fs.readFile(absolutePath);
+    const bytes = await fs.readFile(absolutePath).catch((error) => {
+      if (error?.code === "ENOENT") throw httpError("Image file not found", 404);
+      throw error;
+    });
     const variant = url.searchParams.get("variant") === "thumb" ? "thumb" : "original";
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
