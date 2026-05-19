@@ -74,6 +74,15 @@ Record the outcome in the relevant development document or release note before m
 - Skipped blocker: local disposable smoke remained blocked by local MySQL root credential mismatch, not by application syntax.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-19 Prompt Sort Batch
+
+- Task covered: `AIS-RLS-013`.
+- Commit covered: `78186df`.
+- Local checks: `node --check server.js`, `node --check public/app.js`, `node --check src/mysql-store.js`, `git diff --check`, privacy grep.
+- Deployment checks: app container running, production root `200`, retired domain `410`, public smoke passed.
+- Prompt sort smoke: `/api/prompts?sort=hot|new|used|liked&limit=8` returned results and sorted descending by heat, created time, use count, and like count respectively.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.

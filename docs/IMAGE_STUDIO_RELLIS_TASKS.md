@@ -60,7 +60,7 @@
 - `7de7aeb` 标签合并 JSON 迁移。
 - `0698983` QA release checklist。
 - `32d5475` 公开开发文档与 Rellis 任务清单更新。
-- 本轮提示词排序补齐：`sort=hot|new|used|liked`、前台排序切换。
+- `78186df` 提示词排序补齐：`sort=hot|new|used|liked`、前台排序切换。
 
 本轮线上检查结果：
 
