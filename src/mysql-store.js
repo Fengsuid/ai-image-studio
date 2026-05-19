@@ -997,6 +997,47 @@ async function runMigrations() {
     await db.query("ALTER TABLE prompts ADD INDEX idx_prompts_remote (source_repo, remote_id)");
   }
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS prompt_sources (
+      id VARCHAR(32) NOT NULL PRIMARY KEY,
+      name VARCHAR(120) NOT NULL DEFAULT '',
+      source_type VARCHAR(32) NOT NULL DEFAULT 'github',
+      repo_url VARCHAR(500) NOT NULL DEFAULT '',
+      branch VARCHAR(80) NOT NULL DEFAULT 'main',
+      parser VARCHAR(80) NOT NULL DEFAULT '',
+      config_json LONGTEXT NULL,
+      status VARCHAR(16) NOT NULL DEFAULT 'active',
+      last_synced_at DATETIME(3) NULL,
+      last_status VARCHAR(24) NOT NULL DEFAULT 'never',
+      last_success_count INT NOT NULL DEFAULT 0,
+      last_failure_count INT NOT NULL DEFAULT 0,
+      last_error TEXT NULL,
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      INDEX idx_prompt_sources_status_order (status, sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS prompt_sync_runs (
+      id BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+      source_id VARCHAR(32) NOT NULL,
+      status VARCHAR(24) NOT NULL DEFAULT 'running',
+      started_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      finished_at DATETIME(3) NULL,
+      success_count INT NOT NULL DEFAULT 0,
+      failure_count INT NOT NULL DEFAULT 0,
+      skipped_count INT NOT NULL DEFAULT 0,
+      error_log MEDIUMTEXT NULL,
+      created_by_user_id VARCHAR(32) NULL,
+      INDEX idx_prompt_sync_runs_source_started (source_id, started_at),
+      INDEX idx_prompt_sync_runs_status_started (status, started_at),
+      CONSTRAINT fk_prompt_sync_runs_source FOREIGN KEY (source_id) REFERENCES prompt_sources(id) ON DELETE CASCADE,
+      CONSTRAINT fk_prompt_sync_runs_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
   const [promptLikeColumns] = await db.execute("SHOW COLUMNS FROM prompts LIKE 'like_count'");
   if (!promptLikeColumns.length) {
     await db.query("ALTER TABLE prompts ADD COLUMN like_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER sort_order");
@@ -2669,6 +2710,56 @@ function mapPrompt(row) {
   };
 }
 
+function mapPromptSource(row) {
+  if (!row) return null;
+  let config = {};
+  if (row.config_json) {
+    try {
+      const parsed = JSON.parse(row.config_json);
+      if (parsed && typeof parsed === "object") config = parsed;
+    } catch {
+      config = {};
+    }
+  }
+  return {
+    id: row.id || "",
+    name: row.name || "",
+    sourceType: row.source_type || "github",
+    repoUrl: row.repo_url || "",
+    branch: row.branch || "main",
+    parser: row.parser || "",
+    config,
+    status: row.status || "active",
+    lastSyncedAt: toIso(row.last_synced_at),
+    lastStatus: row.last_status || "never",
+    lastSuccessCount: Number(row.last_success_count || 0),
+    lastFailureCount: Number(row.last_failure_count || 0),
+    lastError: row.last_error || "",
+    sortOrder: Number(row.sort_order || 0),
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+function mapPromptSyncRun(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    sourceId: row.source_id || "",
+    sourceName: row.source_name || "",
+    status: row.status || "running",
+    startedAt: toIso(row.started_at),
+    finishedAt: toIso(row.finished_at),
+    successCount: Number(row.success_count || 0),
+    failureCount: Number(row.failure_count || 0),
+    skippedCount: Number(row.skipped_count || 0),
+    errorLog: row.error_log || "",
+    createdByUserId: row.created_by_user_id || "",
+    createdByName: row.created_by_name || "",
+    createdByEmail: row.created_by_email || ""
+  };
+}
+
 function mapPromptDuplicateCandidate(row) {
   if (!row) return null;
   return {
@@ -3281,6 +3372,150 @@ async function updatePrompt(id, patch) {
 async function softDeletePrompt(id) {
   await getPool().execute("UPDATE prompts SET status = 'hidden' WHERE id = ?", [Number(id) || 0]);
   return getPromptById(id);
+}
+
+async function getPromptByRemoteKey(sourceRepo, remoteId) {
+  const repo = String(sourceRepo || "").trim();
+  const remote = String(remoteId || "").trim();
+  if (!repo || !remote) return null;
+  const [rows] = await getPool().execute(
+    "SELECT * FROM prompts WHERE source_repo = ? AND remote_id = ? LIMIT 1",
+    [repo, remote]
+  );
+  return mapPrompt(rows[0]);
+}
+
+async function upsertRemotePrompt(input = {}) {
+  const existing = await getPromptByRemoteKey(input.sourceRepo, input.remoteId);
+  if (existing) {
+    return updatePrompt(existing.id, {
+      ...input,
+      status: input.status || existing.status
+    });
+  }
+  return createPrompt(input);
+}
+
+async function listPromptSources({ includeDisabled = true } = {}) {
+  const where = includeDisabled ? "" : "WHERE status = 'active'";
+  const [rows] = await getPool().execute(
+    `SELECT * FROM prompt_sources ${where} ORDER BY sort_order ASC, name ASC, id ASC`
+  );
+  return rows.map(mapPromptSource);
+}
+
+async function getPromptSourceById(id) {
+  const [rows] = await getPool().execute("SELECT * FROM prompt_sources WHERE id = ? LIMIT 1", [String(id || "")]);
+  return mapPromptSource(rows[0]);
+}
+
+async function createPromptSource(input = {}) {
+  const id = String(input.id || "").trim();
+  await getPool().execute(
+    `INSERT INTO prompt_sources
+        (id, name, source_type, repo_url, branch, parser, config_json, status, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      String(input.name || "").slice(0, 120),
+      String(input.sourceType || "github").slice(0, 32),
+      String(input.repoUrl || "").slice(0, 500),
+      String(input.branch || "main").slice(0, 80),
+      String(input.parser || "").slice(0, 80),
+      JSON.stringify(input.config && typeof input.config === "object" ? input.config : {}),
+      input.status === "disabled" ? "disabled" : "active",
+      Number(input.sortOrder || 0)
+    ]
+  );
+  return getPromptSourceById(id);
+}
+
+async function updatePromptSource(id, patch = {}) {
+  const columns = [];
+  const values = [];
+  const set = (key, column, transform) => {
+    if (Object.hasOwn(patch, key)) {
+      columns.push(`${column} = ?`);
+      values.push(transform(patch[key]));
+    }
+  };
+  set("name", "name", (value) => String(value || "").slice(0, 120));
+  set("sourceType", "source_type", (value) => String(value || "github").slice(0, 32));
+  set("repoUrl", "repo_url", (value) => String(value || "").slice(0, 500));
+  set("branch", "branch", (value) => String(value || "main").slice(0, 80));
+  set("parser", "parser", (value) => String(value || "").slice(0, 80));
+  set("config", "config_json", (value) => JSON.stringify(value && typeof value === "object" ? value : {}));
+  set("status", "status", (value) => value === "disabled" ? "disabled" : "active");
+  set("sortOrder", "sort_order", (value) => Number(value || 0));
+  if (!columns.length) return getPromptSourceById(id);
+  values.push(String(id || ""));
+  await getPool().execute(`UPDATE prompt_sources SET ${columns.join(", ")} WHERE id = ?`, values);
+  return getPromptSourceById(id);
+}
+
+async function createPromptSyncRun(input = {}) {
+  const startedAt = input.startedAt ? new Date(input.startedAt) : new Date();
+  const finishedAt = input.finishedAt ? new Date(input.finishedAt) : null;
+  const [result] = await getPool().execute(
+    `INSERT INTO prompt_sync_runs
+        (source_id, status, started_at, finished_at, success_count, failure_count, skipped_count, error_log, created_by_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      String(input.sourceId || ""),
+      String(input.status || "running").slice(0, 24),
+      startedAt,
+      finishedAt && !Number.isNaN(finishedAt.getTime()) ? finishedAt : null,
+      Number(input.successCount || 0),
+      Number(input.failureCount || 0),
+      Number(input.skippedCount || 0),
+      String(input.errorLog || "").slice(0, 20000),
+      input.createdByUserId || null
+    ]
+  );
+  await getPool().execute(
+    `UPDATE prompt_sources
+        SET last_synced_at = ?, last_status = ?, last_success_count = ?, last_failure_count = ?, last_error = ?
+      WHERE id = ?`,
+    [
+      finishedAt && !Number.isNaN(finishedAt.getTime()) ? finishedAt : startedAt,
+      String(input.status || "running").slice(0, 24),
+      Number(input.successCount || 0),
+      Number(input.failureCount || 0),
+      String(input.errorLog || "").slice(0, 4000),
+      String(input.sourceId || "")
+    ]
+  );
+  return getPromptSyncRunById(result.insertId);
+}
+
+async function getPromptSyncRunById(id) {
+  const [rows] = await getPool().execute(
+    `SELECT r.*, s.name AS source_name, u.name AS created_by_name, u.email AS created_by_email
+       FROM prompt_sync_runs r
+       LEFT JOIN prompt_sources s ON s.id = r.source_id
+       LEFT JOIN users u ON u.id = r.created_by_user_id
+      WHERE r.id = ? LIMIT 1`,
+    [Number(id) || 0]
+  );
+  return mapPromptSyncRun(rows[0]);
+}
+
+async function listPromptSyncRuns({ sourceId = "", limit = 100 } = {}) {
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+  const values = [];
+  const where = sourceId ? "WHERE r.source_id = ?" : "";
+  if (sourceId) values.push(String(sourceId));
+  const [rows] = await getPool().execute(
+    `SELECT r.*, s.name AS source_name, u.name AS created_by_name, u.email AS created_by_email
+       FROM prompt_sync_runs r
+       LEFT JOIN prompt_sources s ON s.id = r.source_id
+       LEFT JOIN users u ON u.id = r.created_by_user_id
+       ${where}
+      ORDER BY r.started_at DESC, r.id DESC
+      LIMIT ${safeLimit}`,
+    values
+  );
+  return rows.map(mapPromptSyncRun);
 }
 
 async function refreshPromptFingerprints({ limit = 2000 } = {}) {
@@ -4127,6 +4362,15 @@ module.exports = {
   createPrompt,
   updatePrompt,
   softDeletePrompt,
+  getPromptByRemoteKey,
+  upsertRemotePrompt,
+  listPromptSources,
+  getPromptSourceById,
+  createPromptSource,
+  updatePromptSource,
+  createPromptSyncRun,
+  getPromptSyncRunById,
+  listPromptSyncRuns,
   seedPromptsIfEmpty,
   listPromptCategories,
   getPromptCategoryBySlug,

@@ -1530,6 +1530,34 @@ function buildPromptCategoryPayload(body, { partial } = { partial: false }) {
   return payload;
 }
 
+function cleanPromptSourceInput(body = {}, existing = {}) {
+  const payload = {};
+  const set = (key, transform) => {
+    if (Object.hasOwn(body, key)) payload[key] = transform(body[key]);
+  };
+  set("name", (value) => String(value || "").trim().slice(0, 120));
+  set("sourceType", (value) => String(value || "github").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 32) || "github");
+  set("repoUrl", (value) => sanitizeUrlField(value, 500));
+  set("branch", (value) => String(value || "main").trim().slice(0, 80));
+  set("parser", (value) => String(value || "").trim().slice(0, 80));
+  set("status", (value) => String(value || "active").trim().toLowerCase() === "disabled" ? "disabled" : "active");
+  set("sortOrder", (value) => {
+    const order = Number.parseInt(value, 10);
+    return Number.isFinite(order) ? order : 0;
+  });
+  set("config", (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {});
+  if (!existing.id) {
+    if (!payload.name) throw httpError("Source name is required", 400);
+    if (!payload.repoUrl) throw httpError("Source repo URL is required", 400);
+    if (!Object.hasOwn(payload, "sourceType")) payload.sourceType = "github";
+    if (!Object.hasOwn(payload, "branch")) payload.branch = "main";
+    if (!Object.hasOwn(payload, "status")) payload.status = "active";
+    if (!Object.hasOwn(payload, "sortOrder")) payload.sortOrder = 0;
+    if (!Object.hasOwn(payload, "config")) payload.config = {};
+  }
+  return payload;
+}
+
 function tagSummary(tags = []) {
   const systemCount = tags.filter((tag) => tag.source === "system").length;
   const withContentCount = tags.filter((tag) => Number(tag.contentCount || 0) > 0).length;
@@ -2096,6 +2124,82 @@ async function routeApi(req, res, url) {
     return sendJson(res, 200, {
       todayGenerated: offset + generatedToday
     });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/admin/prompt-sources") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const [sources, runs] = await Promise.all([
+      store.listPromptSources({ includeDisabled: true }),
+      store.listPromptSyncRuns({ limit: sanitizePositiveInt(url.searchParams.get("runsLimit"), 100, 500) })
+    ]);
+    return sendJson(res, 200, { sources, runs });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/prompt-sources") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const input = cleanPromptSourceInput(await readJsonBody(req));
+    const source = await store.createPromptSource({ ...input, id: randomId("ps_") });
+    await writeAdminAudit(current, req, "create_prompt_source", "prompt_source", source.id, {
+      name: source.name,
+      repoUrl: source.repoUrl,
+      status: source.status
+    });
+    return sendJson(res, 201, { source });
+  }
+
+  const promptSourceMatch = url.pathname.match(/^\/api\/admin\/prompt-sources\/([^/]+)$/);
+  if (promptSourceMatch && req.method === "PATCH") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const existing = await store.getPromptSourceById(promptSourceMatch[1]);
+    if (!existing) throw httpError("Prompt source not found", 404);
+    const input = cleanPromptSourceInput(await readJsonBody(req), existing);
+    const source = await store.updatePromptSource(existing.id, input);
+    await writeAdminAudit(current, req, "update_prompt_source", "prompt_source", source.id, {
+      fields: Object.keys(input),
+      status: source.status
+    });
+    return sendJson(res, 200, { source });
+  }
+
+  const promptSourceSyncMatch = url.pathname.match(/^\/api\/admin\/prompt-sources\/([^/]+)\/sync$/);
+  if (promptSourceSyncMatch && req.method === "POST") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const source = await store.getPromptSourceById(promptSourceSyncMatch[1]);
+    if (!source) throw httpError("Prompt source not found", 404);
+    const now = new Date();
+    if (source.status === "disabled") {
+      const run = await store.createPromptSyncRun({
+        sourceId: source.id,
+        status: "skipped",
+        startedAt: now,
+        finishedAt: now,
+        skippedCount: 1,
+        errorLog: "source_disabled",
+        createdByUserId: current.user.id
+      });
+      return sendJson(res, 200, { run, source: await store.getPromptSourceById(source.id) });
+    }
+    const run = await store.createPromptSyncRun({
+      sourceId: source.id,
+      status: "failed",
+      startedAt: now,
+      finishedAt: now,
+      failureCount: 1,
+      errorLog: "parser_not_configured: AIS-RLS-011 will attach concrete remote repository parsers",
+      createdByUserId: current.user.id
+    });
+    await writeAdminAudit(current, req, "prompt_source_sync_failed", "prompt_source", source.id, {
+      reason: run.errorLog
+    });
+    return sendJson(res, 200, { run, source: await store.getPromptSourceById(source.id) });
   }
 
   if (req.method === "GET" && url.pathname === "/api/prompts") {

@@ -5,6 +5,8 @@ const adminState = {
   users: [],
   generations: [],
   prompts: [],
+  promptSources: [],
+  promptSyncRuns: [],
   tags: [],
   promptCategories: [],
   publicImages: [],
@@ -237,12 +239,13 @@ async function loadAll() {
     `;
     return;
   }
-  const [version, settings, users, generations, prompts, tags, promptCategories, publicImages, galleryFileChecks, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
+  const [version, settings, users, generations, prompts, promptSources, tags, promptCategories, publicImages, galleryFileChecks, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
     api("/api/version"),
     api("/api/admin/settings"),
     api("/api/admin/users"),
     api("/api/admin/generations?limit=500"),
     api("/api/prompts?includeHidden=1&limit=2000"),
+    api("/api/admin/prompt-sources?runsLimit=120"),
     api("/api/tags?includeHidden=1&limit=2000"),
     api("/api/prompt-categories?includeHidden=1"),
     api("/api/admin/public-images?status=queue&limit=120"),
@@ -265,6 +268,8 @@ async function loadAll() {
   adminState.users = users.users || [];
   adminState.generations = generations.records || [];
   adminState.prompts = prompts.prompts || [];
+  adminState.promptSources = promptSources.sources || [];
+  adminState.promptSyncRuns = promptSources.runs || [];
   adminState.tags = tags.tags || [];
   adminState.promptCategories = promptCategories.categories || tags.categories || [];
   adminState.tagSummary = tags.summary || null;
@@ -537,6 +542,31 @@ function renderUsers() {
 function renderPrompts() {
   const items = filtered(adminState.prompts, ["title", "prompt", "author", "status", "category", "sourceRepo", "sourceCategory"]);
   return `${toolbar("搜索标题、提示词、作者", ["active", "hidden"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>远程来源</h2><button type="button" data-create-prompt-source>新建来源</button></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>来源</th><th>仓库</th><th>状态</th><th>最近同步</th><th>结果</th><th></th></tr></thead>
+          <tbody>
+            ${(adminState.promptSources || []).map((source) => `
+              <tr>
+                <td><strong>${escapeHtml(source.name || source.id)}</strong><small>${escapeHtml(source.sourceType || "")} · ${escapeHtml(source.parser || "parser 待配置")}</small></td>
+                <td>${escapeHtml(source.repoUrl || "-")}<small>${escapeHtml(source.branch || "main")}</small></td>
+                <td><span class="admin-badge" data-status="${escapeHtml(source.status)}">${escapeHtml(source.status)}</span></td>
+                <td>${fmtDate(source.lastSyncedAt)}<small>${escapeHtml(source.lastStatus || "never")}</small></td>
+                <td>${fmtNumber(source.lastSuccessCount)} 成功 / ${fmtNumber(source.lastFailureCount)} 失败<small>${escapeHtml(source.lastError || "")}</small></td>
+                <td><button type="button" data-detail="promptSource:${escapeHtml(source.id)}">编辑</button><button type="button" data-prompt-source-sync="${escapeHtml(source.id)}">同步</button></td>
+              </tr>
+            `).join("") || `<tr><td colspan="6">暂无远程来源</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-mini-table">
+        ${(adminState.promptSyncRuns || []).slice(0, 6).map((run) => `
+          <div><strong>${escapeHtml(run.sourceName || run.sourceId)}</strong><span>${escapeHtml(run.status)} · 成功 ${fmtNumber(run.successCount)} / 失败 ${fmtNumber(run.failureCount)} / 跳过 ${fmtNumber(run.skippedCount)}</span><small>${fmtDate(run.startedAt)} · ${escapeHtml(run.errorLog || "")}</small></div>
+        `).join("") || "<p>暂无同步记录</p>"}
+      </div>
+    </section>
     <section class="admin-panel">
       <div class="admin-panel-head">
         <h2>重复候选</h2>
@@ -1271,6 +1301,62 @@ async function userDrawer(user) {
   });
 }
 
+function promptSourcePayload(form) {
+  let config = {};
+  const configText = String(form.get("config") || "").trim();
+  if (configText) {
+    try {
+      config = JSON.parse(configText);
+    } catch {
+      throw new Error("来源配置必须是 JSON 对象");
+    }
+  }
+  return {
+    name: form.get("name"),
+    sourceType: form.get("sourceType"),
+    repoUrl: form.get("repoUrl"),
+    branch: form.get("branch"),
+    parser: form.get("parser"),
+    status: form.get("status"),
+    sortOrder: Number(form.get("sortOrder") || 0),
+    config
+  };
+}
+
+function promptSourceDrawer(source = {}) {
+  const isNew = !source.id;
+  openDrawer(isNew ? "新建远程来源" : "编辑远程来源", `
+    <form id="drawerPromptSourceForm" class="admin-form-grid single">
+      <label>名称<input name="name" value="${escapeHtml(source.name || "")}" required></label>
+      <label>类型<input name="sourceType" value="${escapeHtml(source.sourceType || "github")}" required></label>
+      <label>仓库 URL<input name="repoUrl" value="${escapeHtml(source.repoUrl || "")}" required></label>
+      <label>分支<input name="branch" value="${escapeHtml(source.branch || "main")}"></label>
+      <label>Parser<input name="parser" value="${escapeHtml(source.parser || "")}" placeholder="AIS-RLS-011 接入"></label>
+      <label>状态<select name="status"><option value="active"${source.status !== "disabled" ? " selected" : ""}>active</option><option value="disabled"${source.status === "disabled" ? " selected" : ""}>disabled</option></select></label>
+      <label>排序<input name="sortOrder" type="number" value="${escapeHtml(source.sortOrder || 0)}"></label>
+      <label>配置 JSON<textarea name="config" rows="5">${escapeHtml(JSON.stringify(source.config || {}, null, 2))}</textarea></label>
+      <button type="submit">${isNew ? "创建" : "保存"}</button>
+    </form>
+  `);
+  $("#drawerPromptSourceForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    let payload;
+    try {
+      payload = promptSourcePayload(new FormData(event.currentTarget));
+    } catch (error) {
+      setStatus(error.message, "danger");
+      return;
+    }
+    await api(isNew ? "/api/admin/prompt-sources" : `/api/admin/prompt-sources/${encodeURIComponent(source.id)}`, {
+      method: isNew ? "POST" : "PATCH",
+      body: JSON.stringify(payload)
+    });
+    recordAudit(isNew ? "create_prompt_source" : "update_prompt_source", source.id || payload.name, payload.name);
+    await refreshAndRender();
+    closeDrawer();
+  });
+}
+
 function promptPayload(form) {
   return {
     title: form.get("title"),
@@ -1645,6 +1731,7 @@ function bindActions() {
       if (type === "work") workDrawer(adminState.publicImages.find((item) => item.id === id));
       if (type === "user") await userDrawer(adminState.users.find((item) => item.id === id));
       if (type === "prompt") promptDrawer(adminState.prompts.find((item) => String(item.id) === id));
+      if (type === "promptSource") promptSourceDrawer(adminState.promptSources.find((item) => item.id === id));
       if (type === "promptAudit") await promptAuditDrawer(id);
       if (type === "tag") tagDrawer(adminState.tags.find((item) => item.slug === id));
       if (type === "category") categoryDrawer(adminState.promptCategories.find((item) => item.slug === id));
@@ -1729,6 +1816,18 @@ function bindActions() {
     await refreshAndRender();
   });
   $("[data-create-prompt]")?.addEventListener("click", () => promptDrawer());
+  $("[data-create-prompt-source]")?.addEventListener("click", () => promptSourceDrawer());
+  document.querySelectorAll("[data-prompt-source-sync]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.promptSourceSync;
+      await api(`/api/admin/prompt-sources/${encodeURIComponent(sourceId)}/sync`, {
+        method: "POST",
+        body: "{}"
+      });
+      recordAudit("sync_prompt_source", sourceId, "");
+      await refreshAndRender();
+    });
+  });
   $("[data-scan-prompt-duplicates]")?.addEventListener("click", async () => {
     await api("/api/admin/prompt-duplicates/scan", {
       method: "POST",
