@@ -1561,6 +1561,77 @@ function generationResponse(generation) {
   };
 }
 
+function imageFileAbsolutePath(kind, filename) {
+  const base = kind === "source" ? SOURCE_DIR : GENERATED_DIR;
+  const safeName = path.basename(String(filename || ""));
+  return path.join(base, safeName);
+}
+
+function imageFileRelativePath(kind, filename) {
+  return `${kind === "source" ? "sources" : "generated"}/${path.basename(String(filename || ""))}`;
+}
+
+async function galleryFileCheckFor(target, kind, filename) {
+  const absolutePath = imageFileAbsolutePath(kind, filename);
+  const relativePath = imageFileRelativePath(kind, filename);
+  try {
+    const stat = await fs.stat(absolutePath);
+    if (!stat.isFile()) {
+      return {
+        generationId: target.id,
+        imageKind: kind,
+        filename,
+        relativePath,
+        status: "broken",
+        fileSize: null,
+        errorMessage: "path is not a file"
+      };
+    }
+    return {
+      generationId: target.id,
+      imageKind: kind,
+      filename,
+      relativePath,
+      status: "ok",
+      fileSize: stat.size,
+      errorMessage: ""
+    };
+  } catch (error) {
+    return {
+      generationId: target.id,
+      imageKind: kind,
+      filename,
+      relativePath,
+      status: "broken",
+      fileSize: null,
+      errorMessage: error.code === "ENOENT" ? "file missing" : String(error.message || error.code || "file check failed").slice(0, 255)
+    };
+  }
+}
+
+async function runGalleryFileChecks({ limit = 1000 } = {}) {
+  const targets = await store.listGalleryFileCheckTargets({ limit });
+  const checks = [];
+  for (const target of targets) {
+    if (target.filename) {
+      checks.push(await galleryFileCheckFor(target, "generated", target.filename));
+    }
+    if (target.publishOriginal && target.sourceFilename) {
+      checks.push(await galleryFileCheckFor(target, "source", target.sourceFilename));
+    }
+  }
+  const saved = [];
+  for (const check of checks) {
+    saved.push(await store.upsertGalleryFileCheck(check));
+  }
+  return {
+    scanned: targets.length,
+    checked: saved.length,
+    broken: saved.filter((item) => item?.status === "broken").length,
+    checks: saved
+  };
+}
+
 function queueSnapshot(requestId) {
   const pendingIds = generationQueue.map((job) => job.id);
   const runningIds = [...generationJobs.values()]
@@ -2698,10 +2769,38 @@ async function routeApi(req, res, url) {
     ensureAdmin(current);
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 120, 200);
     const status = url.searchParams.get("status") || "queue";
+    const includeBroken = url.searchParams.get("includeBroken") === "1";
     const generations = status === "all"
-      ? (await store.listPublicGenerations(limit, { includeModerated: true })).map(generationResponse)
-      : (await store.listGalleryModeration({ limit, status })).map(generationResponse);
+      ? (await store.listPublicGenerations(limit, { includeModerated: true, includeBroken })).map(generationResponse)
+      : (await store.listGalleryModeration({ limit, status, includeBroken })).map(generationResponse);
     return sendJson(res, 200, { generations });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/admin/gallery-file-checks") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 120, 500);
+    const checks = await store.listGalleryFileChecks({
+      status: url.searchParams.get("status") || "broken",
+      limit
+    });
+    return sendJson(res, 200, { checks });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/gallery-file-checks/run") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const body = await readJsonBody(req).catch(() => ({}));
+    const limit = sanitizePositiveInt(body.limit, 1000, 5000);
+    const result = await runGalleryFileChecks({ limit });
+    await writeAdminAudit(current, req, "gallery_file_check_run", "gallery", "public-images", {
+      scanned: result.scanned,
+      checked: result.checked,
+      broken: result.broken
+    });
+    return sendJson(res, 200, result);
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/gallery-like-anomalies") {
@@ -2818,7 +2917,8 @@ async function routeApi(req, res, url) {
     const current = await getCurrentUser(req);
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 60, 120);
     const sort = url.searchParams.get("sort") === "likes" ? "likes" : "recent";
-    const generations = (await store.listPublicGenerations(limit, { currentUserId: current?.user?.id || "", sort })).map((generation) => ({
+    const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
+    const generations = (await store.listPublicGenerations(limit, { includeBroken, currentUserId: current?.user?.id || "", sort })).map((generation) => ({
       ...generation,
       imageUrl: `/api/images/${generation.id}/file`,
       sourceImageUrl: sourceImageUrlForGeneration(generation),
@@ -2863,7 +2963,8 @@ async function routeApi(req, res, url) {
       tag: url.searchParams.get("tag") || "",
       type: url.searchParams.get("type") || "",
       limit,
-      currentUserId: current?.user?.id || ""
+      currentUserId: current?.user?.id || "",
+      includeBroken: current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1"
     })).map(generationResponse);
     return sendJson(res, 200, { generations, range });
   }

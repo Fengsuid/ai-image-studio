@@ -13,6 +13,7 @@ const adminState = {
   providers: [],
   galleryLeaderboard: [],
   galleryLikeAnomalies: [],
+  galleryFileChecks: [],
   defaultProviderId: "",
   announcements: [],
   rum: { summary: {}, events: [] },
@@ -35,6 +36,7 @@ const navItems = [
   ["providers", "ri-plug-line", "API 供应商"],
   ["generation-requests", "ri-image-ai-line", "生成请求"],
   ["square-review", "ri-gallery-view-2", "广场审核"],
+  ["gallery-files", "ri-folder-warning-line", "文件巡检"],
   ["users-credits", "ri-user-settings-line", "用户与积分"],
   ["prompt-cms", "ri-quill-pen-line", "提示词 CMS"],
   ["prompt-audit", "ri-shield-check-line", "Prompt Audit"],
@@ -52,6 +54,7 @@ const pageDescriptions = {
   providers: "多 API 地址、模型能力、健康检查和路由策略入口。",
   "generation-requests": "生成任务状态、耗时、错误和请求详情。",
   "square-review": "公开作品、举报下架和恢复到画廊。",
+  "gallery-files": "公开画廊文件缺失、文件大小和最近巡检结果。",
   "users-credits": "用户状态、角色、积分和首发奖励流水。",
   "prompt-cms": "提示词内容、重复候选、互动数据和人工处理。",
   "prompt-audit": "AI 提示词重复审计、人工复核和发布门禁入口。",
@@ -233,7 +236,7 @@ async function loadAll() {
     `;
     return;
   }
-  const [version, settings, users, generations, prompts, tags, publicImages, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
+  const [version, settings, users, generations, prompts, tags, publicImages, galleryFileChecks, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
     api("/api/version"),
     api("/api/admin/settings"),
     api("/api/admin/users"),
@@ -241,6 +244,7 @@ async function loadAll() {
     api("/api/prompts?includeHidden=1&limit=2000"),
     api("/api/tags?includeHidden=1&limit=2000"),
     api("/api/admin/public-images?status=queue&limit=120"),
+    api("/api/admin/gallery-file-checks?status=broken&limit=120"),
     api("/api/admin/credit-ledger?limit=120"),
     api("/api/admin/reward-ledger?limit=120"),
     api("/api/admin/audit-logs?limit=120"),
@@ -262,6 +266,7 @@ async function loadAll() {
   adminState.tags = tags.tags || [];
   adminState.tagSummary = tags.summary || null;
   adminState.publicImages = publicImages.generations || [];
+  adminState.galleryFileChecks = galleryFileChecks.checks || [];
   adminState.creditLedger = creditLedger.ledger || [];
   adminState.rewardLedger = rewardLedger.rewards || [];
   adminState.audit = auditLogs.logs || adminState.audit;
@@ -448,6 +453,37 @@ function renderSquareReview() {
         </article>
       `).join("") || `<div class="admin-empty-state">暂无待审核作品</div>`}
     </section>${pagination(items.length)}`;
+}
+
+function renderGalleryFiles() {
+  const checks = filtered(adminState.galleryFileChecks, ["generationId", "filename", "relativePath", "status", "errorMessage", "prompt", "userName"]);
+  return `${toolbar("搜索作品 ID、文件名、作者或错误", ["broken", "ok", "unknown"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <h2>画廊文件巡检</h2>
+          <span>${fmtNumber(adminState.galleryFileChecks.filter((item) => item.status === "broken").length)} 个异常文件</span>
+        </div>
+        <button type="button" data-gallery-file-check-run><i class="ri-loop-right-line"></i>运行巡检</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>作品</th><th>类型</th><th>文件</th><th>状态</th><th>大小</th><th>检查时间</th></tr></thead>
+          <tbody>
+            ${paged(checks).map((item) => `
+              <tr>
+                <td><strong>${escapeHtml(item.generationId)}</strong><small class="admin-truncate">${escapeHtml(item.prompt || item.userName || item.userEmail || "")}</small></td>
+                <td>${escapeHtml(item.imageKind || "-")}</td>
+                <td><strong>${escapeHtml(item.filename || "-")}</strong><small class="admin-truncate">${escapeHtml(item.relativePath || "")}</small>${item.errorMessage ? `<small class="admin-truncate">${escapeHtml(item.errorMessage)}</small>` : ""}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td>
+                <td>${item.fileSize === null || item.fileSize === undefined ? "-" : fmtNumber(item.fileSize)}</td>
+                <td>${fmtDate(item.checkedAt)}</td>
+              </tr>
+            `).join("") || `<tr><td colspan="6">暂无文件巡检记录</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>${pagination(checks.length)}`;
 }
 
 function renderUsers() {
@@ -886,6 +922,7 @@ function renderContent() {
     case "providers": return renderProvidersPlaceholder();
     case "generation-requests": return renderRequests();
     case "square-review": return renderSquareReview();
+    case "gallery-files": return renderGalleryFiles();
     case "users-credits": return renderUsers();
     case "prompt-cms": return renderPrompts();
     case "prompt-audit": return renderPromptAudit();
@@ -1660,6 +1697,16 @@ function bindActions() {
       recordAudit(`moderation_${action}`, id, reason);
       await refreshAndRender();
     });
+  });
+  document.querySelector("[data-gallery-file-check-run]")?.addEventListener("click", async () => {
+    setStatus("正在巡检画廊文件...", "loading");
+    const result = await api("/api/admin/gallery-file-checks/run", {
+      method: "POST",
+      body: JSON.stringify({ limit: 5000 })
+    });
+    recordAudit("gallery_file_check_run", "public-images", `broken=${result.broken || 0}`);
+    await refreshAndRender();
+    setStatus(`巡检完成：${fmtNumber(result.checked || 0)} 个文件，异常 ${fmtNumber(result.broken || 0)}`, result.broken ? "warn" : "ok");
   });
 }
 

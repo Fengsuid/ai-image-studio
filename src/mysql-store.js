@@ -286,6 +286,26 @@ function mapGeneration(row) {
   };
 }
 
+function mapGalleryFileCheck(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    generationId: row.generation_id || "",
+    imageKind: row.image_kind || "generated",
+    filename: row.filename || "",
+    relativePath: row.relative_path || "",
+    status: row.status || "unknown",
+    fileSize: row.file_size === null || row.file_size === undefined ? null : Number(row.file_size),
+    errorMessage: row.error_message || "",
+    checkedAt: toIso(row.checked_at),
+    prompt: row.prompt || "",
+    userName: row.user_name || "",
+    userEmail: row.user_email || "",
+    publishedAt: toIso(row.published_at),
+    moderationStatus: row.moderation_status || ""
+  };
+}
+
 function mapGenerationRequest(row) {
   if (!row) return null;
   let generationIds = [];
@@ -682,6 +702,26 @@ async function runMigrations() {
       CONSTRAINT fk_generation_reports_generation FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE,
       CONSTRAINT fk_generation_reports_reporter FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE SET NULL,
       CONSTRAINT fk_generation_reports_handler FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS gallery_file_checks (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      generation_id VARCHAR(32) NOT NULL,
+      image_kind VARCHAR(24) NOT NULL DEFAULT 'generated',
+      filename VARCHAR(255) NOT NULL,
+      relative_path VARCHAR(512) NOT NULL,
+      status VARCHAR(24) NOT NULL DEFAULT 'unknown',
+      file_size BIGINT UNSIGNED NULL,
+      error_message VARCHAR(255) NOT NULL DEFAULT '',
+      checked_at DATETIME(3) NOT NULL,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      UNIQUE KEY uniq_gallery_file_check (generation_id, image_kind),
+      INDEX idx_gallery_file_checks_status (status, checked_at),
+      INDEX idx_gallery_file_checks_generation (generation_id),
+      CONSTRAINT fk_gallery_file_checks_generation FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -1719,7 +1759,7 @@ async function markGenerationReportsHandled(generationId, { status = "resolved",
   );
 }
 
-async function listGalleryModeration({ limit = 100, status = "" } = {}) {
+async function listGalleryModeration({ limit = 100, status = "", includeBroken = false } = {}) {
   const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 100));
   const values = [];
   let where = "WHERE (g.moderation_status IN ('reported', 'reviewing') OR g.withdrawal_status = 'requested')";
@@ -1731,6 +1771,9 @@ async function listGalleryModeration({ limit = 100, status = "" } = {}) {
     where += " AND g.moderation_status = ?";
     values.push(status);
   }
+  const brokenWhere = includeBroken
+    ? ""
+    : "AND NOT EXISTS (SELECT 1 FROM gallery_file_checks gfc WHERE gfc.generation_id = g.id AND gfc.status = 'broken')";
   const [rows] = await getPool().execute(
     `SELECT g.*, u.name AS user_name, u.email AS user_email,
             COALESCE(rc.report_count, 0) AS report_count,
@@ -1747,11 +1790,91 @@ async function listGalleryModeration({ limit = 100, status = "" } = {}) {
           GROUP BY generation_id
        ) rc ON rc.generation_id = g.id
        ${where}
+       ${brokenWhere}
       ORDER BY pending_report_count DESC, COALESCE(g.moderation_checked_at, g.published_at, g.created_at) DESC
       LIMIT ${normalizedLimit}`,
     values
   );
   return rows.map(mapGeneration);
+}
+
+async function listGalleryFileCheckTargets({ limit = 1000 } = {}) {
+  const normalizedLimit = Math.max(1, Math.min(5000, Number(limit) || 1000));
+  const [rows] = await getPool().execute(
+    `SELECT id, filename, source_filename, publish_original, prompt, published_at, moderation_status
+       FROM generations
+      WHERE is_public = 1 AND archived = 0
+      ORDER BY COALESCE(published_at, created_at) DESC
+      LIMIT ${normalizedLimit}`
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    filename: row.filename || "",
+    sourceFilename: row.source_filename || "",
+    publishOriginal: Boolean(row.publish_original || 0),
+    prompt: row.prompt || "",
+    publishedAt: toIso(row.published_at),
+    moderationStatus: row.moderation_status || "visible"
+  }));
+}
+
+async function upsertGalleryFileCheck(check) {
+  const generationId = String(check.generationId || "").trim();
+  const imageKind = String(check.imageKind || "generated").trim() || "generated";
+  const filename = String(check.filename || "").trim();
+  if (!generationId || !filename) return null;
+  const relativePath = String(check.relativePath || "").slice(0, 512);
+  const status = ["ok", "broken", "unknown"].includes(check.status) ? check.status : "unknown";
+  const fileSize = Number.isFinite(Number(check.fileSize)) && Number(check.fileSize) >= 0 ? Number(check.fileSize) : null;
+  const errorMessage = String(check.errorMessage || "").slice(0, 255);
+  await getPool().execute(
+    `INSERT INTO gallery_file_checks
+        (generation_id, image_kind, filename, relative_path, status, file_size, error_message, checked_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3))
+      ON DUPLICATE KEY UPDATE
+        filename = VALUES(filename),
+        relative_path = VALUES(relative_path),
+        status = VALUES(status),
+        file_size = VALUES(file_size),
+        error_message = VALUES(error_message),
+        checked_at = VALUES(checked_at)`,
+    [generationId, imageKind, filename, relativePath, status, fileSize, errorMessage]
+  );
+  return getGalleryFileCheck(generationId, imageKind);
+}
+
+async function getGalleryFileCheck(generationId, imageKind = "generated") {
+  const [rows] = await getPool().execute(
+    `SELECT gfc.*, g.prompt, g.published_at, g.moderation_status, u.name AS user_name, u.email AS user_email
+       FROM gallery_file_checks gfc
+       LEFT JOIN generations g ON g.id = gfc.generation_id
+       LEFT JOIN users u ON u.id = g.user_id
+      WHERE gfc.generation_id = ? AND gfc.image_kind = ? LIMIT 1`,
+    [generationId, imageKind]
+  );
+  return mapGalleryFileCheck(rows[0]);
+}
+
+async function listGalleryFileChecks({ status = "", limit = 100 } = {}) {
+  const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+  const values = [];
+  const where = [];
+  const statusValue = String(status || "").trim();
+  if (statusValue && statusValue !== "all") {
+    where.push("gfc.status = ?");
+    values.push(statusValue);
+  }
+  const [rows] = await getPool().execute(
+    `SELECT gfc.*, g.prompt, g.published_at, g.moderation_status, u.name AS user_name, u.email AS user_email
+       FROM gallery_file_checks gfc
+       LEFT JOIN generations g ON g.id = gfc.generation_id
+       LEFT JOIN users u ON u.id = g.user_id
+      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+      ORDER BY FIELD(gfc.status, 'broken', 'unknown', 'ok'), gfc.checked_at DESC
+      LIMIT ${normalizedLimit}`,
+    values
+  );
+  return rows.map(mapGalleryFileCheck);
 }
 
 async function listAdminAuditLogs({ limit = 100 } = {}) {
@@ -2195,9 +2318,12 @@ async function listGenerationsForUser(user, limit = 60, { includeArchived = fals
   return rows.map(mapGeneration);
 }
 
-async function listPublicGenerations(limit = 60, { includeModerated = false, currentUserId = "", sort = "recent" } = {}) {
+async function listPublicGenerations(limit = 60, { includeModerated = false, includeBroken = false, currentUserId = "", sort = "recent" } = {}) {
   const normalizedLimit = Math.max(1, Math.min(200, Number(limit) || 60));
   const moderationWhere = includeModerated ? "" : "AND g.moderation_status IN ('visible', 'restored')";
+  const brokenWhere = includeBroken
+    ? ""
+    : "AND NOT EXISTS (SELECT 1 FROM gallery_file_checks gfc WHERE gfc.generation_id = g.id AND gfc.status = 'broken')";
   const order = sort === "likes"
     ? "ORDER BY g.like_count DESC, COALESCE(g.published_at, g.created_at) DESC"
     : "ORDER BY g.created_at DESC";
@@ -2207,7 +2333,7 @@ async function listPublicGenerations(limit = 60, { includeModerated = false, cur
       FROM generations g
       LEFT JOIN users u ON u.id = g.user_id
       ${currentUserId ? "LEFT JOIN generation_likes gl ON gl.generation_id = g.id AND gl.user_id = ?" : ""}
-      WHERE g.is_public = 1 AND g.archived = 0 ${moderationWhere}
+      WHERE g.is_public = 1 AND g.archived = 0 ${moderationWhere} ${brokenWhere}
       ${order} LIMIT ${normalizedLimit}`,
     currentUserId ? [currentUserId] : []
   );
@@ -2238,10 +2364,13 @@ async function setGenerationLike(generationId, userId, liked) {
   return mapGeneration(rows[0]);
 }
 
-async function listGenerationLeaderboard({ range = "all", tag = "", type = "", limit = 50, currentUserId = "" } = {}) {
+async function listGenerationLeaderboard({ range = "all", tag = "", type = "", limit = 50, currentUserId = "", includeBroken = false } = {}) {
   const normalizedLimit = Math.max(1, Math.min(100, Number(limit) || 50));
   const values = [];
   const where = ["g.is_public = 1", "g.archived = 0", "g.moderation_status IN ('visible', 'restored')"];
+  if (!includeBroken) {
+    where.push("NOT EXISTS (SELECT 1 FROM gallery_file_checks gfc WHERE gfc.generation_id = g.id AND gfc.status = 'broken')");
+  }
   if (range === "day") where.push("COALESCE(g.published_at, g.created_at) >= DATE_SUB(NOW(3), INTERVAL 1 DAY)");
   else if (range === "week") where.push("COALESCE(g.published_at, g.created_at) >= DATE_SUB(NOW(3), INTERVAL 7 DAY)");
   else if (range === "month") where.push("COALESCE(g.published_at, g.created_at) >= DATE_SUB(NOW(3), INTERVAL 30 DAY)");
@@ -3665,6 +3794,9 @@ module.exports = {
   listGenerationReports,
   markGenerationReportsHandled,
   listGalleryModeration,
+  listGalleryFileCheckTargets,
+  upsertGalleryFileCheck,
+  listGalleryFileChecks,
   writeAdminAuditLog,
   listAdminAuditLogs,
   listAnnouncements,
