@@ -125,12 +125,13 @@ Record the outcome in the relevant development document or release note before m
 ### 2026-05-20 Canvas Minimap Batch
 
 - Task covered: `AIS-RLS-026`.
-- Commit covered: pending before deploy.
+- Commit covered: `29e20a3`.
 - Local checks: `node --check public/canvas.js`, `node --check public/canvas-minimap.js`, `node --check public/canvas-geometry.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check server.js`, `git diff --check`.
 - Frontend coverage: canvas minimap is split into `public/canvas-minimap.js`; `public/canvas.js` only wires render and pointer events.
 - UI coverage: minimap renders node rectangles, edge lines, selected-node emphasis, current viewport box, and click/drag navigation.
 - Smoke coverage: public smoke now verifies `/canvas-minimap.js` is referenced, served, and registers the `root.minimap` module.
-- Deployment checks: to be filled after production deploy.
+- Deployment checks: app container running, production version `20260520-canvas-minimap-v1`, public smoke passed, `/canvas-minimap.js` returned `200 text/javascript`, and container syntax checks passed for canvas scripts.
+- Production image regression: `/api/prompt-images/359/file?variant=thumb` returned `200 image/jpeg`.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
 ## 5. Rollback
