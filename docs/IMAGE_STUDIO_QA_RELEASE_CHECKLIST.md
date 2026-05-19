@@ -63,6 +63,17 @@ For every completed P0 task, record:
 
 Record the outcome in the relevant development document or release note before marking the task done.
 
+### 2026-05-19 Canvas And QA Batch
+
+- Tasks covered: `AIS-RLS-023`, `AIS-RLS-024`, `AIS-RLS-025`, `AIS-RLS-035`, `AIS-RLS-038`.
+- Commits covered: `fdad024`, `526e67f`, `b435888`, `7de7aeb`, `0698983`, `32d5475`.
+- Local checks: `node --check` for server, app, admin, and canvas scripts; package JSON parse; `git diff --check`; privacy grep.
+- Deployment checks: production root `200`, retired domain `410`, app container running, public smoke passed.
+- Public smoke results: `/api/version`, `/api/health`, `/api/images/public`, `/api/prompts`, `/api/tags` all passed.
+- Canvas checks: canvas script assets returned `200`; unauthenticated canvas API calls returned auth errors instead of `500`.
+- Skipped blocker: local disposable smoke remained blocked by local MySQL root credential mismatch, not by application syntax.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.
