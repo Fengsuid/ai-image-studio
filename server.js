@@ -3490,7 +3490,7 @@ async function routeApi(req, res, url) {
   }
 
   const sourceMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/source-file$/);
-  if (sourceMatch && req.method === "GET") {
+  if (sourceMatch && (req.method === "GET" || req.method === "HEAD")) {
     const current = await getCurrentUser(req);
     const generation = await store.getGenerationById(sourceMatch[1]);
     if (!generation?.sourceFilename) {
@@ -3509,17 +3509,22 @@ async function routeApi(req, res, url) {
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
       "Cache-Control": "private, max-age=86400",
+      "Content-Length": bytes.length,
       "X-Image-Variant": variant,
       "X-AI-Content-Source": "user-provided-source-image",
       "X-Privacy-Download": url.searchParams.get("privacy") === "1" ? "metadata-minimized" : "standard",
       "Vary": "Accept"
     }));
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
     res.end(bytes);
     return;
   }
 
   const fileMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/file$/);
-  if (fileMatch && req.method === "GET") {
+  if (fileMatch && (req.method === "GET" || req.method === "HEAD")) {
     const current = await getCurrentUser(req);
     const generation = await store.getGenerationById(fileMatch[1]);
     if (!generation) {
@@ -3538,11 +3543,16 @@ async function routeApi(req, res, url) {
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
       "Cache-Control": "private, max-age=86400",
+      "Content-Length": bytes.length,
       "X-Image-Variant": variant,
       "X-AI-Content-Source": "ai-generated",
       "X-Privacy-Download": url.searchParams.get("privacy") === "1" ? "metadata-minimized" : "standard",
       "Vary": "Accept"
     }));
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
     res.end(bytes);
     return;
   }
