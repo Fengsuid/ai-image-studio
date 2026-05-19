@@ -110,7 +110,7 @@ Record the outcome in the relevant development document or release note before m
 ### 2026-05-20 Prompt AI Duplicate Review Batch
 
 - Task covered: `AIS-RLS-014`.
-- Commit covered: pending before deploy.
+- Commit covered: `3704558`.
 - Local checks: `node --check server.js`, `node --check src/mysql-store.js`, `node --check src/prompt-review-service.js`, `node --check public/admin.js`, `node --check scripts/import-gen-image-prompts.mjs`, `node --check scripts/smoke/check-auth-admin.mjs`, `npm run smoke:prompt-review`, `git diff --check`.
 - Backend coverage: prompt duplicate candidates now store `ai_status`, `ai_decision`, `ai_confidence`, `ai_reason`, `ai_recommended_action`, `ai_model`, `ai_reviewed_at`, and raw response JSON for traceability.
 - Review flow coverage: prompt creation, remote prompt source sync, and import script apply run local hash/simhash candidate generation before AI/mock semantic review.
