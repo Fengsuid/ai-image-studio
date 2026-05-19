@@ -2,8 +2,18 @@
   "use strict";
 
   const root = global.ImageStudioCanvas || (global.ImageStudioCanvas = {});
+  const DRAFT_PREFIX = "imageStudio.canvasDraft.v1.";
+  const SAVE_DEBOUNCE_MS = 800;
   const state = {
     projectId: "",
+    projectTitle: "Untitled canvas",
+    lastServerUpdatedAt: "",
+    loadingProjectId: "",
+    saveStatus: "saved",
+    saveError: "",
+    saveTimer: null,
+    dirty: false,
+    hydrating: false,
     background: "dots",
     viewport: { x: 80, y: 80, scale: 1 },
     nodes: [],
@@ -18,23 +28,13 @@
   function renderShell({ projectId = "", elements = {} } = {}) {
     const normalizedId = root.store?.normalizeProjectId(projectId) || "";
     if (state.projectId !== normalizedId) {
-      state.projectId = normalizedId;
-      state.nodes = normalizedId ? root.nodes?.defaultNodes?.() || [] : [];
-      state.edges = normalizedId ? [
-        root.workflows.createEdge("node_prompt", "node_config"),
-        root.workflows.createEdge("node_image", "node_config"),
-        root.workflows.createEdge("node_config", "node_output")
-      ] : [];
-      state.selectedNodeId = state.nodes[0]?.id || "";
-      state.pendingEdgeFrom = "";
-      state.edgeError = "";
-      state.viewport = { x: 80, y: 80, scale: 1 };
+      loadCanvasProject(normalizedId);
     }
     elements.canvasListView?.classList.toggle("hidden", Boolean(normalizedId));
     elements.canvasWorkspaceView?.classList.toggle("hidden", !normalizedId);
 
     const title = document.querySelector("#canvasTitleText");
-    if (title) title.textContent = normalizedId === "new" ? "Untitled canvas" : normalizedId || "Untitled";
+    if (title) title.textContent = state.projectTitle || (normalizedId === "new" ? "Untitled canvas" : normalizedId || "Untitled");
     renderBoard();
   }
 
@@ -49,6 +49,108 @@
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.classList.toggle("active", button.dataset.canvasBackground === state.background);
     });
+    renderSaveStatus();
+  }
+
+  function resetCanvas(projectId) {
+    state.projectId = projectId;
+    state.projectTitle = projectId === "new" ? "Untitled canvas" : projectId || "Untitled";
+    state.lastServerUpdatedAt = "";
+    state.nodes = projectId ? root.nodes?.defaultNodes?.() || [] : [];
+    state.edges = projectId ? defaultEdges() : [];
+    state.selectedNodeId = state.nodes[0]?.id || "";
+    state.pendingEdgeFrom = "";
+    state.edgeError = "";
+    state.viewport = { x: 80, y: 80, scale: 1 };
+    state.background = "dots";
+    state.dirty = false;
+    setSaveStatus("saved");
+  }
+
+  function defaultEdges() {
+    return [
+      root.workflows.createEdge("node_prompt", "node_config"),
+      root.workflows.createEdge("node_image", "node_config"),
+      root.workflows.createEdge("node_config", "node_output")
+    ];
+  }
+
+  async function loadCanvasProject(projectId) {
+    clearTimeout(state.saveTimer);
+    resetCanvas(projectId);
+    if (!projectId) {
+      renderBoard();
+      return;
+    }
+    state.loadingProjectId = projectId;
+    state.hydrating = true;
+    try {
+      let serverCanvas = null;
+      if (projectId !== "new" && typeof root.request === "function") {
+        const result = await root.request(`/api/canvases/${encodeURIComponent(projectId)}`);
+        serverCanvas = result?.canvas || null;
+        if (state.loadingProjectId !== projectId) return;
+        applyProject(serverCanvas);
+      }
+      const draft = readDraft(projectId);
+      if (draft && shouldRestoreDraft(projectId, draft, serverCanvas)) {
+        applyDraft(draft);
+        state.dirty = true;
+        setSaveStatus("dirty");
+        scheduleAutosave();
+      }
+    } catch (error) {
+      const draft = readDraft(projectId);
+      if (draft && global.confirm("恢复本地画布草稿？")) {
+        applyDraft(draft);
+        state.dirty = true;
+        setSaveStatus("failed", error?.message || "同步失败");
+      } else {
+        setSaveStatus("failed", error?.message || "同步失败");
+      }
+    } finally {
+      state.hydrating = false;
+      renderBoard();
+    }
+  }
+
+  function applyProject(project = {}) {
+    if (!project) return;
+    state.projectId = project.id || state.projectId;
+    state.projectTitle = project.title || state.projectTitle || "Untitled canvas";
+    state.lastServerUpdatedAt = project.updatedAt || "";
+    hydrateFromData(project.dataJson || {});
+    state.dirty = false;
+    setSaveStatus("saved");
+  }
+
+  function applyDraft(draft = {}) {
+    state.projectTitle = draft.title || state.projectTitle || "Untitled canvas";
+    hydrateFromData(draft.data || {});
+  }
+
+  function hydrateFromData(data = {}) {
+    if (data.background) state.background = ["dots", "grid", "blank"].includes(data.background) ? data.background : "dots";
+    if (data.viewport && typeof data.viewport === "object") {
+      state.viewport = {
+        x: Number(data.viewport.x || 0),
+        y: Number(data.viewport.y || 0),
+        scale: Math.min(3, Math.max(0.25, Number(data.viewport.scale || 1)))
+      };
+    }
+    state.nodes = Array.isArray(data.nodes) ? data.nodes.map((node) => root.nodes.createNode(node)) : state.nodes;
+    state.edges = Array.isArray(data.edges) ? data.edges : state.edges;
+    state.selectedNodeId = state.nodes.some((node) => node.id === data.selectedNodeId)
+      ? data.selectedNodeId
+      : state.nodes[0]?.id || "";
+  }
+
+  function shouldRestoreDraft(projectId, draft, serverCanvas) {
+    if (!draft) return false;
+    if (projectId === "new") return global.confirm("恢复本地画布草稿？");
+    const draftSaved = Date.parse(draft.savedAt || "") || 0;
+    const serverSaved = Date.parse(serverCanvas?.updatedAt || "") || 0;
+    return draftSaved > serverSaved && global.confirm("发现较新的本地画布草稿，是否恢复？");
   }
 
   function nodeTemplate(node) {
@@ -170,11 +272,13 @@
     board.addEventListener("pointerup", endDrag);
     board.addEventListener("pointercancel", endDrag);
     document.querySelector("[data-canvas-fit]")?.addEventListener("click", fitAll);
+    document.querySelector("[data-canvas-save]")?.addEventListener("click", () => saveCanvasNow());
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.addEventListener("click", () => {
         state.background = ["dots", "grid", "blank"].includes(button.dataset.canvasBackground)
           ? button.dataset.canvasBackground
           : "dots";
+        markDirty();
         renderBoard();
       });
     });
@@ -183,6 +287,11 @@
     });
     document.querySelector("#canvasInspectorBody")?.addEventListener("change", updateSelectedNode);
     document.querySelector("#canvasInspectorBody")?.addEventListener("click", onInspectorAction);
+    global.addEventListener("beforeunload", (event) => {
+      if (!state.dirty && state.saveStatus !== "saving" && state.saveStatus !== "failed") return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
   }
 
   function onWheel(event) {
@@ -191,6 +300,7 @@
     const origin = root.geometry.point(event.clientX - rect.left, event.clientY - rect.top);
     const delta = event.deltaY > 0 ? 0.9 : 1.1;
     state.viewport = root.geometry.zoomAt(state.viewport, origin, state.viewport.scale * delta);
+    markDirty();
     renderBoard();
   }
 
@@ -276,10 +386,13 @@
     state.pointers.delete(event.pointerId);
     if (state.drag?.type === "pinch" && state.pointers.size < 2) {
       state.drag = null;
+      markDirty();
       return;
     }
     if (state.drag?.pointerId !== event.pointerId) return;
+    const changed = ["node", "pan"].includes(state.drag?.type);
     state.drag = null;
+    if (changed) markDirty();
   }
 
   function addNode(type) {
@@ -291,6 +404,7 @@
     state.nodes.push(node);
     state.selectedNodeId = node.id;
     state.edgeError = "";
+    markDirty();
     renderBoard();
   }
 
@@ -330,6 +444,7 @@
     state.nodes.push(node);
     state.selectedNodeId = node.id;
     state.edgeError = "";
+    markDirty();
     renderBoard();
   }
 
@@ -340,6 +455,7 @@
     const value = fieldName === "candidateCount" ? Number(event.target.value || 1) : event.target.value;
     node.data[fieldName] = value;
     if (fieldName === "prompt") node.data.body = value;
+    markDirty();
     renderBoard();
   }
 
@@ -355,19 +471,24 @@
       state.nodes = state.nodes.filter((item) => item.id !== node.id);
       state.edges = state.edges.filter((edge) => edge.sourceId !== node.id && edge.targetId !== node.id);
       state.selectedNodeId = state.nodes[0]?.id || "";
+      markDirty();
     }
     if (action === "duplicate") {
       const duplicate = root.nodes.duplicateNode(node);
       if (duplicate) {
         state.nodes.push(duplicate);
         state.selectedNodeId = duplicate.id;
+        markDirty();
       }
     }
     if (action === "link") {
       state.pendingEdgeFrom = node.id;
       state.edgeError = "";
     }
-    if (action === "lock") node.locked = !node.locked;
+    if (action === "lock") {
+      node.locked = !node.locked;
+      markDirty();
+    }
     renderBoard();
   }
 
@@ -391,6 +512,7 @@
       return;
     }
     markOutput(output, "loading", "Running canvas generation...");
+    markDirty();
     renderBoard();
     try {
       const result = await root.request(`/api/canvases/${encodeURIComponent(state.projectId)}/generate`, {
@@ -407,6 +529,7 @@
     } catch (error) {
       markOutput(output, "error", error?.message || "Canvas generation failed.");
     }
+    markDirty();
     renderBoard();
   }
 
@@ -445,6 +568,7 @@
     state.edges.push(root.workflows.createEdge(sourceId, targetId));
     state.selectedNodeId = targetId;
     state.edgeError = "";
+    markDirty();
   }
 
   document.addEventListener("click", (event) => {
@@ -452,8 +576,127 @@
     if (!edgeId) return;
     state.edges = state.edges.filter((edge) => edge.id !== edgeId);
     state.edgeError = "";
+    markDirty();
     renderBoard();
   });
+
+  function markDirty() {
+    if (state.hydrating || !state.projectId) return;
+    state.dirty = true;
+    setSaveStatus("dirty");
+    writeDraft();
+    scheduleAutosave();
+  }
+
+  function scheduleAutosave() {
+    clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(() => saveCanvasNow(), SAVE_DEBOUNCE_MS);
+  }
+
+  async function saveCanvasNow() {
+    if (!state.projectId || (!state.dirty && state.projectId !== "new") || state.saveStatus === "saving") return;
+    if (typeof root.request !== "function") {
+      setSaveStatus("failed", "同步失败");
+      writeDraft();
+      return;
+    }
+    clearTimeout(state.saveTimer);
+    setSaveStatus("saving");
+    const payload = canvasPayload();
+    try {
+      const result = state.projectId === "new"
+        ? await root.request("/api/canvases", { method: "POST", body: JSON.stringify(payload) })
+        : await root.request(`/api/canvases/${encodeURIComponent(state.projectId)}`, { method: "PATCH", body: JSON.stringify(payload) });
+      const canvas = result?.canvas || null;
+      if (canvas?.id) {
+        const previousDraftKey = draftKey(state.projectId);
+        state.projectId = canvas.id;
+        state.projectTitle = canvas.title || state.projectTitle;
+        state.lastServerUpdatedAt = canvas.updatedAt || state.lastServerUpdatedAt;
+        removeDraft(previousDraftKey);
+        removeDraft(draftKey(state.projectId));
+        root.setProjectRoute?.(state.projectId);
+      }
+      state.dirty = false;
+      setSaveStatus("saved");
+    } catch (error) {
+      setSaveStatus("failed", error?.message || "同步失败");
+      writeDraft();
+    }
+    renderBoard();
+  }
+
+  function canvasPayload() {
+    const data = {
+      background: state.background,
+      viewport: state.viewport,
+      nodes: state.nodes,
+      edges: state.edges,
+      selectedNodeId: state.selectedNodeId
+    };
+    return {
+      title: state.projectTitle || "Untitled canvas",
+      visibility: "private",
+      dataJson: data,
+      nodeCount: state.nodes.length,
+      edgeCount: state.edges.length
+    };
+  }
+
+  function draftKey(projectId = state.projectId) {
+    return `${DRAFT_PREFIX}${projectId || "new"}`;
+  }
+
+  function writeDraft() {
+    if (!state.projectId) return;
+    try {
+      global.localStorage?.setItem(draftKey(), JSON.stringify({
+        projectId: state.projectId,
+        title: state.projectTitle,
+        savedAt: new Date().toISOString(),
+        data: canvasPayload().dataJson
+      }));
+    } catch {
+      // localStorage may be unavailable in private browsing.
+    }
+  }
+
+  function readDraft(projectId) {
+    try {
+      return JSON.parse(global.localStorage?.getItem(draftKey(projectId)) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function removeDraft(key) {
+    try {
+      global.localStorage?.removeItem(key);
+    } catch {
+      // ignore localStorage failures
+    }
+  }
+
+  function setSaveStatus(status, error = "") {
+    state.saveStatus = status;
+    state.saveError = error;
+    renderSaveStatus();
+  }
+
+  function renderSaveStatus() {
+    const status = document.querySelector("#canvasSaveStatus");
+    if (!status) return;
+    const labels = {
+      saved: "已保存",
+      saving: "保存中",
+      dirty: "未保存",
+      failed: "同步失败"
+    };
+    status.dataset.status = state.saveStatus;
+    status.textContent = state.saveError && state.saveStatus === "failed"
+      ? `${labels.failed}: ${state.saveError}`
+      : labels[state.saveStatus] || labels.saved;
+  }
 
   function selectedNode() {
     return state.nodes.find((node) => node.id === state.selectedNodeId) || null;

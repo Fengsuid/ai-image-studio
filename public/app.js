@@ -975,6 +975,10 @@ async function api(path, options = {}) {
 }
 window.ImageStudioCanvas = window.ImageStudioCanvas || {};
 window.ImageStudioCanvas.request = api;
+window.ImageStudioCanvas.setProjectRoute = (projectId) => {
+  state.canvasProjectId = projectId || "";
+  replaceRoute({ canvasProjectId: state.canvasProjectId });
+};
 
 function promptAuditPublishMessage(error) {
   if (error?.details?.requiredMode !== "image-to-image") return error?.message || "";
