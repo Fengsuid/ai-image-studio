@@ -65,6 +65,32 @@ img {
   max-width: 100%;
 }
 
+[data-image-fallback] {
+  position: relative;
+}
+
+[data-image-fallback].image-unavailable img {
+  display: none !important;
+}
+
+[data-image-fallback].image-unavailable::after {
+  content: attr(data-image-fallback);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  text-align: center;
+  color: #64748b;
+  background:
+    linear-gradient(135deg, rgba(248, 250, 252, 0.94), rgba(226, 232, 240, 0.88));
+  font-size: clamp(10px, 2.8vw, 13px);
+  font-weight: 800;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
 a {
   color: inherit;
 }
@@ -862,6 +888,7 @@ a {
 
 .recent-visual em {
   position: absolute;
+  z-index: 2;
   right: 10px;
   top: 10px;
   max-width: calc(100% - 20px);
@@ -1002,6 +1029,7 @@ a {
 
 .card-art em {
   position: absolute;
+  z-index: 2;
   top: 8px;
   right: 8px;
   max-width: calc(100% - 16px);
@@ -1588,6 +1616,7 @@ a {
 
 .route-strip em {
   position: absolute;
+  z-index: 2;
   right: 4px;
   bottom: 4px;
   min-width: 17px;
@@ -1635,6 +1664,7 @@ a {
 
 .candidate-strip span {
   position: absolute;
+  z-index: 2;
   left: 5px;
   top: 4px;
   min-width: 18px;
@@ -2146,6 +2176,13 @@ a {
   border-radius: 14px;
   overflow: hidden;
   background: #f8fafc;
+  min-height: 150px;
+}
+
+.square-source-pair figure.image-unavailable figcaption,
+.works-detail-source.image-unavailable h4 {
+  position: relative;
+  z-index: 2;
 }
 
 .square-source-pair img {
@@ -2678,6 +2715,7 @@ a {
 
 .work-image-tools {
   position: absolute;
+  z-index: 3;
   left: 10px;
   right: 10px;
   bottom: 10px;
@@ -2903,6 +2941,7 @@ a {
 .gallery-rank-visual {
   position: relative;
   width: 100%;
+  aspect-ratio: 1;
   border: 0;
   padding: 0;
   background: #e2e8f0;
@@ -2911,13 +2950,14 @@ a {
 
 .gallery-rank-visual img {
   width: 100%;
-  aspect-ratio: 1;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
 
 .gallery-rank-visual em {
   position: absolute;
+  z-index: 2;
   top: 8px;
   left: 8px;
   border-radius: 999px;
@@ -3224,6 +3264,10 @@ a {
 .works-detail-route {
   display: grid;
   gap: 10px;
+}
+
+.works-detail-source.image-unavailable {
+  min-height: 260px;
 }
 
 .works-detail-source img {

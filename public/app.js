@@ -239,6 +239,7 @@ const i18n = {
     sourcePrompt: "原图提示词",
     currentPrompt: "本次提示词",
     sourceImageId: "来源图片 ID",
+    imageUnavailable: "图片暂不可用",
     likeImage: "点赞",
     unlikeImage: "取消点赞",
     galleryLeaderboard: "点赞排行榜",
@@ -531,6 +532,7 @@ const i18n = {
     sourcePrompt: "Source prompt",
     currentPrompt: "Current prompt",
     sourceImageId: "Source image ID",
+    imageUnavailable: "Image unavailable",
     likeImage: "Like",
     unlikeImage: "Unlike",
     galleryLeaderboard: "Like leaderboard",
@@ -974,6 +976,7 @@ function setupRumMonitoring() {
     const target = event.target;
     if (target instanceof HTMLImageElement) {
       reportRumMetric("image_error", 1, { src: target.currentSrc || target.src || "" });
+      markImageUnavailable(target);
     }
   }, true);
 }
@@ -1010,6 +1013,26 @@ function imageVariantUrl(url, variant = "thumb") {
   if (!url || /^(data:|blob:)/i.test(url)) return url || "";
   const joiner = url.includes("?") ? "&" : "?";
   return `${url}${joiner}variant=${encodeURIComponent(variant)}`;
+}
+
+function imageFallbackContainerAttrs(label = text("imageUnavailable")) {
+  return `data-image-fallback="${escapeHtml(label)}"`;
+}
+
+function imageFallbackImgAttrs() {
+  return 'data-fallback-image="1"';
+}
+
+function markImageUnavailable(image) {
+  if (!image || image.dataset.imageFailed === "1") return;
+  image.dataset.imageFailed = "1";
+  image.removeAttribute("src");
+  image.removeAttribute("srcset");
+  image.setAttribute("aria-hidden", "true");
+  const frame = image.closest("[data-image-fallback]");
+  if (!frame) return;
+  if (!frame.dataset.imageFallback) frame.dataset.imageFallback = text("imageUnavailable");
+  frame.classList.add("image-unavailable");
 }
 
 function formatDate(value) {
@@ -1530,12 +1553,12 @@ function renderRecentCreations() {
   const displayItems = items.length ? items : recentFallbackItems();
   elements.recentMasonry.innerHTML = displayItems.map((item) => {
     const visual = item.image
-    ? `<img src="${escapeHtml(imageVariantUrl(item.image))}" loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(truncate(item.prompt, 80))}">`
+    ? `<img src="${escapeHtml(imageVariantUrl(item.image))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(truncate(item.prompt, 80))}">`
       : `<div class="recent-gradient" style="--art-bg:${item.colors}"><i class="${item.icon}"></i></div>`;
     const author = item.isPublic ? `<em><i class="ri-user-line"></i>${escapeHtml(displayUserName(item))}</em>` : "";
     return `
       <button class="recent-tile ${item.heightClass}" type="button" data-recent-id="${escapeHtml(item.id)}">
-        <div class="recent-visual">${visual}${author}</div>
+        <div class="recent-visual" ${imageFallbackContainerAttrs()}>${visual}${author}</div>
         <div class="recent-caption">
           <strong>${escapeHtml(item.title || truncate(item.prompt, 34))}</strong>
           <span>${escapeHtml(truncate(item.prompt, 76))}</span>
@@ -1555,7 +1578,7 @@ function renderRecentCreations() {
 
 function openRecentPreview(item) {
   const visual = item.image
-    ? `<img class="preview-image" src="${item.image}" alt="${escapeHtml(truncate(item.prompt, 80))}">`
+    ? `<img class="preview-image" src="${escapeHtml(item.image)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">`
     : `<div class="preview-gradient" style="--art-bg:${item.colors}"><i class="${item.icon}"></i></div>`;
   if (item.isPublic && item.image) {
     openSquarePreview({
@@ -2289,11 +2312,11 @@ function renderImageSessions() {
     const count = items.length;
     const active = session.id === state.activeImageSessionId ? "active" : "";
     const thumb = latest
-    ? `<img src="${escapeHtml(imageVariantUrl(latest.images[0]))}" loading="lazy" decoding="async" alt="${escapeHtml(truncate(latest.prompt, 60))}">`
+    ? `<img src="${escapeHtml(imageVariantUrl(latest.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(latest.prompt, 60))}">`
       : `<i class="ri-chat-3-line"></i>`;
     return `
       <button class="chat-session-card ${active}" type="button" data-session-id="${escapeHtml(session.id)}">
-        <span class="session-thumb">${thumb}</span>
+        <span class="session-thumb" ${imageFallbackContainerAttrs()}>${thumb}</span>
         <span class="session-copy">
           <strong>${escapeHtml(session.title || text("sessionUntitled"))}</strong>
           <em>${count} ${text("roundCount")}</em>
@@ -2346,7 +2369,7 @@ function renderHistory() {
       ? `<span class="queue-pill">${item.queuePosition === 0 ? text("queueRunning") : `${text("queuePosition")} ${item.queuePosition}/${item.queueTotal || item.queuePosition}`}</span>`
       : "";
     const image = item.status === "done" && item.images[0]
-      ? `<img class="img-reveal" src="${item.images[0]}" alt="${escapeHtml(truncate(item.prompt, 80))}">`
+      ? `<img class="img-reveal" src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">`
       : item.status === "generating"
         ? `<div class="paint-drip"><span></span><span></span><span></span><span></span><span></span></div>`
         : `<i class="ri-image-line"></i>`;
@@ -2363,8 +2386,8 @@ function renderHistory() {
     const routeStrip = route.length > 1 ? `
       <div class="route-strip" aria-label="${text("routeTitle")}">
         ${route.slice(-4).map((step, routeIndex) => `
-          <span title="${escapeHtml(step.prompt || "")}">
-            ${step.imageUrl ? `<img src="${escapeHtml(step.imageUrl)}" loading="lazy" decoding="async" alt="">` : `<i class="ri-sparkling-2-line"></i>`}
+          <span title="${escapeHtml(step.prompt || "")}" ${imageFallbackContainerAttrs()}>
+            ${step.imageUrl ? `<img src="${escapeHtml(step.imageUrl)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="">` : `<i class="ri-sparkling-2-line"></i>`}
             <em>${routeIndex + Math.max(1, route.length - 3)}</em>
           </span>
         `).join("")}
@@ -2373,8 +2396,8 @@ function renderHistory() {
     const candidateStrip = item.status === "done" && (item.images || []).length > 1 ? `
       <div class="candidate-strip">
         ${item.images.map((imageUrl, index) => `
-          <button type="button" class="${index === 0 ? "active" : ""}" data-candidate="${escapeHtml(item.id)}" data-candidate-index="${index}">
-            <img src="${escapeHtml(imageVariantUrl(imageUrl))}" loading="lazy" decoding="async" alt="">
+          <button type="button" class="${index === 0 ? "active" : ""}" data-candidate="${escapeHtml(item.id)}" data-candidate-index="${index}" ${imageFallbackContainerAttrs()}>
+            <img src="${escapeHtml(imageVariantUrl(imageUrl))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="">
             <span>${index + 1}</span>
           </button>
         `).join("")}
@@ -2422,7 +2445,7 @@ function renderHistory() {
           </div>
           <span class="round-pill">${itemIndex + 1} ${text("roundCount")}</span>
         </div>
-        <div class="message-image"><div class="image-shell">${image}</div></div>
+        <div class="message-image"><div class="image-shell" ${imageFallbackContainerAttrs()}>${image}</div></div>
         ${routeStrip}
         ${candidateStrip}
         ${tagRow}
@@ -2526,7 +2549,7 @@ function openPublishModal(item, publishOriginal = false) {
     <section class="modal publish-modal">
       <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
       <div class="publish-modal-head">
-        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" alt="${escapeHtml(truncate(item.prompt, 80))}">
+        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">
         <div>
           <h2>${item.isPublic ? text("editPublicTags") : text("publishDialogTitle")}</h2>
           <p>${text("publishDialogDesc")}</p>
@@ -2646,7 +2669,7 @@ function openBindSourceModal({ item, publishOriginal = false, publicTags = [], a
     <section class="modal publish-modal bind-source-modal">
       <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
       <div class="publish-modal-head">
-        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" alt="${escapeHtml(truncate(item.prompt, 80))}">
+        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">
         <div>
           <h2>${escapeHtml(text("bindSourceTitle"))}</h2>
           <p>${escapeHtml(text("bindSourceDesc"))}</p>
@@ -2659,8 +2682,8 @@ function openBindSourceModal({ item, publishOriginal = false, publicTags = [], a
       ${sources.length ? `
         <div class="bind-source-grid">
           ${sources.map((source) => `
-            <button class="bind-source-card${String(source.id) === String(selectedId) ? " active" : ""}" type="button" data-bind-source="${escapeHtml(source.id)}">
-              <img src="${escapeHtml(imageVariantUrl(source.images[0]))}" loading="lazy" decoding="async" alt="${escapeHtml(truncate(source.prompt, 80))}">
+            <button class="bind-source-card${String(source.id) === String(selectedId) ? " active" : ""}" type="button" data-bind-source="${escapeHtml(source.id)}" ${imageFallbackContainerAttrs()}>
+              <img src="${escapeHtml(imageVariantUrl(source.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(source.prompt, 80))}">
               <span>${escapeHtml(truncate(source.prompt, 72))}</span>
             </button>
           `).join("")}
@@ -2948,8 +2971,8 @@ function renderGalleryLeaderboard() {
       <div class="gallery-leaderboard-list">
         ${items.map((item, index) => `
           <article class="gallery-rank-card">
-            <button type="button" class="gallery-rank-visual" data-open-square="${escapeHtml(`square_${item.id}`)}">
-              <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 70))}">
+            <button type="button" class="gallery-rank-visual" data-open-square="${escapeHtml(`square_${item.id}`)}" ${imageFallbackContainerAttrs()}>
+              <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 70))}">
               <em>#${index + 1}</em>
             </button>
             <div>
@@ -2989,7 +3012,7 @@ function promptCardHtml(prompt) {
   `;
   }).join("");
   const art = prompt.image
-    ? `<img src="${escapeHtml(imageVariantUrl(prompt.image))}" loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}" onerror="this.parentElement.classList.add('image-error')">`
+    ? `<img src="${escapeHtml(imageVariantUrl(prompt.image))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
     : `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const sourceBadge = prompt.kind === "square"
     ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${prompt.sourceImageUrl ? text("imageToImage") : text("textToImage")}</b>`
@@ -3032,7 +3055,7 @@ function promptCardHtml(prompt) {
   `;
   return `
     <article class="prompt-card${prompt.status === "hidden" ? " prompt-hidden" : ""}" style="--art-bg:${prompt.colors || "linear-gradient(135deg,#64748b,#cbd5e1)"}">
-      <div class="card-art${cardArtClickable}"${openAttr}>${art}${sourceBadge}${adminBadge}</div>
+      <div class="card-art${cardArtClickable}" ${imageFallbackContainerAttrs()}${openAttr}>${art}${sourceBadge}${adminBadge}</div>
       <h3>${escapeHtml(title)}</h3>
       ${engagement}
       <div class="prompt-tags">${tagsHtml}</div>
@@ -3551,8 +3574,8 @@ function syncEditorRecentStrip() {
   strip.classList.remove("hidden");
   if (!thumbsNode) return;
   thumbsNode.innerHTML = items.map((item, index) => `
-    <button type="button" class="editor-recent-thumb" data-recent-id="${escapeHtml(item.id)}" title="${escapeHtml(truncate(item.prompt || "", 80))}">
-      <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" alt="${escapeHtml(truncate(item.prompt || "", 60))}" loading="lazy" decoding="async">
+    <button type="button" class="editor-recent-thumb" data-recent-id="${escapeHtml(item.id)}" title="${escapeHtml(truncate(item.prompt || "", 80))}" ${imageFallbackContainerAttrs()}>
+      <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt || "", 60))}" loading="lazy" decoding="async">
       <em>${index + 1}</em>
     </button>
   `).join("");
@@ -3882,8 +3905,8 @@ function openSquarePreview(prompt) {
   openModal(`
     <section class="modal square-preview-modal">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
-      <div class="square-preview-stage">
-        <img class="square-preview-main" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(truncate(item.prompt, 100))}">
+      <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
+        <img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
       </div>
       <aside class="square-preview-side">
         <div class="square-preview-head">
@@ -3917,12 +3940,12 @@ function openSquarePreview(prompt) {
         ` : ""}
         ${isImageToImage ? `
           <div class="square-source-pair">
-            <figure>
-              <img src="${escapeHtml(item.sourceImageUrl)}" alt="${text("inputImage")}">
+            <figure ${imageFallbackContainerAttrs()}>
+              <img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${text("inputImage")}">
               <figcaption>${text("inputImage")}</figcaption>
             </figure>
-            <figure>
-              <img src="${escapeHtml(imageUrl)}" alt="${text("outputImage")}">
+            <figure ${imageFallbackContainerAttrs()}>
+              <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${text("outputImage")}">
               <figcaption>${text("outputImage")}</figcaption>
             </figure>
           </div>
@@ -3940,8 +3963,8 @@ function openSquarePreview(prompt) {
                 const stepLabel = String(index + 1).padStart(2, "0");
                 return `
                   <li class="square-route-step" data-route-step="${index}" tabindex="0">
-                    <div class="square-route-thumb">
-                      ${stepImage ? `<img src="${escapeHtml(stepImage)}" loading="lazy" decoding="async" alt="${escapeHtml(stepPrompt.slice(0, 80))}">` : `<i class="ri-sparkling-2-line"></i>`}
+                    <div class="square-route-thumb" ${imageFallbackContainerAttrs()}>
+                      ${stepImage ? `<img src="${escapeHtml(stepImage)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(stepPrompt.slice(0, 80))}">` : `<i class="ri-sparkling-2-line"></i>`}
                       <em>${stepLabel}</em>
                     </div>
                     <div class="square-route-body">
@@ -4087,8 +4110,8 @@ function openPromptDetailModal(prompt) {
   openModal(`
     <section class="modal square-preview-modal">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
-      <div class="square-preview-stage">
-        <img class="square-preview-main" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">
+      <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
+        <img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">
       </div>
       <aside class="square-preview-side">
         <div class="square-preview-head">
@@ -4789,9 +4812,9 @@ async function loadMyWorks(forceReload = false) {
     `;
     return `
     <article class="work-card${item.archived ? " archived" : ""}" data-work-id="${escapeHtml(item.id)}" tabindex="0" role="button" aria-label="${escapeHtml(text("worksOpenDetail"))}">
-      <div class="work-visual" data-work-detail="${escapeHtml(item.id)}">
+      <div class="work-visual" data-work-detail="${escapeHtml(item.id)}" ${imageFallbackContainerAttrs()}>
         <label class="work-select"><input type="checkbox" data-work-select="${escapeHtml(item.id)}"${state.worksSelected.has(String(item.id)) ? " checked" : ""}></label>
-        <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 80))}">
+        <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 80))}">
         <span class="work-type-badge ${isImageToImage ? "image" : "text"}">${escapeHtml(text(isImageToImage ? "imageToImage" : "textToImage"))}</span>
         ${item.isPublic ? `<span class="work-visibility-badge published">${escapeHtml(text("publishedImage"))}</span>` : ""}
         ${item.archived ? `<span class="work-visibility-badge archived">${state.lang === "zh" ? "已归档" : "Archived"}</span>` : ""}
@@ -4989,8 +5012,8 @@ function openWorkDetail(id, options = {}) {
     <div class="works-detail-backdrop" data-work-detail-close></div>
     <aside class="works-detail-drawer" role="dialog" aria-modal="true" aria-label="${escapeHtml(text("worksDetailTitle"))}" data-work-id="${escapeHtml(item.id)}">
       <button class="works-detail-close" type="button" data-work-detail-close><i class="ri-close-line"></i></button>
-      <div class="works-detail-stage">
-        <img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(truncate(item.prompt, 100))}">
+      <div class="works-detail-stage" ${imageFallbackContainerAttrs()}>
+        <img src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
       </div>
       <div class="works-detail-body">
         <div class="works-detail-title">
@@ -5011,7 +5034,7 @@ function openWorkDetail(id, options = {}) {
           <dt>${escapeHtml(state.lang === "zh" ? "创建时间" : "Created")}</dt><dd>${escapeHtml(formatDate(item.time) || "-")}</dd>
           ${optionRows.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value || "-"))}</dd>`).join("")}
         </dl>
-        ${item.sourceImageUrl ? `<section class="works-detail-source"><h4>${escapeHtml(text("sourceImage"))}</h4><img src="${escapeHtml(item.sourceImageUrl)}" alt="${escapeHtml(text("sourceImage"))}"></section>` : ""}
+        ${item.sourceImageUrl ? `<section class="works-detail-source" ${imageFallbackContainerAttrs()}><h4>${escapeHtml(text("sourceImage"))}</h4><img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(text("sourceImage"))}"></section>` : ""}
         ${route?.length ? `
           <section class="works-detail-route">
             <h4>${escapeHtml(text("routeTitle"))}</h4>
