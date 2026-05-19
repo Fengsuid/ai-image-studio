@@ -1617,11 +1617,10 @@ function renderAll() {
 }
 
 function renderCanvasShell() {
-  const projectId = state.canvasProjectId;
-  elements.canvasListView?.classList.toggle("hidden", Boolean(projectId));
-  elements.canvasWorkspaceView?.classList.toggle("hidden", !projectId);
-  const title = $("#canvasTitleText");
-  if (title) title.textContent = projectId === "new" ? "Untitled canvas" : projectId || "Untitled";
+  window.ImageStudioCanvas?.renderShell?.({
+    projectId: state.canvasProjectId,
+    elements
+  });
 }
 
 function recentFallbackItems() {
@@ -5953,10 +5952,7 @@ function bindGlobalEvents() {
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
   elements.openCanvasInlineBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
   elements.canvasBackHomeBtn?.addEventListener("click", () => navigate("home", { scrollTop: true }));
-  elements.canvasCreateBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } }));
-  document.querySelectorAll("[data-canvas-list]").forEach((button) => {
-    button.addEventListener("click", () => navigate("canvas", { scrollTop: true, route: { canvasProjectId: "" } }));
-  });
+  window.ImageStudioCanvas?.bindShellEvents?.({ elements, navigate });
   elements.notificationBtn?.addEventListener("click", openNotificationsModal);
   elements.contactBtn.addEventListener("click", openContactModal);
   elements.langBtn.addEventListener("click", () => {
