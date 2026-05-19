@@ -94,6 +94,17 @@ Record the outcome in the relevant development document or release note before m
 - UI state fix: home hero route now clears chat workspace panel classes before toggling views.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-19 Prompt Thumbnail Asset Batch
+
+- Issue covered: gallery prompt cards such as `例128` to `例131` still showed fallback placeholders because local `/prompt-thumbs/**` assets were missing from the deployed package and missing image paths fell through to the SPA HTML response.
+- Commit covered: `df8f37a`.
+- Local checks: `node --check server.js`, `node --check public/app.js`, `git diff --check`.
+- Deployment checks: app container running, production root `200`, retired domain `410`, public smoke passed.
+- Image smoke: production `/api/prompt-images/359|360|361|362/file?variant=thumb` returned `200 image/jpeg|png` with `X-AI-Content-Source: prompt-database-image`.
+- Static asset smoke: `/prompt-thumbs/freestylefly/case-128.jpg` returned `200 image/jpeg`; missing prompt thumbnail paths now return `404` instead of `200 text/html`.
+- Cache busting: app/admin asset query versions and `/api/version` now report `20260519-gallery-thumbs-v1`.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.
