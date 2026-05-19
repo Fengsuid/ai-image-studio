@@ -269,11 +269,19 @@
           <section class="canvas-board-shell">
             <header class="canvas-toolbar">
               <div><span data-i18n="canvasDraft">草稿画布</span><strong id="canvasTitleText">Untitled</strong></div>
-              <div><button type="button" aria-label="Save canvas"><i class="ri-save-line"></i></button><button type="button" aria-label="More canvas actions"><i class="ri-more-2-line"></i></button></div>
+              <div class="canvas-toolbar-actions">
+                <button type="button" aria-label="Fit canvas" data-canvas-fit><i class="ri-focus-3-line"></i></button>
+                <div class="canvas-bg-toggle" aria-label="Canvas background">
+                  <button type="button" data-canvas-background="dots" data-i18n="canvasBgDots">点</button>
+                  <button type="button" data-canvas-background="grid" data-i18n="canvasBgGrid">格</button>
+                  <button type="button" data-canvas-background="blank" data-i18n="canvasBgBlank">空</button>
+                </div>
+                <button type="button" aria-label="Save canvas"><i class="ri-save-line"></i></button>
+                <button type="button" aria-label="More canvas actions"><i class="ri-more-2-line"></i></button>
+              </div>
             </header>
-            <div class="canvas-board-placeholder">
-              <i class="ri-node-tree"></i>
-              <span data-i18n="canvasBoardPlaceholder">节点系统将在后续任务接入</span>
+            <div id="canvasBoard" class="canvas-board" data-background="dots">
+              <div id="canvasViewport" class="canvas-viewport"></div>
             </div>
           </section>
           <aside class="canvas-inspector">
