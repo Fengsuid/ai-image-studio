@@ -2762,17 +2762,28 @@ async function unpublishGeneration(item) {
     openAuthModal("login");
     return false;
   }
+  const withinWindow = !item.publishedAt || Date.now() - new Date(item.publishedAt).getTime() <= 12 * 60 * 60 * 1000;
+  const message = withinWindow
+    ? (state.lang === "zh" ? "确认撤回公开？12 小时内撤回会取消未入账奖励。" : "Unpublish this work? Pending reward will be cancelled.")
+    : (state.lang === "zh" ? "已超过 12 小时，将提交撤回申请。" : "More than 12 hours passed. This will submit a withdrawal request.");
+  if (!confirm(message)) return false;
   try {
-    await api(`/api/images/${item.id}/public`, {
-      method: "PATCH",
-      body: JSON.stringify({ isPublic: false })
-    });
+    const response = state.user?.role === "admin"
+      ? await api(`/api/images/${encodeURIComponent(item.id)}/public`, {
+          method: "PATCH",
+          body: JSON.stringify({ isPublic: false })
+        })
+      : await api(`/api/images/${encodeURIComponent(item.id)}/withdrawal`, {
+          method: "POST",
+          body: JSON.stringify({ reason: "user_request" })
+        });
+    const direct = state.user?.role === "admin" || response.direct !== false;
     state.history = state.history.map((entry) =>
-      String(entry.id) === String(item.id) ? { ...entry, isPublic: false } : entry
+      String(entry.id) === String(item.id) ? { ...entry, isPublic: direct ? false : entry.isPublic, withdrawalStatus: direct ? "approved" : "requested" } : entry
     );
-    state.publicGallery = state.publicGallery.filter((entry) => String(entry.id) !== String(item.id));
+    if (direct) state.publicGallery = state.publicGallery.filter((entry) => String(entry.id) !== String(item.id));
     renderAll();
-    showToast(text("unpublishDone"), "ri-eye-off-line");
+    showToast(direct ? text("unpublishDone") : (state.lang === "zh" ? "撤回申请已提交" : "Withdrawal request submitted"), "ri-eye-off-line");
     return true;
   } catch (error) {
     showToast(error.message || text("publishFailed"), "ri-error-warning-line");
@@ -3071,7 +3082,7 @@ function promptCardHtml(prompt) {
     ? `<img src="${escapeHtml(imageVariantUrl(prompt.image))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
     : `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const sourceBadge = prompt.kind === "square"
-    ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${prompt.sourceImageUrl ? text("imageToImage") : text("textToImage")}</b>`
+    ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${isImageToImageItem(prompt) ? text("imageToImage") : text("textToImage")}</b>`
     : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.author || "@open")}</em>`;
   const hasImage = Boolean(prompt.image);
   const openAttr = prompt.kind === "square"
@@ -4079,6 +4090,7 @@ function openSquarePreview(prompt, options = {}) {
           <a href="${escapeHtml(imageUrl)}" download="${escapeHtml(item.id || "image")}.png"><i class="ri-download-line"></i>${text("download")}</a>
           <button type="button" data-square-report><i class="ri-flag-line"></i>${state.lang === "zh" ? "举报" : "Report"}</button>
           ${canManage ? `<button type="button" data-square-manage><i class="ri-price-tag-3-line"></i>${text("editPublicTags")}</button>` : ""}
+          ${canManage && isImageToImage && !item.publishOriginal ? `<button type="button" data-square-publish-original><i class="ri-image-add-line"></i>${text("publishWithOriginal")}</button>` : ""}
           ${canManage ? `<button type="button" data-square-unpublish><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
         </div>
       </aside>
@@ -4129,6 +4141,10 @@ function openSquarePreview(prompt, options = {}) {
   $("[data-square-manage]", elements.modalLayer)?.addEventListener("click", () => {
     closeModal();
     openPublishModal(item, isImageToImage);
+  });
+  $("[data-square-publish-original]", elements.modalLayer)?.addEventListener("click", () => {
+    closeModal();
+    openPublishModal(item, true);
   });
   $("[data-square-unpublish]", elements.modalLayer)?.addEventListener("click", async () => {
     await unpublishGeneration(item);
