@@ -1,0 +1,314 @@
+#!/usr/bin/env node
+// Smoke test for the public surface of GPT Image Studio.
+// Usage:
+//   BASE_URL=http://127.0.0.1:3000 node scripts/smoke/check-public-api.mjs
+//   node scripts/smoke/check-public-api.mjs http://localhost:3000
+//
+// The script exits with a non-zero code on the first failed assertion so that it
+// can run as a deployment gate or a manual regression check.
+
+const argBase = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "";
+const baseUrl = (process.env.BASE_URL || argBase || "http://localhost:3000").replace(/\/+$/, "");
+const timeoutMs = Number.parseInt(process.env.SMOKE_TIMEOUT_MS || "20000", 10) || 20000;
+const failures = [];
+
+function log(...parts) {
+  console.log("[smoke]", ...parts);
+}
+
+function failure(message) {
+  failures.push(message);
+  console.error("[smoke] FAIL:", message);
+}
+
+async function fetchJson(pathSuffix) {
+  const url = `${baseUrl}${pathSuffix}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal
+    });
+    const text = await response.text();
+    let body = null;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = { _raw: text };
+    }
+    return { status: response.status, headers: response.headers, body };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchText(pathSuffix, accept = "text/plain,*/*") {
+  const url = `${baseUrl}${pathSuffix}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: accept },
+      signal: controller.signal
+    });
+    const text = await response.text();
+    return { status: response.status, headers: response.headers, body: text };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    failure(message);
+    return false;
+  }
+  return true;
+}
+
+async function checkHomeResources() {
+  log("GET /");
+  const home = await fetchText("/", "text/html,*/*");
+  assert(home.status === 200, `/ status=${home.status}`);
+  assert(home.headers.get("content-security-policy-report-only"), "/ missing CSP Report-Only header");
+  assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
+  assert(typeof home.body === "string" && home.body.includes("/styles.css"), "/ missing styles.css reference");
+  assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
+  assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
+  assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
+
+  const styleMatch = home.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
+  const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
+  const stylePath = styleMatch?.[1] || "/styles.css";
+  const appPath = appMatch?.[1] || "/app.js";
+  const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
+  const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
+  assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
+  assert(appVersion && appVersion.length > 0, "/ app.js should include cache-busting version");
+  if (styleVersion && appVersion) {
+    assert(styleVersion === appVersion, `/ app.js/styles.css version mismatch (${appVersion} vs ${styleVersion})`);
+  }
+
+  log(`GET ${stylePath}`);
+  const style = await fetchText(stylePath, "text/css,*/*");
+  assert(style.status === 200, `${stylePath} status=${style.status}`);
+  assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
+
+  log(`GET ${appPath}`);
+  const app = await fetchText(appPath, "application/javascript,*/*");
+  assert(app.status === 200, `${appPath} status=${app.status}`);
+  assert(app.body.length > 1000, `${appPath} unexpectedly small`);
+  assert(app.body.includes("/api/version"), `${appPath} should request /api/version`);
+  assert(app.body.includes("/api/images/requests/active"), `${appPath} should resume active generation requests`);
+  assert(app.body.includes("candidate-strip"), `${appPath} should expose multi-candidate selection UI`);
+  assert(app.body.includes("/api/rum"), `${appPath} should report RUM metrics`);
+  assert(app.body.includes("providerCapabilities"), `${appPath} should read provider capability flags`);
+  assert(app.body.includes("function isImageToImageItem"), `${appPath} should classify image-to-image works from source metadata`);
+  assert(app.body.includes("window.history.replaceState(route"), `${appPath} should close modal routes without adding history entries`);
+  assert(app.body.includes("publicTagsForKind(selectedKinds[0]"), `${appPath} should preserve kind tags in bulk publish`);
+  log("/ resources ok:", "asset version", appVersion || "none");
+}
+
+async function checkAdminResources() {
+  log("GET /admin");
+  const admin = await fetchText("/admin", "text/html,*/*");
+  assert(admin.status === 200, `/admin status=${admin.status}`);
+  assert(admin.body.includes("/admin.js"), "/admin missing admin.js reference");
+  assert(admin.body.includes("admin-shell"), "/admin missing admin shell markup");
+
+  const scriptMatch = admin.body.match(/src="([^"]*\/admin\.js[^"]*)"/);
+  const styleMatch = admin.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
+  const scriptPath = scriptMatch?.[1] || "/admin.js";
+  const stylePath = styleMatch?.[1] || "/styles.css";
+  const scriptVersion = new URL(scriptPath, baseUrl).searchParams.get("v");
+  const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
+  assert(scriptVersion && scriptVersion.length > 0, "/admin admin.js should include cache-busting version");
+  assert(styleVersion && styleVersion.length > 0, "/admin styles.css should include cache-busting version");
+  if (scriptVersion && styleVersion) {
+    assert(scriptVersion === styleVersion, `/admin admin.js/styles.css version mismatch (${scriptVersion} vs ${styleVersion})`);
+  }
+
+  log(`GET ${stylePath}`);
+  const style = await fetchText(stylePath, "text/css,*/*");
+  assert(style.status === 200, `${stylePath} status=${style.status}`);
+  assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
+
+  log(`GET ${scriptPath}`);
+  const script = await fetchText(scriptPath, "application/javascript,*/*");
+  assert(script.status === 200, `${scriptPath} status=${script.status}`);
+  assert(script.body.length > 1000, `${scriptPath} unexpectedly small`);
+  assert(script.body.includes("/api/admin/settings"), `${scriptPath} should request /api/admin/settings`);
+  assert(script.body.includes("/api/admin/users"), `${scriptPath} should support admin user management`);
+  assert(script.body.includes("/api/admin/providers"), `${scriptPath} should support provider management`);
+  assert(script.body.includes("/api/admin/announcements"), `${scriptPath} should support announcement management`);
+  assert(script.body.includes("generation-requests"), `${scriptPath} should include admin IA navigation`);
+  assert(script.body.includes("/api/admin/reports"), `${scriptPath} should load moderation reports`);
+  assert(script.body.includes("/api/admin/prompt-duplicates"), `${scriptPath} should load prompt duplicate candidates`);
+  assert(script.body.includes("/api/admin/rum"), `${scriptPath} should load RUM metrics`);
+  assert(script.body.includes("growthConfig"), `${scriptPath} should expose growth configuration`);
+  assert(script.body.includes("providerCapabilityConfig"), `${scriptPath} should expose provider capability configuration`);
+  assert(script.body.includes("contactEmail"), `${scriptPath} should expose contact email settings`);
+  assert(script.body.includes("if (isNew || apiKey) payload.apiKey = apiKey"), `${scriptPath} should not clear provider API keys when edit field is blank`);
+  assert(script.body.includes("Provider JSON 格式错误"), `${scriptPath} should handle invalid provider JSON before saving`);
+  log("/admin resources ok:", "asset version", scriptVersion || "none");
+}
+
+async function checkVersion() {
+  log("GET /api/version");
+  const { status, headers, body } = await fetchJson("/api/version");
+  assert(status === 200, `/api/version status=${status}`);
+  assert(headers.get("content-security-policy-report-only"), "/api/version missing CSP Report-Only header");
+  assert(headers.get("x-content-type-options") === "nosniff", "/api/version missing nosniff header");
+  assert(body && typeof body === "object", "/api/version body is not an object");
+  assert(typeof body?.version === "string" && body.version.length > 0, "/api/version missing version string");
+  assert(typeof body?.startedAt === "string" && !Number.isNaN(Date.parse(body.startedAt)), "/api/version startedAt invalid");
+  assert(Number.isFinite(Number(body?.uptimeSeconds)), "/api/version uptimeSeconds invalid");
+  assert(typeof body?.node === "string" && body.node.startsWith("v"), "/api/version node missing");
+  assert(body?.timeoutMs && Number(body.timeoutMs.openai) > 0, "/api/version timeoutMs.openai missing");
+  log("/api/version ok:", body?.version, "node", body?.node);
+}
+
+async function checkHealth() {
+  log("GET /api/health");
+  const { status, body } = await fetchJson("/api/health");
+  assert(status === 200, `/api/health status=${status}`);
+  assert(body?.ok === true, "/api/health ok flag missing");
+  assert(typeof body?.version === "string", "/api/health version missing");
+  assert(typeof body?.startedAt === "string", "/api/health startedAt missing");
+  assert(body?.settings && typeof body.settings === "object", "/api/health settings missing");
+  assert(typeof body?.settings?.generationCreditCost === "number", "/api/health generationCreditCost missing");
+  assert(typeof body?.settings?.maxImagesPerRequest === "number", "/api/health maxImagesPerRequest missing");
+  assert(body?.settings?.providerCapabilities && typeof body.settings.providerCapabilities === "object", "/api/health providerCapabilities missing");
+  assert(body?.settings?.growth && typeof body.settings.growth === "object", "/api/health growth config missing");
+  log("/api/health ok:", body?.version, "firstRun=", body?.firstRun);
+}
+
+async function checkGrowth() {
+  log("GET /api/growth");
+  const { status, body } = await fetchJson("/api/growth");
+  assert(status === 200, `/api/growth status=${status}`);
+  assert(body?.growth && typeof body.growth === "object", "/api/growth missing growth object");
+  assert(Array.isArray(body?.growth?.recommendationSlots), "/api/growth recommendationSlots must be array");
+  assert(body?.providerCapabilities && typeof body.providerCapabilities === "object", "/api/growth missing providerCapabilities");
+  assert(typeof body?.providerCapabilities?.imageEdit === "boolean", "/api/growth providerCapabilities.imageEdit missing");
+}
+
+async function checkSettings() {
+  log("GET /api/settings");
+  const { status, body } = await fetchJson("/api/settings");
+  assert(status === 200, `/api/settings status=${status}`);
+  assert(body && typeof body === "object", "/api/settings body is not an object");
+  assert(typeof body?.hasApiKey === "boolean", "/api/settings hasApiKey missing");
+  assert(typeof body?.contactEmail === "string", "/api/settings contactEmail missing");
+  assert(body?.providerCapabilities && typeof body.providerCapabilities === "object", "/api/settings providerCapabilities missing");
+  assert(typeof body?.providerCapabilities?.textToImage === "boolean", "/api/settings providerCapabilities.textToImage missing");
+  assert(body?.growth && typeof body.growth === "object", "/api/settings growth config missing");
+}
+
+async function checkAnnouncements() {
+  log("GET /api/announcements?limit=3");
+  const { status, body } = await fetchJson("/api/announcements?limit=3");
+  assert(status === 200, `/api/announcements status=${status}`);
+  assert(body && Array.isArray(body.announcements), "/api/announcements missing announcements array");
+}
+
+async function checkPublicGallery() {
+  log("GET /api/images/public?limit=3");
+  const { status, body } = await fetchJson("/api/images/public?limit=3");
+  assert(status === 200, `/api/images/public status=${status}`);
+  assert(body && Array.isArray(body.generations), "/api/images/public missing generations array");
+  if (!Array.isArray(body?.generations)) return;
+  log(`/api/images/public returned ${body.generations.length} item(s)`);
+  for (const item of body.generations) {
+    assert(typeof item?.id === "string" && item.id.length > 0, "public item missing id");
+    assert(typeof item?.prompt === "string" && item.prompt.length > 0, `public item ${item?.id} missing prompt`);
+    assert(typeof item?.imageUrl === "string" && item.imageUrl.startsWith("/api/images/"), `public item ${item?.id} imageUrl invalid`);
+    assert("publicTags" in item && Array.isArray(item.publicTags), `public item ${item?.id} publicTags must be array`);
+    assert("isPublic" in item && Boolean(item.isPublic), `public item ${item?.id} isPublic must be true`);
+    assert("userId" in item, `public item ${item?.id} missing userId`);
+    assert("userName" in item, `public item ${item?.id} missing userName`);
+    assert("conversation" in item && Array.isArray(item.conversation), `public item ${item?.id} conversation must be array`);
+    if ("durationMs" in item && item.durationMs !== null) {
+      assert(Number.isFinite(Number(item.durationMs)) && Number(item.durationMs) >= 0, `public item ${item?.id} durationMs invalid`);
+    }
+    if (item.publishOriginal) {
+      assert(typeof item.sourceImageUrl === "string" && item.sourceImageUrl.startsWith("/api/images/"), `public item ${item.id} sourceImageUrl invalid when publishOriginal=true`);
+    }
+  }
+}
+
+async function checkPrompts() {
+  log("GET /api/prompts?limit=3");
+  const { status, body } = await fetchJson("/api/prompts?limit=3");
+  assert(status === 200, `/api/prompts status=${status}`);
+  assert(body && Array.isArray(body.prompts), "/api/prompts missing prompts array");
+  if (!Array.isArray(body?.prompts)) return;
+  log(`/api/prompts returned ${body.prompts.length} item(s)`);
+  assert(body.prompts.length > 0, "/api/prompts returned zero entries (seed missing?)");
+  for (const item of body.prompts) {
+    assert(typeof item?.id === "number" && item.id > 0, "prompt id must be positive number");
+    assert(typeof item?.title === "string", `prompt ${item?.id} missing title`);
+    assert(typeof item?.prompt === "string" && item.prompt.length > 0, `prompt ${item?.id} missing prompt content`);
+    assert("tags" in item && Array.isArray(item.tags), `prompt ${item?.id} tags must be array`);
+    assert(item?.status === "active", `public list should not contain status=${item?.status}`);
+  }
+}
+
+async function checkTags() {
+  log("GET /api/tags?limit=200");
+  const { status, body } = await fetchJson("/api/tags?limit=200");
+  assert(status === 200, `/api/tags status=${status}`);
+  assert(body && Array.isArray(body.tags), "/api/tags missing tags array");
+  if (!Array.isArray(body?.tags)) return;
+  log(`/api/tags returned ${body.tags.length} item(s)`);
+  assert(body.summary && typeof body.summary === "object", "/api/tags missing summary object");
+  assert(Number.isFinite(Number(body.summary?.systemCount)), "/api/tags summary.systemCount invalid");
+  assert(Number.isFinite(Number(body.summary?.withContentCount)), "/api/tags summary.withContentCount invalid");
+  assert(Number.isFinite(Number(body.summary?.emptyCount)), "/api/tags summary.emptyCount invalid");
+  assert(body.summary?.categoryCounts && typeof body.summary.categoryCounts === "object", "/api/tags summary.categoryCounts missing");
+  assert(body.tags.length >= 80, `/api/tags should expose >= 80 active tags after seed (got ${body.tags.length})`);
+  let systemCount = 0;
+  let emptyTagCount = 0;
+  for (const tag of body.tags) {
+    assert(typeof tag?.slug === "string" && tag.slug.length > 0, "tag missing slug");
+    assert(tag?.status === "active", `public list should not contain status=${tag?.status}`);
+    assert(Number.isFinite(Number(tag?.hue)) && Number(tag.hue) >= 0 && Number(tag.hue) < 360, `tag ${tag?.slug} hue invalid`);
+    assert(typeof tag?.labelZh === "string" && typeof tag?.labelEn === "string", `tag ${tag?.slug} missing label_zh/en`);
+    assert(Array.isArray(tag?.aliases), `tag ${tag?.slug} aliases must be array`);
+    assert(typeof tag?.category === "string" && tag.category.length > 0, `tag ${tag?.slug} missing category`);
+    assert(typeof tag?.showInFilter === "boolean", `tag ${tag?.slug} showInFilter must be boolean`);
+    assert(Number.isFinite(Number(tag?.sortOrder)), `tag ${tag?.slug} sortOrder invalid`);
+    assert(Number.isFinite(Number(tag?.promptCount)), `tag ${tag?.slug} promptCount invalid`);
+    assert(Number.isFinite(Number(tag?.galleryCount)), `tag ${tag?.slug} galleryCount invalid`);
+    if (Number(tag.promptCount || 0) + Number(tag.galleryCount || 0) === 0) emptyTagCount += 1;
+    if (tag.source === "system") systemCount += 1;
+  }
+  assert(systemCount >= 80, `expected >= 80 system tags (got ${systemCount})`);
+  assert(Number(body.summary.systemCount) >= 80, `/api/tags summary.systemCount should be >= 80 (got ${body.summary.systemCount})`);
+  assert(Number(body.summary.emptyCount) === emptyTagCount, `/api/tags summary.emptyCount mismatch (${body.summary.emptyCount} vs ${emptyTagCount})`);
+}
+
+async function main() {
+  log(`base = ${baseUrl} (timeout ${timeoutMs}ms)`);
+  await checkHomeResources();
+  await checkAdminResources();
+  await checkVersion();
+  await checkHealth();
+  await checkGrowth();
+  await checkSettings();
+  await checkAnnouncements();
+  await checkPublicGallery();
+  await checkPrompts();
+  await checkTags();
+  if (failures.length) {
+    console.error(`[smoke] FAILED: ${failures.length} assertion(s) failed`);
+    process.exit(1);
+  }
+  console.log("[smoke] OK: all checks passed");
+}
+
+main().catch((error) => {
+  console.error("[smoke] crashed:", error?.stack || error);
+  process.exit(2);
+});

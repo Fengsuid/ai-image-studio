@@ -1,0 +1,1691 @@
+const adminState = {
+  user: null,
+  version: null,
+  settings: null,
+  users: [],
+  generations: [],
+  prompts: [],
+  tags: [],
+  publicImages: [],
+  reports: [],
+  promptDuplicates: [],
+  promptAudits: [],
+  providers: [],
+  galleryLeaderboard: [],
+  galleryLikeAnomalies: [],
+  defaultProviderId: "",
+  announcements: [],
+  rum: { summary: {}, events: [] },
+  withdrawals: [],
+  creditLedger: [],
+  rewardLedger: [],
+  active: location.hash.replace("#", "") || "overview",
+  search: "",
+  status: "all",
+  page: 1,
+  pageSize: 12,
+  selectedUsers: new Set(),
+  audit: [],
+  csrfToken: "",
+  sidebarCollapsed: localStorage.getItem("adminSidebarCollapsed") === "1"
+};
+
+const navItems = [
+  ["overview", "ri-dashboard-line", "总览"],
+  ["providers", "ri-plug-line", "API 供应商"],
+  ["generation-requests", "ri-image-ai-line", "生成请求"],
+  ["square-review", "ri-gallery-view-2", "广场审核"],
+  ["users-credits", "ri-user-settings-line", "用户与积分"],
+  ["prompt-cms", "ri-quill-pen-line", "提示词 CMS"],
+  ["prompt-audit", "ri-shield-check-line", "Prompt Audit"],
+  ["tag-library", "ri-price-tag-3-line", "标签库"],
+  ["reports-withdrawals", "ri-alarm-warning-line", "举报与撤回"],
+  ["growth", "ri-line-chart-line", "增长配置"],
+  ["announcements", "ri-notification-3-line", "通知公告"],
+  ["system-settings", "ri-sliders-line", "系统设置"],
+  ["rum-performance", "ri-speed-up-line", "RUM/性能"],
+  ["audit-log", "ri-file-list-3-line", "审计日志"]
+];
+
+const pageDescriptions = {
+  overview: "运营态势、系统风险和近期生成请求。",
+  providers: "多 API 地址、模型能力、健康检查和路由策略入口。",
+  "generation-requests": "生成任务状态、耗时、错误和请求详情。",
+  "square-review": "公开作品、举报下架和恢复到画廊。",
+  "users-credits": "用户状态、角色、积分和首发奖励流水。",
+  "prompt-cms": "提示词内容、重复候选、互动数据和人工处理。",
+  "prompt-audit": "AI 提示词重复审计、人工复核和发布门禁入口。",
+  "tag-library": "标签目录、中文展示、合并迁移和筛选展示。",
+  "reports-withdrawals": "举报、撤回申请、处理原因和审核日志。",
+  growth: "推荐位、榜单、活动和运营增长配置。",
+  announcements: "站内通知、登录弹窗、未读确认和公告预览。",
+  "system-settings": "注册、积分、安全和非 API Provider 类系统设置。",
+  "rum-performance": "Web Vitals、图片失败率、运行时和性能事件。",
+  "audit-log": "后台敏感操作、人工巡检和审计记录。"
+};
+
+const $ = (selector, root = document) => root.querySelector(selector);
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+function imageVariantUrl(url, variant = "thumb") {
+  if (!url || /^(data:|blob:)/i.test(url)) return url || "";
+  const joiner = url.includes("?") ? "&" : "?";
+  return `${url}${joiner}variant=${encodeURIComponent(variant)}`;
+}
+
+async function api(path, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    headers["X-CSRF-Token"] = adminState.csrfToken || readCookie("csrf");
+  }
+  const response = await fetch(path, {
+    ...options,
+    credentials: "same-origin",
+    headers
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (data?.csrfToken) adminState.csrfToken = data.csrfToken;
+  if (!response.ok) {
+    const error = new Error(data?.error || data?.message || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
+function readCookie(name) {
+  const match = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.split("="))
+    .find(([key]) => decodeURIComponent(key) === name);
+  return match ? decodeURIComponent(match.slice(1).join("=")) : "";
+}
+
+function fmtNumber(value) {
+  return new Intl.NumberFormat("zh-CN").format(Number(value || 0));
+}
+
+function fmtDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+function datetimeLocal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function fmtDuration(ms) {
+  const value = Number(ms || 0);
+  if (!value) return "-";
+  if (value < 1000) return `${Math.round(value)}ms`;
+  return `${(value / 1000).toFixed(value < 10000 ? 1 : 0)}s`;
+}
+
+function todayItems(items, field = "createdAt") {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return items.filter((item) => new Date(item[field] || 0) >= start);
+}
+
+function recordAudit(action, target, detail = "") {
+  adminState.audit.unshift({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    action,
+    target,
+    detail,
+    actor: adminState.user?.email || "admin",
+    createdAt: new Date().toISOString()
+  });
+  adminState.audit = adminState.audit.slice(0, 80);
+}
+
+function currentNav() {
+  return navItems.find(([id]) => id === adminState.active) || navItems[0];
+}
+
+function renderNav() {
+  document.body.classList.toggle("admin-sidebar-collapsed", adminState.sidebarCollapsed);
+  $("#adminNav").innerHTML = navItems.map(([id, icon, label]) => `
+    <button class="${id === adminState.active ? "active" : ""}" type="button" data-section="${id}">
+      <i class="${icon}"></i><span>${label}</span>
+    </button>
+  `).join("");
+  $("#adminNav").querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => {
+      adminState.active = button.dataset.section;
+      adminState.page = 1;
+      location.hash = adminState.active;
+      render();
+    });
+  });
+}
+
+function setStatus(message, tone = "neutral") {
+  const status = $("#adminStatus");
+  status.textContent = message;
+  status.dataset.tone = tone;
+}
+
+function confirmAction({ title = "确认操作", message = "该操作会立即生效。", confirmText = "确认", danger = false } = {}) {
+  const layer = $("#adminConfirmLayer");
+  if (!layer) return Promise.resolve(window.confirm(message));
+  return new Promise((resolve) => {
+    layer.classList.remove("hidden");
+    layer.innerHTML = `
+      <div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
+        <div class="admin-confirm-icon" data-danger="${danger ? "true" : "false"}"><i class="${danger ? "ri-error-warning-line" : "ri-question-line"}"></i></div>
+        <h2 id="adminConfirmTitle">${escapeHtml(title)}</h2>
+        <p>${escapeHtml(message)}</p>
+        <div class="admin-confirm-actions">
+          <button type="button" data-confirm-cancel>取消</button>
+          <button type="button" data-confirm-ok class="${danger ? "danger" : ""}">${escapeHtml(confirmText)}</button>
+        </div>
+      </div>
+    `;
+    const cleanup = (value) => {
+      layer.classList.add("hidden");
+      layer.innerHTML = "";
+      resolve(value);
+    };
+    $("[data-confirm-cancel]", layer).addEventListener("click", () => cleanup(false));
+    $("[data-confirm-ok]", layer).addEventListener("click", () => cleanup(true));
+    layer.addEventListener("click", function onBackdrop(event) {
+      if (event.target === layer) {
+        layer.removeEventListener("click", onBackdrop);
+        cleanup(false);
+      }
+    });
+  });
+}
+
+async function loadAll() {
+  setStatus("同步中");
+  const me = await api("/api/auth/me");
+  adminState.user = me.user;
+  if (!adminState.user || adminState.user.role !== "admin") {
+    setStatus("需要管理员", "danger");
+    $("#adminContent").innerHTML = `
+      <section class="admin-auth-required">
+        <i class="ri-shield-user-line"></i>
+        <h2>需要管理员权限</h2>
+        <p>请在前台登录管理员账号后再进入 /admin。</p>
+        <a href="/" class="admin-primary-link">返回前台登录</a>
+      </section>
+    `;
+    return;
+  }
+  const [version, settings, users, generations, prompts, tags, publicImages, creditLedger, rewardLedger, auditLogs, withdrawals, reports, promptDuplicates, promptAudits, rum, providers, galleryLeaderboard, galleryLikeAnomalies, announcements] = await Promise.all([
+    api("/api/version"),
+    api("/api/admin/settings"),
+    api("/api/admin/users"),
+    api("/api/admin/generations?limit=500"),
+    api("/api/prompts?includeHidden=1&limit=2000"),
+    api("/api/tags?includeHidden=1&limit=2000"),
+    api("/api/admin/public-images?status=queue&limit=120"),
+    api("/api/admin/credit-ledger?limit=120"),
+    api("/api/admin/reward-ledger?limit=120"),
+    api("/api/admin/audit-logs?limit=120"),
+    api("/api/admin/withdrawals?limit=120"),
+    api("/api/admin/reports?status=queue&limit=120"),
+    api("/api/admin/prompt-duplicates?limit=120"),
+    api("/api/admin/prompt-audits?limit=160"),
+    api("/api/admin/rum"),
+    api("/api/admin/providers"),
+    api("/api/gallery/leaderboard?range=week&limit=20"),
+    api("/api/admin/gallery-like-anomalies?limit=80"),
+    api("/api/admin/announcements?limit=200")
+  ]);
+  adminState.version = version;
+  adminState.settings = settings;
+  adminState.users = users.users || [];
+  adminState.generations = generations.records || [];
+  adminState.prompts = prompts.prompts || [];
+  adminState.tags = tags.tags || [];
+  adminState.tagSummary = tags.summary || null;
+  adminState.publicImages = publicImages.generations || [];
+  adminState.creditLedger = creditLedger.ledger || [];
+  adminState.rewardLedger = rewardLedger.rewards || [];
+  adminState.audit = auditLogs.logs || adminState.audit;
+  adminState.withdrawals = withdrawals.requests || [];
+  adminState.reports = reports.reports || [];
+  adminState.promptDuplicates = promptDuplicates.candidates || [];
+  adminState.promptAudits = promptAudits.audits || [];
+  adminState.rum = rum || { summary: {}, events: [] };
+  adminState.providers = providers.providers || [];
+  adminState.galleryLeaderboard = galleryLeaderboard.generations || [];
+  adminState.galleryLikeAnomalies = galleryLikeAnomalies.anomalies || [];
+  adminState.announcements = announcements.announcements || [];
+  adminState.defaultProviderId = providers.defaultProviderId || settings.defaultProviderId || "";
+  setStatus(`${adminState.user.name || adminState.user.email} · ${version.version}`, "ok");
+}
+
+function metrics() {
+  const todayRequests = todayItems(adminState.generations);
+  const total = adminState.generations.length;
+  const success = adminState.generations.filter((item) => item.status === "success" || item.status === "succeeded").length;
+  const failed = adminState.generations.filter((item) => item.status === "failed").length;
+  const durationItems = adminState.generations.filter((item) => Number(item.durationMs) > 0);
+  const avgDuration = durationItems.reduce((sum, item) => sum + Number(item.durationMs), 0) / Math.max(1, durationItems.length);
+  return {
+    todayGenerated: todayRequests.length,
+    successRate: total ? Math.round((success / total) * 100) : 0,
+    failedRate: total ? Math.round((failed / total) * 100) : 0,
+    avgDuration,
+    newUsers: todayItems(adminState.users).length,
+    publicWorks: adminState.publicImages.length,
+    pendingReview: adminState.publicImages.filter((item) => item.isPublic).length,
+    total
+  };
+}
+
+function statCard(label, value, hint, icon) {
+  return `
+    <article class="admin-stat">
+      <i class="${icon}"></i>
+      <span>${label}</span>
+      <strong>${value}</strong>
+      <small>${hint}</small>
+    </article>
+  `;
+}
+
+function renderOverview() {
+  const m = metrics();
+  return `
+    <section class="admin-stats-grid">
+      ${statCard("今日生成", fmtNumber(m.todayGenerated), "按请求创建时间统计", "ri-image-ai-line")}
+      ${statCard("成功率", `${m.successRate}%`, `${fmtNumber(m.total)} 条请求`, "ri-checkbox-circle-line")}
+      ${statCard("失败率", `${m.failedRate}%`, "失败请求占比", "ri-close-circle-line")}
+      ${statCard("平均耗时", fmtDuration(m.avgDuration), "仅统计有 durationMs 的请求", "ri-timer-line")}
+      ${statCard("新用户", fmtNumber(m.newUsers), "今日注册", "ri-user-add-line")}
+      ${statCard("公开作品", fmtNumber(m.publicWorks), "当前公开列表", "ri-gallery-view-2")}
+      ${statCard("待审核", fmtNumber(m.pendingReview), "公开作品待运营复核", "ri-eye-line")}
+      ${statCard("系统标签", fmtNumber(adminState.tagSummary?.systemCount || adminState.tags.filter((t) => t.source === "system").length), "标签库覆盖", "ri-price-tag-3-line")}
+    </section>
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>最近生成请求</h2>
+        <button type="button" data-jump="generation-requests">查看全部</button>
+      </div>
+      ${requestTable(adminState.generations.slice(0, 8))}
+    </section>
+  `;
+}
+
+function toolbar(placeholder, statuses = []) {
+  return `
+    <div class="admin-toolbar">
+      <label><i class="ri-search-line"></i><input id="adminSearchInput" value="${escapeHtml(adminState.search)}" placeholder="${placeholder}"></label>
+      <select id="adminStatusFilter">
+        <option value="all"${adminState.status === "all" ? " selected" : ""}>全部状态</option>
+        ${statuses.map((status) => `<option value="${status}"${adminState.status === status ? " selected" : ""}>${status}</option>`).join("")}
+      </select>
+    </div>
+  `;
+}
+
+function bindToolbar() {
+  $("#adminSearchInput")?.addEventListener("input", (event) => {
+    adminState.search = event.target.value;
+    adminState.page = 1;
+    render();
+  });
+  $("#adminStatusFilter")?.addEventListener("change", (event) => {
+    adminState.status = event.target.value;
+    adminState.page = 1;
+    render();
+  });
+}
+
+function filtered(items, fields) {
+  const q = adminState.search.trim().toLowerCase();
+  return items.filter((item) => {
+    const statusOk = adminState.status === "all" ||
+      item.status === adminState.status ||
+      item.moderationStatus === adminState.status ||
+      item.withdrawalStatus === adminState.status ||
+      String(item.role || "") === adminState.status;
+    if (!statusOk) return false;
+    if (!q) return true;
+    return fields.some((field) => String(item[field] || "").toLowerCase().includes(q));
+  });
+}
+
+function paged(items) {
+  const start = (adminState.page - 1) * adminState.pageSize;
+  return items.slice(start, start + adminState.pageSize);
+}
+
+function pagination(total) {
+  const pages = Math.max(1, Math.ceil(total / adminState.pageSize));
+  return `
+    <div class="admin-pagination">
+      <button type="button" data-page="${Math.max(1, adminState.page - 1)}"${adminState.page === 1 ? " disabled" : ""}>上一页</button>
+      <span>${adminState.page} / ${pages}</span>
+      <button type="button" data-page="${Math.min(pages, adminState.page + 1)}"${adminState.page >= pages ? " disabled" : ""}>下一页</button>
+    </div>
+  `;
+}
+
+function bindPagination() {
+  document.querySelectorAll("[data-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      adminState.page = Number(button.dataset.page || 1);
+      render();
+    });
+  });
+}
+
+function requestTable(items) {
+  if (!items.length) return `<div class="admin-empty-state">暂无生成请求</div>`;
+  return `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>状态</th><th>用户</th><th>提示词</th><th>耗时</th><th>时间</th><th></th></tr></thead>
+        <tbody>
+          ${items.map((item) => `
+            <tr>
+              <td><span class="admin-badge" data-status="${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td>
+              <td>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</td>
+              <td class="admin-truncate">${escapeHtml(item.prompt || item.errorMessage || "-")}</td>
+              <td>${fmtDuration(item.durationMs)}</td>
+              <td>${fmtDate(item.createdAt)}</td>
+              <td><button type="button" data-detail="request:${escapeHtml(item.id)}">详情</button></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderRequests() {
+  const items = filtered(adminState.generations, ["prompt", "userName", "userEmail", "status"]);
+  return `${toolbar("搜索用户、提示词或错误", ["pending", "running", "success", "failed", "cancelled"])}
+    <section class="admin-panel">${requestTable(paged(items))}${pagination(items.length)}</section>`;
+}
+
+function renderSquareReview() {
+  const items = filtered(adminState.publicImages, ["prompt", "userName", "id", "moderationStatus"]);
+  return `${toolbar("搜索待审作品、作者或提示词", ["reported", "reviewing", "requested", "hidden", "restored"])}
+    <section class="admin-grid-list">
+      ${paged(items).map((item) => `
+        <article class="admin-work-card">
+          <img src="${escapeHtml(imageVariantUrl(item.imageUrl))}" alt="">
+          <div>
+            <strong>${escapeHtml(item.userName || item.userId || "匿名")}</strong>
+            <p>${escapeHtml(item.prompt || "")}</p>
+            <small>${fmtDate(item.createdAt)} · ${escapeHtml(item.moderationStatus || "visible")} · 举报 ${fmtNumber(item.reportCount || 0)}</small>
+            ${item.moderationReason ? `<small>${escapeHtml(item.moderationReason)}</small>` : ""}
+          </div>
+          <div class="admin-card-actions">
+            <button type="button" data-detail="work:${escapeHtml(item.id)}">详情</button>
+            ${item.moderationStatus === "hidden"
+              ? `<button type="button" data-moderation="restore:${escapeHtml(item.id)}">恢复</button>`
+              : Number(item.reportCount || 0) > 0
+                ? `<button type="button" data-moderation="hide:${escapeHtml(item.id)}">确认隐藏</button><button type="button" data-moderation="reject:${escapeHtml(item.id)}">驳回举报并恢复</button>`
+                : `<button type="button" data-moderation="hide:${escapeHtml(item.id)}">隐藏</button>`}
+          </div>
+        </article>
+      `).join("") || `<div class="admin-empty-state">暂无待审核作品</div>`}
+    </section>${pagination(items.length)}`;
+}
+
+function renderUsers() {
+  const items = filtered(adminState.users, ["name", "email", "role", "status"]);
+  const pageItems = paged(items);
+  return `${toolbar("搜索用户姓名、邮箱或角色", ["active", "disabled", "admin", "user"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>用户与积分</h2>
+        <button type="button" data-create-user><i class="ri-user-add-line"></i> 新建用户</button>
+      </div>
+      <div class="admin-bulk-bar">
+        <strong>已选 ${fmtNumber(adminState.selectedUsers.size)} 个用户</strong>
+        <span>批量操作仅作用于当前勾选用户；不会默认覆盖全部搜索结果。</span>
+        <select id="bulkUserAction">
+          <option value="creditDelta">调整积分</option>
+          <option value="status">修改状态</option>
+        </select>
+        <input id="bulkCreditDelta" type="number" value="1" aria-label="积分调整">
+        <select id="bulkStatus" aria-label="状态"><option value="active">active</option><option value="disabled">disabled</option></select>
+        <input id="bulkNote" placeholder="备注">
+        <button type="button" data-bulk-users>应用到已选</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th><input type="checkbox" data-select-page-users></th><th>用户</th><th>角色</th><th>状态</th><th>积分</th><th>首发奖励</th><th>注册时间</th><th></th></tr></thead>
+          <tbody>
+            ${pageItems.map((user) => {
+              const latestReward = adminState.rewardLedger.find((item) => item.userId === user.id);
+              return `
+              <tr>
+                <td><input type="checkbox" data-user-select="${escapeHtml(user.id)}"${adminState.selectedUsers.has(user.id) ? " checked" : ""}></td>
+                <td><strong>${escapeHtml(user.name || user.email)}</strong><small>${escapeHtml(user.email)}</small></td>
+                <td>${escapeHtml(user.role)}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(user.status)}">${escapeHtml(user.status)}</span></td>
+                <td>${fmtNumber(user.credits)}</td>
+                <td>${latestReward ? `${escapeHtml(latestReward.status)} · ${fmtNumber(latestReward.amount)}` : "未发放"}</td>
+                <td>${fmtDate(user.createdAt)}</td>
+                <td><button type="button" data-detail="user:${escapeHtml(user.id)}">编辑</button></td>
+              </tr>
+            `; }).join("")}
+          </tbody>
+        </table>
+      </div>${pagination(items.length)}
+    </section>`;
+}
+
+function renderPrompts() {
+  const items = filtered(adminState.prompts, ["title", "prompt", "author", "status"]);
+  return `${toolbar("搜索标题、提示词、作者", ["active", "hidden"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>重复候选</h2>
+        <button type="button" data-scan-prompt-duplicates>扫描候选</button>
+        <span>${fmtNumber(adminState.promptDuplicates.length)} 组需人工确认</span>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>提示词 A</th><th>提示词 B</th><th>召回</th><th>处理</th></tr></thead>
+          <tbody>
+            ${adminState.promptDuplicates.map((item) => `
+              <tr>
+                <td><strong>${escapeHtml(item.prompt?.title || `#${item.promptId}`)}</strong><small class="admin-truncate">${escapeHtml(item.prompt?.prompt || "")}</small></td>
+                <td><strong>${escapeHtml(item.duplicate?.title || `#${item.duplicatePromptId}`)}</strong><small class="admin-truncate">${escapeHtml(item.duplicate?.prompt || "")}</small></td>
+                <td>${escapeHtml(item.method || "")}<small>score ${Number(item.score || 0).toFixed(4)} · ${escapeHtml(item.embeddingRecall || "")} · ${escapeHtml(item.llmReview || "")}</small></td>
+                <td>
+                  <button type="button" data-detail="prompt:${item.promptId}">编辑 A</button>
+                  <button type="button" data-detail="prompt:${item.duplicatePromptId}">编辑 B</button>
+                  <button type="button" data-duplicate-action="keep:${item.id}">保留</button>
+                  <button type="button" data-duplicate-action="confirm:${item.id}">确认重复</button>
+                  <button type="button" data-duplicate-action="hide_duplicate:${item.id}">隐藏 B</button>
+                </td>
+              </tr>
+            `).join("") || `<tr><td colspan="4">暂无重复候选</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>提示词 CMS</h2><button type="button" data-create-prompt>新建提示词</button></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>标题</th><th>标签</th><th>作者</th><th>状态</th><th>互动</th><th>排序</th><th></th></tr></thead>
+          <tbody>
+            ${paged(items).map((prompt) => `
+              <tr>
+                <td><strong>${escapeHtml(prompt.title || `#${prompt.id}`)}</strong><small class="admin-truncate">${escapeHtml(prompt.prompt || "")}</small></td>
+                <td>${escapeHtml((prompt.tags || []).join(", "))}</td>
+                <td>${escapeHtml(prompt.author || "-")}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(prompt.status)}">${escapeHtml(prompt.status)}</span></td>
+                <td>Like ${fmtNumber(prompt.likeCount)} / Use ${fmtNumber(prompt.useCount)} / Heat ${fmtNumber(prompt.heatScore)}</td>
+                <td>${fmtNumber(prompt.sortOrder)}</td>
+                <td><button type="button" data-detail="prompt:${prompt.id}">编辑</button></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>${pagination(items.length)}
+    </section>`;
+}
+
+function renderTags() {
+  const items = filtered(adminState.tags, ["slug", "labelZh", "labelEn", "category", "status"]);
+  return `${toolbar("搜索 slug、中文名、分类", ["active", "hidden"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>标签库</h2><button type="button" data-create-tag>新建标签</button></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Slug</th><th>中文/英文</th><th>分类</th><th>状态</th><th>覆盖</th><th></th></tr></thead>
+          <tbody>
+            ${paged(items).map((tag) => `
+              <tr>
+                <td><strong>${escapeHtml(tag.slug)}</strong><small>${escapeHtml(tag.source || "")}</small></td>
+                <td>${escapeHtml(tag.labelZh || "")}<small>${escapeHtml(tag.labelEn || "")}</small></td>
+                <td>${escapeHtml(tag.category || "-")}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(tag.status)}">${escapeHtml(tag.status)}</span></td>
+                <td>${fmtNumber(Number(tag.promptCount || 0) + Number(tag.galleryCount || 0))}</td>
+                <td><button type="button" data-detail="tag:${escapeHtml(tag.slug)}">编辑</button></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>${pagination(items.length)}
+    </section>`;
+}
+
+function renderSettings() {
+  const s = adminState.settings || {};
+  return `
+    <section class="admin-panel admin-settings-panel">
+      <h2>系统设置</h2>
+      <form id="adminSettingsForm" class="admin-form-grid">
+        <label>OpenAI API Key<input name="openaiApiKey" type="password" placeholder="${escapeHtml(s.apiKeyMask || "留空则保持不变")}"></label>
+        <label>API Base URL<input name="apiBaseUrl" value="${escapeHtml(s.apiBaseUrl || "")}"></label>
+        <label>模型<input name="model" value="${escapeHtml(s.model || "GPT-IMAGE-2")}"></label>
+        <label>默认积分<input name="defaultCredits" type="number" min="0" value="${escapeHtml(s.defaultCredits ?? 10)}"></label>
+        <label>单图消耗<input name="generationCreditCost" type="number" min="0" value="${escapeHtml(s.generationCreditCost ?? 1)}"></label>
+        <label>单次最大张数<input name="maxImagesPerRequest" type="number" min="1" max="4" value="${escapeHtml(s.maxImagesPerRequest ?? 1)}"></label>
+        <label>联系管理员邮箱<input name="contactEmail" type="email" value="${escapeHtml(s.contactEmail ?? s.contactAdminEmail ?? "")}" placeholder="support@example.com"></label>
+        <label>运营增长配置<textarea name="growthConfig" rows="6">${escapeHtml(JSON.stringify(s.growthConfig || {}, null, 2))}</textarea></label>
+        <label>Provider 能力配置<textarea name="providerCapabilityConfig" rows="6">${escapeHtml(JSON.stringify(s.providerCapabilityConfig || {}, null, 2))}</textarea></label>
+        <label class="admin-check"><input name="allowRegistration" type="checkbox"${s.allowRegistration ? " checked" : ""}>允许注册</label>
+        <label class="admin-check"><input name="requireApproval" type="checkbox"${s.requireApproval ? " checked" : ""}>注册后需审批</label>
+        <div class="admin-form-actions">
+          <button type="submit">保存设置</button>
+          <button type="button" data-clear-key>清除 Key</button>
+        </div>
+      </form>
+    </section>`;
+}
+
+function renderPlaceholder(title, icon, items) {
+  return `
+    <section class="admin-panel admin-placeholder">
+      <i class="${icon}"></i>
+      <h2>${title}</h2>
+      <p>该模块已进入独立后台信息架构，当前版本先保留稳定入口和上下文。后续任务会接入完整数据表、审核流和审计落库。</p>
+      <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    </section>`;
+}
+
+function providerCapabilityText(provider) {
+  const caps = provider.capabilities || {};
+  return Object.entries(caps).filter(([, value]) => value === true).map(([key]) => key).join(", ") || "-";
+}
+
+function renderProvidersPlaceholder() {
+  return `
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>API 供应商</h2>
+        <button type="button" data-create-provider><i class="ri-add-line"></i> 新增 Provider</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>名称</th><th>Base URL</th><th>模型</th><th>能力</th><th>健康</th><th>状态</th><th></th></tr></thead>
+          <tbody>
+            ${adminState.providers.map((provider) => `
+              <tr>
+                <td><strong>${escapeHtml(provider.name)}${provider.id === adminState.defaultProviderId ? " · 默认" : ""}</strong><small>${escapeHtml(provider.providerType)} · ${escapeHtml(provider.apiKeyMask || "no key")}</small></td>
+                <td class="admin-truncate">${escapeHtml(provider.baseUrl || "-")}</td>
+                <td>${escapeHtml(provider.defaultModel || "-")}</td>
+                <td class="admin-truncate">${escapeHtml(providerCapabilityText(provider))}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(provider.healthStatus || "unknown")}">${escapeHtml(provider.healthStatus || "unknown")}</span><small>${escapeHtml(provider.lastError || "")}</small></td>
+                <td><span class="admin-badge" data-status="${escapeHtml(provider.status)}">${escapeHtml(provider.status)}</span></td>
+                <td>
+                  <button type="button" data-detail="provider:${escapeHtml(provider.id)}">编辑</button>
+                  <button type="button" data-provider-test="${escapeHtml(provider.id)}">测试</button>
+                  ${provider.id === adminState.defaultProviderId ? "" : `<button type="button" data-provider-default="${escapeHtml(provider.id)}">设默认</button>`}
+                </td>
+              </tr>
+            `).join("") || `<tr><td colspan="7">暂无 Provider</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    ${renderPlaceholder("Provider Router 预留", "ri-route-line", [
+      "T019 将把生成和编辑接口改为 provider-router。",
+      "当前 T018 已提供 provider_configs、CRUD、测试连接和默认供应商。"
+    ])}`;
+}
+
+function renderGrowthPlaceholder() {
+  const growth = adminState.settings?.growthConfig || adminState.settings?.growth || {};
+  const leaderboard = adminState.galleryLeaderboard || [];
+  const anomalies = adminState.galleryLikeAnomalies || [];
+  return `
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>增长配置</h2><span>Growth JSON 只读摘要</span></div>
+      <pre class="admin-code-block">${escapeHtml(JSON.stringify(growth, null, 2))}</pre>
+    </section>
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>画廊点赞排行榜</h2><span>${fmtNumber(leaderboard.length)} 条热门作品</span></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>作品</th><th>作者</th><th>点赞</th><th>标签</th><th>时间</th><th></th></tr></thead>
+          <tbody>
+            ${leaderboard.map((item, index) => `
+              <tr>
+                <td><strong>#${index + 1} ${escapeHtml(item.id)}</strong><small class="admin-truncate">${escapeHtml(item.prompt || "")}</small></td>
+                <td>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</td>
+                <td><strong>${fmtNumber(item.likeCount || 0)}</strong><small>${item.likedByCurrentUser ? "liked by admin" : ""}</small></td>
+                <td class="admin-truncate">${escapeHtml((item.publicTags || []).join(", "))}</td>
+                <td>${fmtDate(item.createdAt)}</td>
+                <td><button type="button" data-detail="work:${escapeHtml(item.id)}">详情</button></td>
+              </tr>
+            `).join("") || `<tr><td colspan="6">暂无点赞榜数据</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>异常点赞检查</h2><span>${fmtNumber(anomalies.length)} 个 24h 高频账号</span></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>用户</th><th>24h 点赞</th><th>首次</th><th>最近</th></tr></thead>
+          <tbody>
+            ${anomalies.map((item) => `
+              <tr>
+                <td><strong>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</strong><small>${escapeHtml(item.userId || "")}</small></td>
+                <td>${fmtNumber(item.likeCount || 0)}</td>
+                <td>${fmtDate(item.firstLikeAt)}</td>
+                <td>${fmtDate(item.lastLikeAt)}</td>
+              </tr>
+            `).join("") || `<tr><td colspan="4">暂无异常点赞记录</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    ${renderPlaceholder("运营增长工作台预留", "ri-line-chart-line", [
+      "推荐位、榜单、活动和奖励配置保持独立入口。",
+      "图片点赞排行榜、异常点赞检查已接入，后续继续扩展运营位管理。",
+      "增长配置不再混在 Settings 长表单里。"
+    ])}`;
+}
+
+function renderAnnouncements() {
+  const items = filtered(adminState.announcements, ["title", "body", "level", "displayMode", "audience", "status"]);
+  return `
+    ${toolbar("搜索标题、正文、等级或状态", ["draft", "published", "archived"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>通知公告</h2>
+        <button type="button" data-create-announcement><i class="ri-add-line"></i> 新建通知</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>标题</th><th>等级</th><th>展示</th><th>目标</th><th>状态</th><th>统计</th><th>时间</th><th></th></tr></thead>
+          <tbody>
+            ${paged(items).map((item) => `
+              <tr>
+                <td><strong>${escapeHtml(item.title)}</strong><small class="admin-truncate">${escapeHtml(item.body)}</small></td>
+                <td>${escapeHtml(item.level || item.severity || "info")}${item.isImportant ? "<small>重要</small>" : ""}</td>
+                <td>${escapeHtml(item.displayMode || item.displayType || "feed")}</td>
+                <td>${escapeHtml(item.audience || item.targetAudience || "all")}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(item.status)}">${escapeHtml(item.status)}</span>${item.requiresAck ? "<small>需确认</small>" : ""}</td>
+                <td>读 ${fmtNumber(item.readCount || 0)} / 确认 ${fmtNumber(item.ackCount || 0)}</td>
+                <td><small>${fmtDate(item.publishedAt || item.createdAt)}</small></td>
+                <td>
+                  <button type="button" data-detail="announcement:${escapeHtml(item.id)}">编辑</button>
+                  ${item.status === "published" ? `<button type="button" data-announcement-action="withdraw:${escapeHtml(item.id)}">撤回</button>` : `<button type="button" data-announcement-action="publish:${escapeHtml(item.id)}">发布</button>`}
+                  <button type="button" data-announcement-action="archive:${escapeHtml(item.id)}">归档</button>
+                </td>
+              </tr>
+            `).join("") || `<tr><td colspan="8">暂无通知公告</td></tr>`}
+          </tbody>
+        </table>
+      </div>${pagination(items.length)}
+    </section>`;
+}
+
+function renderPromptAudit() {
+  const items = filtered(adminState.promptAudits, ["prompt", "userName", "userEmail", "status", "resultLevel", "resultAction", "matchedPromptTitle"]);
+  return `
+    ${toolbar("搜索提示词、用户、状态或匹配项", ["blocked", "review", "allowed", "override_allowed", "reviewed"])}
+    <section class="admin-panel">
+      <div class="admin-panel-head">
+        <h2>Prompt Audit</h2>
+        <span>${fmtNumber(items.length)} 条审计记录</span>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>提示词</th><th>重复等级</th><th>建议动作</th><th>匹配项</th><th>人工复核</th><th>时间</th></tr></thead>
+          <tbody>
+            ${paged(items).map((item) => `
+              <tr>
+                <td>
+                  <strong>${escapeHtml(item.userName || item.userEmail || item.generationId || `#${item.id}`)}</strong>
+                  <small class="admin-truncate">${escapeHtml(item.prompt || "")}</small>
+                </td>
+                <td><span class="admin-badge" data-status="${escapeHtml(item.resultLevel)}">${escapeHtml(item.resultLevel)}</span><small>${escapeHtml(item.method || "none")} · score ${Number(item.score || 0).toFixed(4)}</small></td>
+                <td><strong>${escapeHtml(item.resultAction || "allow")}</strong><small>${escapeHtml(item.requiredMode ? `required: ${item.requiredMode}` : item.requestedMode || "")}</small></td>
+                <td>
+                  <strong>${escapeHtml(item.matchedPromptTitle || item.matchedGenerationId || "-")}</strong>
+                  <small class="admin-truncate">${escapeHtml(item.matchedPromptText || item.matchedGenerationPrompt || "")}</small>
+                </td>
+                <td>
+                  <span class="admin-badge" data-status="${escapeHtml(item.status)}">${escapeHtml(item.status)}</span>
+                  <small>${escapeHtml(item.overrideAction || item.overrideNote || "")}</small>
+                  <div class="admin-card-actions">
+                    <button type="button" data-detail="promptAudit:${escapeHtml(item.id)}">详情</button>
+                    <button type="button" data-prompt-audit-action="allow_text_to_image:${escapeHtml(item.id)}">允许文生图</button>
+                    <button type="button" data-prompt-audit-action="require_image_to_image:${escapeHtml(item.id)}">要求图生图</button>
+                    <button type="button" data-prompt-audit-action="mark_reviewed:${escapeHtml(item.id)}">标记已复核</button>
+                  </div>
+                </td>
+                <td>${fmtDate(item.createdAt)}</td>
+              </tr>
+            `).join("") || `<tr><td colspan="6">暂无 Prompt Audit 记录</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      ${pagination(items.length)}
+    </section>`;
+}
+
+function renderRum() {
+  const m = metrics();
+  const rum = adminState.rum?.summary || {};
+  return `
+    <section class="admin-stats-grid compact">
+      ${statCard("平均生成耗时", fmtDuration(m.avgDuration), "generation_requests.durationMs", "ri-timer-flash-line")}
+      ${statCard("LCP", rum.lcp ? `${fmtNumber(rum.lcp)} ms` : "-", "web-vitals", "ri-speed-up-line")}
+      ${statCard("INP", rum.inp ? `${fmtNumber(rum.inp)} ms` : "-", "web-vitals", "ri-cursor-line")}
+      ${statCard("CLS", rum.cls ?? "-", "web-vitals", "ri-layout-masonry-line")}
+      ${statCard("图片失败", fmtNumber(rum.imageFailures || 0), "RUM image_error", "ri-image-close-line")}
+      ${statCard("后端运行", fmtDuration((adminState.version?.uptimeSeconds || 0) * 1000), "process uptime", "ri-server-line")}
+      ${statCard("Node", escapeHtml(adminState.version?.node || "-"), escapeHtml(adminState.version?.platform || ""), "ri-code-box-line")}
+    </section>
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>RUM 事件</h2><span>${fmtNumber(rum.total || 0)} 条近期事件</span></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>指标</th><th>值</th><th>路径</th><th>时间</th></tr></thead>
+          <tbody>${(adminState.rum?.events || []).map((item) => `
+            <tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.value)}</td><td>${escapeHtml(item.path || "-")}</td><td>${fmtDate(item.createdAt)}</td></tr>
+          `).join("") || `<tr><td colspan="4">暂无 RUM 事件</td></tr>`}</tbody>
+        </table>
+      </div>
+    </section>`;
+}
+
+function renderWithdrawals() {
+  return `
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>举报队列</h2><span>${fmtNumber(adminState.reports.length)} 条记录</span></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>作品</th><th>用户</th><th>状态</th><th>举报</th><th>原因</th><th></th></tr></thead>
+          <tbody>
+            ${adminState.reports.map((item) => `
+              <tr>
+                <td><strong>${escapeHtml(item.id)}</strong><small class="admin-truncate">${escapeHtml(item.prompt || "")}</small></td>
+                <td>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(item.moderationStatus || "visible")}">${escapeHtml(item.moderationStatus || "visible")}</span></td>
+                <td>${fmtNumber(item.reportCount || 0)}</td>
+                <td>${escapeHtml(item.moderationReason || "-")}</td>
+                <td>
+                  ${item.moderationStatus === "hidden"
+                    ? `<button type="button" data-moderation="restore:${escapeHtml(item.id)}">恢复</button>`
+                    : `<button type="button" data-moderation="hide:${escapeHtml(item.id)}">确认隐藏</button><button type="button" data-moderation="reject:${escapeHtml(item.id)}">驳回举报并恢复</button>`}
+                </td>
+              </tr>
+            `).join("") || `<tr><td colspan="6">暂无举报</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>举报与撤回</h2><span>${fmtNumber(adminState.withdrawals.length)} 条记录</span></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>作品</th><th>用户</th><th>状态</th><th>公开时间</th><th>申请时间</th><th>原因</th><th></th></tr></thead>
+          <tbody>
+            ${adminState.withdrawals.map((item) => `
+              <tr>
+                <td><strong>${escapeHtml(item.id)}</strong><small class="admin-truncate">${escapeHtml(item.prompt || "")}</small></td>
+                <td>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</td>
+                <td><span class="admin-badge" data-status="${escapeHtml(item.withdrawalStatus)}">${escapeHtml(item.withdrawalStatus)}</span></td>
+                <td>${fmtDate(item.publishedAt)}</td>
+                <td>${fmtDate(item.withdrawalRequestedAt)}</td>
+                <td>${escapeHtml(item.withdrawalReason || "-")}</td>
+                <td>
+                  ${item.withdrawalStatus === "requested" ? `
+                    <button type="button" data-withdrawal-decision="approved:${escapeHtml(item.id)}">批准</button>
+                    <button type="button" data-withdrawal-decision="rejected:${escapeHtml(item.id)}">拒绝</button>
+                  ` : ""}
+                </td>
+              </tr>
+            `).join("") || `<tr><td colspan="7">暂无撤回申请</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+}
+
+function renderAudit() {
+  return `
+    <section class="admin-panel">
+      <div class="admin-panel-head"><h2>审计日志</h2><button type="button" data-audit-demo>记录一次只读巡检</button></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>动作</th><th>对象</th><th>操作者</th><th>详情</th><th>时间</th></tr></thead>
+          <tbody>
+            ${adminState.audit.map((item) => `
+              <tr><td>${escapeHtml(item.action)}</td><td>${escapeHtml(item.target)}</td><td>${escapeHtml(item.actor)}</td><td>${escapeHtml(item.detail)}</td><td>${fmtDate(item.createdAt)}</td></tr>
+            `).join("") || `<tr><td colspan="5">本地会话暂无审计动作；服务端落库将在审计任务中接入。</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+}
+
+function renderContent() {
+  switch (adminState.active) {
+    case "providers": return renderProvidersPlaceholder();
+    case "generation-requests": return renderRequests();
+    case "square-review": return renderSquareReview();
+    case "users-credits": return renderUsers();
+    case "prompt-cms": return renderPrompts();
+    case "prompt-audit": return renderPromptAudit();
+    case "tag-library": return renderTags();
+    case "system-settings": return renderSettings();
+    case "reports-withdrawals": return renderWithdrawals();
+    case "growth": return renderGrowthPlaceholder();
+    case "announcements": return renderAnnouncements();
+    case "rum-performance": return renderRum();
+    case "audit-log": return renderAudit();
+    default: return renderOverview();
+  }
+}
+
+function render() {
+  const [, , label] = currentNav();
+  $("#adminPageTitle").textContent = label;
+  const description = $("#adminPageDescription");
+  if (description) description.textContent = pageDescriptions[adminState.active] || pageDescriptions.overview;
+  const userLabel = $("#adminUserLabel");
+  if (userLabel) {
+    userLabel.textContent = adminState.user ? `${adminState.user.name || adminState.user.email} · 管理员` : "-";
+  }
+  renderNav();
+  $("#adminContent").innerHTML = renderContent();
+  bindToolbar();
+  bindPagination();
+  bindActions();
+}
+
+function openDrawer(title, body) {
+  const drawer = $("#adminDrawer");
+  const backdrop = $("#adminDrawerBackdrop");
+  backdrop?.classList.remove("hidden");
+  drawer.classList.remove("hidden");
+  drawer.innerHTML = `
+    <div class="admin-drawer-head">
+      <h2>${escapeHtml(title)}</h2>
+      <button type="button" data-close-drawer><i class="ri-close-line"></i></button>
+    </div>
+    <div class="admin-drawer-body">${body}</div>
+  `;
+  $("[data-close-drawer]", drawer).addEventListener("click", closeDrawer);
+  backdrop?.addEventListener("click", closeDrawer, { once: true });
+}
+
+function closeDrawer() {
+  $("#adminDrawerBackdrop")?.classList.add("hidden");
+  $("#adminDrawer").classList.add("hidden");
+  $("#adminDrawer").innerHTML = "";
+}
+
+function requestDrawer(item) {
+  openDrawer("生成请求详情", `
+    <dl class="admin-detail-list">
+      <dt>ID</dt><dd>${escapeHtml(item.id)}</dd>
+      <dt>状态</dt><dd>${escapeHtml(item.status)}</dd>
+      <dt>用户</dt><dd>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</dd>
+      <dt>耗时</dt><dd>${fmtDuration(item.durationMs)}</dd>
+      <dt>模型</dt><dd>${escapeHtml(item.model || "-")}</dd>
+      <dt>错误</dt><dd>${escapeHtml(item.errorMessage || "-")}</dd>
+      <dt>提示词</dt><dd>${escapeHtml(item.prompt || "-")}</dd>
+    </dl>
+  `);
+}
+
+async function promptAuditDrawer(id) {
+  const response = await api(`/api/admin/prompt-audits/${encodeURIComponent(id)}`);
+  const item = response.audit || adminState.promptAudits.find((audit) => String(audit.id) === String(id));
+  if (!item) return;
+  openDrawer("Prompt Audit 详情", `
+    <dl class="admin-detail-list">
+      <dt>ID</dt><dd>${escapeHtml(item.id)}</dd>
+      <dt>作品</dt><dd>${escapeHtml(item.generationId || "-")}</dd>
+      <dt>用户</dt><dd>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</dd>
+      <dt>请求模式</dt><dd>${escapeHtml(item.requestedMode || "-")}</dd>
+      <dt>风险等级</dt><dd>${escapeHtml(item.resultLevel || "-")} / ${escapeHtml(item.resultAction || "-")}</dd>
+      <dt>强制模式</dt><dd>${escapeHtml(item.requiredMode || "-")}</dd>
+      <dt>状态</dt><dd>${escapeHtml(item.status || "-")}</dd>
+      <dt>分数</dt><dd>${Number(item.score || 0).toFixed(4)} · ${escapeHtml(item.method || "none")}</dd>
+      <dt>原提示词</dt><dd>${escapeHtml(item.prompt || "-")}</dd>
+      <dt>匹配提示词</dt><dd>${escapeHtml(item.matchedPromptText || item.matchedGenerationPrompt || "-")}</dd>
+      <dt>人工覆盖</dt><dd>${escapeHtml(item.overrideAction || "-")} ${escapeHtml(item.overrideNote || "")}</dd>
+      <dt>复核人</dt><dd>${escapeHtml(item.reviewerName || item.reviewerEmail || item.reviewerUserId || "-")}</dd>
+      <dt>创建时间</dt><dd>${fmtDate(item.createdAt)}</dd>
+      <dt>复核时间</dt><dd>${fmtDate(item.reviewedAt)}</dd>
+    </dl>
+    <div class="admin-drawer-actions">
+      <button type="button" data-prompt-audit-action="allow_text_to_image:${escapeHtml(item.id)}">允许文生图</button>
+      <button type="button" data-prompt-audit-action="require_image_to_image:${escapeHtml(item.id)}">要求图生图</button>
+      <button type="button" data-prompt-audit-action="mark_reviewed:${escapeHtml(item.id)}">标记已复核</button>
+    </div>
+  `);
+  bindPromptAuditActions($("#adminDrawer"));
+}
+
+function showTemporaryPassword(password) {
+  if (!password) return;
+  openDrawer("一次性临时密码", `
+    <section class="admin-temp-password">
+      <p>该密码只会在本次操作后返回一次。关闭后无法再次查看，只能重新重置密码。</p>
+      <div class="admin-copy-row">
+        <code>${escapeHtml(password)}</code>
+        <button type="button" data-copy-temp-password>复制</button>
+      </div>
+    </section>
+  `);
+  $("[data-copy-temp-password]")?.addEventListener("click", async () => {
+    await navigator.clipboard?.writeText(password).catch(() => null);
+  });
+}
+
+function createUserDrawer() {
+  openDrawer("新建用户", `
+    <form id="drawerCreateUserForm" class="admin-form-grid single">
+      <label>昵称<input name="name" placeholder="运营同学"></label>
+      <label>邮箱<input name="email" type="email" required placeholder="ops@example.com"></label>
+      <label>密码<input name="password" type="password" placeholder="留空则自动生成临时密码"></label>
+      <label class="admin-check"><input name="generatePassword" type="checkbox" checked>自动生成临时密码</label>
+      <label>角色<select name="role"><option value="user">user</option><option value="admin">admin</option></select></label>
+      <label>状态<select name="status"><option value="active">active</option><option value="disabled">disabled</option></select></label>
+      <label>初始积分<input name="credits" type="number" min="0" value="${escapeHtml(adminState.settings?.defaultCredits ?? 10)}"></label>
+      <label>备注<input name="note" value="Admin created user"></label>
+      <button type="submit">创建用户</button>
+    </form>
+  `);
+  $("#drawerCreateUserForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const role = String(form.get("role") || "user");
+    if (role === "admin" && !(await confirmAction({
+      title: "创建管理员用户",
+      message: "确认创建 admin 用户？该账号将拥有后台管理权限。",
+      confirmText: "创建 admin",
+      danger: true
+    }))) return;
+    const response = await api("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({
+        name: form.get("name"),
+        email: form.get("email"),
+        password: form.get("password"),
+        generatePassword: Boolean(form.get("generatePassword")),
+        role,
+        status: form.get("status"),
+        credits: form.get("credits"),
+        note: form.get("note")
+      })
+    });
+    recordAudit("create_user", response.user?.id || String(form.get("email")), form.get("email"));
+    await loadAll();
+    render();
+    if (response.temporaryPassword) {
+      showTemporaryPassword(response.temporaryPassword);
+    } else {
+      closeDrawer();
+    }
+  });
+}
+
+function providerDrawer(provider = {}) {
+  const isNew = !provider.id;
+  const caps = {
+    textToImage: true,
+    imageEdit: true,
+    multiCandidate: false,
+    transparentBackground: false,
+    sourceTransparency: false,
+    privacyDownload: false,
+    maxImagesPerRequest: 1,
+    ...(provider.capabilities || {})
+  };
+  const routing = {
+    role: isNew ? "fallback" : "default",
+    weight: 1,
+    ...(provider.routing || {})
+  };
+  openDrawer(isNew ? "新增 Provider" : "编辑 Provider", `
+    <form id="drawerProviderForm" class="admin-form-grid single">
+      <label>名称<input name="name" value="${escapeHtml(provider.name || "")}" required></label>
+      <label>类型<select name="providerType">
+        ${["openai", "openai-compatible", "custom-proxy"].map((type) => `<option value="${type}"${(provider.providerType || "openai-compatible") === type ? " selected" : ""}>${type}</option>`).join("")}
+      </select></label>
+      <label>Base URL<input name="baseUrl" value="${escapeHtml(provider.baseUrl || "")}" required placeholder="https://api.openai.com"></label>
+      <label>API Key<input name="apiKey" type="password" placeholder="${escapeHtml(provider.apiKeyMask || "留空则保持不变")}"></label>
+      <label>默认模型<input name="defaultModel" value="${escapeHtml(provider.defaultModel || "gpt-image-2")}"></label>
+      <label>Images endpoint override<input name="endpointImages" value="${escapeHtml(provider.endpointImages || "")}"></label>
+      <label>Responses endpoint override<input name="endpointResponses" value="${escapeHtml(provider.endpointResponses || "")}"></label>
+      <label>Edits endpoint override<input name="endpointEdits" value="${escapeHtml(provider.endpointEdits || "")}"></label>
+      <label>状态<select name="status"><option value="active"${provider.status !== "disabled" ? " selected" : ""}>active</option><option value="disabled"${provider.status === "disabled" ? " selected" : ""}>disabled</option></select></label>
+      <label>排序<input name="sortOrder" type="number" value="${escapeHtml(provider.sortOrder || 0)}"></label>
+      <label>能力 JSON<textarea name="capabilities" rows="8">${escapeHtml(JSON.stringify(caps, null, 2))}</textarea></label>
+      <label>路由 JSON<textarea name="routing" rows="5">${escapeHtml(JSON.stringify(routing, null, 2))}</textarea></label>
+      <button type="submit">${isNew ? "创建 Provider" : "保存 Provider"}</button>
+      ${isNew || provider.id === "prv_default" ? "" : `<button type="button" class="danger" data-delete-provider>删除 Provider</button>`}
+    </form>
+  `);
+  $("#drawerProviderForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    let capabilities;
+    let routing;
+    try {
+      capabilities = JSON.parse(form.get("capabilities") || "{}");
+      routing = JSON.parse(form.get("routing") || "{}");
+    } catch {
+      setStatus("Provider JSON 格式错误", "danger");
+      return;
+    }
+    const apiKey = String(form.get("apiKey") || "").trim();
+    const payload = {
+      name: form.get("name"),
+      providerType: form.get("providerType"),
+      baseUrl: form.get("baseUrl"),
+      defaultModel: form.get("defaultModel"),
+      endpointImages: form.get("endpointImages"),
+      endpointResponses: form.get("endpointResponses"),
+      endpointEdits: form.get("endpointEdits"),
+      status: form.get("status"),
+      sortOrder: form.get("sortOrder"),
+      capabilities,
+      routing
+    };
+    if (isNew || apiKey) payload.apiKey = apiKey;
+    await api(isNew ? "/api/admin/providers" : `/api/admin/providers/${encodeURIComponent(provider.id)}`, {
+      method: isNew ? "POST" : "PATCH",
+      body: JSON.stringify(payload)
+    });
+    recordAudit(isNew ? "create_provider" : "update_provider", provider.id || String(payload.name), payload.baseUrl);
+    await refreshAndRender();
+    closeDrawer();
+  });
+  $("[data-delete-provider]")?.addEventListener("click", async () => {
+    if (!(await confirmAction({
+      title: "删除 Provider",
+      message: `确认删除 ${provider.name}？默认 Provider 不能删除。`,
+      confirmText: "删除",
+      danger: true
+    }))) return;
+    await api(`/api/admin/providers/${encodeURIComponent(provider.id)}`, { method: "DELETE" });
+    recordAudit("delete_provider", provider.id, provider.name);
+    await refreshAndRender();
+    closeDrawer();
+  });
+}
+
+async function userDrawer(user) {
+  const [creditLedger, rewardLedger] = await Promise.all([
+    api(`/api/admin/users/${encodeURIComponent(user.id)}/credit-ledger?limit=80`),
+    api(`/api/admin/users/${encodeURIComponent(user.id)}/reward-ledger?limit=80`)
+  ]);
+  const ledgerRows = creditLedger.ledger || [];
+  const rewardRows = rewardLedger.rewards || [];
+  openDrawer("用户与积分", `
+    <form id="drawerUserForm" class="admin-form-grid single">
+      <label>姓名<input name="name" value="${escapeHtml(user.name || "")}"></label>
+      <label>角色<select name="role"><option value="user"${user.role === "user" ? " selected" : ""}>user</option><option value="admin"${user.role === "admin" ? " selected" : ""}>admin</option></select></label>
+      <label>状态<select name="status"><option value="active"${user.status === "active" ? " selected" : ""}>active</option><option value="disabled"${user.status === "disabled" ? " selected" : ""}>disabled</option></select></label>
+      <label>积分<input name="credits" type="number" min="0" value="${escapeHtml(user.credits || 0)}"></label>
+      <label>积分调整<input name="creditDelta" type="number" value="0"></label>
+      <label>备注<input name="note" value="Admin adjustment"></label>
+      <button type="submit">保存用户</button>
+      <button type="button" data-reset-user-password>重置密码</button>
+    </form>
+    <section class="admin-ledger-section">
+      <h3>积分流水</h3>
+      <div class="admin-mini-table">
+        ${ledgerRows.map((item) => `
+          <div><strong>${item.delta > 0 ? "+" : ""}${fmtNumber(item.delta)}</strong><span>${escapeHtml(item.source)}</span><small>${fmtNumber(item.balanceAfter)} · ${fmtDate(item.createdAt)}</small></div>
+        `).join("") || "<p>暂无积分流水</p>"}
+      </div>
+    </section>
+    <section class="admin-ledger-section">
+      <h3>奖励流水</h3>
+      <div class="admin-mini-table">
+        ${rewardRows.map((item) => `
+          <div><strong>${escapeHtml(item.rewardType)}</strong><span>${escapeHtml(item.status)} · ${fmtNumber(item.amount)}</span><small>${fmtDate(item.awardedAt || item.createdAt)}</small></div>
+        `).join("") || "<p>暂无奖励流水</p>"}
+      </div>
+    </section>
+  `);
+  $("#drawerUserForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    if (form.get("status") === "disabled" && !(await confirmAction({
+      title: "停用用户",
+      message: "确认停用该用户？停用后该用户将无法正常使用账号。",
+      confirmText: "停用",
+      danger: true
+    }))) return;
+    await api(`/api/admin/users/${encodeURIComponent(user.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: form.get("name"),
+        role: form.get("role"),
+        status: form.get("status"),
+        credits: form.get("credits"),
+        creditDelta: form.get("creditDelta"),
+        note: form.get("note")
+      })
+    });
+    recordAudit("update_user", user.id, user.email);
+    await refreshAndRender();
+    closeDrawer();
+  });
+  $("[data-reset-user-password]")?.addEventListener("click", async () => {
+    if (!(await confirmAction({
+      title: "重置用户密码",
+      message: `确认重置 ${user.email} 的密码？系统会生成一次性临时密码。`,
+      confirmText: "重置密码",
+      danger: true
+    }))) return;
+    const response = await api(`/api/admin/users/${encodeURIComponent(user.id)}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ generatePassword: true, note: "Admin reset password" })
+    });
+    recordAudit("reset_user_password", user.id, user.email);
+    await loadAll();
+    render();
+    showTemporaryPassword(response.temporaryPassword);
+  });
+}
+
+function promptPayload(form) {
+  return {
+    title: form.get("title"),
+    imageUrl: form.get("imageUrl"),
+    prompt: form.get("prompt"),
+    tags: String(form.get("tags") || "").split(/[,，\s]+/).filter(Boolean),
+    author: form.get("author"),
+    source: form.get("source"),
+    status: form.get("status"),
+    sortOrder: Number(form.get("sortOrder") || 0)
+  };
+}
+
+function promptDrawer(prompt = {}) {
+  const isNew = !prompt.id;
+  openDrawer(isNew ? "新建提示词" : "编辑提示词", `
+    <form id="drawerPromptForm" class="admin-form-grid single">
+      <label>标题<input name="title" value="${escapeHtml(prompt.title || "")}" required></label>
+      <label>封面 URL<input name="imageUrl" value="${escapeHtml(prompt.imageUrl || "")}"></label>
+      <label>提示词<textarea name="prompt" rows="6" required>${escapeHtml(prompt.prompt || "")}</textarea></label>
+      <label>标签<input name="tags" value="${escapeHtml((prompt.tags || []).join(", "))}"></label>
+      <label>作者<input name="author" value="${escapeHtml(prompt.author || "")}"></label>
+      <label>来源<input name="source" value="${escapeHtml(prompt.source || "admin")}"></label>
+      <label>状态<select name="status"><option value="active"${prompt.status !== "hidden" ? " selected" : ""}>active</option><option value="hidden"${prompt.status === "hidden" ? " selected" : ""}>hidden</option></select></label>
+      <label>排序<input name="sortOrder" type="number" value="${escapeHtml(prompt.sortOrder || 0)}"></label>
+      <button type="submit">${isNew ? "创建" : "保存"}</button>
+      ${isNew ? "" : `<button type="button" class="danger" data-hide-prompt>隐藏此条</button>`}
+    </form>
+  `);
+  $("#drawerPromptForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = promptPayload(new FormData(event.currentTarget));
+    await api(isNew ? "/api/prompts" : `/api/prompts/${prompt.id}`, {
+      method: isNew ? "POST" : "PATCH",
+      body: JSON.stringify(payload)
+    });
+    recordAudit(isNew ? "create_prompt" : "update_prompt", String(prompt.id || payload.title), payload.title);
+    await refreshAndRender();
+    closeDrawer();
+  });
+  $("[data-hide-prompt]")?.addEventListener("click", async () => {
+    if (!(await confirmAction({
+      title: "隐藏提示词",
+      message: "确认隐藏该提示词？隐藏后前台将不再展示。",
+      confirmText: "隐藏",
+      danger: true
+    }))) return;
+    await api(`/api/prompts/${prompt.id}`, { method: "DELETE" });
+    recordAudit("hide_prompt", String(prompt.id), prompt.title || "");
+    await refreshAndRender();
+    closeDrawer();
+  });
+}
+
+function tagDrawer(tag = {}) {
+  const isNew = !tag.slug;
+  openDrawer(isNew ? "新建标签" : "编辑标签", `
+    <form id="drawerTagForm" class="admin-form-grid single">
+      <label>Slug<input name="slug" value="${escapeHtml(tag.slug || "")}" ${isNew ? "required" : "readonly"}></label>
+      <label>中文<input name="labelZh" value="${escapeHtml(tag.labelZh || "")}"></label>
+      <label>英文<input name="labelEn" value="${escapeHtml(tag.labelEn || "")}"></label>
+      <label>别名<input name="aliases" value="${escapeHtml((tag.aliases || []).join(", "))}"></label>
+      <label>分类<input name="category" value="${escapeHtml(tag.category || "")}"></label>
+      <label>状态<select name="status"><option value="active"${tag.status !== "hidden" ? " selected" : ""}>active</option><option value="hidden"${tag.status === "hidden" ? " selected" : ""}>hidden</option></select></label>
+      <label>排序<input name="sortOrder" type="number" value="${escapeHtml(tag.sortOrder || 0)}"></label>
+      <label>色相<input name="hue" type="number" min="0" max="359" value="${escapeHtml(tag.hue || 0)}"></label>
+      <label class="admin-check"><input name="showInFilter" type="checkbox"${tag.showInFilter !== false ? " checked" : ""}>前台筛选展示</label>
+      <button type="submit">${isNew ? "创建" : "保存"}</button>
+      ${isNew ? "" : `<label>合并到目标 slug<input id="mergeTargetSlug" placeholder="target-slug"></label><button type="button" data-merge-tag>合并标签</button>`}
+    </form>
+  `);
+  $("#drawerTagForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    if (form.get("status") === "hidden" && !(await confirmAction({
+      title: "隐藏标签",
+      message: "确认隐藏该标签？前台筛选和推荐可能受影响。",
+      confirmText: "隐藏",
+      danger: true
+    }))) return;
+    const payload = {
+      slug: String(form.get("slug") || "").trim().toLowerCase(),
+      labelZh: form.get("labelZh"),
+      labelEn: form.get("labelEn"),
+      aliases: String(form.get("aliases") || "").split(/[,，\n]+/).map((v) => v.trim()).filter(Boolean),
+      category: form.get("category"),
+      status: form.get("status"),
+      sortOrder: Number(form.get("sortOrder") || 0),
+      hue: Number(form.get("hue") || 0),
+      showInFilter: Boolean(form.get("showInFilter")),
+      source: tag.source || "admin"
+    };
+    await api(isNew ? "/api/tags" : `/api/tags/${encodeURIComponent(tag.slug)}`, {
+      method: isNew ? "POST" : "PATCH",
+      body: JSON.stringify(payload)
+    });
+    recordAudit(isNew ? "create_tag" : "update_tag", payload.slug, payload.labelZh || payload.labelEn || "");
+    await refreshAndRender();
+    closeDrawer();
+  });
+  $("[data-merge-tag]")?.addEventListener("click", async () => {
+    const targetSlug = $("#mergeTargetSlug").value.trim().toLowerCase();
+    if (!targetSlug || !(await confirmAction({
+      title: "合并标签",
+      message: `确认把 ${tag.slug} 合并到 ${targetSlug}？历史内容会迁移到目标标签。`,
+      confirmText: "合并",
+      danger: true
+    }))) return;
+    await api(`/api/tags/${encodeURIComponent(tag.slug)}/merge`, {
+      method: "POST",
+      body: JSON.stringify({ targetSlug })
+    });
+    recordAudit("merge_tag", tag.slug, `target=${targetSlug}`);
+    await refreshAndRender();
+    closeDrawer();
+  });
+}
+
+function workDrawer(item) {
+  openDrawer("公开作品详情", `
+    <img class="admin-drawer-image" src="${escapeHtml(item.imageUrl)}" alt="">
+    <dl class="admin-detail-list">
+      <dt>ID</dt><dd>${escapeHtml(item.id)}</dd>
+      <dt>作者</dt><dd>${escapeHtml(item.userName || item.userId || "-")}</dd>
+      <dt>标签</dt><dd>${escapeHtml((item.publicTags || []).join(", ")) || "-"}</dd>
+      <dt>提示词</dt><dd>${escapeHtml(item.prompt || "-")}</dd>
+    </dl>
+  `);
+}
+
+function announcementDrawer(item = null) {
+  const isNew = !item;
+  const announcement = item || {
+    title: "",
+    body: "",
+    level: "info",
+    displayMode: "feed",
+    audience: "all",
+    status: "draft",
+    isImportant: false,
+    requiresAck: false,
+    startsAt: "",
+    endsAt: "",
+    targetUserIds: []
+  };
+  openDrawer(isNew ? "新建通知" : "编辑通知", `
+    <form id="drawerAnnouncementForm" class="admin-form-grid">
+      <label>标题<input name="title" value="${escapeHtml(announcement.title || "")}" required maxlength="160"></label>
+      <label>等级
+        <select name="level">
+          ${["info", "success", "warning", "danger", "maintenance", "feature"].map((level) => `<option value="${level}"${(announcement.level || announcement.severity) === level ? " selected" : ""}>${level}</option>`).join("")}
+        </select>
+      </label>
+      <label>展示方式
+        <select name="displayMode">
+          ${["feed", "banner", "modal"].map((mode) => `<option value="${mode}"${(announcement.displayMode || announcement.displayType) === mode ? " selected" : ""}>${mode}</option>`).join("")}
+        </select>
+      </label>
+      <label>目标人群
+        <select name="audience">
+          ${["all", "logged-in", "admin", "specific-users"].map((audience) => `<option value="${audience}"${(announcement.audience || announcement.targetAudience) === audience ? " selected" : ""}>${audience}</option>`).join("")}
+        </select>
+      </label>
+      <label>生效时间<input name="startsAt" type="datetime-local" value="${escapeHtml(datetimeLocal(announcement.startsAt || announcement.publishAt))}"></label>
+      <label>失效时间<input name="endsAt" type="datetime-local" value="${escapeHtml(datetimeLocal(announcement.endsAt || announcement.expiresAt))}"></label>
+      <label>指定用户 ID<textarea name="targetUserIds" rows="3" placeholder="仅 specific-users 使用，多个 ID 用逗号或换行分隔">${escapeHtml((announcement.targetUserIds || []).join("\n"))}</textarea></label>
+      <label>正文<textarea name="body" rows="10" required>${escapeHtml(announcement.body || "")}</textarea></label>
+      <label class="admin-check"><input name="isImportant" type="checkbox"${announcement.isImportant ? " checked" : ""}>重要通知</label>
+      <label class="admin-check"><input name="requiresAck" type="checkbox"${announcement.requiresAck ? " checked" : ""}>需要用户点击“我已知晓”确认</label>
+      <div class="admin-form-actions">
+        <button type="submit">${isNew ? "创建通知" : "保存通知"}</button>
+        ${!isNew && announcement.status !== "published" ? `<button type="button" data-announcement-drawer-action="publish:${escapeHtml(announcement.id)}">发布</button>` : ""}
+        ${!isNew && announcement.status === "published" ? `<button type="button" data-announcement-drawer-action="withdraw:${escapeHtml(announcement.id)}">撤回</button>` : ""}
+        ${!isNew ? `<button type="button" data-announcement-drawer-action="archive:${escapeHtml(announcement.id)}">归档</button>` : ""}
+      </div>
+    </form>
+  `);
+  $("#drawerAnnouncementForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      title: form.get("title"),
+      body: form.get("body"),
+      level: form.get("level"),
+      displayMode: form.get("displayMode"),
+      audience: form.get("audience"),
+      startsAt: form.get("startsAt"),
+      endsAt: form.get("endsAt"),
+      targetUserIds: String(form.get("targetUserIds") || "").split(/[,\n\s]+/).filter(Boolean),
+      isImportant: Boolean(form.get("isImportant")),
+      requiresAck: Boolean(form.get("requiresAck"))
+    };
+    const response = await api(isNew ? "/api/admin/announcements" : `/api/admin/announcements/${encodeURIComponent(announcement.id)}`, {
+      method: isNew ? "POST" : "PATCH",
+      body: JSON.stringify(payload)
+    });
+    recordAudit(isNew ? "create_announcement" : "update_announcement", response.announcement?.id || announcement.id, payload.title);
+    await refreshAndRender();
+    closeDrawer();
+  });
+  document.querySelectorAll("[data-announcement-drawer-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [action, id] = button.dataset.announcementDrawerAction.split(":");
+      await runAnnouncementAction(action, id);
+      closeDrawer();
+    });
+  });
+}
+
+async function runAnnouncementAction(action, id) {
+  const labels = { publish: "发布", archive: "归档", withdraw: "撤回" };
+  const danger = action === "archive" || action === "withdraw";
+  if (!(await confirmAction({
+    title: `${labels[action] || action}通知`,
+    message: `确认${labels[action] || action}该通知？`,
+    confirmText: labels[action] || "确认",
+    danger
+  }))) return;
+  await api(`/api/admin/announcements/${encodeURIComponent(id)}/${encodeURIComponent(action)}`, {
+    method: "POST",
+    body: "{}"
+  });
+  recordAudit(`${action}_announcement`, id, "");
+  await refreshAndRender();
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  await api("/api/admin/settings", {
+    method: "PATCH",
+    body: JSON.stringify({
+      openaiApiKey: form.get("openaiApiKey"),
+      apiBaseUrl: form.get("apiBaseUrl"),
+      model: form.get("model"),
+      defaultCredits: form.get("defaultCredits"),
+      generationCreditCost: form.get("generationCreditCost"),
+      maxImagesPerRequest: form.get("maxImagesPerRequest"),
+      contactEmail: form.get("contactEmail"),
+      allowRegistration: Boolean(form.get("allowRegistration")),
+      requireApproval: Boolean(form.get("requireApproval")),
+      growthConfig: JSON.parse(form.get("growthConfig") || "{}"),
+      providerCapabilityConfig: JSON.parse(form.get("providerCapabilityConfig") || "{}")
+    })
+  });
+  recordAudit("update_settings", "system", "settings saved");
+  await refreshAndRender();
+}
+
+async function refreshAndRender() {
+  await loadAll();
+  render();
+}
+
+function bindPromptAuditActions(root = document) {
+  root.querySelectorAll("[data-prompt-audit-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [action, id] = button.dataset.promptAuditAction.split(":");
+      const note = prompt("复核备注", action === "allow_text_to_image" ? "人工确认可文生图发布" : "") || "";
+      if (!(await confirmAction({
+        title: "复核 Prompt Audit",
+        message: `${action} audit #${id}？`,
+        confirmText: "确认复核",
+        danger: action === "require_image_to_image"
+      }))) return;
+      await api(`/api/admin/prompt-audits/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action, note })
+      });
+      recordAudit(`prompt_audit_${action}`, id, note);
+      await refreshAndRender();
+    });
+  });
+}
+
+function bindActions() {
+  document.querySelectorAll("[data-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      adminState.active = button.dataset.jump;
+      location.hash = adminState.active;
+      render();
+    });
+  });
+  document.querySelectorAll("[data-detail]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [type, id] = button.dataset.detail.split(":");
+      if (type === "request") requestDrawer(adminState.generations.find((item) => item.id === id));
+      if (type === "work") workDrawer(adminState.publicImages.find((item) => item.id === id));
+      if (type === "user") await userDrawer(adminState.users.find((item) => item.id === id));
+      if (type === "prompt") promptDrawer(adminState.prompts.find((item) => String(item.id) === id));
+      if (type === "promptAudit") await promptAuditDrawer(id);
+      if (type === "tag") tagDrawer(adminState.tags.find((item) => item.slug === id));
+      if (type === "provider") providerDrawer(adminState.providers.find((item) => item.id === id));
+      if (type === "announcement") announcementDrawer(adminState.announcements.find((item) => item.id === id));
+    });
+  });
+  $("[data-create-user]")?.addEventListener("click", createUserDrawer);
+  $("[data-create-provider]")?.addEventListener("click", () => providerDrawer());
+  $("[data-create-announcement]")?.addEventListener("click", () => announcementDrawer());
+  document.querySelectorAll("[data-announcement-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [action, id] = button.dataset.announcementAction.split(":");
+      await runAnnouncementAction(action, id);
+    });
+  });
+  document.querySelectorAll("[data-provider-test]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.providerTest;
+      button.disabled = true;
+      try {
+        const result = await api(`/api/admin/providers/${encodeURIComponent(id)}/test`, { method: "POST", body: "{}" });
+        recordAudit("test_provider", id, result.ok ? "ok" : result.error || "failed");
+      } finally {
+        await refreshAndRender();
+      }
+    });
+  });
+  document.querySelectorAll("[data-provider-default]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.providerDefault;
+      if (!(await confirmAction({
+        title: "设为默认 Provider",
+        message: "确认把该 Provider 设为默认线路？",
+        confirmText: "设为默认"
+      }))) return;
+      await api(`/api/admin/providers/${encodeURIComponent(id)}/set-default`, { method: "POST", body: "{}" });
+      recordAudit("set_default_provider", id, "");
+      await refreshAndRender();
+    });
+  });
+  document.querySelectorAll("[data-user-select]").forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        adminState.selectedUsers.add(input.dataset.userSelect);
+      } else {
+        adminState.selectedUsers.delete(input.dataset.userSelect);
+      }
+      render();
+    });
+  });
+  $("[data-select-page-users]")?.addEventListener("change", (event) => {
+    document.querySelectorAll("[data-user-select]").forEach((input) => {
+      if (event.target.checked) {
+        adminState.selectedUsers.add(input.dataset.userSelect);
+      } else {
+        adminState.selectedUsers.delete(input.dataset.userSelect);
+      }
+    });
+    render();
+  });
+  $("[data-bulk-users]")?.addEventListener("click", async () => {
+    const userIds = Array.from(adminState.selectedUsers);
+    if (!userIds.length) return;
+    const action = $("#bulkUserAction")?.value || "creditDelta";
+    const status = $("#bulkStatus")?.value || "active";
+    const creditDelta = Number($("#bulkCreditDelta")?.value || 0);
+    const note = $("#bulkNote")?.value || "Bulk adjustment";
+    const dangerous = action === "status" && status === "disabled";
+    if (!(await confirmAction({
+      title: dangerous ? "批量停用用户" : "批量更新用户",
+      message: `${dangerous ? "确认停用" : "确认更新"} ${userIds.length} 个已选用户？`,
+      confirmText: dangerous ? "停用" : "更新",
+      danger: dangerous
+    }))) return;
+    await api("/api/admin/users/bulk", {
+      method: "POST",
+      body: JSON.stringify({ userIds, action, status, creditDelta, note })
+    });
+    recordAudit("bulk_user_update", "selected users", `${action} ${userIds.length}`);
+    adminState.selectedUsers.clear();
+    await refreshAndRender();
+  });
+  $("[data-create-prompt]")?.addEventListener("click", () => promptDrawer());
+  $("[data-scan-prompt-duplicates]")?.addEventListener("click", async () => {
+    await api("/api/admin/prompt-duplicates/scan", {
+      method: "POST",
+      body: JSON.stringify({ limit: 2000, hammingThreshold: 6 })
+    });
+    recordAudit("scan_prompt_duplicates", "prompt", "manual scan");
+    await refreshAndRender();
+  });
+  document.querySelectorAll("[data-duplicate-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [action, id] = button.dataset.duplicateAction.split(":");
+      const note = prompt("处理备注", action === "hide_duplicate" ? "人工确认重复，隐藏 B" : "") || "";
+      if (!(await confirmAction({
+        title: "处理重复候选",
+        message: `${action} duplicate candidate #${id}？`,
+        confirmText: "处理",
+        danger: action === "hide_duplicate"
+      }))) return;
+      await api(`/api/admin/prompt-duplicates/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action, note })
+      });
+      recordAudit(`prompt_duplicate_${action}`, id, note);
+      await refreshAndRender();
+    });
+  });
+  bindPromptAuditActions(document);
+  $("[data-create-tag]")?.addEventListener("click", () => tagDrawer());
+  $("#adminSettingsForm")?.addEventListener("submit", saveSettings);
+  $("[data-clear-key]")?.addEventListener("click", async () => {
+    if (!(await confirmAction({
+      title: "清除 API Key",
+      message: "确认清除 OpenAI API Key？清除后生成能力可能不可用。",
+      confirmText: "清除",
+      danger: true
+    }))) return;
+    await api("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ clearApiKey: true }) });
+    recordAudit("clear_api_key", "system", "API key cleared");
+    await refreshAndRender();
+  });
+  $("[data-audit-demo]")?.addEventListener("click", () => {
+    recordAudit("read_audit", "admin-console", "manual inspection");
+    render();
+  });
+  document.querySelectorAll("[data-withdrawal-decision]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [decision, id] = button.dataset.withdrawalDecision.split(":");
+      if (!(await confirmAction({
+        title: `${decision === "approved" ? "批准" : "拒绝"}撤回申请`,
+        message: `${decision === "approved" ? "批准" : "拒绝"}该撤回申请？`,
+        confirmText: decision === "approved" ? "批准" : "拒绝",
+        danger: decision !== "approved"
+      }))) return;
+      await api(`/api/admin/withdrawals/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ decision })
+      });
+      recordAudit(`withdrawal_${decision}`, id, "");
+      await refreshAndRender();
+    });
+  });
+  document.querySelectorAll("[data-moderation]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [action, id] = button.dataset.moderation.split(":");
+      const reason = prompt("处理原因", action === "hide" ? "policy_review" : "") || "";
+      if (!(await confirmAction({
+        title: "处理公开作品",
+        message: `${action} ${id}？`,
+        confirmText: "确认处理",
+        danger: action === "hide"
+      }))) return;
+      await api(`/api/admin/public-images/${encodeURIComponent(id)}/moderation`, {
+        method: "PATCH",
+        body: JSON.stringify({ action, reason })
+      });
+      recordAudit(`moderation_${action}`, id, reason);
+      await refreshAndRender();
+    });
+  });
+}
+
+async function init() {
+  $("#adminRefreshBtn").addEventListener("click", refreshAndRender);
+  $("#adminSidebarToggle")?.addEventListener("click", () => {
+    adminState.sidebarCollapsed = !adminState.sidebarCollapsed;
+    localStorage.setItem("adminSidebarCollapsed", adminState.sidebarCollapsed ? "1" : "0");
+    renderNav();
+  });
+  $("#adminDrawerBackdrop")?.addEventListener("click", closeDrawer);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDrawer();
+  });
+  window.addEventListener("hashchange", () => {
+    adminState.active = location.hash.replace("#", "") || "overview";
+    adminState.page = 1;
+    render();
+  });
+  try {
+    await loadAll();
+    render();
+  } catch (error) {
+    setStatus(error.status === 403 ? "无权限" : "加载失败", "danger");
+    $("#adminContent").innerHTML = `<div class="admin-empty-state">后台加载失败：${escapeHtml(error.message)}</div>`;
+  }
+}
+
+init();

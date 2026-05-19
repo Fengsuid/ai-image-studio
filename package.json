@@ -1,0 +1,22 @@
+{
+  "name": "ai-image-studio",
+  "version": "1.0.0",
+  "description": "AI image generation studio with prompt gallery, image editing, public square, credits, and admin operations.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "smoke:public": "node scripts/smoke/check-public-api.mjs",
+    "smoke:auth-admin": "node scripts/smoke/check-auth-admin.mjs",
+    "smoke:data": "node scripts/smoke/check-data-counts.mjs"
+  },
+  "keywords": [
+    "ai-image",
+    "image-generation",
+    "prompt-gallery",
+    "image-studio"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "mysql2": "^3.22.3"
+  }
+}

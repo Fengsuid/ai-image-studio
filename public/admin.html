@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ai-image-studio Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css?v=1.00">
+  </head>
+  <body class="admin-body">
+    <div id="adminApp" class="admin-shell">
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-head">
+          <a class="admin-brand" href="/">
+            <span><i class="ri-sparkling-2-fill"></i></span>
+            <strong>ai-image-studio</strong>
+          </a>
+          <button id="adminSidebarToggle" class="admin-sidebar-toggle" type="button" aria-label="折叠侧边栏" title="折叠侧边栏">
+            <i class="ri-side-bar-line"></i>
+          </button>
+        </div>
+        <nav id="adminNav" class="admin-nav" aria-label="后台导航"></nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div>
+            <p id="adminEyebrow">后台工作台</p>
+            <h1 id="adminPageTitle">总览</h1>
+            <small id="adminPageDescription">运营态势、系统风险和近期生成请求。</small>
+          </div>
+          <div class="admin-status">
+            <span id="adminStatus" class="admin-status-pill">Checking...</span>
+            <span id="adminUserLabel">-</span>
+            <button id="adminRefreshBtn" class="admin-icon-button" type="button" title="刷新"><i class="ri-refresh-line"></i></button>
+            <a href="/" title="返回前台"><i class="ri-home-5-line"></i></a>
+          </div>
+        </header>
+
+        <section id="adminNotice" class="admin-notice hidden"></section>
+        <section id="adminContent" class="admin-content"></section>
+        <div id="adminDrawerBackdrop" class="admin-drawer-backdrop hidden"></div>
+        <aside id="adminDrawer" class="admin-drawer hidden"></aside>
+      </main>
+    </div>
+    <div id="adminConfirmLayer" class="admin-confirm-layer hidden" aria-live="polite"></div>
+    <div id="adminToastLayer" class="toast-layer"></div>
+    <script src="/admin.js?v=1.00" defer></script>
+  </body>
+</html>
