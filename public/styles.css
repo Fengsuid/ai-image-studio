@@ -2925,9 +2925,46 @@ a {
   font-size: 30px;
 }
 
+.gallery-rank-tabs {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.gallery-rank-tabs div {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.gallery-rank-tabs button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.gallery-rank-tabs button.active {
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+}
+
 .gallery-leaderboard-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -2936,6 +2973,21 @@ a {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.86);
   overflow: hidden;
+}
+
+.gallery-rank-card.top-1 {
+  grid-column: span 2;
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: 0 18px 36px rgba(245, 158, 11, 0.14);
+}
+
+.gallery-rank-card.top-2,
+.gallery-rank-card.top-3 {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.gallery-rank-card.top-1 .gallery-rank-visual {
+  aspect-ratio: 2 / 1;
 }
 
 .gallery-rank-visual {
@@ -2999,6 +3051,18 @@ a {
   color: #e11d48;
   border: 1px solid rgba(225, 29, 72, 0.3);
   background: #fff1f2;
+}
+
+.gallery-rank-empty {
+  grid-column: 1 / -1;
+  min-height: 130px;
+  border: 1px dashed rgba(148, 163, 184, 0.58);
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .prompt-status-badge {
@@ -4318,6 +4382,23 @@ a {
 }
 
 @media (max-width: 560px) {
+  .gallery-rank-tabs {
+    justify-content: flex-start;
+    margin-inline: -2px;
+  }
+
+  .gallery-leaderboard-list {
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  }
+
+  .gallery-rank-card.top-1 {
+    grid-column: span 1;
+  }
+
+  .gallery-rank-card.top-1 .gallery-rank-visual {
+    aspect-ratio: 1;
+  }
+
   .top-actions {
     gap: 6px;
   }

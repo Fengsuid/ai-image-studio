@@ -26,6 +26,9 @@ const state = {
   publishToSquare: false,
   publicGallery: [],
   galleryLeaderboard: [],
+  galleryLeaderboardRange: "week",
+  galleryLeaderboardType: "all",
+  galleryLeaderboardLoading: false,
   announcements: [],
   unreadAnnouncements: [],
   notificationFilter: "all",
@@ -2969,13 +2972,24 @@ function renderLibrary() {
     renderLibrary();
   });
   bindPromptCards(elements.promptGrid);
+  bindGalleryLeaderboardControls(elements.promptGrid);
 }
 
 function renderGalleryLeaderboard() {
-  const items = (state.galleryLeaderboard || []).filter((item) => item.images?.[0]).slice(0, 8);
-  if (!items.length) return "";
+  const items = (state.galleryLeaderboard || []).filter((item) => item.images?.[0]).slice(0, 24);
+  const rangeTabs = [
+    ["day", state.lang === "zh" ? "日榜" : "Day"],
+    ["week", state.lang === "zh" ? "周榜" : "Week"],
+    ["month", state.lang === "zh" ? "月榜" : "Month"],
+    ["all", state.lang === "zh" ? "总榜" : "All-time"]
+  ];
+  const typeTabs = [
+    ["all", state.lang === "zh" ? "全部" : "All"],
+    ["text-to-image", text("textToImage")],
+    ["image-to-image", text("imageToImage")]
+  ];
   return `
-    <section class="gallery-leaderboard">
+    <section class="gallery-leaderboard${state.galleryLeaderboardLoading ? " loading" : ""}">
       <div class="gallery-leaderboard-head">
         <div>
           <strong>${escapeHtml(text("galleryLeaderboard"))}</strong>
@@ -2983,9 +2997,17 @@ function renderGalleryLeaderboard() {
         </div>
         <i class="ri-trophy-line"></i>
       </div>
+      <div class="gallery-rank-tabs" aria-label="${escapeHtml(text("galleryLeaderboard"))}">
+        <div>
+          ${rangeTabs.map(([value, label]) => `<button type="button" data-rank-range="${value}" class="${state.galleryLeaderboardRange === value ? "active" : ""}">${escapeHtml(label)}</button>`).join("")}
+        </div>
+        <div>
+          ${typeTabs.map(([value, label]) => `<button type="button" data-rank-type="${value}" class="${state.galleryLeaderboardType === value ? "active" : ""}">${escapeHtml(label)}</button>`).join("")}
+        </div>
+      </div>
       <div class="gallery-leaderboard-list">
-        ${items.map((item, index) => `
-          <article class="gallery-rank-card">
+        ${items.length ? items.map((item, index) => `
+          <article class="gallery-rank-card ${index < 3 ? `top-${index + 1}` : ""}">
             <button type="button" class="gallery-rank-visual" data-open-square="${escapeHtml(`square_${item.id}`)}" ${imageFallbackContainerAttrs()}>
               <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 70))}">
               <em>#${index + 1}</em>
@@ -2997,10 +3019,29 @@ function renderGalleryLeaderboard() {
               </button>
             </div>
           </article>
-        `).join("")}
+        `).join("") : `<div class="gallery-rank-empty">${state.lang === "zh" ? "暂无榜单作品" : "No ranked works yet"}</div>`}
       </div>
     </section>
   `;
+}
+
+function bindGalleryLeaderboardControls(root = document) {
+  $$("[data-rank-range]", root).forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (button.dataset.rankRange === state.galleryLeaderboardRange || state.galleryLeaderboardLoading) return;
+      state.galleryLeaderboardRange = button.dataset.rankRange;
+      await loadGalleryLeaderboard();
+      renderLibrary();
+    });
+  });
+  $$("[data-rank-type]", root).forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (button.dataset.rankType === state.galleryLeaderboardType || state.galleryLeaderboardLoading) return;
+      state.galleryLeaderboardType = button.dataset.rankType;
+      await loadGalleryLeaderboard();
+      renderLibrary();
+    });
+  });
 }
 
 function getSourceCount(source) {
@@ -4486,11 +4527,21 @@ async function loadPublicGallery() {
 }
 
 async function loadGalleryLeaderboard() {
+  state.galleryLeaderboardLoading = true;
   try {
-    const data = await api("/api/gallery/leaderboard?range=week&limit=24");
+    const params = new URLSearchParams({
+      range: state.galleryLeaderboardRange || "week",
+      limit: "24"
+    });
+    if (state.galleryLeaderboardType && state.galleryLeaderboardType !== "all") {
+      params.set("type", state.galleryLeaderboardType);
+    }
+    const data = await api(`/api/gallery/leaderboard?${params.toString()}`);
     state.galleryLeaderboard = (data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" }));
   } catch {
     state.galleryLeaderboard = [];
+  } finally {
+    state.galleryLeaderboardLoading = false;
   }
 }
 
