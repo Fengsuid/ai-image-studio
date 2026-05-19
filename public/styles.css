@@ -2070,6 +2070,29 @@ a {
   box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34);
 }
 
+.prompt-no-cover-detail {
+  width: min(520px, 100%);
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  padding: 36px;
+  color: #e5e7eb;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.88));
+}
+
+.prompt-no-cover-detail i {
+  font-size: 42px;
+  color: #93c5fd;
+}
+
+.prompt-no-cover-detail span {
+  max-width: 32ch;
+  font-size: 20px;
+  font-weight: 700;
+}
+
 .square-preview-side {
   min-width: 0;
   height: 100%;

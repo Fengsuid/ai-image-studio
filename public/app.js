@@ -3140,10 +3140,8 @@ function promptCardHtml(prompt) {
   const hasImage = Boolean(coverUrl);
   const openAttr = prompt.kind === "square"
     ? ` data-open-square="${escapeHtml(prompt.id)}" role="button" tabindex="0"`
-    : hasImage
-      ? ` data-open-prompt="${escapeHtml(prompt.id)}" role="button" tabindex="0"`
-      : "";
-  const cardArtClickable = prompt.kind === "square" || hasImage ? " card-art-clickable" : "";
+    : ` data-open-prompt="${escapeHtml(prompt.id)}" role="button" tabindex="0"`;
+  const cardArtClickable = " card-art-clickable";
   const isAdmin = state.user?.role === "admin";
   const adminBadge = isAdmin && prompt.kind !== "square" && prompt.status === "hidden"
     ? `<span class="prompt-status-badge hidden">${escapeHtml(text("promptHidden"))}</span>`
@@ -3156,9 +3154,7 @@ function promptCardHtml(prompt) {
     : "";
   const viewDetailButton = prompt.kind === "square"
     ? `<button type="button" data-view-square="${escapeHtml(prompt.id)}"><i class="ri-eye-line"></i>${text("viewDetail")}</button>`
-    : hasImage
-      ? `<button type="button" data-view-prompt="${escapeHtml(prompt.id)}"><i class="ri-eye-line"></i>${text("viewDetail")}</button>`
-      : "";
+    : `<button type="button" data-view-prompt="${escapeHtml(prompt.id)}"><i class="ri-eye-line"></i>${text("viewDetail")}</button>`;
   const engagement = prompt.kind === "square" ? `
     <div class="prompt-engagement">
       <button type="button" data-like-gallery="${escapeHtml(prompt.generationId || prompt.id)}" class="${prompt.likedByCurrentUser ? "liked" : ""}">
@@ -4267,7 +4263,6 @@ function openSquarePreview(prompt, options = {}) {
 function openPromptDetailModal(prompt) {
   if (!prompt) return;
   const imageUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
-  if (!imageUrl) return;
   const tags = Array.isArray(prompt.tags) ? prompt.tags : (prompt.tag ? [prompt.tag] : []);
   const isAdmin = state.user?.role === "admin";
   const author = prompt.author || (state.lang === "zh" ? "公开来源" : "Public source");
@@ -4278,7 +4273,9 @@ function openPromptDetailModal(prompt) {
     <section class="modal square-preview-modal">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
       <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
-        <img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">
+        ${imageUrl
+          ? `<img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">`
+          : `<div class="square-preview-main prompt-no-cover-detail"><i class="ri-quill-pen-line"></i><span>${escapeHtml(prompt.title || text("promptLibrary"))}</span></div>`}
       </div>
       <aside class="square-preview-side">
         <div class="square-preview-head">
@@ -4315,7 +4312,7 @@ function openPromptDetailModal(prompt) {
           <button type="button" data-prompt-text><i class="ri-sparkling-2-line"></i>${text("textToImageAction")}</button>
           ${imageUrl ? `<button type="button" data-prompt-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>` : ""}
           <button type="button" data-prompt-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
-          <a href="${escapeHtml(imageUrl)}" target="_blank" rel="noreferrer"><i class="ri-external-link-line"></i>${text("download")}</a>
+          ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noreferrer"><i class="ri-external-link-line"></i>${text("download")}</a>` : ""}
           ${isAdmin ? `<button type="button" data-prompt-admin-edit><i class="ri-pencil-line"></i>${text("promptEdit")}</button>` : ""}
           ${isAdmin ? `<button type="button" data-prompt-admin-delete><i class="ri-delete-bin-line"></i>${text("promptDelete")}</button>` : ""}
         </div>
