@@ -630,6 +630,58 @@ function cleanAnnouncementInput(body = {}, existing = null, { partial = false } 
   return payload;
 }
 
+function cleanCanvasProjectInput(body = {}, { partial = false } = {}) {
+  const payload = {};
+  const has = (key) => Object.hasOwn(body, key);
+  if (!partial || has("title")) {
+    const title = String(body.title || "").trim().slice(0, 160);
+    if (title.length < 1) throw httpError("Canvas title is required", 400);
+    payload.title = title;
+  }
+  if (!partial || has("description")) {
+    payload.description = String(body.description || "").trim().slice(0, 1000);
+  }
+  if (!partial || has("coverUrl") || has("cover")) {
+    payload.coverUrl = String(body.coverUrl || body.cover || "").trim().slice(0, 500);
+  }
+  if (!partial || has("coverGenerationId")) {
+    payload.coverGenerationId = String(body.coverGenerationId || "").trim().slice(0, 32);
+  }
+  if (!partial || has("visibility")) {
+    payload.visibility = choose(String(body.visibility || "private"), ["private", "public", "unlisted"], "private");
+  }
+  if (!partial || has("dataJson") || has("data")) {
+    const data = has("dataJson") ? body.dataJson : body.data;
+    if (data && (typeof data !== "object" || Array.isArray(data))) {
+      throw httpError("Canvas dataJson must be an object", 400);
+    }
+    payload.dataJson = data || {};
+  }
+  if (has("nodeCount")) {
+    payload.nodeCount = sanitizeCanvasCount(body.nodeCount, "nodeCount");
+  }
+  if (has("edgeCount")) {
+    payload.edgeCount = sanitizeCanvasCount(body.edgeCount, "edgeCount");
+  }
+  return payload;
+}
+
+function sanitizeCanvasCount(value, field) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) throw httpError(`${field} must be a non-negative number`, 400);
+  return Math.min(10000, Math.floor(parsed));
+}
+
+function canReadCanvas(user, canvas) {
+  if (!user || !canvas) return false;
+  return user.role === "admin" || canvas.userId === user.id || ["public", "unlisted"].includes(canvas.visibility);
+}
+
+function canManageCanvas(user, canvas) {
+  if (!user || !canvas) return false;
+  return user.role === "admin" || canvas.userId === user.id;
+}
+
 function normalizeImageSize(value) {
   const raw = String(value || "auto").trim().toLowerCase();
   if (raw === "auto") return "auto";
@@ -3140,6 +3192,65 @@ async function routeApi(req, res, url) {
       user: serializeUser(user),
       temporaryPassword: generated ? password : undefined
     });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/canvases") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 100, 200);
+    const requestedScope = url.searchParams.get("scope");
+    const scope = requestedScope === "public" ? "public" : requestedScope === "all" ? "all" : "mine";
+    if (scope === "all") ensureAdmin(current);
+    const canvases = await store.listCanvasProjectsForUser(current.user, { limit, scope });
+    return sendJson(res, 200, { canvases });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/canvases") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const body = await readJsonBody(req);
+    const payload = cleanCanvasProjectInput(body);
+    const canvas = await store.createCanvasProject({
+      ...payload,
+      id: randomId("can_"),
+      userId: current.user.id
+    });
+    return sendJson(res, 201, { canvas });
+  }
+
+  const canvasMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)$/);
+  if (canvasMatch && req.method === "GET") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const canvas = await store.getCanvasProjectById(canvasMatch[1]);
+    if (!canReadCanvas(current.user, canvas)) {
+      throw httpError("Canvas not found", 404);
+    }
+    return sendJson(res, 200, { canvas });
+  }
+
+  if (canvasMatch && req.method === "PATCH") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const existing = await store.getCanvasProjectById(canvasMatch[1]);
+    if (!canManageCanvas(current.user, existing)) {
+      throw httpError("Canvas not found", 404);
+    }
+    const body = await readJsonBody(req);
+    const payload = cleanCanvasProjectInput(body, { partial: true });
+    const canvas = await store.updateCanvasProject(existing.id, payload);
+    return sendJson(res, 200, { canvas });
+  }
+
+  if (canvasMatch && req.method === "DELETE") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const existing = await store.getCanvasProjectById(canvasMatch[1]);
+    if (!canManageCanvas(current.user, existing)) {
+      throw httpError("Canvas not found", 404);
+    }
+    const canvas = await store.deleteCanvasProject(existing.id);
+    return sendJson(res, 200, { ok: true, canvas });
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/generations") {

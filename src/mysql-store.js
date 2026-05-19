@@ -405,6 +405,26 @@ function mapAnnouncement(row = {}) {
   };
 }
 
+function mapCanvasProject(row = {}) {
+  if (!row) return null;
+  return {
+    id: row.id || "",
+    userId: row.user_id || "",
+    userName: row.user_name || "",
+    userEmail: row.user_email || "",
+    title: row.title || "",
+    description: row.description || "",
+    coverUrl: row.cover_url || "",
+    visibility: row.visibility || "private",
+    dataJson: parseJsonObject(row.data_json, {}),
+    nodeCount: Number(row.node_count || 0),
+    edgeCount: Number(row.edge_count || 0),
+    status: row.status || "active",
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
 async function createDatabaseIfNeeded(config) {
   if (process.env.MYSQL_CREATE_DATABASE === "false") return;
   const connection = await mysql.createConnection({
@@ -675,6 +695,27 @@ async function runMigrations() {
   if (!generationLikeColumns.length) {
     await db.query("ALTER TABLE generations ADD COLUMN like_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER duration_ms");
   }
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS canvas_projects (
+      id VARCHAR(32) NOT NULL PRIMARY KEY,
+      user_id VARCHAR(32) NOT NULL,
+      title VARCHAR(160) NOT NULL,
+      description VARCHAR(1000) NOT NULL DEFAULT '',
+      cover_url VARCHAR(500) NOT NULL DEFAULT '',
+      visibility VARCHAR(16) NOT NULL DEFAULT 'private',
+      data_json LONGTEXT NOT NULL,
+      node_count INT UNSIGNED NOT NULL DEFAULT 0,
+      edge_count INT UNSIGNED NOT NULL DEFAULT 0,
+      status VARCHAR(16) NOT NULL DEFAULT 'active',
+      created_at DATETIME(3) NOT NULL,
+      updated_at DATETIME(3) NOT NULL,
+      INDEX idx_canvas_projects_user_updated (user_id, updated_at),
+      INDEX idx_canvas_projects_visibility_updated (visibility, updated_at),
+      INDEX idx_canvas_projects_status_updated (status, updated_at),
+      CONSTRAINT fk_canvas_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_daily_usage (
@@ -2666,6 +2707,149 @@ async function countTodayGenerations() {
   return Number(rows[0]?.count || 0);
 }
 
+function normalizeCanvasProjectInput(input = {}, existing = null) {
+  const data = Object.hasOwn(input, "dataJson")
+    ? input.dataJson
+    : Object.hasOwn(input, "data")
+      ? input.data
+      : existing?.dataJson || {};
+  const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const nodeCountInput = Object.hasOwn(input, "nodeCount") ? Number(input.nodeCount) : Number.NaN;
+  const edgeCountInput = Object.hasOwn(input, "edgeCount") ? Number(input.edgeCount) : Number.NaN;
+  const nodeCount = Number.isFinite(nodeCountInput)
+    ? nodeCountInput
+    : Array.isArray(safeData.nodes)
+      ? safeData.nodes.length
+      : Number(existing?.nodeCount || 0);
+  const edgeCount = Number.isFinite(edgeCountInput)
+    ? edgeCountInput
+    : Array.isArray(safeData.edges)
+      ? safeData.edges.length
+      : Number(existing?.edgeCount || 0);
+  return {
+    title: String(input.title ?? existing?.title ?? "Untitled canvas").trim().slice(0, 160) || "Untitled canvas",
+    description: String(input.description ?? existing?.description ?? "").trim().slice(0, 1000),
+    coverUrl: String(input.coverUrl ?? input.cover ?? existing?.coverUrl ?? "").trim().slice(0, 500),
+    visibility: ["private", "public", "unlisted"].includes(input.visibility) ? input.visibility : existing?.visibility || "private",
+    dataJson: safeData,
+    nodeCount: Math.max(0, Math.min(10000, Math.floor(nodeCount || 0))),
+    edgeCount: Math.max(0, Math.min(10000, Math.floor(edgeCount || 0)))
+  };
+}
+
+async function listCanvasProjectsForUser(user, { limit = 100, scope = "mine" } = {}) {
+  const normalizedLimit = Math.max(1, Math.min(200, Number(limit) || 100));
+  const params = [];
+  const where = ["c.status = 'active'"];
+  if (scope === "public" && user?.role === "admin") {
+    where.push("c.visibility = 'public'");
+  } else {
+    where.push("c.user_id = ?");
+    params.push(user.id);
+  }
+  const [rows] = await getPool().execute(
+    `SELECT c.*, u.name AS user_name, u.email AS user_email
+       FROM canvas_projects c
+       LEFT JOIN users u ON u.id = c.user_id
+      WHERE ${where.join(" AND ")}
+      ORDER BY c.updated_at DESC, c.created_at DESC
+      LIMIT ${normalizedLimit}`,
+    params
+  );
+  return rows.map(mapCanvasProject);
+}
+
+async function getCanvasProjectById(id) {
+  const [rows] = await getPool().execute(
+    `SELECT c.*, u.name AS user_name, u.email AS user_email
+       FROM canvas_projects c
+       LEFT JOIN users u ON u.id = c.user_id
+      WHERE c.id = ? AND c.status = 'active'
+      LIMIT 1`,
+    [String(id || "")]
+  );
+  return mapCanvasProject(rows[0]);
+}
+
+async function createCanvasProject(input = {}) {
+  const values = normalizeCanvasProjectInput(input);
+  const now = new Date();
+  await getPool().execute(
+    `INSERT INTO canvas_projects
+        (id, user_id, title, description, cover_url, visibility, data_json, node_count, edge_count, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+    [
+      input.id,
+      input.userId,
+      values.title,
+      values.description,
+      values.coverUrl,
+      values.visibility,
+      JSON.stringify(values.dataJson),
+      values.nodeCount,
+      values.edgeCount,
+      now,
+      now
+    ]
+  );
+  return getCanvasProjectById(input.id);
+}
+
+async function updateCanvasProject(id, patch = {}) {
+  const existing = await getCanvasProjectById(id);
+  if (!existing) return null;
+  const values = normalizeCanvasProjectInput(patch, existing);
+  const columns = [];
+  const params = [];
+  if (Object.hasOwn(patch, "title")) {
+    columns.push("title = ?");
+    params.push(values.title);
+  }
+  if (Object.hasOwn(patch, "description")) {
+    columns.push("description = ?");
+    params.push(values.description);
+  }
+  if (Object.hasOwn(patch, "coverUrl") || Object.hasOwn(patch, "cover")) {
+    columns.push("cover_url = ?");
+    params.push(values.coverUrl);
+  }
+  if (Object.hasOwn(patch, "visibility")) {
+    columns.push("visibility = ?");
+    params.push(values.visibility);
+  }
+  if (Object.hasOwn(patch, "dataJson") || Object.hasOwn(patch, "data")) {
+    columns.push("data_json = ?");
+    params.push(JSON.stringify(values.dataJson));
+    columns.push("node_count = ?");
+    params.push(values.nodeCount);
+    columns.push("edge_count = ?");
+    params.push(values.edgeCount);
+  }
+  if (!Object.hasOwn(patch, "dataJson") && !Object.hasOwn(patch, "data") && Object.hasOwn(patch, "nodeCount")) {
+    columns.push("node_count = ?");
+    params.push(values.nodeCount);
+  }
+  if (!Object.hasOwn(patch, "dataJson") && !Object.hasOwn(patch, "data") && Object.hasOwn(patch, "edgeCount")) {
+    columns.push("edge_count = ?");
+    params.push(values.edgeCount);
+  }
+  if (!columns.length) return existing;
+  columns.push("updated_at = ?");
+  params.push(new Date(), String(id || ""));
+  await getPool().execute(`UPDATE canvas_projects SET ${columns.join(", ")} WHERE id = ?`, params);
+  return getCanvasProjectById(id);
+}
+
+async function deleteCanvasProject(id) {
+  const existing = await getCanvasProjectById(id);
+  if (!existing) return null;
+  await getPool().execute(
+    "UPDATE canvas_projects SET status = 'deleted', updated_at = ? WHERE id = ?",
+    [new Date(), String(id || "")]
+  );
+  return { ...existing, status: "deleted" };
+}
+
 function mapPrompt(row) {
   if (!row) return null;
   let tags = [];
@@ -4368,6 +4552,11 @@ module.exports = {
   getGenerationById,
   updateGenerationPublic,
   countTodayGenerations,
+  listCanvasProjectsForUser,
+  getCanvasProjectById,
+  createCanvasProject,
+  updateCanvasProject,
+  deleteCanvasProject,
   listPrompts,
   getPromptById,
   setPromptLike,
