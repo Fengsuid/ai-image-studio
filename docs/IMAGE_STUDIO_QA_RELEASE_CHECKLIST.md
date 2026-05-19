@@ -83,6 +83,17 @@ Record the outcome in the relevant development document or release note before m
 - Prompt sort smoke: `/api/prompts?sort=hot|new|used|liked&limit=8` returned results and sorted descending by heat, created time, use count, and like count respectively.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-19 Gallery Image Display Batch
+
+- Issues covered: prompt database images not reliably visible in the gallery, prompt database image cards missing from like leaderboard, home navigation briefly showing the chat workspace.
+- Commit covered: `5a7095d`.
+- Local checks: `node --check server.js`, `node --check public/app.js`, `node --check src/mysql-store.js`, `git diff --check`, privacy grep.
+- Deployment checks: app container running, production root `200`, retired domain `410`, public smoke passed.
+- Image smoke: first 5 prompt database image proxy URLs returned `200 image/jpeg`.
+- Leaderboard smoke: all-time leaderboard returned 24 image items, including prompt database image items.
+- UI state fix: home hero route now clears chat workspace panel classes before toggling views.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.
