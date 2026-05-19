@@ -2,11 +2,20 @@
 
 `ai-image-studio` is a self-hosted AI image creation workspace. It combines text-to-image generation, image-to-image editing, prompt gallery discovery, public image sharing, user credits, moderation workflows, and an admin console in one lightweight Node.js application.
 
+中文：`ai-image-studio` 是一个可自托管的 AI 生图工作台，覆盖文生图、图生图、提示词画廊、公开作品广场、积分、审核与后台运营管理。
+
+## Demo
+
+- Demo site: https://ai-image-studio.twisterfeng.com
+- 演示地址：https://ai-image-studio.twisterfeng.com
+
 ## Version
 
 Current release: `1.00`
 
 The npm package metadata uses `1.0.0` for semantic-version compatibility, while the GitHub release tag for this snapshot is `v1.00`.
+
+当前发布版本：`1.00`。npm 元数据使用 `1.0.0`，GitHub 标签使用 `v1.00`。
 
 ## Features
 
@@ -17,6 +26,16 @@ The npm package metadata uses `1.0.0` for semantic-version compatibility, while 
 - User authentication, credits, check-in rewards, first-publication rewards, and withdrawal window rules.
 - Admin console for users, providers, settings, announcements, audit logs, public images, reports, prompt audits, and duplicate prompt scans.
 - MySQL-backed persistence with local static assets served by the Node.js server.
+
+## 功能
+
+- 文生图对话与历史记录保存。
+- 图生图编辑，并支持记录/展示输入原图相关信息。
+- 公开画廊：提示词标签、作者署名、点赞、用户作品管理。
+- 提示词库与外部提示词模板导入。
+- 用户登录、积分、签到奖励、首次公开奖励与公开撤回窗口。
+- 后台管理：用户、供应商、系统设置、通知、审计日志、公开图片、举报、提示词审核与重复提示词扫描。
+- 基于 MySQL 的持久化存储，Node.js 服务直接提供静态前端与 API。
 
 ## Project Structure
 
@@ -34,6 +53,12 @@ package.json        Node.js package metadata and scripts
 - Node.js 20 or newer.
 - MySQL 8 compatible database.
 - An OpenAI-compatible image generation provider configured through environment variables or the admin provider panel.
+
+## 环境要求
+
+- Node.js 20 或更新版本。
+- MySQL 8 兼容数据库。
+- 一个 OpenAI 兼容的图片生成供应商，可通过环境变量或后台供应商面板配置。
 
 ## Quick Start
 
@@ -65,6 +90,19 @@ Then open:
 
 - Frontend: `http://localhost:3000/`
 - Admin: `http://localhost:3000/admin`
+
+## 快速启动
+
+```bash
+npm install
+cp .env.example .env
+npm start
+```
+
+启动后访问：
+
+- 前台：`http://localhost:3000/`
+- 后台：`http://localhost:3000/admin`
 
 ## Smoke Checks
 
