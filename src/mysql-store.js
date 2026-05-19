@@ -267,7 +267,7 @@ function mapGeneration(row) {
     moderationReason: row.moderation_reason || "",
     moderationCheckedAt: toIso(row.moderation_checked_at),
     reportCount: Number(row.report_count || 0),
-    likeCount: Number(row.like_count || 0),
+    likeCount: Number(row.leaderboard_like_count ?? row.like_count ?? 0),
     likedByCurrentUser: Boolean(row.liked_by_current_user || 0),
     publishedAt: toIso(row.published_at),
     publicRewardStatus: row.public_reward_status || "none",
@@ -2371,9 +2371,19 @@ async function listGenerationLeaderboard({ range = "all", tag = "", type = "", l
   if (!includeBroken) {
     where.push("NOT EXISTS (SELECT 1 FROM gallery_file_checks gfc WHERE gfc.generation_id = g.id AND gfc.status = 'broken')");
   }
-  if (range === "day") where.push("COALESCE(g.published_at, g.created_at) >= DATE_SUB(NOW(3), INTERVAL 1 DAY)");
-  else if (range === "week") where.push("COALESCE(g.published_at, g.created_at) >= DATE_SUB(NOW(3), INTERVAL 7 DAY)");
-  else if (range === "month") where.push("COALESCE(g.published_at, g.created_at) >= DATE_SUB(NOW(3), INTERVAL 30 DAY)");
+  const rangeDays = { day: 1, week: 7, month: 30 }[range] || 0;
+  const periodLikeJoin = rangeDays
+    ? `INNER JOIN (
+         SELECT generation_id, COUNT(*) AS period_like_count, MAX(created_at) AS latest_like_at
+           FROM generation_likes
+          WHERE created_at >= DATE_SUB(NOW(3), INTERVAL ${rangeDays} DAY)
+          GROUP BY generation_id
+       ) period_likes ON period_likes.generation_id = g.id`
+    : "";
+  const leaderboardLikeExpr = rangeDays ? "period_likes.period_like_count" : "g.like_count";
+  const leaderboardOrder = rangeDays
+    ? "ORDER BY period_likes.period_like_count DESC, period_likes.latest_like_at DESC, COALESCE(g.published_at, g.created_at) DESC"
+    : "ORDER BY g.like_count DESC, COALESCE(g.published_at, g.created_at) DESC";
   const tagValue = String(tag || "").trim();
   if (tagValue) {
     where.push("g.public_tags_json LIKE ?");
@@ -2386,12 +2396,15 @@ async function listGenerationLeaderboard({ range = "all", tag = "", type = "", l
   const joinLike = currentUserId ? "LEFT JOIN generation_likes gl ON gl.generation_id = g.id AND gl.user_id = ?" : "";
   if (currentUserId) values.unshift(currentUserId);
   const [rows] = await getPool().execute(
-    `SELECT g.*, u.name AS user_name, u.email AS user_email, ${likedExpr} AS liked_by_current_user
+    `SELECT g.*, u.name AS user_name, u.email AS user_email,
+            ${leaderboardLikeExpr} AS leaderboard_like_count,
+            ${likedExpr} AS liked_by_current_user
        FROM generations g
+       ${periodLikeJoin}
        LEFT JOIN users u ON u.id = g.user_id
        ${joinLike}
       WHERE ${where.join(" AND ")}
-      ORDER BY g.like_count DESC, COALESCE(g.published_at, g.created_at) DESC
+      ${leaderboardOrder}
       LIMIT ${normalizedLimit}`,
     values
   );
