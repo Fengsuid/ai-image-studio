@@ -16,6 +16,7 @@
     "start": "node server.js",
     "smoke:public": "node scripts/smoke/check-public-api.mjs",
     "smoke:auth-admin": "node scripts/smoke/check-auth-admin.mjs",
+    "smoke:gallery-images": "node scripts/smoke/check-gallery-images.mjs",
     "smoke:prompt-review": "node scripts/smoke/check-prompt-review-service.mjs",
     "smoke:data": "node scripts/smoke/check-data-counts.mjs"
   },
