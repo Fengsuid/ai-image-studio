@@ -148,6 +148,18 @@ Record the outcome in the relevant development document or release note before m
 - Data note: production `/api/images/public?limit=3` returned `0` generation items because current public generation data is empty; prompt database images are served through `/api/prompts`, `/api/prompt-images/:id/file`, and `/api/gallery/leaderboard`.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-20 Canvas History Batch
+
+- Task covered: `AIS-RLS-027`.
+- Commit covered: `47d8379`.
+- Local checks: `node --check public/canvas-history.js`, `node --check public/canvas.js`, `node --check public/canvas-minimap.js`, `node --check server.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check scripts/smoke/check-canvas-history.mjs`, `npm run smoke:canvas-history`, `git diff --check`.
+- Frontend coverage: undo/redo and clipboard state live in `public/canvas-history.js`; `public/canvas.js` only wires snapshots around canvas mutations and keyboard/toolbar actions.
+- Interaction coverage: node move, inspector edit, edge create/delete, node delete, node duplicate, background changes, viewport pan/zoom/minimap navigation, and paste actions are recorded as undoable snapshots.
+- Shortcut coverage: Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+Y redo, Ctrl/Cmd+C copy selected node, Ctrl/Cmd+V paste copied node.
+- Smoke coverage: new `npm run smoke:canvas-history` verifies undo, redo, copy, paste, new pasted node id, and paste offset.
+- Deployment checks: app container running, production version `20260520-canvas-history-v1`, public smoke passed, canvas history smoke passed, canvas script syntax checks passed.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.

@@ -780,7 +780,7 @@
 优先级：P1  
 标签：`frontend`, `canvas`  
 依赖：`AIS-RLS-020`, `AIS-RLS-021`  
-建议状态：Backlog
+建议状态：Done
 
 目标：
 
@@ -788,14 +788,21 @@
 
 交付物：
 
-- undo/redo patch 栈。
-- Ctrl/Cmd+Z、Ctrl/Cmd+Shift+Z、Ctrl/Cmd+C/V。
-- 复制节点时生成新 id 并保持相对位置。
+- 已新增 `public/canvas-history.js`，独立管理 undo/redo 栈和节点剪贴板。
+- 已接入 Ctrl/Cmd+Z、Ctrl/Cmd+Shift+Z、Ctrl/Cmd+Y、Ctrl/Cmd+C/V。
+- 工具栏新增撤销、重做、复制、粘贴按钮。
+- 复制节点时生成新 id，并以固定偏移粘贴，避免覆盖原节点。
 
 验收：
 
 - 移动、编辑、连线、删除都能撤销。
 - 粘贴节点不覆盖原节点。
+
+完成记录：
+
+- `public/canvas.js` 在节点移动、字段编辑、连线创建/删除、节点删除/复制、粘贴、背景切换和视口操作前记录快照。
+- `npm run smoke:canvas-history` 覆盖 undo、redo、copy、paste、新 id 和粘贴偏移。
+- 线上版本 `20260520-canvas-history-v1` 已通过 public smoke 和 canvas history smoke。
 
 ### AIS-RLS-028：框选、多选、分组
 
