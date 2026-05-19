@@ -134,6 +134,20 @@ Record the outcome in the relevant development document or release note before m
 - Production image regression: `/api/prompt-images/359/file?variant=thumb` returned `200 image/jpeg`.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-20 Gallery Image Model Regression Batch
+
+- Issues covered: gallery cards still showing missing-image placeholders for database prompt images, prompt database images needing to participate in the like leaderboard, and home navigation briefly reusing stale route hash state.
+- Commits covered: `df418ca`, `d449129`.
+- Local checks: `node --check public/gallery-normalize.js`, `node --check public/app.js`, `node --check public/admin.js`, `node --check server.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check scripts/smoke/check-gallery-images.mjs`, package JSON parse, `git diff --check`.
+- Frontend coverage: prompt/generation/gallery image normalization is split into `public/gallery-normalize.js`; `public/app.js` delegates image model conversion and no longer carries the full mapping logic inline.
+- Backend coverage: public generation lists and generation leaderboard entries now filter missing generated files unless an admin requests `includeBroken=1`; missing generated/source files return `404`.
+- Route coverage: home route generation clears stale hash fragments instead of preserving the previous canvas/gallery hash.
+- Smoke coverage: public smoke verifies `/gallery-normalize.js`; new `npm run smoke:gallery-images` verifies prompt database images are displayable and present in `/api/gallery/leaderboard`.
+- Deployment checks: app container running, production version `20260520-gallery-model-v1`, production domain `200`, retired domain `410`, public smoke passed, gallery image smoke passed.
+- Production gallery smoke: prompt image HEAD checks passed for prompts `262`, `42`, `252`, `371`, `370`; all-time leaderboard returned prompt image entries including `prompt_262`, `prompt_42`, `prompt_371`, `prompt_370`.
+- Data note: production `/api/images/public?limit=3` returned `0` generation items because current public generation data is empty; prompt database images are served through `/api/prompts`, `/api/prompt-images/:id/file`, and `/api/gallery/leaderboard`.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.

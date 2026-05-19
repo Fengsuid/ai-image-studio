@@ -168,6 +168,12 @@
 - 控制台没有持续报错循环。
 - 移动端和桌面端布局都不出现重叠。
 
+回归记录：
+
+- 2026-05-20 新增 `public/gallery-normalize.js`，将 prompt 数据库图片、生成作品图片和榜单图片统一归一为可渲染的图片模型，避免继续扩大 `public/app.js`。
+- 公开生成作品列表和生成作品榜单默认过滤缺失本地文件的记录，管理员仍可用 `includeBroken=1` 巡检异常项。
+- 新增 `npm run smoke:gallery-images`，覆盖 prompt 数据库图片可打开、prompt 图片进入点赞排行榜、榜单图片 HEAD 返回 `image/*`。
+
 ### AIS-RLS-002：后台图片文件巡检
 
 优先级：P0  
@@ -237,6 +243,11 @@
 - 老作品今天新增点赞后能进入日榜。
 - 新作品没有点赞时不因发布时间自动压过高赞作品。
 - SQL 在 1000+ 作品下响应稳定。
+
+回归记录：
+
+- 2026-05-20 验证 `/api/gallery/leaderboard?range=all` 返回 prompt 数据库图片榜单项，例如 `prompt_262`、`prompt_42`、`prompt_371`。
+- `smoke:gallery-images` 会失败退出，如果 prompt 数据库图片未进入榜单，或榜单图片无法通过 HEAD 取得 `image/*`。
 
 ### AIS-RLS-005：排行榜前端布局重构
 
