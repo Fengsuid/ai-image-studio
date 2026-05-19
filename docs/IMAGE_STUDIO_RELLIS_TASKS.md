@@ -459,7 +459,7 @@
 优先级：P1  
 标签：`backend`, `admin`, `prompt`  
 依赖：`AIS-RLS-010`  
-建议状态：Backlog
+建议状态：Done
 
 目标：
 
@@ -467,15 +467,15 @@
 
 交付物：
 
-- 新增 prompt review service。
-- 先做本地 hash/相似度粗筛，再调用模型做语义判定。
-- 后台展示重复候选和审核建议。
+- 已新增 prompt review service，封装规则兜底、Responses 模型调用、JSON 解析、不可用降级和 mock smoke。
+- 创建提示词、远程来源同步、导入脚本 apply 后先生成本地 hash/simhash 候选，再对待复核候选调用模型或 mock 复核。
+- 后台重复候选表展示 AI decision、confidence、reason，并支持单条 AI 复核。
 
 验收：
 
-- 明显相同提示词能被拦截或合并。
-- 不确定项进入人工审核，不自动删除。
-- 审核记录可追溯。
+- 明显相同提示词会生成重复候选，mock/模型建议 `duplicate`，后台可确认重复、保留、隐藏或合并。
+- 不确定项写入 `needs_review` / `variant` / `unavailable`，保持 pending 进入人工审核，不自动删除。
+- AI 复核结果写入 `prompt_duplicate_candidates` 的 `ai_*` 字段，人工动作继续写 admin audit log，可追溯。
 
 ### AIS-RLS-015：主页和导航新增画布入口
 

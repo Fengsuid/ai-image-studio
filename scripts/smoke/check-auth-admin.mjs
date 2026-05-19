@@ -15,7 +15,7 @@ const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const testEmail = `codex-smoke-${runId}@example.test`;
 const testName = `codex-smoke-${runId}`;
 const announcementTitle = `[smoke] auth-admin ${runId}`;
-const createdIds = { announcementId: "", userId: "" };
+const createdIds = { announcementId: "", userId: "", promptIds: [] };
 const failures = [];
 
 function log(...parts) {
@@ -135,6 +135,16 @@ async function cleanup() {
       await connection.execute("DELETE FROM announcements WHERE id = ? AND title = ?", [createdIds.announcementId, announcementTitle]);
     }
     await connection.execute("DELETE FROM announcements WHERE title = ? AND status = 'draft'", [announcementTitle]);
+    if (createdIds.promptIds.length) {
+      const placeholders = createdIds.promptIds.map(() => "?").join(",");
+      await connection.execute(
+        `DELETE FROM prompt_duplicate_candidates
+          WHERE prompt_id IN (${placeholders})
+             OR duplicate_prompt_id IN (${placeholders})`,
+        [...createdIds.promptIds, ...createdIds.promptIds]
+      );
+      await connection.execute(`DELETE FROM prompts WHERE id IN (${placeholders})`, createdIds.promptIds);
+    }
     await connection.execute("DELETE FROM users WHERE email = ?", [testEmail]);
   } catch (error) {
     fail(`cleanup failed: ${error.message || error}`);
@@ -230,6 +240,71 @@ async function main() {
       label: "DELETE created announcement"
     });
     createdIds.announcementId = "";
+
+    log("POST /api/prompts duplicate AI review flow");
+    const smokePromptText = `codex smoke semantic duplicate prompt ${runId}: cinematic red fox under blue moon, volumetric light`;
+    const promptA = await request("/api/prompts", {
+      method: "POST",
+      jar: admin.jar,
+      csrfToken: admin.csrfToken,
+      expected: 201,
+      label: "POST /api/prompts smoke A",
+      body: {
+        title: `[smoke] duplicate A ${runId}`,
+        prompt: smokePromptText,
+        tags: ["smoke"],
+        category: "general",
+        status: "hidden",
+        mockAiReview: true
+      }
+    });
+    const promptAId = Number(promptA.body?.prompt?.id || 0);
+    if (promptAId) createdIds.promptIds.push(promptAId);
+    assert(promptAId, "created smoke prompt A id missing");
+
+    const promptB = await request("/api/prompts", {
+      method: "POST",
+      jar: admin.jar,
+      csrfToken: admin.csrfToken,
+      expected: 201,
+      label: "POST /api/prompts smoke B duplicate",
+      body: {
+        title: `[smoke] duplicate B ${runId}`,
+        prompt: smokePromptText,
+        tags: ["smoke"],
+        category: "general",
+        status: "hidden",
+        mockAiReview: true
+      }
+    });
+    const promptBId = Number(promptB.body?.prompt?.id || 0);
+    if (promptBId) createdIds.promptIds.push(promptBId);
+    assert(promptBId, "created smoke prompt B id missing");
+    assert(Number(promptB.body?.duplicateScan?.candidates || 0) >= 1, "duplicate prompt creation should return candidates");
+    assert(Number(promptB.body?.aiReviewed || 0) >= 1, "duplicate prompt creation should run AI mock review");
+
+    const duplicateList = await request("/api/admin/prompt-duplicates?limit=20&status=all", {
+      jar: admin.jar,
+      expected: 200,
+      label: "GET /api/admin/prompt-duplicates after smoke prompts"
+    });
+    const smokeCandidate = (duplicateList.body?.candidates || []).find((candidate) => {
+      const ids = [Number(candidate.promptId), Number(candidate.duplicatePromptId)].sort((a, b) => a - b);
+      return ids[0] === Math.min(promptAId, promptBId) && ids[1] === Math.max(promptAId, promptBId);
+    });
+    assert(smokeCandidate, "smoke duplicate candidate should be listed");
+    assert(smokeCandidate?.aiReview?.decision === "duplicate", "smoke duplicate candidate should have AI duplicate decision");
+
+    if (smokeCandidate?.id) {
+      await request(`/api/admin/prompt-duplicates/${encodeURIComponent(smokeCandidate.id)}`, {
+        method: "PATCH",
+        jar: admin.jar,
+        csrfToken: admin.csrfToken,
+        expected: 200,
+        label: "PATCH smoke duplicate candidate keep",
+        body: { action: "keep", note: "authenticated smoke keeps both prompts" }
+      });
+    }
 
     log("login as created user and check user endpoints");
     const user = await login(testEmail, testPassword);

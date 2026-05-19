@@ -581,10 +581,11 @@ function renderPrompts() {
               <tr>
                 <td><strong>${escapeHtml(item.prompt?.title || `#${item.promptId}`)}</strong><small class="admin-truncate">${escapeHtml(item.prompt?.prompt || "")}</small></td>
                 <td><strong>${escapeHtml(item.duplicate?.title || `#${item.duplicatePromptId}`)}</strong><small class="admin-truncate">${escapeHtml(item.duplicate?.prompt || "")}</small></td>
-                <td>${escapeHtml(item.method || "")}<small>score ${Number(item.score || 0).toFixed(4)} · ${escapeHtml(item.embeddingRecall || "")} · ${escapeHtml(item.llmReview || "")}</small></td>
+                <td>${escapeHtml(item.method || "")}<small>score ${Number(item.score || 0).toFixed(4)} · ${escapeHtml(item.embeddingRecall || "")} · AI ${escapeHtml(item.aiReview?.decision || item.llmReview || "not_reviewed")} ${Number(item.aiReview?.confidence || 0).toFixed(2)}</small><small>${escapeHtml(item.aiReview?.reason || "")}</small></td>
                 <td>
                   <button type="button" data-detail="prompt:${item.promptId}">编辑 A</button>
                   <button type="button" data-detail="prompt:${item.duplicatePromptId}">编辑 B</button>
+                  <button type="button" data-duplicate-ai-review="${item.id}">AI 复核</button>
                   <button type="button" data-duplicate-action="keep:${item.id}">保留</button>
                   <button type="button" data-duplicate-action="confirm:${item.id}">确认重复</button>
                   <button type="button" data-duplicate-action="hide_duplicate:${item.id}">隐藏 B</button>
@@ -1831,10 +1832,21 @@ function bindActions() {
   $("[data-scan-prompt-duplicates]")?.addEventListener("click", async () => {
     await api("/api/admin/prompt-duplicates/scan", {
       method: "POST",
-      body: JSON.stringify({ limit: 2000, hammingThreshold: 6 })
+      body: JSON.stringify({ limit: 2000, hammingThreshold: 6, aiReview: true, aiReviewLimit: 12 })
     });
     recordAudit("scan_prompt_duplicates", "prompt", "manual scan");
     await refreshAndRender();
+  });
+  document.querySelectorAll("[data-duplicate-ai-review]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.duplicateAiReview;
+      await api(`/api/admin/prompt-duplicates/${encodeURIComponent(id)}/ai-review`, {
+        method: "POST",
+        body: "{}"
+      });
+      recordAudit("prompt_duplicate_ai_review", id, "AI semantic review");
+      await refreshAndRender();
+    });
   });
   document.querySelectorAll("[data-duplicate-action]").forEach((button) => {
     button.addEventListener("click", async () => {

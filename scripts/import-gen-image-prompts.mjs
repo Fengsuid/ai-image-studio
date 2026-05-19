@@ -165,7 +165,11 @@ Options:
   if (apply) {
     for (const item of selected) {
       try {
-        await store.createPrompt(item);
+        const prompt = await store.createPrompt(item);
+        await store.scanPromptDuplicateCandidatesForPrompt(prompt.id, {
+          limit: 2000,
+          hammingThreshold: 6
+        });
         inserted += 1;
       } catch (error) {
         errors.push({ title: item.title, error: error.message || String(error) });

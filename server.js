@@ -30,13 +30,14 @@ function loadEnvFile(filePath) {
 loadEnvFile(path.join(ROOT_DIR, ".env"));
 
 const store = require("./src/mysql-store");
+const promptReview = require("./src/prompt-review-service");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260519-prompt-detail-like-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260520-prompt-ai-review-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -1087,6 +1088,67 @@ async function callOpenAIResponses(settings, payload, { signal } = {}) {
   throw lastError || httpError("OpenAI image edit request failed", 502);
 }
 
+async function callOpenAITextResponses(settings, payload, { signal } = {}) {
+  const routes = await resolveProviderRoutes(settings, { mode: "text-to-image", candidateCount: 1 });
+  let lastError = null;
+  for (const route of routes) {
+    try {
+      const apiKey = getOpenAIApiKey(route.settings);
+      const routedPayload = { ...payload, model: route.settings.model || payload.model || DEFAULT_MODEL };
+      const response = await fetchWithTimeout("OpenAI prompt review", getOpenAIResponsesEndpoint(route.settings), {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(routedPayload),
+        signal
+      });
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { raw: text };
+      }
+      if (!response.ok) {
+        const message = data?.error?.message || "OpenAI prompt review failed";
+        throw httpError(message, response.status, data);
+      }
+      await markProviderHealth(route.provider, { healthStatus: "ok", lastError: "" });
+      return data;
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      lastError = withProviderFailure(error, route.provider);
+      await markProviderHealth(route.provider, {
+        healthStatus: "error",
+        lastError: String(error.message || error).slice(0, 2000)
+      });
+    }
+  }
+  throw lastError || httpError("OpenAI prompt review failed", 502);
+}
+
+async function reviewPendingPromptDuplicates({ limit = 12, mock = false } = {}) {
+  const candidates = await store.listPromptDuplicateCandidates({
+    status: "pending",
+    limit: sanitizePositiveInt(limit, 12, 50)
+  });
+  const targets = candidates.filter((item) => item.aiReview?.status === "not_reviewed");
+  if (!targets.length) return 0;
+  const settings = await store.getSettings();
+  let reviewed = 0;
+  for (const candidate of targets) {
+    const review = await promptReview.reviewPromptDuplicateCandidate(candidate, {
+      mock: mock || process.env.PROMPT_REVIEW_MOCK === "1",
+      callModel: (payload) => callOpenAITextResponses(settings, payload)
+    });
+    await store.updatePromptDuplicateAiReview(candidate.id, review);
+    reviewed += 1;
+  }
+  return reviewed;
+}
+
 function dataUrlToBlob(dataUrl) {
   const match = String(dataUrl || "").match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw httpError("Invalid image data", 400);
@@ -1792,7 +1854,7 @@ async function syncGithubGenericPromptSource(source) {
         : parseMarkdownPromptItems(text, fallback);
       fetched += parsed.length;
       for (const item of parsed.slice(0, 200)) {
-        await store.upsertRemotePrompt({
+        const prompt = await store.upsertRemotePrompt({
           ...item,
           source: source.name,
           sourceUrl: source.repoUrl,
@@ -1801,6 +1863,7 @@ async function syncGithubGenericPromptSource(source) {
           syncedAt: new Date().toISOString(),
           status: "active"
         });
+        await store.scanPromptDuplicateCandidatesForPrompt(prompt.id, { limit: 2000, hammingThreshold: 6 });
         upserted += 1;
       }
     } catch (error) {
@@ -2554,11 +2617,20 @@ async function routeApi(req, res, url) {
     const body = await readJsonBody(req);
     const payload = buildPromptPayload(body, { partial: false });
     const created = await store.createPrompt(payload);
+    const duplicateScan = await store.scanPromptDuplicateCandidatesForPrompt(created.id, {
+      limit: 2000,
+      hammingThreshold: 6
+    });
+    const aiReviewed = duplicateScan.candidates
+      ? await reviewPendingPromptDuplicates({ limit: 6, mock: body.mockAiReview === true })
+      : 0;
     await writeAdminAudit(current, req, "create_prompt", "prompt", String(created.id), {
       title: created.title,
-      normalizedHash: store.listPromptDuplicateCandidates ? "computed_on_scan" : ""
+      duplicateCandidates: duplicateScan.candidates,
+      duplicateInserted: duplicateScan.inserted,
+      aiReviewed
     });
-    return sendJson(res, 201, { prompt: created });
+    return sendJson(res, 201, { prompt: created, duplicateScan, aiReviewed });
   }
 
   const promptIdMatch = url.pathname.match(/^\/api\/prompts\/(\d+)$/);
@@ -3108,8 +3180,38 @@ async function routeApi(req, res, url) {
       limit: sanitizePositiveInt(body.limit, 2000, 5000),
       hammingThreshold: Math.max(0, Math.min(24, Number.parseInt(body.hammingThreshold, 10) || 6))
     });
+    if (body.aiReview) {
+      result.aiReviewed = await reviewPendingPromptDuplicates({
+        limit: body.aiReviewLimit,
+        mock: body.mockAiReview === true
+      });
+    }
     await writeAdminAudit(current, req, "scan_prompt_duplicates", "prompt", "duplicates", result);
     return sendJson(res, 200, result);
+  }
+
+  const promptDuplicateAiReviewMatch = url.pathname.match(/^\/api\/admin\/prompt-duplicates\/(\d+)\/ai-review$/);
+  if (promptDuplicateAiReviewMatch && req.method === "POST") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const candidate = await store.getPromptDuplicateCandidateById(promptDuplicateAiReviewMatch[1]);
+    if (!candidate) throw httpError("Duplicate candidate not found", 404);
+    const body = await readJsonBody(req).catch(() => ({}));
+    const settings = await store.getSettings();
+    const review = await promptReview.reviewPromptDuplicateCandidate(candidate, {
+      mock: body.mock === true || process.env.PROMPT_REVIEW_MOCK === "1",
+      callModel: (payload) => callOpenAITextResponses(settings, payload)
+    });
+    const updated = await store.updatePromptDuplicateAiReview(candidate.id, review);
+    await writeAdminAudit(current, req, "prompt_duplicate_ai_review", "prompt_duplicate", candidate.id, {
+      promptId: candidate.promptId,
+      duplicatePromptId: candidate.duplicatePromptId,
+      decision: review.decision,
+      confidence: review.confidence,
+      status: review.status
+    });
+    return sendJson(res, 200, { candidate: updated, review });
   }
 
   const promptDuplicateMatch = url.pathname.match(/^\/api\/admin\/prompt-duplicates\/(\d+)$/);

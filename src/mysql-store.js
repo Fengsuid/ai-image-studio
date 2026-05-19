@@ -1131,6 +1131,14 @@ async function runMigrations() {
       duplicate_prompt_id INT UNSIGNED NOT NULL,
       method VARCHAR(40) NOT NULL,
       score DECIMAL(6,4) NOT NULL DEFAULT 0,
+      ai_status VARCHAR(24) NOT NULL DEFAULT 'not_reviewed',
+      ai_decision VARCHAR(24) NOT NULL DEFAULT '',
+      ai_confidence DECIMAL(6,4) NOT NULL DEFAULT 0,
+      ai_reason VARCHAR(1000) NOT NULL DEFAULT '',
+      ai_recommended_action VARCHAR(40) NOT NULL DEFAULT '',
+      ai_model VARCHAR(120) NOT NULL DEFAULT '',
+      ai_reviewed_at DATETIME(3) NULL,
+      ai_raw_json LONGTEXT NULL,
       status VARCHAR(24) NOT NULL DEFAULT 'pending',
       reviewer_user_id VARCHAR(32) NULL,
       review_note VARCHAR(500) NOT NULL DEFAULT '',
@@ -1144,6 +1152,20 @@ async function runMigrations() {
       CONSTRAINT fk_prompt_duplicate_reviewer FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  const promptDuplicateAiColumns = [
+    ["ai_status", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_status VARCHAR(24) NOT NULL DEFAULT 'not_reviewed' AFTER score"],
+    ["ai_decision", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_decision VARCHAR(24) NOT NULL DEFAULT '' AFTER ai_status"],
+    ["ai_confidence", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_confidence DECIMAL(6,4) NOT NULL DEFAULT 0 AFTER ai_decision"],
+    ["ai_reason", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_reason VARCHAR(1000) NOT NULL DEFAULT '' AFTER ai_confidence"],
+    ["ai_recommended_action", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_recommended_action VARCHAR(40) NOT NULL DEFAULT '' AFTER ai_reason"],
+    ["ai_model", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_model VARCHAR(120) NOT NULL DEFAULT '' AFTER ai_recommended_action"],
+    ["ai_reviewed_at", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_reviewed_at DATETIME(3) NULL AFTER ai_model"],
+    ["ai_raw_json", "ALTER TABLE prompt_duplicate_candidates ADD COLUMN ai_raw_json LONGTEXT NULL AFTER ai_reviewed_at"]
+  ];
+  for (const [column, statement] of promptDuplicateAiColumns) {
+    const [columns] = await db.execute(`SHOW COLUMNS FROM prompt_duplicate_candidates LIKE '${column}'`);
+    if (!columns.length) await db.query(statement);
+  }
   await db.query(`
     CREATE TABLE IF NOT EXISTS prompt_audit_records (
       id BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -3025,7 +3047,16 @@ function mapPromptDuplicateCandidate(row) {
     method: row.method || "",
     score: Number(row.score || 0),
     embeddingRecall: row.method === "embedding" ? "matched" : "not_configured",
-    llmReview: "manual_required",
+    llmReview: row.ai_decision || row.ai_status || "manual_required",
+    aiReview: {
+      status: row.ai_status || "not_reviewed",
+      decision: row.ai_decision || "",
+      confidence: Number(row.ai_confidence || 0),
+      reason: row.ai_reason || "",
+      recommendedAction: row.ai_recommended_action || "",
+      model: row.ai_model || "",
+      reviewedAt: toIso(row.ai_reviewed_at)
+    },
     status: row.status || "pending",
     reviewNote: row.review_note || "",
     reviewerUserId: row.reviewer_user_id || "",
@@ -3843,8 +3874,8 @@ async function scanPromptDuplicateCandidates({ limit = 2000, hammingThreshold = 
   for (const candidate of candidates) {
     const [result] = await getPool().execute(
       `INSERT IGNORE INTO prompt_duplicate_candidates
-        (prompt_id, duplicate_prompt_id, method, score)
-       VALUES (?, ?, ?, ?)`,
+        (prompt_id, duplicate_prompt_id, method, score, ai_status)
+       VALUES (?, ?, ?, ?, 'not_reviewed')`,
       [candidate.promptId, candidate.duplicatePromptId, candidate.method, candidate.score]
     );
     inserted += Number(result.affectedRows || 0);
@@ -3853,6 +3884,64 @@ async function scanPromptDuplicateCandidates({ limit = 2000, hammingThreshold = 
     scannedPrompts: rows.length,
     scannedPairs,
     candidates: candidates.length,
+    inserted,
+    hammingThreshold: threshold
+  };
+}
+
+async function scanPromptDuplicateCandidatesForPrompt(promptId, { limit = 2000, hammingThreshold = 6 } = {}) {
+  const id = Number(promptId) || 0;
+  if (!id) return { promptId: id, comparedPrompts: 0, candidates: 0, inserted: 0, hammingThreshold: 0 };
+  await refreshPromptFingerprints({ limit });
+  const threshold = Math.max(0, Math.min(24, Number(hammingThreshold) || 6));
+  const [targetRows] = await getPool().execute(
+    "SELECT id, title, prompt, status, normalized_hash, simhash FROM prompts WHERE id = ? LIMIT 1",
+    [id]
+  );
+  const target = targetRows[0];
+  if (!target?.normalized_hash || !target?.simhash) {
+    return { promptId: id, comparedPrompts: 0, candidates: 0, inserted: 0, hammingThreshold: threshold };
+  }
+  const normalizedLimit = Math.max(2, Math.min(5000, Number(limit) || 2000));
+  const [rows] = await getPool().execute(
+    `SELECT id, title, prompt, status, normalized_hash, simhash
+       FROM prompts
+      WHERE id <> ? AND normalized_hash <> '' AND simhash <> ''
+      ORDER BY id ASC
+      LIMIT ${normalizedLimit}`,
+    [id]
+  );
+  let inserted = 0;
+  let candidates = 0;
+  for (const row of rows) {
+    let method = "";
+    let score = 0;
+    if (target.normalized_hash === row.normalized_hash) {
+      method = "normalized_hash";
+      score = 1;
+    } else {
+      const distance = hammingDistanceHex(target.simhash, row.simhash);
+      if (distance <= threshold) {
+        method = "simhash";
+        score = Number(((64 - distance) / 64).toFixed(4));
+      }
+    }
+    if (!method) continue;
+    candidates += 1;
+    const leftId = Math.min(id, Number(row.id));
+    const rightId = Math.max(id, Number(row.id));
+    const [result] = await getPool().execute(
+      `INSERT IGNORE INTO prompt_duplicate_candidates
+        (prompt_id, duplicate_prompt_id, method, score, ai_status)
+       VALUES (?, ?, ?, ?, 'not_reviewed')`,
+      [leftId, rightId, method, score]
+    );
+    inserted += Number(result.affectedRows || 0);
+  }
+  return {
+    promptId: id,
+    comparedPrompts: rows.length,
+    candidates,
     inserted,
     hammingThreshold: threshold
   };
@@ -3908,6 +3997,28 @@ async function reviewPromptDuplicateCandidate(id, { status = "reviewed", reviewe
         SET status = ?, reviewer_user_id = ?, review_note = ?, reviewed_at = ?
       WHERE id = ?`,
     [nextStatus, reviewerUserId || null, String(reviewNote || "").slice(0, 500), new Date(), Number(id) || 0]
+  );
+  return getPromptDuplicateCandidateById(id);
+}
+
+async function updatePromptDuplicateAiReview(id, review = {}) {
+  const safeRaw = review.raw === undefined ? null : JSON.stringify(review.raw).slice(0, 60000);
+  await getPool().execute(
+    `UPDATE prompt_duplicate_candidates
+        SET ai_status = ?, ai_decision = ?, ai_confidence = ?, ai_reason = ?,
+            ai_recommended_action = ?, ai_model = ?, ai_reviewed_at = ?, ai_raw_json = ?
+      WHERE id = ?`,
+    [
+      String(review.status || "reviewed").slice(0, 24),
+      String(review.decision || "needs_review").slice(0, 24),
+      Math.max(0, Math.min(1, Number(review.confidence || 0))),
+      String(review.reason || "").slice(0, 1000),
+      String(review.recommendedAction || "manual_review").slice(0, 40),
+      String(review.model || "").slice(0, 120),
+      new Date(),
+      safeRaw,
+      Number(id) || 0
+    ]
   );
   return getPromptDuplicateCandidateById(id);
 }
@@ -4642,9 +4753,11 @@ module.exports = {
   incrementPromptUse,
   refreshPromptFingerprints,
   scanPromptDuplicateCandidates,
+  scanPromptDuplicateCandidatesForPrompt,
   listPromptDuplicateCandidates,
   getPromptDuplicateCandidateById,
   reviewPromptDuplicateCandidate,
+  updatePromptDuplicateAiReview,
   auditPromptForPublish,
   createPromptAuditRecord,
   listPromptAuditRecords,
