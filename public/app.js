@@ -3136,7 +3136,7 @@ function promptCardHtml(prompt) {
     : `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const sourceBadge = prompt.kind === "square"
     ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${isImageToImageItem(prompt) ? text("imageToImage") : text("textToImage")}</b>`
-    : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.author || "@open")}</em>`;
+    : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.sourceRepo || prompt.source || prompt.author || "@open")}</em>`;
   const hasImage = Boolean(coverUrl);
   const openAttr = prompt.kind === "square"
     ? ` data-open-square="${escapeHtml(prompt.id)}" role="button" tabindex="0"`
@@ -4273,6 +4273,7 @@ function openPromptDetailModal(prompt) {
   const author = prompt.author || (state.lang === "zh" ? "公开来源" : "Public source");
   const sourceLabel = prompt.source || "-";
   const sourceUrl = prompt.sourceUrl || "";
+  const categoryLabel = prompt.category ? tagCategoryLabel(prompt.category) : "-";
   openModal(`
     <section class="modal square-preview-modal">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
@@ -4291,6 +4292,8 @@ function openPromptDetailModal(prompt) {
         <div class="square-preview-meta">
           <div><span>${escapeHtml(text("promptFieldAuthor"))}</span><strong>${escapeHtml(author)}</strong></div>
           <div><span>${escapeHtml(text("promptFieldSource"))}</span><strong>${escapeHtml(sourceLabel)}</strong></div>
+          <div><span>${state.lang === "zh" ? "分类" : "Category"}</span><strong>${escapeHtml(categoryLabel)}</strong></div>
+          <div><span>${state.lang === "zh" ? "来源仓库" : "Source repo"}</span><strong>${escapeHtml(prompt.sourceRepo || "-")}</strong></div>
           <div><span>ID</span><strong>${escapeHtml(String(prompt.id || "-"))}</strong></div>
           <div><span>${escapeHtml(text("promptFieldStatus"))}</span><strong>${escapeHtml(prompt.status === "hidden" ? text("promptStatusHidden") : text("promptStatusActive"))}</strong></div>
         </div>

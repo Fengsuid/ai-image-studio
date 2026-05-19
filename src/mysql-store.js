@@ -1172,6 +1172,7 @@ async function initializeDatabase(options = {}) {
   });
   await runMigrations();
   await seedPromptCategories();
+  await seedPromptSources();
   await deleteExpiredSessions();
 }
 
@@ -3800,6 +3801,14 @@ const PROMPT_CATEGORY_SEED = [
   { slug: "general", labelZh: "其他", labelEn: "Other", descriptionZh: "暂未归类或跨分类提示词", descriptionEn: "Uncategorized or cross-category prompts", sortOrder: 999 }
 ];
 
+const PROMPT_SOURCE_SEED = [
+  { id: "ps_evolinkai_gpt_image_2", name: "EvoLinkAI GPT Image 2", repoUrl: "https://github.com/EvoLinkAI/awesome-gpt-image-2-API-and-Prompts", parser: "github-generic", sortOrder: 10 },
+  { id: "ps_zerolu_gpt_image", name: "ZeroLu Awesome GPT Image", repoUrl: "https://github.com/ZeroLu/awesome-gpt-image", parser: "github-generic", sortOrder: 20 },
+  { id: "ps_imgedify_gpt4o", name: "ImgEdify GPT-4o Image Prompts", repoUrl: "https://github.com/ImgEdify/Awesome-GPT4o-Image-Prompts", parser: "github-generic", sortOrder: 30 },
+  { id: "ps_youmind_gpt_image_2", name: "YouMind GPT Image 2", repoUrl: "https://github.com/YouMind-OpenLab/awesome-gpt-image-2", parser: "github-generic", sortOrder: 40 },
+  { id: "ps_youmind_nano_banana_pro", name: "YouMind Nano Banana Pro", repoUrl: "https://github.com/YouMind-OpenLab/awesome-nano-banana-pro-prompts", parser: "github-generic", sortOrder: 50 }
+];
+
 function systemTagMeta(index) {
   if (SYSTEM_TAG_SEED[index]?.category === "core") {
     return {
@@ -3903,6 +3912,21 @@ async function seedPromptCategories() {
           description_zh = IF(description_zh = '', VALUES(description_zh), description_zh),
           description_en = IF(description_en = '', VALUES(description_en), description_en)`,
       [item.slug, item.labelZh, item.labelEn, item.descriptionZh, item.descriptionEn, item.sortOrder]
+    );
+  }
+}
+
+async function seedPromptSources() {
+  for (const item of PROMPT_SOURCE_SEED) {
+    await getPool().execute(
+      `INSERT INTO prompt_sources
+          (id, name, source_type, repo_url, branch, parser, config_json, status, sort_order)
+       VALUES (?, ?, 'github', ?, 'main', ?, '{}', 'active', ?)
+       ON DUPLICATE KEY UPDATE
+          name = IF(name = '', VALUES(name), name),
+          repo_url = IF(repo_url = '', VALUES(repo_url), repo_url),
+          parser = IF(parser = '', VALUES(parser), parser)`,
+      [item.id, item.name, item.repoUrl, item.parser, item.sortOrder]
     );
   }
 }
