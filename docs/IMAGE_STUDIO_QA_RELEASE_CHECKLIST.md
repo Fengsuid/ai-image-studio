@@ -160,6 +160,18 @@ Record the outcome in the relevant development document or release note before m
 - Deployment checks: app container running, production version `20260520-canvas-history-v1`, public smoke passed, canvas history smoke passed, canvas script syntax checks passed.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-20 Canvas Selection Groups Batch
+
+- Task covered: `AIS-RLS-028`.
+- Commit covered: `1050fe3`.
+- Local checks: `node --check public/canvas.js`, `node --check public/canvas-selection.js`, `node --check public/canvas-nodes.js`, `node --check public/canvas-history.js`, `node --check public/canvas-minimap.js`, `node --check server.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check scripts/smoke/check-canvas-selection.mjs`, `npm run smoke:canvas-selection`, `npm run smoke:canvas-history`, `git diff --check`.
+- Frontend coverage: box selection helpers live in `public/canvas-selection.js`; node sizing and group metadata live in `public/canvas-nodes.js`; `public/canvas.js` only wires selection state, pointer events, toolbar buttons, inspector actions, and history snapshots.
+- Interaction coverage: Shift-click toggles multi-select, Shift-drag on empty canvas creates a selection box, selected nodes move together while preserving relative offsets, Delete/Backspace deletes the current selection, and group nodes display a group title plus member count.
+- Smoke coverage: new `npm run smoke:canvas-selection` verifies box selection, toggle selection, batch movement, selection deletion, and group node creation; public smoke verifies `/canvas-selection.js` is referenced and served.
+- Deployment checks: app container running, production version `20260520-canvas-selection-v1`, public smoke passed, canvas selection smoke passed, canvas history smoke passed, and container syntax checks passed.
+- Local full `smoke:public` blocker: local MySQL rejected `root@localhost` without password, so production container smoke is the authoritative public check.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.

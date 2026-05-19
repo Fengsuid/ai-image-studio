@@ -827,6 +827,14 @@
 - 多选移动不打乱节点间相对位置。
 - 分组可折叠或显示组标题。
 
+完成记录：
+
+- `public/canvas-selection.js` 独立承载框选矩形、选择归一化、批量移动、批量删除和 group 节点生成逻辑，避免把所有选择代码继续堆进 `public/canvas.js`。
+- `public/canvas.js` 接入 Shift 点击多选、Shift 空白拖拽框选、工具栏分组/删除按钮、Delete/Backspace 批量删除、Ctrl/Cmd+G 分组和多选复制粘贴状态。
+- `public/canvas-nodes.js` 新增 `group` 节点类型和节点尺寸 helper；`public/canvas-minimap.js` 读取多选状态和 group 实际尺寸。
+- `npm run smoke:canvas-selection` 覆盖框选、toggle 多选、批量移动相对位置、批量删除连线清理和 group 标题/成员记录。
+- 线上版本 `20260520-canvas-selection-v1` 已通过 public smoke、canvas selection smoke、canvas history smoke 和容器内 canvas 脚本语法检查。
+
 ### AIS-RLS-029：JSON 导入导出
 
 优先级：P1  
