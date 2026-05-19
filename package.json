@@ -3,6 +3,15 @@
   "version": "1.0.0",
   "description": "AI image generation studio with prompt gallery, image editing, public square, credits, and admin operations.",
   "main": "server.js",
+  "author": "Fengsuid and Codex",
+  "contributors": [
+    {
+      "name": "Fengsuid"
+    },
+    {
+      "name": "Codex"
+    }
+  ],
   "scripts": {
     "start": "node server.js",
     "smoke:public": "node scripts/smoke/check-public-api.mjs",

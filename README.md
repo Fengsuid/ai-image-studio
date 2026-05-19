@@ -9,6 +9,16 @@
 - Demo site: https://ai-image-studio.twisterfeng.com
 - 演示地址：https://ai-image-studio.twisterfeng.com
 
+## Authors
+
+- Fengsuid
+- Codex
+
+## 作者
+
+- Fengsuid
+- Codex
+
 ## Version
 
 Current release: `1.00`
