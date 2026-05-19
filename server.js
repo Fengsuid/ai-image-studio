@@ -1383,6 +1383,7 @@ function sanitizeUrlField(value, max = 500) {
 
 function buildPromptPayload(body, { partial } = { partial: false }) {
   const payload = {};
+  const hasAny = (...keys) => keys.some((key) => Object.hasOwn(body, key));
   const set = (key, transform) => {
     if (Object.hasOwn(body, key)) {
       payload[key] = transform(body[key]);
@@ -1401,11 +1402,35 @@ function buildPromptPayload(body, { partial } = { partial: false }) {
     }
     return cleaned;
   });
-  set("image", (value) => sanitizeUrlField(value, 500));
+  if (hasAny("image", "imageUrl", "coverUrl") || !partial) {
+    payload.image = sanitizeUrlField(body.image ?? body.imageUrl ?? body.coverUrl, 500);
+  }
+  if (hasAny("preview", "coverUrl") || !partial) {
+    payload.preview = sanitizeUrlField(body.preview ?? body.coverUrl ?? "", 500);
+  }
   set("tags", (value) => sanitizePromptTags(value));
+  set("category", (value) => String(value || "general").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 32) || "general");
+  set("visibility", (value) => {
+    const visibility = String(value || "public").trim().toLowerCase();
+    return ["public", "private", "internal"].includes(visibility) ? visibility : "public";
+  });
   set("author", (value) => String(value || "").trim().slice(0, 120));
   set("source", (value) => String(value || "").trim().slice(0, 120));
   set("sourceUrl", (value) => sanitizeUrlField(value, 500));
+  set("githubUrl", (value) => sanitizeUrlField(value, 500));
+  set("remoteId", (value) => String(value || "").trim().slice(0, 160));
+  set("sourceRepo", (value) => String(value || "").trim().slice(0, 160));
+  set("sourceCategory", (value) => String(value || "").trim().slice(0, 120));
+  set("promptType", (value) => {
+    const promptType = String(value || "text-to-image").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    return promptType || "text-to-image";
+  });
+  set("language", (value) => String(value || "zh").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 16) || "zh");
+  set("modelHint", (value) => String(value || "").trim().slice(0, 120));
+  set("syncedAt", (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toISOString() : null;
+  });
   set("status", (value) => {
     const status = String(value || "active").trim().toLowerCase();
     return status === "hidden" ? "hidden" : "active";

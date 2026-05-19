@@ -3124,19 +3124,20 @@ function getSourceCount(source) {
 function promptCardHtml(prompt) {
   const promptText = prompt.prompt;
   const title = prompt.title;
+  const coverUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
   const tagsHtml = (prompt.tags || [prompt.tag].filter(Boolean)).slice(0, 3).map((tag) => {
     const info = tagInfo(tag);
     return `
     <span class="tag-chip" style="--tag-hue:${info.hue}">${escapeHtml(info.label)}</span>
   `;
   }).join("");
-  const art = prompt.image
-    ? `<img src="${escapeHtml(imageVariantUrl(prompt.image))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
+  const art = coverUrl
+    ? `<img src="${escapeHtml(imageVariantUrl(coverUrl))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
     : `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const sourceBadge = prompt.kind === "square"
     ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${isImageToImageItem(prompt) ? text("imageToImage") : text("textToImage")}</b>`
     : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.author || "@open")}</em>`;
-  const hasImage = Boolean(prompt.image);
+  const hasImage = Boolean(coverUrl);
   const openAttr = prompt.kind === "square"
     ? ` data-open-square="${escapeHtml(prompt.id)}" role="button" tabindex="0"`
     : hasImage
@@ -4265,7 +4266,7 @@ function openSquarePreview(prompt, options = {}) {
 
 function openPromptDetailModal(prompt) {
   if (!prompt) return;
-  const imageUrl = prompt.image || "";
+  const imageUrl = prompt.coverUrl || prompt.preview || prompt.image || "";
   if (!imageUrl) return;
   const tags = Array.isArray(prompt.tags) ? prompt.tags : (prompt.tag ? [prompt.tag] : []);
   const isAdmin = state.user?.role === "admin";

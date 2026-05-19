@@ -942,9 +942,20 @@ async function runMigrations() {
       prompt MEDIUMTEXT NOT NULL,
       image VARCHAR(500) NOT NULL DEFAULT '',
       tags_json LONGTEXT NULL,
+      category VARCHAR(32) NOT NULL DEFAULT 'general',
+      visibility VARCHAR(16) NOT NULL DEFAULT 'public',
+      preview VARCHAR(500) NOT NULL DEFAULT '',
       author VARCHAR(120) NOT NULL DEFAULT '',
       source VARCHAR(120) NOT NULL DEFAULT '',
       source_url VARCHAR(500) NOT NULL DEFAULT '',
+      github_url VARCHAR(500) NOT NULL DEFAULT '',
+      remote_id VARCHAR(160) NOT NULL DEFAULT '',
+      source_repo VARCHAR(160) NOT NULL DEFAULT '',
+      source_category VARCHAR(120) NOT NULL DEFAULT '',
+      prompt_type VARCHAR(32) NOT NULL DEFAULT 'text-to-image',
+      language VARCHAR(16) NOT NULL DEFAULT 'zh',
+      model_hint VARCHAR(120) NOT NULL DEFAULT '',
+      synced_at DATETIME(3) NULL,
       status VARCHAR(16) NOT NULL DEFAULT 'active',
       sort_order INT NOT NULL DEFAULT 0,
       normalized_hash CHAR(64) NOT NULL DEFAULT '',
@@ -954,9 +965,37 @@ async function runMigrations() {
       created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
       updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
       INDEX idx_prompts_status (status),
+      INDEX idx_prompts_category_status (category, status),
+      INDEX idx_prompts_remote (source_repo, remote_id),
       INDEX idx_prompts_sort (sort_order, id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  const promptColumnAdds = [
+    ["category", "ALTER TABLE prompts ADD COLUMN category VARCHAR(32) NOT NULL DEFAULT 'general' AFTER tags_json"],
+    ["visibility", "ALTER TABLE prompts ADD COLUMN visibility VARCHAR(16) NOT NULL DEFAULT 'public' AFTER category"],
+    ["preview", "ALTER TABLE prompts ADD COLUMN preview VARCHAR(500) NOT NULL DEFAULT '' AFTER visibility"],
+    ["github_url", "ALTER TABLE prompts ADD COLUMN github_url VARCHAR(500) NOT NULL DEFAULT '' AFTER source_url"],
+    ["remote_id", "ALTER TABLE prompts ADD COLUMN remote_id VARCHAR(160) NOT NULL DEFAULT '' AFTER github_url"],
+    ["source_repo", "ALTER TABLE prompts ADD COLUMN source_repo VARCHAR(160) NOT NULL DEFAULT '' AFTER remote_id"],
+    ["source_category", "ALTER TABLE prompts ADD COLUMN source_category VARCHAR(120) NOT NULL DEFAULT '' AFTER source_repo"],
+    ["prompt_type", "ALTER TABLE prompts ADD COLUMN prompt_type VARCHAR(32) NOT NULL DEFAULT 'text-to-image' AFTER source_category"],
+    ["language", "ALTER TABLE prompts ADD COLUMN language VARCHAR(16) NOT NULL DEFAULT 'zh' AFTER prompt_type"],
+    ["model_hint", "ALTER TABLE prompts ADD COLUMN model_hint VARCHAR(120) NOT NULL DEFAULT '' AFTER language"],
+    ["synced_at", "ALTER TABLE prompts ADD COLUMN synced_at DATETIME(3) NULL AFTER model_hint"]
+  ];
+  for (const [column, sql] of promptColumnAdds) {
+    const [rows] = await db.execute(`SHOW COLUMNS FROM prompts LIKE '${column}'`);
+    if (!rows.length) await db.query(sql);
+  }
+  const [promptCategoryIndex] = await db.execute("SHOW INDEX FROM prompts WHERE Key_name = 'idx_prompts_category_status'");
+  if (!promptCategoryIndex.length) {
+    await db.query("ALTER TABLE prompts ADD INDEX idx_prompts_category_status (category, status)");
+  }
+  const [promptRemoteIndex] = await db.execute("SHOW INDEX FROM prompts WHERE Key_name = 'idx_prompts_remote'");
+  if (!promptRemoteIndex.length) {
+    await db.query("ALTER TABLE prompts ADD INDEX idx_prompts_remote (source_repo, remote_id)");
+  }
 
   const [promptLikeColumns] = await db.execute("SHOW COLUMNS FROM prompts LIKE 'like_count'");
   if (!promptLikeColumns.length) {
@@ -2601,10 +2640,22 @@ function mapPrompt(row) {
     title: row.title || "",
     prompt: row.prompt || "",
     image: row.image || "",
+    coverUrl: row.preview || row.image || "",
+    preview: row.preview || "",
     tags,
+    category: row.category || "general",
+    visibility: row.visibility || "public",
     author: row.author || "",
     source: row.source || "",
     sourceUrl: row.source_url || "",
+    githubUrl: row.github_url || "",
+    remoteId: row.remote_id || "",
+    sourceRepo: row.source_repo || "",
+    sourceCategory: row.source_category || "",
+    promptType: row.prompt_type || "text-to-image",
+    language: row.language || "zh",
+    modelHint: row.model_hint || "",
+    syncedAt: toIso(row.synced_at),
     status: row.status || "active",
     sortOrder: Number(row.sort_order || 0),
     normalizedHash: row.normalized_hash || "",
@@ -3024,25 +3075,66 @@ async function countPrompts() {
   return Number(rows[0]?.count || 0);
 }
 
+function promptSchemaValues(input = {}) {
+  const dateValue = input.syncedAt ? new Date(input.syncedAt) : null;
+  const syncedAt = dateValue && !Number.isNaN(dateValue.getTime()) ? dateValue : null;
+  return {
+    title: String(input.title || "").slice(0, 200),
+    prompt: String(input.prompt || ""),
+    image: String(input.image || input.imageUrl || input.coverUrl || "").slice(0, 500),
+    tagsJson: JSON.stringify(Array.isArray(input.tags) ? input.tags : []),
+    category: String(input.category || "general").slice(0, 32),
+    visibility: String(input.visibility || "public").slice(0, 16),
+    preview: String(input.preview || input.coverUrl || "").slice(0, 500),
+    author: String(input.author || "").slice(0, 120),
+    source: String(input.source || "").slice(0, 120),
+    sourceUrl: String(input.sourceUrl || "").slice(0, 500),
+    githubUrl: String(input.githubUrl || "").slice(0, 500),
+    remoteId: String(input.remoteId || "").slice(0, 160),
+    sourceRepo: String(input.sourceRepo || "").slice(0, 160),
+    sourceCategory: String(input.sourceCategory || "").slice(0, 120),
+    promptType: String(input.promptType || "text-to-image").slice(0, 32),
+    language: String(input.language || "zh").slice(0, 16),
+    modelHint: String(input.modelHint || "").slice(0, 120),
+    syncedAt,
+    status: String(input.status || "active").slice(0, 16),
+    sortOrder: Number(input.sortOrder || 0)
+  };
+}
+
 async function createPrompt(input) {
-  const tagsJson = JSON.stringify(Array.isArray(input.tags) ? input.tags : []);
+  const values = promptSchemaValues(input);
   const fingerprint = promptQualityFingerprint(input.prompt);
   const desiredId = Number.isFinite(Number(input.id)) && Number(input.id) > 0 ? Number(input.id) : null;
   if (desiredId) {
     await getPool().execute(
-      `INSERT INTO prompts (id, title, prompt, image, tags_json, author, source, source_url, status, sort_order, normalized_hash, simhash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO prompts
+          (id, title, prompt, image, tags_json, category, visibility, preview, author, source, source_url,
+           github_url, remote_id, source_repo, source_category, prompt_type, language, model_hint, synced_at,
+           status, sort_order, normalized_hash, simhash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         desiredId,
-        String(input.title || "").slice(0, 200),
-        String(input.prompt || ""),
-        String(input.image || "").slice(0, 500),
-        tagsJson,
-        String(input.author || "").slice(0, 120),
-        String(input.source || "").slice(0, 120),
-        String(input.sourceUrl || "").slice(0, 500),
-        String(input.status || "active").slice(0, 16),
-        Number(input.sortOrder || 0),
+        values.title,
+        values.prompt,
+        values.image,
+        values.tagsJson,
+        values.category,
+        values.visibility,
+        values.preview,
+        values.author,
+        values.source,
+        values.sourceUrl,
+        values.githubUrl,
+        values.remoteId,
+        values.sourceRepo,
+        values.sourceCategory,
+        values.promptType,
+        values.language,
+        values.modelHint,
+        values.syncedAt,
+        values.status,
+        values.sortOrder,
         fingerprint.normalizedHash,
         fingerprint.simhash
       ]
@@ -3050,18 +3142,32 @@ async function createPrompt(input) {
     return getPromptById(desiredId);
   }
   const [result] = await getPool().execute(
-    `INSERT INTO prompts (title, prompt, image, tags_json, author, source, source_url, status, sort_order, normalized_hash, simhash)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO prompts
+        (title, prompt, image, tags_json, category, visibility, preview, author, source, source_url,
+         github_url, remote_id, source_repo, source_category, prompt_type, language, model_hint, synced_at,
+         status, sort_order, normalized_hash, simhash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      String(input.title || "").slice(0, 200),
-      String(input.prompt || ""),
-      String(input.image || "").slice(0, 500),
-      tagsJson,
-      String(input.author || "").slice(0, 120),
-      String(input.source || "").slice(0, 120),
-      String(input.sourceUrl || "").slice(0, 500),
-      String(input.status || "active").slice(0, 16),
-      Number(input.sortOrder || 0),
+      values.title,
+      values.prompt,
+      values.image,
+      values.tagsJson,
+      values.category,
+      values.visibility,
+      values.preview,
+      values.author,
+      values.source,
+      values.sourceUrl,
+      values.githubUrl,
+      values.remoteId,
+      values.sourceRepo,
+      values.sourceCategory,
+      values.promptType,
+      values.language,
+      values.modelHint,
+      values.syncedAt,
+      values.status,
+      values.sortOrder,
       fingerprint.normalizedHash,
       fingerprint.simhash
     ]
@@ -3089,9 +3195,29 @@ async function updatePrompt(id, patch) {
     columns.push("image = ?");
     values.push(String(patch.image || "").slice(0, 500));
   }
+  if (Object.hasOwn(patch, "imageUrl")) {
+    columns.push("image = ?");
+    values.push(String(patch.imageUrl || "").slice(0, 500));
+  }
+  if (Object.hasOwn(patch, "coverUrl")) {
+    columns.push("preview = ?");
+    values.push(String(patch.coverUrl || "").slice(0, 500));
+  }
+  if (Object.hasOwn(patch, "preview")) {
+    columns.push("preview = ?");
+    values.push(String(patch.preview || "").slice(0, 500));
+  }
   if (Object.hasOwn(patch, "tags")) {
     columns.push("tags_json = ?");
     values.push(JSON.stringify(Array.isArray(patch.tags) ? patch.tags : []));
+  }
+  if (Object.hasOwn(patch, "category")) {
+    columns.push("category = ?");
+    values.push(String(patch.category || "general").slice(0, 32));
+  }
+  if (Object.hasOwn(patch, "visibility")) {
+    columns.push("visibility = ?");
+    values.push(String(patch.visibility || "public").slice(0, 16));
   }
   if (Object.hasOwn(patch, "author")) {
     columns.push("author = ?");
@@ -3104,6 +3230,39 @@ async function updatePrompt(id, patch) {
   if (Object.hasOwn(patch, "sourceUrl")) {
     columns.push("source_url = ?");
     values.push(String(patch.sourceUrl || "").slice(0, 500));
+  }
+  if (Object.hasOwn(patch, "githubUrl")) {
+    columns.push("github_url = ?");
+    values.push(String(patch.githubUrl || "").slice(0, 500));
+  }
+  if (Object.hasOwn(patch, "remoteId")) {
+    columns.push("remote_id = ?");
+    values.push(String(patch.remoteId || "").slice(0, 160));
+  }
+  if (Object.hasOwn(patch, "sourceRepo")) {
+    columns.push("source_repo = ?");
+    values.push(String(patch.sourceRepo || "").slice(0, 160));
+  }
+  if (Object.hasOwn(patch, "sourceCategory")) {
+    columns.push("source_category = ?");
+    values.push(String(patch.sourceCategory || "").slice(0, 120));
+  }
+  if (Object.hasOwn(patch, "promptType")) {
+    columns.push("prompt_type = ?");
+    values.push(String(patch.promptType || "text-to-image").slice(0, 32));
+  }
+  if (Object.hasOwn(patch, "language")) {
+    columns.push("language = ?");
+    values.push(String(patch.language || "zh").slice(0, 16));
+  }
+  if (Object.hasOwn(patch, "modelHint")) {
+    columns.push("model_hint = ?");
+    values.push(String(patch.modelHint || "").slice(0, 120));
+  }
+  if (Object.hasOwn(patch, "syncedAt")) {
+    const syncedAt = patch.syncedAt ? new Date(patch.syncedAt) : null;
+    columns.push("synced_at = ?");
+    values.push(syncedAt && !Number.isNaN(syncedAt.getTime()) ? syncedAt : null);
   }
   if (Object.hasOwn(patch, "status")) {
     columns.push("status = ?");

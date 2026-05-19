@@ -535,7 +535,7 @@ function renderUsers() {
 }
 
 function renderPrompts() {
-  const items = filtered(adminState.prompts, ["title", "prompt", "author", "status"]);
+  const items = filtered(adminState.prompts, ["title", "prompt", "author", "status", "category", "sourceRepo", "sourceCategory"]);
   return `${toolbar("搜索标题、提示词、作者", ["active", "hidden"])}
     <section class="admin-panel">
       <div class="admin-panel-head">
@@ -569,13 +569,13 @@ function renderPrompts() {
       <div class="admin-panel-head"><h2>提示词 CMS</h2><button type="button" data-create-prompt>新建提示词</button></div>
       <div class="admin-table-wrap">
         <table class="admin-table">
-          <thead><tr><th>标题</th><th>标签</th><th>作者</th><th>状态</th><th>互动</th><th>排序</th><th></th></tr></thead>
+          <thead><tr><th>标题</th><th>分类/标签</th><th>来源</th><th>状态</th><th>互动</th><th>排序</th><th></th></tr></thead>
           <tbody>
             ${paged(items).map((prompt) => `
               <tr>
                 <td><strong>${escapeHtml(prompt.title || `#${prompt.id}`)}</strong><small class="admin-truncate">${escapeHtml(prompt.prompt || "")}</small></td>
-                <td>${escapeHtml((prompt.tags || []).join(", "))}</td>
-                <td>${escapeHtml(prompt.author || "-")}</td>
+                <td><strong>${escapeHtml(prompt.category || "general")}</strong><small>${escapeHtml((prompt.tags || []).join(", "))}</small></td>
+                <td>${escapeHtml(prompt.sourceRepo || prompt.source || "-")}<small>${escapeHtml(prompt.remoteId || prompt.sourceCategory || prompt.author || "")}</small></td>
                 <td><span class="admin-badge" data-status="${escapeHtml(prompt.status)}">${escapeHtml(prompt.status)}</span></td>
                 <td>Like ${fmtNumber(prompt.likeCount)} / Use ${fmtNumber(prompt.useCount)} / Heat ${fmtNumber(prompt.heatScore)}</td>
                 <td>${fmtNumber(prompt.sortOrder)}</td>
@@ -1274,11 +1274,23 @@ async function userDrawer(user) {
 function promptPayload(form) {
   return {
     title: form.get("title"),
-    imageUrl: form.get("imageUrl"),
+    image: form.get("imageUrl"),
+    preview: form.get("preview"),
     prompt: form.get("prompt"),
     tags: String(form.get("tags") || "").split(/[,，\s]+/).filter(Boolean),
+    category: form.get("category"),
+    visibility: form.get("visibility"),
     author: form.get("author"),
     source: form.get("source"),
+    sourceUrl: form.get("sourceUrl"),
+    githubUrl: form.get("githubUrl"),
+    remoteId: form.get("remoteId"),
+    sourceRepo: form.get("sourceRepo"),
+    sourceCategory: form.get("sourceCategory"),
+    promptType: form.get("promptType"),
+    language: form.get("language"),
+    modelHint: form.get("modelHint"),
+    syncedAt: form.get("syncedAt"),
     status: form.get("status"),
     sortOrder: Number(form.get("sortOrder") || 0)
   };
@@ -1286,14 +1298,31 @@ function promptPayload(form) {
 
 function promptDrawer(prompt = {}) {
   const isNew = !prompt.id;
+  const categories = (adminState.promptCategories || []).filter((category) => category.status !== "hidden");
+  const selectedCategory = prompt.category || "general";
   openDrawer(isNew ? "新建提示词" : "编辑提示词", `
     <form id="drawerPromptForm" class="admin-form-grid single">
       <label>标题<input name="title" value="${escapeHtml(prompt.title || "")}" required></label>
-      <label>封面 URL<input name="imageUrl" value="${escapeHtml(prompt.imageUrl || "")}"></label>
+      <label>旧封面 URL<input name="imageUrl" value="${escapeHtml(prompt.image || "")}"></label>
+      <label>预览封面 URL<input name="preview" value="${escapeHtml(prompt.preview || prompt.coverUrl || "")}"></label>
       <label>提示词<textarea name="prompt" rows="6" required>${escapeHtml(prompt.prompt || "")}</textarea></label>
       <label>标签<input name="tags" value="${escapeHtml((prompt.tags || []).join(", "))}"></label>
+      <label>分类<select name="category">
+        ${categories.map((category) => `<option value="${escapeHtml(category.slug)}"${selectedCategory === category.slug ? " selected" : ""}>${escapeHtml(category.labelZh || category.slug)}</option>`).join("")}
+        ${categories.some((category) => category.slug === selectedCategory) ? "" : `<option value="${escapeHtml(selectedCategory)}" selected>${escapeHtml(selectedCategory)}</option>`}
+      </select></label>
+      <label>可见性<select name="visibility"><option value="public"${prompt.visibility !== "private" && prompt.visibility !== "internal" ? " selected" : ""}>public</option><option value="private"${prompt.visibility === "private" ? " selected" : ""}>private</option><option value="internal"${prompt.visibility === "internal" ? " selected" : ""}>internal</option></select></label>
       <label>作者<input name="author" value="${escapeHtml(prompt.author || "")}"></label>
       <label>来源<input name="source" value="${escapeHtml(prompt.source || "admin")}"></label>
+      <label>来源 URL<input name="sourceUrl" value="${escapeHtml(prompt.sourceUrl || "")}"></label>
+      <label>GitHub URL<input name="githubUrl" value="${escapeHtml(prompt.githubUrl || "")}"></label>
+      <label>远程 ID<input name="remoteId" value="${escapeHtml(prompt.remoteId || "")}"></label>
+      <label>来源仓库<input name="sourceRepo" value="${escapeHtml(prompt.sourceRepo || "")}"></label>
+      <label>来源分类<input name="sourceCategory" value="${escapeHtml(prompt.sourceCategory || "")}"></label>
+      <label>Prompt 类型<input name="promptType" value="${escapeHtml(prompt.promptType || "text-to-image")}"></label>
+      <label>语言<input name="language" value="${escapeHtml(prompt.language || "zh")}"></label>
+      <label>模型提示<input name="modelHint" value="${escapeHtml(prompt.modelHint || "")}"></label>
+      <label>同步时间<input name="syncedAt" value="${escapeHtml(prompt.syncedAt || "")}" placeholder="2026-05-19T12:00:00.000Z"></label>
       <label>状态<select name="status"><option value="active"${prompt.status !== "hidden" ? " selected" : ""}>active</option><option value="hidden"${prompt.status === "hidden" ? " selected" : ""}>hidden</option></select></label>
       <label>排序<input name="sortOrder" type="number" value="${escapeHtml(prompt.sortOrder || 0)}"></label>
       <button type="submit">${isNew ? "创建" : "保存"}</button>
