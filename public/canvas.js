@@ -22,7 +22,8 @@
     pendingEdgeFrom: "",
     edgeError: "",
     drag: null,
-    pointers: new Map()
+    pointers: new Map(),
+    history: null
   };
 
   function renderShell({ projectId = "", elements = {} } = {}) {
@@ -56,6 +57,7 @@
       button.classList.toggle("active", button.dataset.canvasBackground === state.background);
     });
     renderSaveStatus();
+    renderHistoryControls();
   }
 
   function resetCanvas(projectId) {
@@ -71,6 +73,7 @@
     state.background = "dots";
     state.dirty = false;
     setSaveStatus("saved");
+    resetHistory();
   }
 
   function defaultEdges() {
@@ -128,11 +131,13 @@
     hydrateFromData(project.dataJson || {});
     state.dirty = false;
     setSaveStatus("saved");
+    resetHistory();
   }
 
   function applyDraft(draft = {}) {
     state.projectTitle = draft.title || state.projectTitle || "Untitled canvas";
     hydrateFromData(draft.data || {});
+    resetHistory();
   }
 
   function hydrateFromData(data = {}) {
@@ -149,6 +154,52 @@
     state.selectedNodeId = state.nodes.some((node) => node.id === data.selectedNodeId)
       ? data.selectedNodeId
       : state.nodes[0]?.id || "";
+  }
+
+  function canvasSnapshot() {
+    return {
+      background: state.background,
+      viewport: state.viewport,
+      nodes: state.nodes,
+      edges: state.edges,
+      selectedNodeId: state.selectedNodeId,
+      pendingEdgeFrom: state.pendingEdgeFrom,
+      edgeError: state.edgeError
+    };
+  }
+
+  function applyCanvasSnapshot(snapshot = {}) {
+    hydrateFromData(snapshot);
+    state.pendingEdgeFrom = snapshot.pendingEdgeFrom || "";
+    state.edgeError = snapshot.edgeError || "";
+    state.drag = null;
+    state.pointers.clear();
+    markDirty();
+    renderBoard();
+  }
+
+  function ensureHistory() {
+    if (state.history || !root.history?.createController) return state.history;
+    state.history = root.history.createController({
+      getSnapshot: canvasSnapshot,
+      applySnapshot: applyCanvasSnapshot,
+      createNode: root.nodes.createNode,
+      onChange: renderHistoryControls
+    });
+    return state.history;
+  }
+
+  function resetHistory() {
+    ensureHistory()?.reset(canvasSnapshot());
+  }
+
+  function captureHistory(label) {
+    return ensureHistory()?.capture(label);
+  }
+
+  function recordHistoryBefore(capture) {
+    if (!capture) return false;
+    return ensureHistory()?.recordBefore(capture.snapshot, capture.label);
   }
 
   function shouldRestoreDraft(projectId, draft, serverCanvas) {
@@ -279,13 +330,20 @@
     board.addEventListener("pointermove", onPointerMove);
     board.addEventListener("pointerup", endDrag);
     board.addEventListener("pointercancel", endDrag);
+    global.addEventListener("keydown", onCanvasKeyDown);
     document.querySelector("[data-canvas-fit]")?.addEventListener("click", fitAll);
     document.querySelector("[data-canvas-save]")?.addEventListener("click", () => saveCanvasNow());
+    document.querySelector("[data-canvas-undo]")?.addEventListener("click", undoCanvas);
+    document.querySelector("[data-canvas-redo]")?.addEventListener("click", redoCanvas);
+    document.querySelector("[data-canvas-copy]")?.addEventListener("click", copySelection);
+    document.querySelector("[data-canvas-paste]")?.addEventListener("click", pasteSelection);
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.addEventListener("click", () => {
+        const before = captureHistory("background");
         state.background = ["dots", "grid", "blank"].includes(button.dataset.canvasBackground)
           ? button.dataset.canvasBackground
           : "dots";
+        recordHistoryBefore(before);
         markDirty();
         renderBoard();
       });
@@ -324,7 +382,8 @@
         pointerId: event.pointerId,
         startDistance: distance(points[0], points[1]),
         startOrigin: midpoint(points[0], points[1]),
-        startViewport: { ...state.viewport }
+        startViewport: { ...state.viewport },
+        history: captureHistory("pinch viewport")
       };
       return;
     }
@@ -344,7 +403,8 @@
         startY: event.clientY,
         nodeX: node.x,
         nodeY: node.y,
-        nodeId: node.id
+        nodeId: node.id,
+        history: captureHistory("move node")
       };
       renderBoard();
       return;
@@ -355,7 +415,8 @@
       startX: event.clientX,
       startY: event.clientY,
       viewX: state.viewport.x,
-      viewY: state.viewport.y
+      viewY: state.viewport.y,
+      history: captureHistory("pan viewport")
     };
   }
 
@@ -398,17 +459,23 @@
   function endDrag(event) {
     state.pointers.delete(event.pointerId);
     if (state.drag?.type === "pinch" && state.pointers.size < 2) {
+      recordHistoryBefore(state.drag.history);
       state.drag = null;
       markDirty();
       return;
     }
     if (state.drag?.pointerId !== event.pointerId) return;
     const changed = ["node", "pan", "minimap"].includes(state.drag?.type);
+    const before = state.drag?.history;
     state.drag = null;
-    if (changed) markDirty();
+    if (changed) {
+      recordHistoryBefore(before);
+      markDirty();
+    }
   }
 
   function addNode(type) {
+    const before = captureHistory("add node");
     const board = document.querySelector("#canvasBoard");
     const rect = board?.getBoundingClientRect() || { width: 800, height: 500 };
     const x = Math.round((rect.width / 2 - state.viewport.x) / state.viewport.scale);
@@ -417,11 +484,13 @@
     state.nodes.push(node);
     state.selectedNodeId = node.id;
     state.edgeError = "";
+    recordHistoryBefore(before);
     markDirty();
     renderBoard();
   }
 
   function insertItem(payload = {}) {
+    const before = captureHistory("insert item");
     if (!state.projectId) {
       state.projectId = "new";
       state.nodes = root.nodes.defaultNodes?.() || [];
@@ -457,6 +526,7 @@
     state.nodes.push(node);
     state.selectedNodeId = node.id;
     state.edgeError = "";
+    recordHistoryBefore(before);
     markDirty();
     renderBoard();
   }
@@ -465,9 +535,11 @@
     const fieldName = event.target?.dataset?.nodeField;
     const node = selectedNode();
     if (!fieldName || !node) return;
+    const before = captureHistory("edit node");
     const value = fieldName === "candidateCount" ? Number(event.target.value || 1) : event.target.value;
     node.data[fieldName] = value;
     if (fieldName === "prompt") node.data.body = value;
+    recordHistoryBefore(before);
     markDirty();
     renderBoard();
   }
@@ -485,16 +557,20 @@
       return;
     }
     if (action === "delete") {
+      const before = captureHistory("delete node");
       state.nodes = state.nodes.filter((item) => item.id !== node.id);
       state.edges = state.edges.filter((edge) => edge.sourceId !== node.id && edge.targetId !== node.id);
       state.selectedNodeId = state.nodes[0]?.id || "";
+      recordHistoryBefore(before);
       markDirty();
     }
     if (action === "duplicate") {
+      const before = captureHistory("duplicate node");
       const duplicate = root.nodes.duplicateNode(node);
       if (duplicate) {
         state.nodes.push(duplicate);
         state.selectedNodeId = duplicate.id;
+        recordHistoryBefore(before);
         markDirty();
       }
     }
@@ -503,7 +579,9 @@
       state.edgeError = "";
     }
     if (action === "lock") {
+      const before = captureHistory("lock node");
       node.locked = !node.locked;
+      recordHistoryBefore(before);
       markDirty();
     }
     renderBoard();
@@ -577,7 +655,7 @@
 
   function onMinimapPointerDown(event) {
     if (!root.minimap?.consumePointerDown?.(event)) return;
-    state.drag = { type: "minimap", pointerId: event.pointerId };
+    state.drag = { type: "minimap", pointerId: event.pointerId, history: captureHistory("minimap viewport") };
     state.viewport = root.minimap?.viewportFromEvent?.(event, { viewport: state.viewport, nodes: state.nodes }) || state.viewport;
     renderBoard();
   }
@@ -641,20 +719,86 @@
       state.edgeError = result.reason === "cycle" ? "Cycle links are blocked." : "This link cannot be created.";
       return;
     }
+    const before = captureHistory("create edge");
     state.edges.push(root.workflows.createEdge(sourceId, targetId));
     state.selectedNodeId = targetId;
     state.edgeError = "";
+    recordHistoryBefore(before);
     markDirty();
   }
 
   document.addEventListener("click", (event) => {
     const edgeId = event.target.closest?.("[data-edge-delete]")?.dataset.edgeDelete;
     if (!edgeId) return;
+    const before = captureHistory("delete edge");
     state.edges = state.edges.filter((edge) => edge.id !== edgeId);
     state.edgeError = "";
+    recordHistoryBefore(before);
     markDirty();
     renderBoard();
   });
+
+  function undoCanvas() {
+    if (!ensureHistory()?.undo()) return;
+    markDirty();
+  }
+
+  function redoCanvas() {
+    if (!ensureHistory()?.redo()) return;
+    markDirty();
+  }
+
+  function copySelection() {
+    const node = selectedNode();
+    if (!node) return;
+    ensureHistory()?.copy([node], state.edges);
+    renderHistoryControls();
+  }
+
+  function pasteSelection() {
+    const pasted = ensureHistory()?.paste({ selectedNodeId: state.selectedNodeId });
+    if (!pasted?.nodes?.length) return;
+    const before = captureHistory("paste node");
+    state.nodes.push(...pasted.nodes);
+    state.edges.push(...pasted.edges);
+    state.selectedNodeId = pasted.selectedNodeId || pasted.nodes[0].id;
+    state.edgeError = "";
+    recordHistoryBefore(before);
+    markDirty();
+    renderBoard();
+  }
+
+  function onCanvasKeyDown(event) {
+    if (!state.projectId || isTypingTarget(event.target)) return;
+    const key = String(event.key || "").toLowerCase();
+    const modifier = event.ctrlKey || event.metaKey;
+    if (!modifier) return;
+    if (key === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redoCanvas();
+      else undoCanvas();
+      return;
+    }
+    if (key === "y") {
+      event.preventDefault();
+      redoCanvas();
+      return;
+    }
+    if (key === "c") {
+      event.preventDefault();
+      copySelection();
+      return;
+    }
+    if (key === "v") {
+      event.preventDefault();
+      pasteSelection();
+    }
+  }
+
+  function isTypingTarget(target) {
+    const tag = String(target?.tagName || "").toLowerCase();
+    return target?.isContentEditable || ["input", "textarea", "select"].includes(tag);
+  }
 
   function markDirty() {
     if (state.hydrating || !state.projectId) return;
@@ -772,6 +916,26 @@
     status.textContent = state.saveError && state.saveStatus === "failed"
       ? `${labels.failed}: ${state.saveError}`
       : labels[state.saveStatus] || labels.saved;
+  }
+
+  function renderHistoryControls() {
+    const status = ensureHistory()?.status?.() || {};
+    document.querySelectorAll("[data-canvas-undo]").forEach((button) => {
+      button.disabled = !status.canUndo;
+      button.title = "Undo (Ctrl/Cmd+Z)";
+    });
+    document.querySelectorAll("[data-canvas-redo]").forEach((button) => {
+      button.disabled = !status.canRedo;
+      button.title = "Redo (Ctrl/Cmd+Shift+Z)";
+    });
+    document.querySelectorAll("[data-canvas-copy]").forEach((button) => {
+      button.disabled = !selectedNode();
+      button.title = "Copy node (Ctrl/Cmd+C)";
+    });
+    document.querySelectorAll("[data-canvas-paste]").forEach((button) => {
+      button.disabled = !status.canPaste;
+      button.title = "Paste node (Ctrl/Cmd+V)";
+    });
   }
 
   function selectedNode() {

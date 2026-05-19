@@ -92,6 +92,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/styles.css"), "/ missing styles.css reference");
   assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-history.js"), "/ missing canvas-history.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
@@ -99,10 +100,12 @@ async function checkHomeResources() {
   const styleMatch = home.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
   const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
   const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
+  const canvasHistoryMatch = home.body.match(/src="([^"]*\/canvas-history\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
+  const canvasHistoryPath = canvasHistoryMatch?.[1] || "/canvas-history.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
@@ -135,6 +138,13 @@ async function checkHomeResources() {
   assert(minimap.status === 200, `${minimapPath} status=${minimap.status}`);
   assert(minimap.body.includes("root.minimap"), `${minimapPath} should register canvas minimap module`);
   assert(minimap.body.includes("viewportFromEvent"), `${minimapPath} should support minimap viewport navigation`);
+
+  log(`GET ${canvasHistoryPath}`);
+  const canvasHistory = await fetchText(canvasHistoryPath, "application/javascript,*/*");
+  assert(canvasHistory.status === 200, `${canvasHistoryPath} status=${canvasHistory.status}`);
+  assert(canvasHistory.body.includes("root.history"), `${canvasHistoryPath} should register canvas history module`);
+  assert(canvasHistory.body.includes("createController"), `${canvasHistoryPath} should expose history controller`);
+  assert(canvasHistory.body.includes("paste"), `${canvasHistoryPath} should support paste operations`);
 
   log(`GET ${galleryModelPath}`);
   const galleryModel = await fetchText(galleryModelPath, "application/javascript,*/*");
