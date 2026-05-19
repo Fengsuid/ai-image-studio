@@ -3485,29 +3485,9 @@ function bindPromptCards(root) {
     });
   });
   $$("[data-like-prompt]", root).forEach((button) => {
-    button.addEventListener("click", async () => {
-      if (!state.user) {
-        openAuthModal("login");
-        return;
-      }
-      const prompt = getPromptById(button.dataset.likePrompt);
-      if (!prompt) return;
-      try {
-        const data = await api(`/api/prompts/${encodeURIComponent(prompt.id)}/like`, {
-          method: "POST",
-          body: JSON.stringify({ liked: !prompt.likedByCurrentUser })
-        });
-        state.promptItems = state.promptItems.map((item) => String(item.id) === String(prompt.id) ? { ...item, ...data.prompt } : item);
-        state.galleryLeaderboard = state.galleryLeaderboard.map((item) => {
-          const promptId = item.promptId || (String(item.id || "").startsWith("prompt_") ? String(item.id).slice(7) : "");
-          return String(promptId) === String(prompt.id)
-            ? { ...item, likeCount: data.prompt.likeCount, likedByCurrentUser: data.prompt.likedByCurrentUser }
-            : item;
-        });
-        renderLibrary();
-      } catch (error) {
-        showToast(error.message, "ri-error-warning-line");
-      }
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      await togglePromptLike(button.dataset.likePrompt);
     });
   });
   $$("[data-like-gallery]", root).forEach((button) => {
@@ -4579,6 +4559,9 @@ function openPromptDetailModal(prompt) {
         ` : ""}
         <div class="square-preview-actions">
           <button type="button" data-prompt-text><i class="ri-sparkling-2-line"></i>${text("textToImageAction")}</button>
+          <button type="button" data-prompt-detail-like="${escapeHtml(prompt.id)}" class="${prompt.likedByCurrentUser ? "liked" : ""}">
+            <i class="${prompt.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(prompt.likeCount || 0)}
+          </button>
           ${imageUrl ? `<button type="button" data-prompt-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>` : ""}
           <button type="button" data-prompt-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
           <button type="button" data-prompt-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
@@ -4598,6 +4581,9 @@ function openPromptDetailModal(prompt) {
     setView("home");
     syncComposers();
     setTimeout(() => $(".prompt-box", elements.heroComposerMount)?.focus(), 120);
+  });
+  $("[data-prompt-detail-like]", elements.modalLayer)?.addEventListener("click", async (event) => {
+    await togglePromptLike(event.currentTarget.dataset.promptDetailLike);
   });
   $("[data-prompt-edit]", elements.modalLayer)?.addEventListener("click", () => {
     closeModal();
@@ -5047,6 +5033,55 @@ function maybeOpenUnreadAnnouncementModal() {
     </section>
   `);
   bindAnnouncementActions(elements.modalLayer);
+}
+
+function findPromptLikeItem(promptId) {
+  const key = String(promptId || "");
+  if (!key) return null;
+  return getPromptById(key) || state.galleryLeaderboard.find((entry) => {
+    const entryPromptId = entry.promptId || (String(entry.id || "").startsWith("prompt_") ? String(entry.id).slice(7) : "");
+    return String(entryPromptId) === key;
+  }) || null;
+}
+
+function updatePromptLikeState(prompt) {
+  const updated = {
+    ...prompt,
+    likeCount: Number(prompt.likeCount || 0),
+    likedByCurrentUser: Boolean(prompt.likedByCurrentUser)
+  };
+  state.promptItems = state.promptItems.map((item) => String(item.id) === String(updated.id) ? { ...item, ...updated } : item);
+  state.galleryLeaderboard = state.galleryLeaderboard.map((item) => {
+    const promptId = item.promptId || (String(item.id || "").startsWith("prompt_") ? String(item.id).slice(7) : "");
+    return String(promptId) === String(updated.id)
+      ? { ...item, likeCount: updated.likeCount, likedByCurrentUser: updated.likedByCurrentUser }
+      : item;
+  });
+  $$(`[data-like-prompt="${CSS.escape(String(updated.id))}"], [data-prompt-detail-like="${CSS.escape(String(updated.id))}"]`).forEach((button) => {
+    button.classList.toggle("liked", updated.likedByCurrentUser);
+    button.innerHTML = `<i class="${updated.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(updated.likeCount || 0)}`;
+  });
+}
+
+async function togglePromptLike(promptId) {
+  if (!state.user) {
+    openAuthModal("login");
+    return;
+  }
+  const item = findPromptLikeItem(promptId);
+  if (!item) return;
+  const targetId = item.promptId || String(item.id || "").replace(/^prompt_/, "");
+  const nextLiked = !item.likedByCurrentUser;
+  try {
+    const data = await api(`/api/prompts/${encodeURIComponent(targetId)}/like`, {
+      method: "POST",
+      body: JSON.stringify({ liked: nextLiked })
+    });
+    if (data?.prompt) updatePromptLikeState(data.prompt);
+    if (state.view === "library") renderLibrary();
+  } catch (error) {
+    showToast(error.message || text("publishFailed"), "ri-error-warning-line");
+  }
 }
 
 function updateGalleryLikeState(generation) {
