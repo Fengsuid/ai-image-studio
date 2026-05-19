@@ -732,9 +732,9 @@ function isImageToImagePublish(generation, body = {}, patch = {}) {
   );
 }
 
-function sourceImageUrlForGeneration(generation) {
+function sourceImageUrlForGeneration(generation, { includePrivateSource = false } = {}) {
   if (!generation) return "";
-  if (generation.sourceFilename) return `/api/images/${generation.id}/source-file`;
+  if (generation.sourceFilename && (includePrivateSource || generation.publishOriginal)) return `/api/images/${generation.id}/source-file`;
   if (generation.sourceImageId) return `/api/images/${generation.sourceImageId}/file`;
   return "";
 }
@@ -2525,7 +2525,7 @@ async function routeApi(req, res, url) {
     const requests = (await store.listWithdrawalRequests({ limit })).map((generation) => ({
       ...generation,
       imageUrl: `/api/images/${generation.id}/file`,
-      sourceImageUrl: sourceImageUrlForGeneration(generation),
+      sourceImageUrl: sourceImageUrlForGeneration(generation, { includePrivateSource: true }),
       ...sourceImageAuditFields(generation)
     }));
     return sendJson(res, 200, { requests });
@@ -2907,7 +2907,7 @@ async function routeApi(req, res, url) {
     const generations = (await store.listGenerationsForUser(current.user, limit, { includeArchived })).map((generation) => ({
       ...generation,
       imageUrl: `/api/images/${generation.id}/file`,
-      sourceImageUrl: sourceImageUrlForGeneration(generation),
+      sourceImageUrl: sourceImageUrlForGeneration(generation, { includePrivateSource: true }),
       ...sourceImageAuditFields(generation)
     }));
     return sendJson(res, 200, { generations });
@@ -3540,7 +3540,7 @@ async function routeApi(req, res, url) {
       generation: {
         ...updated,
         imageUrl: `/api/images/${updated.id}/file`,
-        sourceImageUrl: sourceImageUrlForGeneration(updated),
+        sourceImageUrl: sourceImageUrlForGeneration(updated, { includePrivateSource: true }),
         ...sourceImageAuditFields(updated)
       }
     });

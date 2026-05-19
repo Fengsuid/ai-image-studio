@@ -2191,6 +2191,25 @@ a {
   object-fit: cover;
 }
 
+.source-private-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 18px;
+  text-align: center;
+  color: #64748b;
+  background:
+    linear-gradient(135deg, rgba(241, 245, 249, 0.96), rgba(226, 232, 240, 0.9));
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.source-private-placeholder i {
+  font-size: 26px;
+}
+
 .square-source-pair figcaption {
   padding: 8px 10px;
   color: #64748b;

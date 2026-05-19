@@ -3884,7 +3884,7 @@ function publicGalleryPromptItems() {
       generationId: item.id,
       kind: "square",
       tag: "square",
-      tags: ["square", item.sourceImageUrl ? "image-to-image" : "text-to-image", ...normalizePublicTags(item.publicTags || [])],
+      tags: ["square", isImageToImageItem(item) ? "image-to-image" : "text-to-image", ...normalizePublicTags(item.publicTags || [])],
       title: truncate(item.prompt, 38),
       prompt: item.prompt,
       image: item.images[0],
@@ -3988,7 +3988,7 @@ function openSquarePreview(prompt, options = {}) {
   const owned = isOwnedByCurrentUser(item);
   const isAdmin = state.user?.role === "admin";
   const canManage = owned || isAdmin;
-  const isImageToImage = Boolean(item.sourceImageUrl);
+  const isImageToImage = isImageToImageItem(item) || Boolean(item.sourceImageUrl || item.sourceImageId || item.sourcePrompt);
   const tags = normalizePublicTags(item.publicTags || []);
   const route = item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
@@ -4031,7 +4031,9 @@ function openSquarePreview(prompt, options = {}) {
         ${isImageToImage ? `
           <div class="square-source-pair">
             <figure ${imageFallbackContainerAttrs()}>
-              <img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${text("inputImage")}">
+              ${item.sourceImageUrl
+                ? `<img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${text("inputImage")}">`
+                : `<div class="source-private-placeholder"><i class="ri-eye-off-line"></i><span>${escapeHtml(state.lang === "zh" ? "原图未公开" : "Original not public")}</span></div>`}
               <figcaption>${text("inputImage")}</figcaption>
             </figure>
             <figure ${imageFallbackContainerAttrs()}>
