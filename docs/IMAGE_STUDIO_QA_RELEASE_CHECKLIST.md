@@ -12,6 +12,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `node --check public/canvas-store.js`
   - `node --check public/canvas-nodes.js`
   - `node --check public/canvas-geometry.js`
+  - `node --check public/canvas-minimap.js`
   - `node --check public/canvas-workflows.js`
   - `node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('package-lock.json','utf8'))"`
 - Run diff hygiene:
@@ -119,6 +120,17 @@ Record the outcome in the relevant development document or release note before m
 - Deployment checks: app container running, production root `200`, production domain `200`, retired domain `410`, public smoke passed, prompt-review smoke passed, authenticated admin smoke passed.
 - Production version: `/api/version` reports `20260520-prompt-ai-review-v1`.
 - Production prompt image regression: `/api/prompt-images/359/file?variant=thumb` and `/prompt-thumbs/freestylefly/case-128.jpg` returned `200 image/jpeg`; container still has 807 prompt thumbnail files.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
+### 2026-05-20 Canvas Minimap Batch
+
+- Task covered: `AIS-RLS-026`.
+- Commit covered: pending before deploy.
+- Local checks: `node --check public/canvas.js`, `node --check public/canvas-minimap.js`, `node --check public/canvas-geometry.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check server.js`, `git diff --check`.
+- Frontend coverage: canvas minimap is split into `public/canvas-minimap.js`; `public/canvas.js` only wires render and pointer events.
+- UI coverage: minimap renders node rectangles, edge lines, selected-node emphasis, current viewport box, and click/drag navigation.
+- Smoke coverage: public smoke now verifies `/canvas-minimap.js` is referenced, served, and registers the `root.minimap` module.
+- Deployment checks: to be filled after production deploy.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
 ## 5. Rollback

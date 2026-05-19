@@ -37,10 +37,39 @@
     };
   }
 
+  function expandBounds(bounds, padding = 240) {
+    return {
+      x: Number(bounds.x || 0) - padding,
+      y: Number(bounds.y || 0) - padding,
+      width: Math.max(1, Number(bounds.width || 1) + padding * 2),
+      height: Math.max(1, Number(bounds.height || 1) + padding * 2)
+    };
+  }
+
+  function minimapLayout(bounds, size = { width: 180, height: 118 }) {
+    const mapWidth = Math.max(120, Number(size.width || 180));
+    const mapHeight = Math.max(82, Number(size.height || 118));
+    const content = expandBounds(bounds);
+    const scale = Math.min(mapWidth / content.width, mapHeight / content.height);
+    const offsetX = (mapWidth - content.width * scale) / 2;
+    const offsetY = (mapHeight - content.height * scale) / 2;
+    const project = (x, y) => ({
+      x: offsetX + (Number(x || 0) - content.x) * scale,
+      y: offsetY + (Number(y || 0) - content.y) * scale
+    });
+    const unproject = (x, y) => ({
+      x: content.x + (Number(x || 0) - offsetX) / scale,
+      y: content.y + (Number(y || 0) - offsetY) / scale
+    });
+    return { width: mapWidth, height: mapHeight, content, scale, project, unproject };
+  }
+
   root.geometry = {
     clampScale,
     point,
     zoomAt,
-    fitBounds
+    fitBounds,
+    expandBounds,
+    minimapLayout
   };
 })(window);

@@ -45,6 +45,12 @@
     board.dataset.background = state.background;
     viewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
     viewport.innerHTML = edgeTemplate() + state.nodes.map((node) => nodeTemplate(node)).join("");
+    root.minimap?.render?.(board, {
+      viewport: state.viewport,
+      nodes: state.nodes,
+      edges: state.edges,
+      selectedNodeId: state.selectedNodeId
+    });
     renderInspector();
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.classList.toggle("active", button.dataset.canvasBackground === state.background);
@@ -268,6 +274,7 @@
     if (!board || board.dataset.bound === "1") return;
     board.dataset.bound = "1";
     board.addEventListener("wheel", onWheel, { passive: false });
+    board.addEventListener("pointerdown", onMinimapPointerDown, true);
     board.addEventListener("pointerdown", onPointerDown);
     board.addEventListener("pointermove", onPointerMove);
     board.addEventListener("pointerup", endDrag);
@@ -358,6 +365,11 @@
       state.pointers.set(event.pointerId, { x: event.clientX - rect.left, y: event.clientY - rect.top });
     }
     if (!state.drag) return;
+    if (state.drag.type === "minimap") {
+      state.viewport = root.minimap?.viewportFromEvent?.(event, { viewport: state.viewport, nodes: state.nodes }) || state.viewport;
+      renderBoard();
+      return;
+    }
     if (state.drag.type === "pinch") {
       const points = Array.from(state.pointers.values());
       if (points.length < 2) return;
@@ -391,7 +403,7 @@
       return;
     }
     if (state.drag?.pointerId !== event.pointerId) return;
-    const changed = ["node", "pan"].includes(state.drag?.type);
+    const changed = ["node", "pan", "minimap"].includes(state.drag?.type);
     state.drag = null;
     if (changed) markDirty();
   }
@@ -561,6 +573,13 @@
     output.data.body = message;
     output.data.generationIds = generations.map((generation) => generation.id).filter(Boolean);
     output.data.imageUrl = generations[0]?.imageUrl || output.data.imageUrl || "";
+  }
+
+  function onMinimapPointerDown(event) {
+    if (!root.minimap?.consumePointerDown?.(event)) return;
+    state.drag = { type: "minimap", pointerId: event.pointerId };
+    state.viewport = root.minimap?.viewportFromEvent?.(event, { viewport: state.viewport, nodes: state.nodes }) || state.viewport;
+    renderBoard();
   }
 
   async function publishOutputNode(output) {

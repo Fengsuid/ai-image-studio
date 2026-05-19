@@ -75,13 +75,16 @@ async function checkHomeResources() {
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
   assert(typeof home.body === "string" && home.body.includes("/styles.css"), "/ missing styles.css reference");
   assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
 
   const styleMatch = home.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
   const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
+  const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
+  const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
   assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
@@ -107,6 +110,12 @@ async function checkHomeResources() {
   assert(app.body.includes("function isImageToImageItem"), `${appPath} should classify image-to-image works from source metadata`);
   assert(app.body.includes("window.history.replaceState(route"), `${appPath} should close modal routes without adding history entries`);
   assert(app.body.includes("publicTagsForKind(selectedKinds[0]"), `${appPath} should preserve kind tags in bulk publish`);
+
+  log(`GET ${minimapPath}`);
+  const minimap = await fetchText(minimapPath, "application/javascript,*/*");
+  assert(minimap.status === 200, `${minimapPath} status=${minimap.status}`);
+  assert(minimap.body.includes("root.minimap"), `${minimapPath} should register canvas minimap module`);
+  assert(minimap.body.includes("viewportFromEvent"), `${minimapPath} should support minimap viewport navigation`);
   log("/ resources ok:", "asset version", appVersion || "none");
 }
 
