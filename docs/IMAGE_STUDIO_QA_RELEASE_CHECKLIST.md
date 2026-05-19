@@ -116,7 +116,9 @@ Record the outcome in the relevant development document or release note before m
 - Review flow coverage: prompt creation, remote prompt source sync, and import script apply run local hash/simhash candidate generation before AI/mock semantic review.
 - Admin coverage: duplicate candidates show AI decision, confidence, reason, and support per-candidate AI review.
 - Smoke coverage: `smoke:prompt-review` validates rule fallback, JSON parsing, mock review, and model response normalization; authenticated admin smoke creates duplicate hidden prompts and verifies the duplicate candidate AI decision.
-- Deployment checks: to be filled after production deploy.
+- Deployment checks: app container running, production root `200`, production domain `200`, retired domain `410`, public smoke passed, prompt-review smoke passed, authenticated admin smoke passed.
+- Production version: `/api/version` reports `20260520-prompt-ai-review-v1`.
+- Production prompt image regression: `/api/prompt-images/359/file?variant=thumb` and `/prompt-thumbs/freestylefly/case-128.jpg` returned `200 image/jpeg`; container still has 807 prompt thumbnail files.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
 ## 5. Rollback
