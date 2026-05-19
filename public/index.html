@@ -245,16 +245,41 @@
       </main>
 
       <main id="canvasView" class="canvas-view hidden">
-        <section class="canvas-empty-workspace">
-          <div>
-            <span data-i18n="canvasWorkspace">画布工作台</span>
-            <h2 data-i18n="canvasComingTitle">把提示词、图片和生成步骤串成画布</h2>
-            <p data-i18n="canvasComingDesc">画布项目与节点系统会在后续任务接入；这里先提供稳定入口和登录后跳转。</p>
+        <section id="canvasListView" class="canvas-list-view">
+          <div class="canvas-list-head">
+            <div>
+              <span data-i18n="canvasWorkspace">画布工作台</span>
+              <h2 data-i18n="canvasComingTitle">把提示词、图片和生成步骤串成画布</h2>
+              <p data-i18n="canvasComingDesc">画布项目与节点系统会在后续任务接入；这里先提供稳定入口和登录后跳转。</p>
+            </div>
+            <button id="canvasCreateBtn" type="button"><i class="ri-add-line"></i><span data-i18n="newCanvas">新建画布</span></button>
           </div>
-          <button id="canvasBackHomeBtn" type="button">
-            <i class="ri-arrow-left-line"></i>
-            <span data-i18n="backHome">返回首页</span>
-          </button>
+          <div class="canvas-empty-workspace">
+            <i class="ri-node-tree"></i>
+            <strong data-i18n="canvasEmptyTitle">还没有画布项目</strong>
+            <span data-i18n="canvasEmptyDesc">新建一个画布，后续任务会接入保存、节点和连线。</span>
+          </div>
+        </section>
+        <section id="canvasWorkspaceView" class="canvas-workspace-view hidden">
+          <aside class="canvas-sidebar">
+            <strong data-i18n="canvasWorkspace">画布工作台</strong>
+            <button type="button" data-canvas-list><i class="ri-arrow-left-line"></i><span data-i18n="canvasProjectList">项目列表</span></button>
+            <button type="button"><i class="ri-add-box-line"></i><span data-i18n="canvasAddNode">添加节点</span></button>
+          </aside>
+          <section class="canvas-board-shell">
+            <header class="canvas-toolbar">
+              <div><span data-i18n="canvasDraft">草稿画布</span><strong id="canvasTitleText">Untitled</strong></div>
+              <div><button type="button" aria-label="Save canvas"><i class="ri-save-line"></i></button><button type="button" aria-label="More canvas actions"><i class="ri-more-2-line"></i></button></div>
+            </header>
+            <div class="canvas-board-placeholder">
+              <i class="ri-node-tree"></i>
+              <span data-i18n="canvasBoardPlaceholder">节点系统将在后续任务接入</span>
+            </div>
+          </section>
+          <aside class="canvas-inspector">
+            <strong data-i18n="canvasInspector">检查器</strong>
+            <p data-i18n="canvasInspectorEmpty">选择节点后会显示参数。</p>
+          </aside>
         </section>
       </main>
 

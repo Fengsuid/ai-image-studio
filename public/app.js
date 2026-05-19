@@ -39,6 +39,7 @@ const state = {
   },
   authMode: "login",
   pendingAuthView: "",
+  canvasProjectId: "",
   libraryTag: "all",
   librarySearch: "",
   promptItems: [],
@@ -89,6 +90,15 @@ const i18n = {
     openCanvasWorkspace: "打开画布工作台",
     canvasComingTitle: "把提示词、图片和生成步骤串成画布",
     canvasComingDesc: "画布项目与节点系统会在后续任务接入；这里先提供稳定入口和登录后跳转。",
+    canvasEmptyTitle: "还没有画布项目",
+    canvasEmptyDesc: "新建一个画布，后续任务会接入保存、节点和连线。",
+    newCanvas: "新建画布",
+    canvasProjectList: "项目列表",
+    canvasAddNode: "添加节点",
+    canvasDraft: "草稿画布",
+    canvasBoardPlaceholder: "节点系统将在后续任务接入",
+    canvasInspector: "检查器",
+    canvasInspectorEmpty: "选择节点后会显示参数。",
     backHome: "返回首页",
     notifications: "通知",
     notificationsTitle: "通知",
@@ -387,6 +397,15 @@ const i18n = {
     openCanvasWorkspace: "Open Canvas",
     canvasComingTitle: "Connect prompts, images, and generation steps on a canvas",
     canvasComingDesc: "Canvas projects and nodes will be connected in upcoming tasks; this is the stable signed-in entry.",
+    canvasEmptyTitle: "No canvas projects yet",
+    canvasEmptyDesc: "Create a canvas; saving, nodes, and edges will be connected in upcoming tasks.",
+    newCanvas: "New canvas",
+    canvasProjectList: "Projects",
+    canvasAddNode: "Add node",
+    canvasDraft: "Draft canvas",
+    canvasBoardPlaceholder: "Node editing lands in upcoming tasks",
+    canvasInspector: "Inspector",
+    canvasInspectorEmpty: "Select a node to edit parameters.",
     backHome: "Back home",
     notifications: "Notices",
     notificationsTitle: "Notices",
@@ -846,6 +865,8 @@ const elements = {
   libraryView: $("#libraryView"),
   editorView: $("#editorView"),
   canvasView: $("#canvasView"),
+  canvasListView: $("#canvasListView"),
+  canvasWorkspaceView: $("#canvasWorkspaceView"),
   modalLayer: $("#modalLayer"),
   toastLayer: $("#toastLayer"),
   brandBtn: $("#brandBtn"),
@@ -854,6 +875,7 @@ const elements = {
   canvasWorkspaceBtn: $("#canvasWorkspaceBtn"),
   openCanvasInlineBtn: $("#openCanvasInlineBtn"),
   canvasBackHomeBtn: $("#canvasBackHomeBtn"),
+  canvasCreateBtn: $("#canvasCreateBtn"),
   notificationBtn: $("#notificationBtn"),
   notificationBadge: $("#notificationBadge"),
   contactBtn: $("#contactBtn"),
@@ -1440,6 +1462,7 @@ function setView(view) {
   elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   if (view === "library") renderLibrary();
   if (view === "editor") renderEditor();
+  if (view === "canvas") renderCanvasShell();
   updateNav();
   if (view === "home" && shouldShowHero()) {
     requestAnimationFrame(playHeroVideo);
@@ -1466,13 +1489,14 @@ function routeState(extra = {}) {
     galleryId,
     libraryTag: state.libraryTag,
     librarySearch: state.librarySearch,
+    canvasProjectId: state.canvasProjectId,
     ...extra
   };
 }
 
 function routeUrl(route = routeState()) {
   const params = new URLSearchParams();
-  if (route.view && route.view !== "home") params.set("view", route.view);
+  if (route.view && route.view !== "home" && route.view !== "canvas") params.set("view", route.view);
   if (route.view === "home" && route.forceHero === false) params.set("workspace", "1");
   if (route.modal) params.set("modal", route.modal);
   if (route.workDetailId) params.set("work", route.workDetailId);
@@ -1482,23 +1506,30 @@ function routeUrl(route = routeState()) {
     if (route.librarySearch) params.set("q", route.librarySearch);
   }
   const query = params.toString();
-  const hash = route.galleryId ? "" : (window.location.hash || "");
+  const hash = route.galleryId
+    ? ""
+    : route.view === "canvas"
+      ? `#/canvas${route.canvasProjectId ? `/${encodeURIComponent(route.canvasProjectId)}` : ""}`
+      : (window.location.hash || "");
   return `${window.location.pathname}${query ? `?${query}` : ""}${hash}`;
 }
 
 function routeFromLocation() {
   const params = new URLSearchParams(window.location.search);
   const hashGalleryMatch = window.location.hash.match(/^#\/gallery\/([^/?#]+)/);
+  const hashCanvasMatch = window.location.hash.match(/^#\/canvas(?:\/([^/?#]+))?/);
   const view = params.get("view") || "home";
   const galleryId = params.get("gallery") || (hashGalleryMatch ? decodeURIComponent(hashGalleryMatch[1]) : "");
+  const canvasProjectId = hashCanvasMatch?.[1] ? decodeURIComponent(hashCanvasMatch[1]) : "";
   return {
-    view: ["home", "library", "editor", "canvas"].includes(view) ? view : (galleryId ? "library" : "home"),
+    view: hashCanvasMatch ? "canvas" : ["home", "library", "editor", "canvas"].includes(view) ? view : (galleryId ? "library" : "home"),
     forceHero: params.get("workspace") !== "1",
     modal: params.get("modal") || (galleryId ? "square" : ""),
     workDetailId: params.get("work") || "",
     galleryId,
     libraryTag: params.get("tag") || "all",
-    librarySearch: params.get("q") || ""
+    librarySearch: params.get("q") || "",
+    canvasProjectId
   };
 }
 
@@ -1525,6 +1556,12 @@ function navigate(view, options = {}) {
     if (options.route?.libraryTag) state.libraryTag = options.route.libraryTag;
     if (Object.hasOwn(options.route || {}, "librarySearch")) state.librarySearch = options.route.librarySearch || "";
   }
+  if (view === "canvas") {
+    state.forceHero = true;
+    state.canvasProjectId = Object.hasOwn(options.route || {}, "canvasProjectId")
+      ? options.route.canvasProjectId || ""
+      : state.canvasProjectId || "";
+  }
   setView(view);
   if (options.scrollTop) window.scrollTo({ top: 0, behavior: options.scrollBehavior || "smooth" });
   if (!state.routeSyncing && window.history?.pushState) {
@@ -1538,6 +1575,7 @@ function applyRoute(route = {}) {
   closeModal();
   state.libraryTag = route.libraryTag || state.libraryTag || "all";
   state.librarySearch = route.librarySearch || "";
+  state.canvasProjectId = route.canvasProjectId || "";
   state.forceHero = route.view === "home" ? route.forceHero !== false : true;
   setView(route.view || "home");
   if (route.modal === "works") {
@@ -1576,6 +1614,14 @@ function renderAll() {
   if (state.view === "editor") renderEditor();
   renderComposers();
   setView(state.view);
+}
+
+function renderCanvasShell() {
+  const projectId = state.canvasProjectId;
+  elements.canvasListView?.classList.toggle("hidden", Boolean(projectId));
+  elements.canvasWorkspaceView?.classList.toggle("hidden", !projectId);
+  const title = $("#canvasTitleText");
+  if (title) title.textContent = projectId === "new" ? "Untitled canvas" : projectId || "Untitled";
 }
 
 function recentFallbackItems() {
@@ -5907,6 +5953,10 @@ function bindGlobalEvents() {
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
   elements.openCanvasInlineBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
   elements.canvasBackHomeBtn?.addEventListener("click", () => navigate("home", { scrollTop: true }));
+  elements.canvasCreateBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } }));
+  document.querySelectorAll("[data-canvas-list]").forEach((button) => {
+    button.addEventListener("click", () => navigate("canvas", { scrollTop: true, route: { canvasProjectId: "" } }));
+  });
   elements.notificationBtn?.addEventListener("click", openNotificationsModal);
   elements.contactBtn.addEventListener("click", openContactModal);
   elements.langBtn.addEventListener("click", () => {
