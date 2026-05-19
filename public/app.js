@@ -102,6 +102,10 @@ const i18n = {
     canvasBgDots: "点",
     canvasBgGrid: "格",
     canvasBgBlank: "空",
+    addToCanvas: "加入画布",
+    addToCurrentCanvas: "加入当前画布",
+    addToNewCanvas: "加入新画布",
+    useImageNewCanvas: "用此图新建画布",
     backHome: "返回首页",
     notifications: "通知",
     notificationsTitle: "通知",
@@ -412,6 +416,10 @@ const i18n = {
     canvasBgDots: "Dots",
     canvasBgGrid: "Grid",
     canvasBgBlank: "None",
+    addToCanvas: "Add to canvas",
+    addToCurrentCanvas: "Add to current canvas",
+    addToNewCanvas: "Add to new canvas",
+    useImageNewCanvas: "New canvas from image",
     backHome: "Back home",
     notifications: "Notices",
     notificationsTitle: "Notices",
@@ -1629,6 +1637,65 @@ function renderCanvasShell() {
   });
 }
 
+function openCanvasTargetModal(payload = {}) {
+  if (!state.user) {
+    openAuthModal("login");
+    return;
+  }
+  const hasCurrentCanvas = state.view === "canvas" && Boolean(state.canvasProjectId);
+  openModal(`
+    <section class="modal canvas-target-modal">
+      <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
+      <div class="modal-title">
+        <i class="ri-node-tree"></i>
+        <h2>${escapeHtml(text("addToCanvas"))}</h2>
+      </div>
+      <div class="canvas-target-actions">
+        <button type="button" class="modal-secondary" data-canvas-target="current" ${hasCurrentCanvas ? "" : "disabled"}>
+          <i class="ri-node-tree"></i>${escapeHtml(text("addToCurrentCanvas"))}
+        </button>
+        <button type="button" class="modal-primary" data-canvas-target="new">
+          <i class="ri-add-line"></i>${escapeHtml(text("addToNewCanvas"))}
+        </button>
+      </div>
+    </section>
+  `);
+  $$("[data-canvas-target]", elements.modalLayer).forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.canvasTarget;
+      const canvasProjectId = target === "current" && hasCurrentCanvas ? state.canvasProjectId : "new";
+      closeModal();
+      navigate("canvas", { scrollTop: true, route: { canvasProjectId } });
+      requestAnimationFrame(() => {
+        window.ImageStudioCanvas?.insertItem?.(payload);
+        showToast(text("addToCanvas"), "ri-node-tree");
+      });
+    });
+  });
+}
+
+function canvasPayloadFromGeneration(item = {}, title = "Image") {
+  return {
+    kind: "image",
+    title,
+    generationId: item.id || item.generationId || "",
+    imageUrl: item.images?.[0] || item.imageUrl || "",
+    prompt: item.prompt || "",
+    sourceImage: item.sourceImageId || item.sourceImageUrl || ""
+  };
+}
+
+function canvasPayloadFromPrompt(prompt = {}) {
+  return {
+    kind: "prompt",
+    title: prompt.title || "Prompt",
+    promptId: prompt.id || "",
+    prompt: prompt.prompt || "",
+    source: prompt.sourceRepo || prompt.source || "",
+    tags: prompt.tags || []
+  };
+}
+
 function recentFallbackItems() {
   return getPromptSource().slice(0, 12).map((prompt, index) => ({
     id: `sample_${prompt.id}`,
@@ -2537,6 +2604,7 @@ function renderHistory() {
       <div class="message-actions result-action-bar">
         <button type="button" data-retry="${escapeHtml(item.prompt)}"><i class="ri-refresh-line"></i>${text("retry")}</button>
         <a href="${item.images[0]}" download="${item.id}.png"><i class="ri-download-line"></i>${text("download")}</a>
+        <button type="button" data-add-generation-canvas="${escapeHtml(item.id)}"><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
         <button type="button" data-edit="${escapeHtml(item.prompt)}"><i class="ri-edit-line"></i>${text("editPrompt")}</button>
         ${moreActions}
       </div>
@@ -2636,6 +2704,12 @@ function renderHistory() {
     button.addEventListener("click", () => {
       const item = state.history.find((entry) => String(entry.id) === button.dataset.publishOriginal);
       if (item) openPublishModal(item, true);
+    });
+  });
+  $$("[data-add-generation-canvas]", elements.historyList).forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = state.history.find((entry) => String(entry.id) === button.dataset.addGenerationCanvas);
+      if (item) openCanvasTargetModal(canvasPayloadFromGeneration(item, text("outputImage")));
     });
   });
 }
@@ -4207,6 +4281,8 @@ function openSquarePreview(prompt, options = {}) {
           </button>
           <button type="button" data-square-text><i class="ri-sparkling-2-line"></i>${text("textToImageAction")}</button>
           <button type="button" data-square-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>
+          <button type="button" data-square-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
+          <button type="button" data-square-new-canvas><i class="ri-add-box-line"></i>${text("useImageNewCanvas")}</button>
           <button type="button" data-square-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
           <a href="${escapeHtml(imageUrl)}" download="${escapeHtml(item.id || "image")}.png"><i class="ri-download-line"></i>${text("download")}</a>
           <button type="button" data-square-report><i class="ri-flag-line"></i>${state.lang === "zh" ? "举报" : "Report"}</button>
@@ -4240,6 +4316,19 @@ function openSquarePreview(prompt, options = {}) {
     // exec4 P0 §4：广场点击「图生图」时不再带原提示词，editor 的 prompt 框为空，
     // 用户需要的话仍然可以走 [复制提示词] 或 [提示词文生图] 两个入口。
     openImageEditor(imageUrl, "");
+  });
+  $("[data-square-add-canvas]", elements.modalLayer)?.addEventListener("click", () => {
+    openCanvasTargetModal(canvasPayloadFromGeneration({ ...item, imageUrl }, text("outputImage")));
+  });
+  $("[data-square-new-canvas]", elements.modalLayer)?.addEventListener("click", () => {
+    if (!state.user) {
+      closeModal();
+      openAuthModal("login");
+      return;
+    }
+    closeModal();
+    navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } });
+    requestAnimationFrame(() => window.ImageStudioCanvas?.insertItem?.(canvasPayloadFromGeneration({ ...item, imageUrl }, text("outputImage"))));
   });
   $("[data-square-copy]", elements.modalLayer)?.addEventListener("click", async () => {
     await copyText(item.prompt);
@@ -4383,6 +4472,7 @@ function openPromptDetailModal(prompt) {
         <div class="square-preview-actions">
           <button type="button" data-prompt-text><i class="ri-sparkling-2-line"></i>${text("textToImageAction")}</button>
           ${imageUrl ? `<button type="button" data-prompt-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>` : ""}
+          <button type="button" data-prompt-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
           <button type="button" data-prompt-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
           ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noreferrer"><i class="ri-external-link-line"></i>${text("download")}</a>` : ""}
           ${isAdmin ? `<button type="button" data-prompt-admin-edit><i class="ri-pencil-line"></i>${text("promptEdit")}</button>` : ""}
@@ -4404,6 +4494,9 @@ function openPromptDetailModal(prompt) {
   $("[data-prompt-edit]", elements.modalLayer)?.addEventListener("click", () => {
     closeModal();
     openImageEditor(imageUrl, prompt.prompt || "");
+  });
+  $("[data-prompt-add-canvas]", elements.modalLayer)?.addEventListener("click", () => {
+    openCanvasTargetModal(canvasPayloadFromPrompt(prompt));
   });
   $("[data-prompt-copy]", elements.modalLayer)?.addEventListener("click", async () => {
     await copyText(prompt.prompt || "");
@@ -5279,6 +5372,7 @@ function openWorkDetail(id, options = {}) {
           <a href="${escapeHtml(item.images[0])}" download="${escapeHtml(item.id)}.png"><i class="ri-download-line"></i>${text("download")}</a>
           <button type="button" data-work-detail-editor><i class="ri-magic-line"></i>${text("openEditor")}</button>
           <button type="button" data-work-detail-continue><i class="ri-refresh-line"></i>${text("worksContinue")}</button>
+          <button type="button" data-work-detail-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
         </div>
         <dl class="works-detail-meta">
           <dt>ID</dt><dd>${escapeHtml(String(item.id))}</dd>
@@ -5318,6 +5412,9 @@ function openWorkDetail(id, options = {}) {
     navigate("home");
     syncComposers();
     setTimeout(() => $(".prompt-box", elements.heroComposerMount)?.focus(), 100);
+  });
+  $("[data-work-detail-canvas]", elements.modalLayer)?.addEventListener("click", () => {
+    openCanvasTargetModal(canvasPayloadFromGeneration(item, text("worksDetailTitle")));
   });
   if (shouldReplaceRoute && !state.routeSyncing) {
     const route = routeState({ modal: "works", workDetailId: item.id });

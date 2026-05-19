@@ -293,6 +293,45 @@
     renderBoard();
   }
 
+  function insertItem(payload = {}) {
+    if (!state.projectId) {
+      state.projectId = "new";
+      state.nodes = root.nodes.defaultNodes?.() || [];
+      state.edges = [];
+    }
+    const board = document.querySelector("#canvasBoard");
+    const rect = board?.getBoundingClientRect() || { width: 800, height: 500 };
+    const x = Math.round((rect.width / 2 - state.viewport.x) / state.viewport.scale);
+    const y = Math.round((rect.height / 2 - state.viewport.y) / state.viewport.scale);
+    const isPrompt = payload.kind === "prompt";
+    const node = root.nodes.createNode({
+      type: isPrompt ? "prompt" : "image",
+      x,
+      y,
+      data: isPrompt
+        ? {
+            title: payload.title || "Prompt",
+            prompt: payload.prompt || "",
+            body: payload.prompt || "",
+            promptId: payload.promptId || "",
+            source: payload.source || "",
+            tags: payload.tags || []
+          }
+        : {
+            title: payload.title || "Image",
+            body: payload.prompt || payload.title || "Canvas image",
+            imageUrl: payload.imageUrl || "",
+            generationId: payload.generationId || "",
+            prompt: payload.prompt || "",
+            sourceImage: payload.sourceImage || ""
+          }
+    });
+    state.nodes.push(node);
+    state.selectedNodeId = node.id;
+    state.edgeError = "";
+    renderBoard();
+  }
+
   function updateSelectedNode(event) {
     const fieldName = event.target?.dataset?.nodeField;
     const node = selectedNode();
@@ -384,4 +423,5 @@
 
   root.renderShell = renderShell;
   root.bindShellEvents = bindShellEvents;
+  root.insertItem = insertItem;
 })(window, document);

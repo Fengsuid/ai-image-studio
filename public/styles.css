@@ -711,6 +711,16 @@ a {
   resize: vertical;
 }
 
+.canvas-target-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.canvas-target-actions button {
+  width: 100%;
+  justify-content: center;
+}
+
 @media (max-width: 860px) {
   .canvas-list-head {
     align-items: stretch;
