@@ -682,6 +682,45 @@ function canManageCanvas(user, canvas) {
   return user.role === "admin" || canvas.userId === user.id;
 }
 
+function canvasGenerationPlan(body = {}) {
+  const nodes = Array.isArray(body.nodes) ? body.nodes : [];
+  const edges = Array.isArray(body.edges) ? body.edges : [];
+  const byId = new Map(nodes.map((node) => [String(node.id || ""), node]));
+  const outputNode = byId.get(String(body.outputNodeId || "")) || nodes.find((node) => node.type === "output");
+  const incoming = (id) => edges.filter((edge) => String(edge.targetId || "") === String(id || ""));
+  const visitUpstream = (id, seen = new Set()) => incoming(id).flatMap((edge) => {
+    const sourceId = String(edge.sourceId || "");
+    if (!sourceId || seen.has(sourceId)) return [];
+    seen.add(sourceId);
+    const node = byId.get(sourceId);
+    return node ? [node, ...visitUpstream(sourceId, seen)] : [];
+  });
+  const configNode = byId.get(String(body.configNodeId || ""))
+    || visitUpstream(outputNode?.id || "").find((node) => node.type === "config")
+    || nodes.find((node) => node.type === "config");
+  if (!configNode) throw httpError("Canvas config node not found", 400);
+  const upstream = visitUpstream(configNode.id);
+  const promptNodes = upstream.filter((node) => node.type === "prompt");
+  const imageNodes = upstream.filter((node) => node.type === "image");
+  if (promptNodes.length > 1 || imageNodes.length > 1) {
+    throw httpError("Canvas input conflict: use at most one prompt and one image", 400);
+  }
+  const prompt = cleanPrompt(body.prompt || promptNodes[0]?.data?.prompt || promptNodes[0]?.data?.body || "");
+  const imageNode = imageNodes[0] || null;
+  return {
+    outputNodeId: String(outputNode?.id || body.outputNodeId || ""),
+    configNodeId: String(configNode.id || ""),
+    prompt,
+    imageData: String(imageNode?.data?.imageUrl || ""),
+    sourceImageId: String(imageNode?.data?.generationId || ""),
+    sourcePrompt: String(imageNode?.data?.prompt || ""),
+    model: String(configNode.data?.model || DEFAULT_MODEL),
+    size: normalizeImageSize(configNode.data?.size || body.size),
+    quality: choose(configNode.data?.quality || body.quality, ["auto", "low", "medium", "high"], "auto"),
+    n: sanitizePositiveInt(configNode.data?.candidateCount || body.n, 1, 4)
+  };
+}
+
 function normalizeImageSize(value) {
   const raw = String(value || "auto").trim().toLowerCase();
   if (raw === "auto") return "auto";
@@ -3251,6 +3290,152 @@ async function routeApi(req, res, url) {
     }
     const canvas = await store.deleteCanvasProject(existing.id);
     return sendJson(res, 200, { ok: true, canvas });
+  }
+
+  const canvasGenerateMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/generate$/);
+  if (canvasGenerateMatch && req.method === "POST") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    enforceGenerationRate(current.user.id);
+    const canvas = await store.getCanvasProjectById(canvasGenerateMatch[1]);
+    if (!canManageCanvas(current.user, canvas)) {
+      throw httpError("Canvas not found", 404);
+    }
+    const body = await readJsonBody(req);
+    const plan = canvasGenerationPlan(body);
+    if (plan.imageData && !plan.imageData.startsWith("data:image/") && !/^https?:\/\//i.test(plan.imageData)) {
+      throw httpError("Canvas image node is missing an editable image", 400);
+    }
+    if (plan.imageData.startsWith("data:image/")) validateImageDataUrl(plan.imageData);
+
+    const settings = await store.getSettings();
+    const user = await store.getUserById(current.user.id);
+    if (!user || user.status !== "active") throw httpError("Account is not active", 403);
+    const costPerImage = normalizeGenerationCost(settings.generationCreditCost ?? 1);
+    const n = plan.imageData ? 1 : Math.min(plan.n, Number(settings.maxImagesPerRequest || 1));
+    const totalCost = costPerImage * n;
+    const auditId = randomId("req_");
+    const requestStartedAt = Date.now();
+    const request = {
+      model: plan.model || String(settings.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
+      prompt: plan.prompt,
+      n,
+      size: plan.size,
+      quality: plan.imageData ? "auto" : plan.quality,
+      background: "auto",
+      output_format: "png",
+      isPublic: false,
+      sourceImageId: plan.sourceImageId,
+      sourcePrompt: plan.sourcePrompt,
+      conversation: []
+    };
+    await store.insertGenerationRequest({
+      id: auditId,
+      userId: user.id,
+      prompt: plan.imageData ? `[canvas-edit] ${plan.prompt}` : `[canvas] ${plan.prompt}`,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+      isPublic: false,
+      status: "pending"
+    });
+
+    let reservedCredits = false;
+    if (totalCost > 0) {
+      reservedCredits = await store.reserveCredits(user.id, totalCost, {
+        source: "canvas_generation_charge",
+        referenceId: auditId,
+        note: `${canvas.id} ${n} image(s)`
+      });
+      if (!reservedCredits) {
+        await store.updateGenerationRequest(auditId, {
+          status: "failed",
+          errorMessage: "Not enough credits",
+          durationMs: Date.now() - requestStartedAt
+        });
+        throw httpError("Not enough credits", 402);
+      }
+    }
+
+    const aborter = attachRequestAbortController(req);
+    try {
+      const openaiResult = plan.imageData
+        ? await callOpenAIImageEdits(settings, {
+            model: request.model,
+            prompt: plan.prompt,
+            n: 1,
+            size: request.size,
+            imageData: plan.imageData,
+            maskData: ""
+          }, { signal: aborter.signal })
+        : await callOpenAIImages(settings, {
+            model: request.model,
+            prompt: plan.prompt,
+            n,
+            size: request.size,
+            quality: request.quality,
+            background: request.background,
+            output_format: request.output_format
+          }, { signal: aborter.signal });
+      const durationMs = Date.now() - requestStartedAt;
+      const saved = (await saveGeneratedImages(user, request, openaiResult))
+        .map((generation) => ({ ...generation, durationMs }));
+      if (!saved.length) {
+        throw httpError("Canvas generation returned no image", 502);
+      }
+      await store.insertGenerations(saved);
+      await store.createCanvasGenerationLinks({
+        canvasId: canvas.id,
+        generationIds: saved.map((generation) => generation.id),
+        outputNodeId: plan.outputNodeId,
+        configNodeId: plan.configNodeId
+      });
+      await store.updateGenerationRequest(auditId, {
+        status: "succeeded",
+        firstGenerationId: saved[0]?.id || "",
+        generationIds: saved.map((generation) => generation.id),
+        durationMs
+      });
+      reservedCredits = false;
+      if (costPerImage > 0 && saved.length < n) {
+        await store.addCredits(user.id, costPerImage * (n - saved.length), {
+          source: "canvas_generation_refund",
+          referenceId: auditId,
+          note: "unused canvas candidate refund"
+        }).catch((error) => console.error(error));
+      }
+
+      return sendJson(res, 200, {
+        generations: saved,
+        outputNode: {
+          id: plan.outputNodeId,
+          status: "success",
+          generationIds: saved.map((generation) => generation.id)
+        },
+        credits: await store.getUserCredits(user.id),
+        generationCost: costPerImage
+      });
+    } catch (error) {
+      const cancelled = aborter.isAborted() || error?.name === "AbortError";
+      const durationMs = Date.now() - requestStartedAt;
+      if (reservedCredits) await store.addCredits(user.id, totalCost, {
+        source: cancelled ? "canvas_generation_cancel_refund" : "canvas_generation_error_refund",
+        referenceId: auditId,
+        note: cancelled ? "client aborted" : "canvas generation failed"
+      }).catch((refundError) => console.error(refundError));
+      await store.updateGenerationRequest(auditId, cancelled
+        ? { status: "cancelled", errorMessage: "client aborted", durationMs }
+        : { status: "failed", errorMessage: String(error.message || error).slice(0, 2000), durationMs }
+      ).catch((auditError) => console.error(auditError));
+      if (cancelled) {
+        if (!res.writableEnded) {
+          try { res.end(); } catch { /* ignore */ }
+        }
+        return;
+      }
+      throw error;
+    } finally {
+      aborter.detach();
+    }
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/generations") {

@@ -973,6 +973,8 @@ async function api(path, options = {}) {
   }
   return data;
 }
+window.ImageStudioCanvas = window.ImageStudioCanvas || {};
+window.ImageStudioCanvas.request = api;
 
 function promptAuditPublishMessage(error) {
   if (error?.details?.requiredMode !== "image-to-image") return error?.message || "";

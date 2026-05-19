@@ -718,6 +718,22 @@ async function runMigrations() {
   `);
 
   await db.query(`
+    CREATE TABLE IF NOT EXISTS canvas_generation_links (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      canvas_id VARCHAR(32) NOT NULL,
+      generation_id VARCHAR(32) NOT NULL,
+      output_node_id VARCHAR(160) NOT NULL DEFAULT '',
+      config_node_id VARCHAR(160) NOT NULL DEFAULT '',
+      created_at DATETIME(3) NOT NULL,
+      UNIQUE KEY uniq_canvas_generation_link (canvas_id, generation_id),
+      INDEX idx_canvas_generation_links_canvas (canvas_id),
+      INDEX idx_canvas_generation_links_generation (generation_id),
+      CONSTRAINT fk_canvas_generation_links_canvas FOREIGN KEY (canvas_id) REFERENCES canvas_projects(id) ON DELETE CASCADE,
+      CONSTRAINT fk_canvas_generation_links_generation FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS user_daily_usage (
       user_id VARCHAR(32) NOT NULL,
       usage_date DATE NOT NULL,
@@ -2850,6 +2866,27 @@ async function deleteCanvasProject(id) {
   return { ...existing, status: "deleted" };
 }
 
+async function createCanvasGenerationLinks({ canvasId, generationIds = [], outputNodeId = "", configNodeId = "" } = {}) {
+  const ids = Array.from(new Set((generationIds || []).map((id) => String(id || "").trim()).filter(Boolean)));
+  if (!canvasId || !ids.length) return [];
+  const now = new Date();
+  for (const generationId of ids) {
+    await getPool().execute(
+      `INSERT IGNORE INTO canvas_generation_links
+        (canvas_id, generation_id, output_node_id, config_node_id, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        String(canvasId || ""),
+        generationId,
+        String(outputNodeId || "").slice(0, 160),
+        String(configNodeId || "").slice(0, 160),
+        now
+      ]
+    );
+  }
+  return ids;
+}
+
 function mapPrompt(row) {
   if (!row) return null;
   let tags = [];
@@ -4557,6 +4594,7 @@ module.exports = {
   createCanvasProject,
   updateCanvasProject,
   deleteCanvasProject,
+  createCanvasGenerationLinks,
   listPrompts,
   getPromptById,
   setPromptLike,

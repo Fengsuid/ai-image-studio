@@ -93,6 +93,7 @@
     }
     body.innerHTML = `
       <div class="canvas-inspector-actions">
+        ${["config", "output"].includes(node.type) ? `<button type="button" data-node-action="run"><i class="ri-play-line"></i><span>Run</span></button>` : ""}
         <button type="button" data-node-action="duplicate"><i class="ri-file-copy-line"></i><span>Copy</span></button>
         <button type="button" data-node-action="lock"><i class="${node.locked ? "ri-lock-unlock-line" : "ri-lock-line"}"></i><span>${node.locked ? "Unlock" : "Lock"}</span></button>
         <button type="button" data-node-action="link"><i class="ri-link"></i><span>Start link</span></button>
@@ -342,10 +343,14 @@
     renderBoard();
   }
 
-  function onInspectorAction(event) {
+  async function onInspectorAction(event) {
     const action = event.target.closest?.("[data-node-action]")?.dataset.nodeAction;
     const node = selectedNode();
     if (!action || !node) return;
+    if (action === "run") {
+      await runCanvasGeneration(node);
+      return;
+    }
     if (action === "delete") {
       state.nodes = state.nodes.filter((item) => item.id !== node.id);
       state.edges = state.edges.filter((edge) => edge.sourceId !== node.id && edge.targetId !== node.id);
@@ -364,6 +369,70 @@
     }
     if (action === "lock") node.locked = !node.locked;
     renderBoard();
+  }
+
+  async function runCanvasGeneration(node) {
+    const output = outputForRun(node);
+    const config = configForRun(node, output);
+    if (!output) {
+      state.edgeError = "Add an output node before running.";
+      renderBoard();
+      return;
+    }
+    state.selectedNodeId = output.id;
+    if (!state.projectId || state.projectId === "new") {
+      markOutput(output, "error", "Save this canvas before running generation.");
+      renderBoard();
+      return;
+    }
+    if (typeof root.request !== "function") {
+      markOutput(output, "error", "Canvas generation API is not ready.");
+      renderBoard();
+      return;
+    }
+    markOutput(output, "loading", "Running canvas generation...");
+    renderBoard();
+    try {
+      const result = await root.request(`/api/canvases/${encodeURIComponent(state.projectId)}/generate`, {
+        method: "POST",
+        body: JSON.stringify({
+          nodes: state.nodes,
+          edges: state.edges,
+          outputNodeId: output.id,
+          configNodeId: config?.id || ""
+        })
+      });
+      const generations = Array.isArray(result?.generations) ? result.generations : [];
+      markOutput(output, "success", generations.length ? `${generations.length} image(s) generated.` : "Generation finished.", generations);
+    } catch (error) {
+      markOutput(output, "error", error?.message || "Canvas generation failed.");
+    }
+    renderBoard();
+  }
+
+  function outputForRun(node) {
+    if (node.type === "output") return node;
+    const direct = state.edges
+      .filter((edge) => edge.sourceId === node.id)
+      .map((edge) => state.nodes.find((item) => item.id === edge.targetId))
+      .find((item) => item?.type === "output");
+    return direct || state.nodes.find((item) => item.type === "output") || null;
+  }
+
+  function configForRun(node, output) {
+    if (node.type === "config") return node;
+    const direct = state.edges
+      .filter((edge) => edge.targetId === output?.id)
+      .map((edge) => state.nodes.find((item) => item.id === edge.sourceId))
+      .find((item) => item?.type === "config");
+    return direct || state.nodes.find((item) => item.type === "config") || null;
+  }
+
+  function markOutput(output, status, message, generations = []) {
+    output.data.status = status;
+    output.data.body = message;
+    output.data.generationIds = generations.map((generation) => generation.id).filter(Boolean);
+    output.data.imageUrl = generations[0]?.imageUrl || output.data.imageUrl || "";
   }
 
   function createEdge(sourceId, targetId) {
