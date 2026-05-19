@@ -2969,6 +2969,17 @@ async function routeApi(req, res, url) {
     return sendJson(res, 200, { generations, range });
   }
 
+  const galleryDetailMatch = url.pathname.match(/^\/api\/gallery\/([^/]+)$/);
+  if (galleryDetailMatch && req.method === "GET") {
+    const current = await getCurrentUser(req);
+    const generation = await store.getGenerationById(galleryDetailMatch[1]);
+    const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
+    if (!generation || (!includeHidden && !isPubliclyVisibleGeneration(generation))) {
+      throw httpError("Gallery image not found", 404);
+    }
+    return sendJson(res, 200, { generation: generationResponse(generation) });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/gallery/prompt-audit") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);

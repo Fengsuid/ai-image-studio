@@ -1402,15 +1402,23 @@ function setView(view) {
 }
 
 function routeState(extra = {}) {
-  const modal = $(".works-modal", elements.modalLayer) ? "works" : "";
+  const modal = $(".works-modal", elements.modalLayer)
+    ? "works"
+    : $(".square-preview-modal", elements.modalLayer)
+      ? "square"
+      : "";
   const workDetailId = $(".works-detail-drawer", elements.modalLayer)
     ? $(".works-detail-drawer", elements.modalLayer)?.dataset?.workId || ""
+    : "";
+  const galleryId = modal === "square"
+    ? $(".square-preview-modal", elements.modalLayer)?.dataset?.squareId || ""
     : "";
   return {
     view: state.view,
     forceHero: state.forceHero,
     modal,
     workDetailId,
+    galleryId,
     libraryTag: state.libraryTag,
     librarySearch: state.librarySearch,
     ...extra
@@ -1423,22 +1431,27 @@ function routeUrl(route = routeState()) {
   if (route.view === "home" && route.forceHero === false) params.set("workspace", "1");
   if (route.modal) params.set("modal", route.modal);
   if (route.workDetailId) params.set("work", route.workDetailId);
+  if (route.galleryId) params.set("gallery", route.galleryId);
   if (route.view === "library") {
     if (route.libraryTag && route.libraryTag !== "all") params.set("tag", route.libraryTag);
     if (route.librarySearch) params.set("q", route.librarySearch);
   }
   const query = params.toString();
-  return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash || ""}`;
+  const hash = route.galleryId ? "" : (window.location.hash || "");
+  return `${window.location.pathname}${query ? `?${query}` : ""}${hash}`;
 }
 
 function routeFromLocation() {
   const params = new URLSearchParams(window.location.search);
+  const hashGalleryMatch = window.location.hash.match(/^#\/gallery\/([^/?#]+)/);
   const view = params.get("view") || "home";
+  const galleryId = params.get("gallery") || (hashGalleryMatch ? decodeURIComponent(hashGalleryMatch[1]) : "");
   return {
-    view: ["home", "library", "editor"].includes(view) ? view : "home",
+    view: ["home", "library", "editor"].includes(view) ? view : (galleryId ? "library" : "home"),
     forceHero: params.get("workspace") !== "1",
-    modal: params.get("modal") || "",
+    modal: params.get("modal") || (galleryId ? "square" : ""),
     workDetailId: params.get("work") || "",
+    galleryId,
     libraryTag: params.get("tag") || "all",
     librarySearch: params.get("q") || ""
   };
@@ -1482,6 +1495,8 @@ function applyRoute(route = {}) {
     if (route.workDetailId) {
       setTimeout(() => openWorkDetail(route.workDetailId, { replaceRoute: false }), 80);
     }
+  } else if (route.modal === "square" && route.galleryId) {
+    setTimeout(() => openSquarePreviewById(route.galleryId, { replaceRoute: false }), 80);
   }
   state.routeSyncing = false;
 }
@@ -3891,10 +3906,44 @@ function squareItemFromPrompt(prompt) {
   return prompt;
 }
 
-function openSquarePreview(prompt) {
+function openGalleryUnavailableModal(id = "") {
+  openModal(`
+    <section class="modal square-empty-modal">
+      <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
+      <div class="modal-title">
+        <i class="ri-image-close-line"></i>
+        <h2>${escapeHtml(state.lang === "zh" ? "作品暂不可见" : "Work unavailable")}</h2>
+        <p>${escapeHtml(state.lang === "zh" ? "该画廊作品不存在、已隐藏，或当前链接无法访问。" : "This gallery work does not exist, is hidden, or cannot be opened from this link.")}</p>
+        ${id ? `<small>${escapeHtml(id)}</small>` : ""}
+      </div>
+    </section>
+  `);
+}
+
+async function openSquarePreviewById(id, options = {}) {
+  const key = String(id || "").replace(/^square_/, "");
+  const localPrompt = getPromptById(`square_${key}`) || getPromptById(key);
+  if (localPrompt) {
+    openSquarePreview(localPrompt, options);
+    return;
+  }
+  try {
+    const data = await api(`/api/gallery/${encodeURIComponent(key)}`);
+    const generation = generationEntryFromApi(data.generation, { status: "done" });
+    state.publicGallery = [generation, ...state.publicGallery.filter((item) => String(item.id) !== String(generation.id))];
+    openSquarePreview({ ...generation, id: `square_${generation.id}`, generationId: generation.id, kind: "square" }, options);
+  } catch {
+    openGalleryUnavailableModal(key);
+  }
+}
+
+function openSquarePreview(prompt, options = {}) {
   const item = squareItemFromPrompt(prompt);
   const imageUrl = item.images?.[0] || item.image || "";
-  if (!imageUrl) return;
+  if (!imageUrl) {
+    openGalleryUnavailableModal(item.id || prompt.id || "");
+    return;
+  }
   const owned = isOwnedByCurrentUser(item);
   const isAdmin = state.user?.role === "admin";
   const canManage = owned || isAdmin;
@@ -3903,7 +3952,7 @@ function openSquarePreview(prompt) {
   const route = item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
   openModal(`
-    <section class="modal square-preview-modal">
+    <section class="modal square-preview-modal" data-square-id="${escapeHtml(item.id || prompt.generationId || "")}">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
       <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
         <img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
@@ -3992,6 +4041,11 @@ function openSquarePreview(prompt) {
       </aside>
     </section>
   `);
+
+  if (!state.routeSyncing && options.replaceRoute !== false && window.history?.pushState) {
+    const route = routeState({ modal: "square", galleryId: item.id || prompt.generationId || "" });
+    window.history.pushState(route, "", routeUrl(route));
+  }
 
   $(".square-preview-close", elements.modalLayer)?.addEventListener("click", closeModal);
   $("[data-square-like]", elements.modalLayer)?.addEventListener("click", async () => {
@@ -4681,7 +4735,7 @@ function closeModal() {
   elements.modalLayer.innerHTML = "";
   elements.modalLayer.removeEventListener("click", onModalBackdrop);
   if (!state.routeSyncing && window.history?.pushState) {
-    const route = routeState({ modal: "", workDetailId: "" });
+    const route = routeState({ modal: "", workDetailId: "", galleryId: "" });
     window.history.replaceState(route, "", routeUrl(route));
   }
 }
@@ -5658,6 +5712,8 @@ async function bootstrap() {
     if (initialRoute.workDetailId) {
       setTimeout(() => openWorkDetail(initialRoute.workDetailId, { replaceRoute: false }), 80);
     }
+  } else if (initialRoute.modal === "square" && initialRoute.galleryId) {
+    setTimeout(() => openSquarePreviewById(initialRoute.galleryId, { replaceRoute: false }), 80);
   }
   setupHeroVideo();
   if (state.view === "home") {
