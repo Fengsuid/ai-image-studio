@@ -77,10 +77,12 @@ Record the outcome in the relevant development document or release note before m
 ### 2026-05-19 Prompt Sort Batch
 
 - Task covered: `AIS-RLS-013`.
-- Commit covered: `78186df`.
+- Commits covered: `78186df`, `8cb6cb4`, `8f87b6f`.
 - Local checks: `node --check server.js`, `node --check public/app.js`, `node --check src/mysql-store.js`, `git diff --check`, privacy grep.
 - Deployment checks: app container running, production root `200`, retired domain `410`, public smoke passed.
 - Prompt sort smoke: `/api/prompts?sort=hot|new|used|liked&limit=8` returned results and sorted descending by heat, created time, use count, and like count respectively.
+- Detail UI coverage: prompt detail modal now includes a prompt like button that shares the same state updater as prompt cards and leaderboard items.
+- Prompt like smoke: `node scripts/smoke/check-prompt-like.mjs http://127.0.0.1:3000 359` passed in the production container; duplicate like did not increment count and unlike restored the baseline.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
 ### 2026-05-19 Gallery Image Display Batch
