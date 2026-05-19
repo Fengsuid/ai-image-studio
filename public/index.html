@@ -264,7 +264,14 @@
           <aside class="canvas-sidebar">
             <strong data-i18n="canvasWorkspace">画布工作台</strong>
             <button type="button" data-canvas-list><i class="ri-arrow-left-line"></i><span data-i18n="canvasProjectList">项目列表</span></button>
-            <button type="button"><i class="ri-add-box-line"></i><span data-i18n="canvasAddNode">添加节点</span></button>
+            <strong data-i18n="canvasAddNode">添加节点</strong>
+            <div class="canvas-node-palette">
+              <button type="button" data-canvas-add-type="image"><i class="ri-image-line"></i><span>Image</span></button>
+              <button type="button" data-canvas-add-type="text"><i class="ri-text"></i><span>Text</span></button>
+              <button type="button" data-canvas-add-type="prompt"><i class="ri-chat-quote-line"></i><span>Prompt</span></button>
+              <button type="button" data-canvas-add-type="config"><i class="ri-sliders-3-line"></i><span>Config</span></button>
+              <button type="button" data-canvas-add-type="output"><i class="ri-magic-line"></i><span>Output</span></button>
+            </div>
           </aside>
           <section class="canvas-board-shell">
             <header class="canvas-toolbar">
@@ -286,7 +293,7 @@
           </section>
           <aside class="canvas-inspector">
             <strong data-i18n="canvasInspector">检查器</strong>
-            <p data-i18n="canvasInspectorEmpty">选择节点后会显示参数。</p>
+            <div id="canvasInspectorBody"><p data-i18n="canvasInspectorEmpty">选择节点后会显示参数。</p></div>
           </aside>
         </section>
       </main>

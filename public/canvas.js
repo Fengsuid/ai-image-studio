@@ -16,7 +16,7 @@
     const normalizedId = root.store?.normalizeProjectId(projectId) || "";
     if (state.projectId !== normalizedId) {
       state.projectId = normalizedId;
-      state.nodes = normalizedId ? root.nodes?.demoNodes?.() || [] : [];
+      state.nodes = normalizedId ? root.nodes?.defaultNodes?.() || [] : [];
       state.selectedNodeId = state.nodes[0]?.id || "";
       state.viewport = { x: 80, y: 80, scale: 1 };
     }
@@ -35,9 +35,7 @@
     board.dataset.background = state.background;
     viewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
     viewport.innerHTML = state.nodes.map((node) => nodeTemplate(node)).join("");
-    const inspector = document.querySelector(".canvas-inspector p");
-    const selected = state.nodes.find((node) => node.id === state.selectedNodeId);
-    if (inspector && selected) inspector.textContent = `${selected.data.title}: ${selected.data.body}`;
+    renderInspector();
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.classList.toggle("active", button.dataset.canvasBackground === state.background);
     });
@@ -45,11 +43,61 @@
 
   function nodeTemplate(node) {
     const selected = node.id === state.selectedNodeId ? " selected" : "";
-    return `<button class="canvas-demo-node${selected}" type="button" data-node-id="${node.id}" style="left:${node.x}px;top:${node.y}px">
-      <span>${node.type}</span>
-      <strong>${node.data.title}</strong>
-      <em>${node.data.body}</em>
+    const locked = node.locked ? " locked" : "";
+    const status = node.type === "output" ? `<small data-status="${escapeHtml(node.data.status || "idle")}">${escapeHtml(node.data.status || "idle")}</small>` : "";
+    const body = node.type === "config"
+      ? `${node.data.model} · ${node.data.size} · ${node.data.quality} · ${node.data.candidateCount}x`
+      : node.data.prompt || node.data.body || node.data.imageUrl || "";
+    return `<button class="canvas-demo-node canvas-node canvas-node-${node.type}${selected}${locked}" type="button" data-node-id="${node.id}" style="left:${node.x}px;top:${node.y}px">
+      <span><i class="${root.nodes.meta[node.type].icon}"></i>${root.nodes.meta[node.type].label}</span>
+      <strong>${escapeHtml(node.data.title || root.nodes.meta[node.type].label)}</strong>
+      <em>${escapeHtml(body)}</em>
+      ${status}
     </button>`;
+  }
+
+  function renderInspector() {
+    const body = document.querySelector("#canvasInspectorBody");
+    if (!body) return;
+    const node = selectedNode();
+    if (!node) {
+      body.innerHTML = `<p>Select a node to edit parameters.</p>`;
+      return;
+    }
+    body.innerHTML = `
+      <div class="canvas-inspector-actions">
+        <button type="button" data-node-action="duplicate"><i class="ri-file-copy-line"></i><span>Copy</span></button>
+        <button type="button" data-node-action="lock"><i class="${node.locked ? "ri-lock-unlock-line" : "ri-lock-line"}"></i><span>${node.locked ? "Unlock" : "Lock"}</span></button>
+        <button type="button" data-node-action="delete"><i class="ri-delete-bin-line"></i><span>Delete</span></button>
+      </div>
+      ${field("title", "Title", node.data.title || "")}
+      ${nodeFields(node)}
+    `;
+  }
+
+  function nodeFields(node) {
+    if (node.type === "image") return field("imageUrl", "Image URL", node.data.imageUrl || "") + area("body", "Caption", node.data.body || "");
+    if (node.type === "text") return area("body", "Text", node.data.body || "");
+    if (node.type === "prompt") return area("prompt", "Prompt", node.data.prompt || node.data.body || "");
+    if (node.type === "output") return select("status", "Status", node.data.status || "idle", ["idle", "loading", "success", "error"]) + area("body", "Message", node.data.body || "");
+    return field("model", "Model", node.data.model || "GPT-IMAGE-2")
+      + select("size", "Size", node.data.size || "1024x1024", ["1024x1024", "1536x1024", "1024x1536"])
+      + select("quality", "Quality", node.data.quality || "medium", ["low", "medium", "high"])
+      + select("candidateCount", "Candidates", String(node.data.candidateCount || 1), ["1", "2", "3", "4"]);
+  }
+
+  function field(name, label, value) {
+    return `<label class="canvas-field"><span>${label}</span><input data-node-field="${name}" value="${escapeHtml(value)}"></label>`;
+  }
+
+  function area(name, label, value) {
+    return `<label class="canvas-field"><span>${label}</span><textarea data-node-field="${name}">${escapeHtml(value)}</textarea></label>`;
+  }
+
+  function select(name, label, value, options) {
+    return `<label class="canvas-field"><span>${label}</span><select data-node-field="${name}">${
+      options.map((option) => `<option value="${option}"${String(value) === option ? " selected" : ""}>${option}</option>`).join("")
+    }</select></label>`;
   }
 
   function bindShellEvents({ elements = {}, navigate } = {}) {
@@ -81,6 +129,11 @@
         renderBoard();
       });
     });
+    document.querySelectorAll("[data-canvas-add-type]").forEach((button) => {
+      button.addEventListener("click", () => addNode(button.dataset.canvasAddType));
+    });
+    document.querySelector("#canvasInspectorBody")?.addEventListener("change", updateSelectedNode);
+    document.querySelector("#canvasInspectorBody")?.addEventListener("click", onInspectorAction);
   }
 
   function onWheel(event) {
@@ -93,7 +146,7 @@
   }
 
   function onPointerDown(event) {
-    const nodeButton = event.target.closest?.(".canvas-demo-node");
+    const nodeButton = event.target.closest?.(".canvas-node");
     const rect = event.currentTarget.getBoundingClientRect();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     state.pointers.set(event.pointerId, { x: event.clientX - rect.left, y: event.clientY - rect.top });
@@ -112,7 +165,7 @@
       const node = state.nodes.find((item) => item.id === nodeButton.dataset.nodeId);
       if (!node) return;
       state.selectedNodeId = node.id;
-      state.drag = {
+      state.drag = node.locked ? null : {
         type: "node",
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -130,8 +183,7 @@
       startX: event.clientX,
       startY: event.clientY,
       viewX: state.viewport.x,
-      viewY: state.viewport.y,
-      rect
+      viewY: state.viewport.y
     };
   }
 
@@ -147,11 +199,7 @@
       const currentOrigin = midpoint(points[0], points[1]);
       const nextScale = state.drag.startViewport.scale * (distance(points[0], points[1]) / Math.max(1, state.drag.startDistance));
       const zoomed = root.geometry.zoomAt(state.drag.startViewport, state.drag.startOrigin, nextScale);
-      state.viewport = {
-        ...zoomed,
-        x: zoomed.x + currentOrigin.x - state.drag.startOrigin.x,
-        y: zoomed.y + currentOrigin.y - state.drag.startOrigin.y
-      };
+      state.viewport = { ...zoomed, x: zoomed.x + currentOrigin.x - state.drag.startOrigin.x, y: zoomed.y + currentOrigin.y - state.drag.startOrigin.y };
       renderBoard();
       return;
     }
@@ -180,6 +228,50 @@
     state.drag = null;
   }
 
+  function addNode(type) {
+    const board = document.querySelector("#canvasBoard");
+    const rect = board?.getBoundingClientRect() || { width: 800, height: 500 };
+    const x = Math.round((rect.width / 2 - state.viewport.x) / state.viewport.scale);
+    const y = Math.round((rect.height / 2 - state.viewport.y) / state.viewport.scale);
+    const node = root.nodes.createNode({ type, x, y });
+    state.nodes.push(node);
+    state.selectedNodeId = node.id;
+    renderBoard();
+  }
+
+  function updateSelectedNode(event) {
+    const fieldName = event.target?.dataset?.nodeField;
+    const node = selectedNode();
+    if (!fieldName || !node) return;
+    const value = fieldName === "candidateCount" ? Number(event.target.value || 1) : event.target.value;
+    node.data[fieldName] = value;
+    if (fieldName === "prompt") node.data.body = value;
+    renderBoard();
+  }
+
+  function onInspectorAction(event) {
+    const action = event.target.closest?.("[data-node-action]")?.dataset.nodeAction;
+    const node = selectedNode();
+    if (!action || !node) return;
+    if (action === "delete") {
+      state.nodes = state.nodes.filter((item) => item.id !== node.id);
+      state.selectedNodeId = state.nodes[0]?.id || "";
+    }
+    if (action === "duplicate") {
+      const duplicate = root.nodes.duplicateNode(node);
+      if (duplicate) {
+        state.nodes.push(duplicate);
+        state.selectedNodeId = duplicate.id;
+      }
+    }
+    if (action === "lock") node.locked = !node.locked;
+    renderBoard();
+  }
+
+  function selectedNode() {
+    return state.nodes.find((node) => node.id === state.selectedNodeId) || null;
+  }
+
   function distance(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
@@ -194,6 +286,16 @@
     const rect = board.getBoundingClientRect();
     state.viewport = root.geometry.fitBounds(root.nodes.bounds(state.nodes), { width: rect.width, height: rect.height });
     renderBoard();
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;"
+    })[char]);
   }
 
   root.renderShell = renderShell;
