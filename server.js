@@ -2664,6 +2664,10 @@ async function routeApi(req, res, url) {
     }
     try {
       const result = await store.mergeTag(tagMergeMatch[1], targetSlug);
+      await writeAdminAudit(current, req, "merge_tag", "tag", tagMergeMatch[1], {
+        targetSlug,
+        migration: result.migration || null
+      });
       return sendJson(res, 200, result);
     } catch (error) {
       throw httpError(error.message || "merge failed", 400);

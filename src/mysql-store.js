@@ -4348,9 +4348,8 @@ async function incrementTagUsage(slug) {
   );
 }
 
-// merge：把 sourceSlug 的 alias 列表全部并到 targetSlug，把 sourceSlug 标 hidden（不真删）。
-// 注意：作品 / 提示词的 publicTags JSON 数组不会自动 rewrite，调用方需要后续工程化迁移；
-// 当前方案足以让后续读取走 findTagByAlias 时被映射回 target。
+// merge：把 sourceSlug 的 alias 列表全部并到 targetSlug，把 sourceSlug 标 hidden（不真删），
+// 并迁移 prompts.tags_json / generations.public_tags_json 中的历史标签。
 async function mergeTag(sourceSlug, targetSlug) {
   const fromSlug = String(sourceSlug || "").trim().toLowerCase();
   const toSlug = String(targetSlug || "").trim().toLowerCase();
@@ -4371,8 +4370,9 @@ async function mergeTag(sourceSlug, targetSlug) {
     aliases: merged,
     status: "active"
   });
+  const migration = await migrateTagJsonSlugs({ [fromSlug]: toSlug }, { dryRun: false });
   await updateTag(fromSlug, { status: "hidden" });
-  return { source: await getTagBySlug(fromSlug), target: await getTagBySlug(toSlug) };
+  return { source: await getTagBySlug(fromSlug), target: await getTagBySlug(toSlug), migration };
 }
 
 function normalizeTagRewriteMap(mapping = {}) {
