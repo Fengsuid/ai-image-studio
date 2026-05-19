@@ -196,6 +196,7 @@
     body.innerHTML = `
       <div class="canvas-inspector-actions">
         ${["config", "output"].includes(node.type) ? `<button type="button" data-node-action="run"><i class="ri-play-line"></i><span>Run</span></button>` : ""}
+        ${node.type === "output" && (node.data.generationIds || []).length ? `<button type="button" data-node-action="publish"><i class="ri-gallery-upload-line"></i><span>Publish</span></button>` : ""}
         <button type="button" data-node-action="duplicate"><i class="ri-file-copy-line"></i><span>Copy</span></button>
         <button type="button" data-node-action="lock"><i class="${node.locked ? "ri-lock-unlock-line" : "ri-lock-line"}"></i><span>${node.locked ? "Unlock" : "Lock"}</span></button>
         <button type="button" data-node-action="link"><i class="ri-link"></i><span>Start link</span></button>
@@ -467,6 +468,10 @@
       await runCanvasGeneration(node);
       return;
     }
+    if (action === "publish") {
+      await publishOutputNode(node);
+      return;
+    }
     if (action === "delete") {
       state.nodes = state.nodes.filter((item) => item.id !== node.id);
       state.edges = state.edges.filter((edge) => edge.sourceId !== node.id && edge.targetId !== node.id);
@@ -556,6 +561,58 @@
     output.data.body = message;
     output.data.generationIds = generations.map((generation) => generation.id).filter(Boolean);
     output.data.imageUrl = generations[0]?.imageUrl || output.data.imageUrl || "";
+  }
+
+  async function publishOutputNode(output) {
+    const generationId = output?.data?.generationIds?.[0] || "";
+    if (!generationId) {
+      markOutput(output, "error", "Run this output before publishing.");
+      renderBoard();
+      return;
+    }
+    if (typeof root.publishGeneration !== "function") {
+      markOutput(output, "error", "Publish tools are not ready.");
+      renderBoard();
+      return;
+    }
+    try {
+      await root.publishGeneration({
+        generationId,
+        conversationRoute: routeForOutput(output)
+      });
+    } catch (error) {
+      markOutput(output, "error", error?.message || "Publish failed.");
+      renderBoard();
+    }
+  }
+
+  function routeForOutput(output) {
+    const nodes = upstreamNodes(output.id);
+    const ordered = [...nodes, output].filter(Boolean);
+    return ordered.map((node) => {
+      const data = node.data || {};
+      const prompt = node.type === "config"
+        ? `${data.model || "GPT-IMAGE-2"} · ${data.size || "1024x1024"} · ${data.quality || "medium"} · ${data.candidateCount || 1}x`
+        : data.prompt || data.body || data.title || root.nodes.meta[node.type]?.label || "";
+      return {
+        id: node.id,
+        prompt,
+        imageUrl: data.imageUrl || "",
+        type: `canvas-${node.type}`,
+        createdAt: new Date().toISOString()
+      };
+    });
+  }
+
+  function upstreamNodes(nodeId, seen = new Set()) {
+    return state.edges
+      .filter((edge) => edge.targetId === nodeId)
+      .flatMap((edge) => {
+        if (seen.has(edge.sourceId)) return [];
+        seen.add(edge.sourceId);
+        const node = state.nodes.find((item) => item.id === edge.sourceId);
+        return node ? [...upstreamNodes(node.id, seen), node] : [];
+      });
   }
 
   function createEdge(sourceId, targetId) {

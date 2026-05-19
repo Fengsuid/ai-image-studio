@@ -1549,6 +1549,14 @@ a {
   white-space: nowrap;
 }
 
+.card-art b.canvas-route-badge {
+  top: auto;
+  bottom: 8px;
+  background: rgba(15, 118, 110, 0.88);
+  color: #fff;
+  gap: 4px;
+}
+
 .card-art-clickable {
   cursor: zoom-in;
 }

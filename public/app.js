@@ -979,6 +979,21 @@ window.ImageStudioCanvas.setProjectRoute = (projectId) => {
   state.canvasProjectId = projectId || "";
   replaceRoute({ canvasProjectId: state.canvasProjectId });
 };
+window.ImageStudioCanvas.publishGeneration = async ({ generationId = "", conversationRoute = [] } = {}) => {
+  if (!state.user) {
+    openAuthModal("login");
+    return;
+  }
+  const data = await api("/api/images/history?includeArchived=1");
+  const generation = (data.generations || []).find((item) => String(item.id) === String(generationId));
+  if (!generation) {
+    showToast(state.lang === "zh" ? "未找到画布生成结果" : "Canvas generation not found", "ri-error-warning-line");
+    return;
+  }
+  const item = generationEntryFromApi(generation, { status: "done" });
+  item.conversation = conversationRoute.length ? conversationRoute : item.conversation || [];
+  openPublishModal(item, Boolean(item.sourceImageUrl || item.sourceImageData || item.sourceFilename));
+};
 
 function promptAuditPublishMessage(error) {
   if (error?.details?.requiredMode !== "image-to-image") return error?.message || "";
@@ -1140,6 +1155,10 @@ function publicKindTagForItem(item = {}) {
 
 function isImageToImageItem(item = {}) {
   return publicKindTagForItem(item) === "image-to-image";
+}
+
+function isCanvasRouteItem(item = {}) {
+  return (item.conversation || []).some((step) => String(step.type || "").startsWith("canvas"));
 }
 
 function publicTagsForKind(kind, tags = []) {
@@ -2819,7 +2838,7 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
       sourceImageData: publishOriginal || forceOriginal ? item.sourceImageData || "" : "",
       sourceImageId: sourceItem?.id || item.sourceImageId || "",
       publicTags: publicTagsForKind(kind, publicTags),
-      conversationRoute: conversationRouteForItem(item)
+      conversationRoute: item.conversation?.length ? item.conversation : conversationRouteForItem(item)
     };
     return api(`/api/images/${item.id}/public`, {
       method: "PATCH",
@@ -3286,8 +3305,11 @@ function promptCardHtml(prompt) {
   const art = coverUrl
     ? `<img src="${escapeHtml(imageVariantUrl(coverUrl))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
     : `<i class="${prompt.icon || "ri-image-line"}"></i>`;
+  const canvasBadge = isCanvasRouteItem(prompt)
+    ? `<b class="canvas-route-badge"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "画布线路" : "Canvas route")}</b>`
+    : "";
   const sourceBadge = prompt.kind === "square"
-    ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${isImageToImageItem(prompt) ? text("imageToImage") : text("textToImage")}</b>`
+    ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${isImageToImageItem(prompt) ? text("imageToImage") : text("textToImage")}</b>${canvasBadge}`
     : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.sourceRepo || prompt.source || prompt.author || "@open")}</em>`;
   const hasImage = Boolean(coverUrl);
   const openAttr = prompt.kind === "square"
@@ -4201,6 +4223,7 @@ function openSquarePreview(prompt, options = {}) {
   const isAdmin = state.user?.role === "admin";
   const canManage = owned || isAdmin;
   const isImageToImage = isImageToImageItem(item) || Boolean(item.sourceImageUrl || item.sourceImageId || item.sourcePrompt);
+  const isCanvasRoute = isCanvasRouteItem(item);
   const tags = normalizePublicTags(item.publicTags || []);
   const route = item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
@@ -4213,6 +4236,7 @@ function openSquarePreview(prompt, options = {}) {
       <aside class="square-preview-side">
         <div class="square-preview-head">
           <span>${isImageToImage ? text("imageToImage") : text("textToImage")}</span>
+          ${isCanvasRoute ? `<span><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "画布线路" : "Canvas route")}</span>` : ""}
           <strong>${escapeHtml(displayUserName(item))}</strong>
         </div>
         <div class="square-preview-section">
