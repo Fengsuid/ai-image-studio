@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260520-canvas-history-v1">
+    <link rel="stylesheet" href="/styles.css?v=20260520-canvas-selection-v1">
   </head>
   <body>
     <div id="app" class="app">
@@ -282,6 +282,8 @@
                 <button type="button" aria-label="Redo canvas action" data-canvas-redo disabled><i class="ri-arrow-go-forward-line"></i></button>
                 <button type="button" aria-label="Copy selected canvas node" data-canvas-copy disabled><i class="ri-file-copy-line"></i></button>
                 <button type="button" aria-label="Paste canvas node" data-canvas-paste disabled><i class="ri-clipboard-line"></i></button>
+                <button type="button" aria-label="Group selected canvas nodes" data-canvas-group disabled><i class="ri-folder-add-line"></i></button>
+                <button type="button" aria-label="Delete selected canvas nodes" data-canvas-delete disabled><i class="ri-delete-bin-line"></i></button>
                 <div class="canvas-bg-toggle" aria-label="Canvas background">
                   <button type="button" data-canvas-background="dots" data-i18n="canvasBgDots">点</button>
                   <button type="button" data-canvas-background="grid" data-i18n="canvasBgGrid">格</button>
@@ -401,14 +403,15 @@
       <div id="toastLayer" class="toast-layer"></div>
     </div>
 
-    <script src="/canvas-store.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/canvas-nodes.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/canvas-geometry.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/canvas-workflows.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/canvas-minimap.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/canvas-history.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/canvas.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/gallery-normalize.js?v=20260520-canvas-history-v1" defer></script>
-    <script src="/app.js?v=20260520-canvas-history-v1" defer></script>
+    <script src="/canvas-store.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas-nodes.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas-geometry.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas-workflows.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas-minimap.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas-selection.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas-history.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/canvas.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/gallery-normalize.js?v=20260520-canvas-selection-v1" defer></script>
+    <script src="/app.js?v=20260520-canvas-selection-v1" defer></script>
   </body>
 </html>

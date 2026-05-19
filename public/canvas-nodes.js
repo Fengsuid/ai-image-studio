@@ -9,7 +9,8 @@
     text: { label: "Text", icon: "ri-text" },
     prompt: { label: "Prompt", icon: "ri-chat-quote-line" },
     config: { label: "Config", icon: "ri-sliders-3-line" },
-    output: { label: "Output", icon: "ri-magic-line" }
+    output: { label: "Output", icon: "ri-magic-line" },
+    group: { label: "Group", icon: "ri-folder-3-line" }
   };
 
   function defaultData(type) {
@@ -17,6 +18,7 @@
     if (type === "text") return { title: "Text note", body: "Describe constraints or direction" };
     if (type === "config") return { title: "Generation config", model: "GPT-IMAGE-2", size: "1024x1024", quality: "medium", candidateCount: 1 };
     if (type === "output") return { title: "Output", status: "idle", body: "Waiting for generation" };
+    if (type === "group") return { title: "Group", body: "Canvas group", memberIds: [], collapsed: false, width: 320, height: 220 };
     return { title: "Prompt", prompt: "A cinematic product photo", body: "A cinematic product photo" };
   }
 
@@ -53,14 +55,19 @@
     });
   }
 
+  function size(node = {}) {
+    return {
+      width: Number(node.width || node.data?.width || 220),
+      height: Number(node.height || node.data?.height || 132)
+    };
+  }
+
   function bounds(nodes = []) {
     if (!nodes.length) return { x: 0, y: 0, width: 1, height: 1 };
-    const width = 220;
-    const height = 132;
     const minX = Math.min(...nodes.map((node) => Number(node.x || 0)));
     const minY = Math.min(...nodes.map((node) => Number(node.y || 0)));
-    const maxX = Math.max(...nodes.map((node) => Number(node.x || 0) + width));
-    const maxY = Math.max(...nodes.map((node) => Number(node.y || 0) + height));
+    const maxX = Math.max(...nodes.map((node) => Number(node.x || 0) + size(node).width));
+    const maxY = Math.max(...nodes.map((node) => Number(node.y || 0) + size(node).height));
     return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
   }
 
@@ -70,6 +77,7 @@
     defaultNodes,
     demoNodes: defaultNodes,
     duplicateNode,
+    size,
     bounds
   };
 })(window);

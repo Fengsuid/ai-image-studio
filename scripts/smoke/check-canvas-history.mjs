@@ -48,6 +48,7 @@ assert(pasted?.nodes?.length === 1, "paste should create one copied node");
 assert(pasted.nodes[0].id !== current.nodes[0].id, "pasted node should have a new id");
 assert(pasted.nodes[0].x === current.nodes[0].x + 44, "pasted node should preserve relative offset");
 assert(pasted.selectedNodeId === pasted.nodes[0].id, "paste should select the pasted node");
+assert(Array.isArray(pasted.selectedNodeIds) && pasted.selectedNodeIds[0] === pasted.nodes[0].id, "paste should return selected node ids");
 
 const beforePaste = controller.capture("paste");
 current = {

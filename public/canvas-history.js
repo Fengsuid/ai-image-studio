@@ -115,7 +115,8 @@
       return {
         nodes,
         edges,
-        selectedNodeId: nodes[nodes.length - 1]?.id || nodes[0]?.id || target.selectedNodeId || ""
+        selectedNodeId: nodes[nodes.length - 1]?.id || nodes[0]?.id || target.selectedNodeId || "",
+        selectedNodeIds: nodes.map((node) => node.id)
       };
     }
 

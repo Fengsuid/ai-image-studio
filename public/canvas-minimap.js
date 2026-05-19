@@ -32,19 +32,23 @@
     };
     const viewStart = layout.project(view.x, view.y);
     const viewEnd = layout.project(view.x + view.width, view.y + view.height);
+    const selectedIds = new Set(Array.isArray(snapshot.selectedNodeIds) ? snapshot.selectedNodeIds : [snapshot.selectedNodeId].filter(Boolean));
     const nodeRects = nodes.map((node) => {
+      const size = root.nodes.size?.(node) || { width: NODE_WIDTH, height: NODE_HEIGHT };
       const start = layout.project(node.x, node.y);
-      const end = layout.project(Number(node.x || 0) + NODE_WIDTH, Number(node.y || 0) + NODE_HEIGHT);
-      const active = node.id === snapshot.selectedNodeId ? " active" : "";
+      const end = layout.project(Number(node.x || 0) + size.width, Number(node.y || 0) + size.height);
+      const active = selectedIds.has(node.id) ? " active" : "";
       return `<i class="canvas-minimap-node${active}" style="left:${start.x}px;top:${start.y}px;width:${Math.max(3, end.x - start.x)}px;height:${Math.max(3, end.y - start.y)}px"></i>`;
     }).join("");
     const edgeLines = edges.map((edge) => {
       const source = nodes.find((node) => node.id === edge.sourceId);
       const target = nodes.find((node) => node.id === edge.targetId);
       if (!source || !target) return "";
-      const start = layout.project(Number(source.x || 0) + NODE_WIDTH, Number(source.y || 0) + NODE_HEIGHT / 2);
-      const end = layout.project(Number(target.x || 0), Number(target.y || 0) + NODE_HEIGHT / 2);
-      const active = [source.id, target.id].includes(snapshot.selectedNodeId) ? " active" : "";
+      const sourceSize = root.nodes.size?.(source) || { width: NODE_WIDTH, height: NODE_HEIGHT };
+      const targetSize = root.nodes.size?.(target) || { width: NODE_WIDTH, height: NODE_HEIGHT };
+      const start = layout.project(Number(source.x || 0) + sourceSize.width, Number(source.y || 0) + sourceSize.height / 2);
+      const end = layout.project(Number(target.x || 0), Number(target.y || 0) + targetSize.height / 2);
+      const active = selectedIds.has(source.id) || selectedIds.has(target.id) ? " active" : "";
       return `<line class="canvas-minimap-edge${active}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}"></line>`;
     }).join("");
     minimap.innerHTML = `

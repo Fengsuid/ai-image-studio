@@ -19,6 +19,8 @@
     nodes: [],
     edges: [],
     selectedNodeId: "",
+    selectedNodeIds: [],
+    selectionRect: null,
     pendingEdgeFrom: "",
     edgeError: "",
     drag: null,
@@ -45,12 +47,13 @@
     if (!board || !viewport) return;
     board.dataset.background = state.background;
     viewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
-    viewport.innerHTML = edgeTemplate() + state.nodes.map((node) => nodeTemplate(node)).join("");
+    viewport.innerHTML = edgeTemplate() + selectionBoxTemplate() + renderNodes().map((node) => nodeTemplate(node)).join("");
     root.minimap?.render?.(board, {
       viewport: state.viewport,
       nodes: state.nodes,
       edges: state.edges,
-      selectedNodeId: state.selectedNodeId
+      selectedNodeId: state.selectedNodeId,
+      selectedNodeIds: state.selectedNodeIds
     });
     renderInspector();
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
@@ -67,6 +70,8 @@
     state.nodes = projectId ? root.nodes?.defaultNodes?.() || [] : [];
     state.edges = projectId ? defaultEdges() : [];
     state.selectedNodeId = state.nodes[0]?.id || "";
+    state.selectedNodeIds = state.selectedNodeId ? [state.selectedNodeId] : [];
+    state.selectionRect = null;
     state.pendingEdgeFrom = "";
     state.edgeError = "";
     state.viewport = { x: 80, y: 80, scale: 1 };
@@ -151,9 +156,11 @@
     }
     state.nodes = Array.isArray(data.nodes) ? data.nodes.map((node) => root.nodes.createNode(node)) : state.nodes;
     state.edges = Array.isArray(data.edges) ? data.edges : state.edges;
-    state.selectedNodeId = state.nodes.some((node) => node.id === data.selectedNodeId)
-      ? data.selectedNodeId
-      : state.nodes[0]?.id || "";
+    const persistedSelection = Array.isArray(data.selectedNodeIds) && data.selectedNodeIds.length
+      ? data.selectedNodeIds
+      : [data.selectedNodeId];
+    setSelection(persistedSelection, data.selectedNodeId || persistedSelection[persistedSelection.length - 1] || state.nodes[0]?.id || "", true);
+    state.selectionRect = null;
   }
 
   function canvasSnapshot() {
@@ -163,6 +170,7 @@
       nodes: state.nodes,
       edges: state.edges,
       selectedNodeId: state.selectedNodeId,
+      selectedNodeIds: state.selectedNodeIds,
       pendingEdgeFrom: state.pendingEdgeFrom,
       edgeError: state.edgeError
     };
@@ -211,14 +219,20 @@
   }
 
   function nodeTemplate(node) {
-    const selected = node.id === state.selectedNodeId ? " selected" : "";
+    const selected = state.selectedNodeIds.includes(node.id) ? " selected" : "";
+    const primary = node.id === state.selectedNodeId ? " primary-selected" : "";
     const locked = node.locked ? " locked" : "";
     const pending = node.id === state.pendingEdgeFrom ? " pending-link" : "";
     const status = node.type === "output" ? `<small data-status="${escapeHtml(node.data.status || "idle")}">${escapeHtml(node.data.status || "idle")}</small>` : "";
+    const size = node.type === "group"
+      ? `width:${Math.max(220, Number(node.data.width || 320))}px;min-height:${Math.max(132, Number(node.data.height || 220))}px;`
+      : "";
     const body = node.type === "config"
       ? `${node.data.model} · ${node.data.size} · ${node.data.quality} · ${node.data.candidateCount}x`
+      : node.type === "group"
+        ? groupBody(node)
       : node.data.prompt || node.data.body || node.data.imageUrl || "";
-    return `<button class="canvas-demo-node canvas-node canvas-node-${node.type}${selected}${locked}${pending}" type="button" data-node-id="${node.id}" style="left:${node.x}px;top:${node.y}px">
+    return `<button class="canvas-demo-node canvas-node canvas-node-${node.type}${selected}${primary}${locked}${pending}" type="button" data-node-id="${node.id}" style="left:${node.x}px;top:${node.y}px;${size}">
       <span><i class="${root.nodes.meta[node.type].icon}"></i>${root.nodes.meta[node.type].label}</span>
       <strong>${escapeHtml(node.data.title || root.nodes.meta[node.type].label)}</strong>
       <em>${escapeHtml(body)}</em>
@@ -226,12 +240,30 @@
     </button>`;
   }
 
+  function renderNodes() {
+    return [
+      ...state.nodes.filter((node) => node.type === "group"),
+      ...state.nodes.filter((node) => node.type !== "group")
+    ];
+  }
+
+  function selectionBoxTemplate() {
+    if (!state.selectionRect) return "";
+    const rect = state.selectionRect;
+    return `<div class="canvas-selection-box" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px"></div>`;
+  }
+
+  function groupBody(node) {
+    const count = Array.isArray(node.data.memberIds) ? node.data.memberIds.length : 0;
+    return node.data.body || `${count} grouped node${count === 1 ? "" : "s"}`;
+  }
+
   function edgeTemplate() {
     const lines = state.edges.map((edge) => {
       const source = state.nodes.find((node) => node.id === edge.sourceId);
       const target = state.nodes.find((node) => node.id === edge.targetId);
       if (!source || !target) return "";
-      const active = [source.id, target.id].includes(state.selectedNodeId) ? " active" : "";
+      const active = state.selectedNodeIds.includes(source.id) || state.selectedNodeIds.includes(target.id) ? " active" : "";
       const x1 = Number(source.x || 0) + 220;
       const y1 = Number(source.y || 0) + 66;
       const x2 = Number(target.x || 0);
@@ -245,6 +277,21 @@
   function renderInspector() {
     const body = document.querySelector("#canvasInspectorBody");
     if (!body) return;
+    const selected = selectedNodes();
+    if (selected.length > 1) {
+      body.innerHTML = `
+        <div class="canvas-selection-summary">
+          <strong>${selected.length} nodes selected</strong>
+          <span>Drag any selected node to move the group. Shift-drag on empty canvas to box select.</span>
+        </div>
+        <div class="canvas-inspector-actions">
+          <button type="button" data-node-action="group"><i class="ri-folder-add-line"></i><span>Group</span></button>
+          <button type="button" data-node-action="duplicate"><i class="ri-file-copy-line"></i><span>Copy</span></button>
+          <button type="button" data-node-action="delete"><i class="ri-delete-bin-line"></i><span>Delete</span></button>
+        </div>
+      `;
+      return;
+    }
     const node = selectedNode();
     if (!node) {
       body.innerHTML = `<p>Select a node to edit parameters.</p>`;
@@ -289,6 +336,7 @@
     if (node.type === "text") return area("body", "Text", node.data.body || "");
     if (node.type === "prompt") return area("prompt", "Prompt", node.data.prompt || node.data.body || "");
     if (node.type === "output") return select("status", "Status", node.data.status || "idle", ["idle", "loading", "success", "error"]) + area("body", "Message", node.data.body || "");
+    if (node.type === "group") return area("body", "Description", node.data.body || "");
     return field("model", "Model", node.data.model || "GPT-IMAGE-2")
       + select("size", "Size", node.data.size || "1024x1024", ["1024x1024", "1536x1024", "1024x1536"])
       + select("quality", "Quality", node.data.quality || "medium", ["low", "medium", "high"])
@@ -337,6 +385,8 @@
     document.querySelector("[data-canvas-redo]")?.addEventListener("click", redoCanvas);
     document.querySelector("[data-canvas-copy]")?.addEventListener("click", copySelection);
     document.querySelector("[data-canvas-paste]")?.addEventListener("click", pasteSelection);
+    document.querySelector("[data-canvas-group]")?.addEventListener("click", groupSelection);
+    document.querySelector("[data-canvas-delete]")?.addEventListener("click", deleteSelectedNodes);
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.addEventListener("click", () => {
         const before = captureHistory("background");
@@ -395,17 +445,41 @@
         renderBoard();
         return;
       }
-      state.selectedNodeId = node.id;
+      const nextSelection = event.shiftKey
+        ? root.selection?.toggle(state.selectedNodeIds, node.id, state.nodes) || [node.id]
+        : state.selectedNodeIds.includes(node.id)
+          ? state.selectedNodeIds
+          : root.selection?.replace(node.id, state.nodes) || [node.id];
+      setSelection(nextSelection, node.id);
+      if (!state.selectedNodeIds.includes(node.id)) {
+        state.drag = null;
+        renderBoard();
+        return;
+      }
       state.drag = node.locked ? null : {
         type: "node",
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
-        nodeX: node.x,
-        nodeY: node.y,
         nodeId: node.id,
-        history: captureHistory("move node")
+        startNodes: selectedNodes().map((item) => ({ id: item.id, x: item.x, y: item.y })),
+        history: captureHistory(selectedNodes().length > 1 ? "move selection" : "move node")
       };
+      renderBoard();
+      return;
+    }
+    if (event.shiftKey && root.selection?.rectFromDrag) {
+      const start = boardToCanvasPoint(event.currentTarget, event);
+      state.drag = {
+        type: "select",
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startPoint: start,
+        additive: event.ctrlKey || event.metaKey,
+        baseSelection: state.selectedNodeIds.slice()
+      };
+      state.selectionRect = root.selection.rectFromDrag(start, start);
       renderBoard();
       return;
     }
@@ -446,12 +520,18 @@
     const dy = event.clientY - state.drag.startY;
     if (state.drag.type === "pan") {
       state.viewport = { ...state.viewport, x: state.drag.viewX + dx, y: state.drag.viewY + dy };
+    } else if (state.drag.type === "select") {
+      const end = boardToCanvasPoint(event.currentTarget, event);
+      state.selectionRect = root.selection?.rectFromDrag(state.drag.startPoint, end) || null;
+      const ids = root.selection?.nodesInRect(state.nodes, state.selectionRect) || [];
+      const next = state.drag.additive ? [...state.drag.baseSelection, ...ids] : ids;
+      setSelection(next, next[next.length - 1] || state.selectedNodeId);
     } else {
-      const node = state.nodes.find((item) => item.id === state.drag.nodeId);
-      if (node) {
-        node.x = Math.round(state.drag.nodeX + dx / state.viewport.scale);
-        node.y = Math.round(state.drag.nodeY + dy / state.viewport.scale);
-      }
+      const selectedIds = state.selectedNodeIds.includes(state.drag.nodeId) ? state.selectedNodeIds : [state.drag.nodeId];
+      state.nodes = root.selection?.moveNodes(state.nodes, selectedIds, state.drag.startNodes, {
+        x: dx / state.viewport.scale,
+        y: dy / state.viewport.scale
+      }) || state.nodes;
     }
     renderBoard();
   }
@@ -466,12 +546,15 @@
     }
     if (state.drag?.pointerId !== event.pointerId) return;
     const changed = ["node", "pan", "minimap"].includes(state.drag?.type);
+    const wasSelect = state.drag?.type === "select";
     const before = state.drag?.history;
     state.drag = null;
+    state.selectionRect = null;
     if (changed) {
       recordHistoryBefore(before);
       markDirty();
     }
+    if (wasSelect) renderBoard();
   }
 
   function addNode(type) {
@@ -482,7 +565,7 @@
     const y = Math.round((rect.height / 2 - state.viewport.y) / state.viewport.scale);
     const node = root.nodes.createNode({ type, x, y });
     state.nodes.push(node);
-    state.selectedNodeId = node.id;
+    setSelection([node.id], node.id);
     state.edgeError = "";
     recordHistoryBefore(before);
     markDirty();
@@ -524,7 +607,7 @@
           }
     });
     state.nodes.push(node);
-    state.selectedNodeId = node.id;
+    setSelection([node.id], node.id);
     state.edgeError = "";
     recordHistoryBefore(before);
     markDirty();
@@ -547,7 +630,8 @@
   async function onInspectorAction(event) {
     const action = event.target.closest?.("[data-node-action]")?.dataset.nodeAction;
     const node = selectedNode();
-    if (!action || !node) return;
+    if (!action) return;
+    if (!node && !["delete", "duplicate", "group"].includes(action)) return;
     if (action === "run") {
       await runCanvasGeneration(node);
       return;
@@ -557,22 +641,13 @@
       return;
     }
     if (action === "delete") {
-      const before = captureHistory("delete node");
-      state.nodes = state.nodes.filter((item) => item.id !== node.id);
-      state.edges = state.edges.filter((edge) => edge.sourceId !== node.id && edge.targetId !== node.id);
-      state.selectedNodeId = state.nodes[0]?.id || "";
-      recordHistoryBefore(before);
-      markDirty();
+      deleteSelectedNodes();
     }
     if (action === "duplicate") {
-      const before = captureHistory("duplicate node");
-      const duplicate = root.nodes.duplicateNode(node);
-      if (duplicate) {
-        state.nodes.push(duplicate);
-        state.selectedNodeId = duplicate.id;
-        recordHistoryBefore(before);
-        markDirty();
-      }
+      duplicateSelection();
+    }
+    if (action === "group") {
+      groupSelection();
     }
     if (action === "link") {
       state.pendingEdgeFrom = node.id;
@@ -595,7 +670,7 @@
       renderBoard();
       return;
     }
-    state.selectedNodeId = output.id;
+    setSelection([output.id], output.id);
     if (!state.projectId || state.projectId === "new") {
       markOutput(output, "error", "Save this canvas before running generation.");
       renderBoard();
@@ -721,7 +796,7 @@
     }
     const before = captureHistory("create edge");
     state.edges.push(root.workflows.createEdge(sourceId, targetId));
-    state.selectedNodeId = targetId;
+    setSelection([targetId], targetId);
     state.edgeError = "";
     recordHistoryBefore(before);
     markDirty();
@@ -749,9 +824,9 @@
   }
 
   function copySelection() {
-    const node = selectedNode();
-    if (!node) return;
-    ensureHistory()?.copy([node], state.edges);
+    const nodes = selectedNodes();
+    if (!nodes.length) return;
+    ensureHistory()?.copy(nodes, state.edges);
     renderHistoryControls();
   }
 
@@ -761,7 +836,7 @@
     const before = captureHistory("paste node");
     state.nodes.push(...pasted.nodes);
     state.edges.push(...pasted.edges);
-    state.selectedNodeId = pasted.selectedNodeId || pasted.nodes[0].id;
+    setSelection(pasted.nodes.map((node) => node.id), pasted.selectedNodeId || pasted.nodes[pasted.nodes.length - 1].id);
     state.edgeError = "";
     recordHistoryBefore(before);
     markDirty();
@@ -772,6 +847,11 @@
     if (!state.projectId || isTypingTarget(event.target)) return;
     const key = String(event.key || "").toLowerCase();
     const modifier = event.ctrlKey || event.metaKey;
+    if (!modifier && ["delete", "backspace"].includes(key)) {
+      event.preventDefault();
+      deleteSelectedNodes();
+      return;
+    }
     if (!modifier) return;
     if (key === "z") {
       event.preventDefault();
@@ -792,6 +872,11 @@
     if (key === "v") {
       event.preventDefault();
       pasteSelection();
+      return;
+    }
+    if (key === "g") {
+      event.preventDefault();
+      groupSelection();
     }
   }
 
@@ -852,7 +937,8 @@
       viewport: state.viewport,
       nodes: state.nodes,
       edges: state.edges,
-      selectedNodeId: state.selectedNodeId
+      selectedNodeId: state.selectedNodeId,
+      selectedNodeIds: state.selectedNodeIds
     };
     return {
       title: state.projectTitle || "Untitled canvas",
@@ -929,17 +1015,80 @@
       button.title = "Redo (Ctrl/Cmd+Shift+Z)";
     });
     document.querySelectorAll("[data-canvas-copy]").forEach((button) => {
-      button.disabled = !selectedNode();
-      button.title = "Copy node (Ctrl/Cmd+C)";
+      button.disabled = !selectedNodes().length;
+      button.title = "Copy selected node(s) (Ctrl/Cmd+C)";
     });
     document.querySelectorAll("[data-canvas-paste]").forEach((button) => {
       button.disabled = !status.canPaste;
       button.title = "Paste node (Ctrl/Cmd+V)";
     });
+    document.querySelectorAll("[data-canvas-group]").forEach((button) => {
+      button.disabled = selectedNodes().filter((node) => node.type !== "group").length < 2;
+      button.title = "Group selected nodes (Ctrl/Cmd+G)";
+    });
+    document.querySelectorAll("[data-canvas-delete]").forEach((button) => {
+      button.disabled = !selectedNodes().length;
+      button.title = "Delete selected nodes";
+    });
   }
 
   function selectedNode() {
     return state.nodes.find((node) => node.id === state.selectedNodeId) || null;
+  }
+
+  function selectedNodes() {
+    const ids = new Set(state.selectedNodeIds);
+    return state.nodes.filter((node) => ids.has(node.id));
+  }
+
+  function setSelection(ids = [], primaryId = "", fallbackToPrimary = false) {
+    const normalized = root.selection?.normalize(ids, state.nodes) || ids.filter(Boolean);
+    const primaryExists = state.nodes.some((node) => node.id === primaryId);
+    const fallback = normalized[normalized.length - 1] || (fallbackToPrimary && primaryExists ? primaryId : "");
+    state.selectedNodeIds = normalized;
+    state.selectedNodeId = normalized.includes(primaryId) ? primaryId : fallback;
+  }
+
+  function deleteSelectedNodes() {
+    const ids = state.selectedNodeIds.length ? state.selectedNodeIds : state.selectedNodeId ? [state.selectedNodeId] : [];
+    if (!ids.length) return;
+    const before = captureHistory(ids.length > 1 ? "delete selection" : "delete node");
+    const result = root.selection?.deleteSelection(state.nodes, state.edges, ids);
+    if (!result) return;
+    state.nodes = result.nodes;
+    state.edges = result.edges;
+    setSelection([state.nodes[0]?.id || ""], state.nodes[0]?.id || "");
+    state.edgeError = "";
+    recordHistoryBefore(before);
+    markDirty();
+    renderBoard();
+  }
+
+  function duplicateSelection() {
+    const nodes = selectedNodes();
+    if (!nodes.length) return;
+    const before = captureHistory(nodes.length > 1 ? "duplicate selection" : "duplicate node");
+    const duplicates = nodes.map((node) => root.nodes.duplicateNode(node)).filter(Boolean);
+    if (!duplicates.length) return;
+    state.nodes.push(...duplicates);
+    setSelection(duplicates.map((node) => node.id), duplicates[duplicates.length - 1].id);
+    state.edgeError = "";
+    recordHistoryBefore(before);
+    markDirty();
+    renderBoard();
+  }
+
+  function groupSelection() {
+    if (state.selectedNodeIds.length < 2 || !root.selection?.groupFromNodes) return;
+    const before = captureHistory("group selection");
+    const group = root.selection.groupFromNodes(state.nodes, state.selectedNodeIds, root.nodes.createNode);
+    if (!group) return;
+    state.nodes.push(group);
+    setSelection([group.id], group.id);
+    state.edgeError = "";
+    recordHistoryBefore(before);
+    markDirty();
+    renderBoard();
   }
 
   function labelFor(nodeId) {
@@ -953,6 +1102,14 @@
 
   function midpoint(a, b) {
     return root.geometry.point((a.x + b.x) / 2, (a.y + b.y) / 2);
+  }
+
+  function boardToCanvasPoint(board, event) {
+    const rect = board.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left - state.viewport.x) / state.viewport.scale,
+      y: (event.clientY - rect.top - state.viewport.y) / state.viewport.scale
+    };
   }
 
   function fitAll() {

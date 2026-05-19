@@ -93,6 +93,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-history.js"), "/ missing canvas-history.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-selection.js"), "/ missing canvas-selection.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
@@ -101,11 +102,13 @@ async function checkHomeResources() {
   const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
   const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
   const canvasHistoryMatch = home.body.match(/src="([^"]*\/canvas-history\.js[^"]*)"/);
+  const canvasSelectionMatch = home.body.match(/src="([^"]*\/canvas-selection\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
   const canvasHistoryPath = canvasHistoryMatch?.[1] || "/canvas-history.js";
+  const canvasSelectionPath = canvasSelectionMatch?.[1] || "/canvas-selection.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
@@ -145,6 +148,14 @@ async function checkHomeResources() {
   assert(canvasHistory.body.includes("root.history"), `${canvasHistoryPath} should register canvas history module`);
   assert(canvasHistory.body.includes("createController"), `${canvasHistoryPath} should expose history controller`);
   assert(canvasHistory.body.includes("paste"), `${canvasHistoryPath} should support paste operations`);
+  assert(canvasHistory.body.includes("selectedNodeIds"), `${canvasHistoryPath} should preserve pasted selection ids`);
+
+  log(`GET ${canvasSelectionPath}`);
+  const canvasSelection = await fetchText(canvasSelectionPath, "application/javascript,*/*");
+  assert(canvasSelection.status === 200, `${canvasSelectionPath} status=${canvasSelection.status}`);
+  assert(canvasSelection.body.includes("root.selection"), `${canvasSelectionPath} should register canvas selection module`);
+  assert(canvasSelection.body.includes("nodesInRect"), `${canvasSelectionPath} should support marquee selection`);
+  assert(canvasSelection.body.includes("groupFromNodes"), `${canvasSelectionPath} should support grouping selected nodes`);
 
   log(`GET ${galleryModelPath}`);
   const galleryModel = await fetchText(galleryModelPath, "application/javascript,*/*");
