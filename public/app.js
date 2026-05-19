@@ -38,6 +38,7 @@ const state = {
     credit: 1
   },
   authMode: "login",
+  pendingAuthView: "",
   libraryTag: "all",
   librarySearch: "",
   promptItems: [],
@@ -84,6 +85,11 @@ const i18n = {
     brand: "ai-image-studio",
     promptLibrary: "画廊",
     imageEditor: "图片编辑",
+    canvasWorkspace: "画布工作台",
+    openCanvasWorkspace: "打开画布工作台",
+    canvasComingTitle: "把提示词、图片和生成步骤串成画布",
+    canvasComingDesc: "画布项目与节点系统会在后续任务接入；这里先提供稳定入口和登录后跳转。",
+    backHome: "返回首页",
     notifications: "通知",
     notificationsTitle: "通知",
     notificationsEmpty: "暂无通知",
@@ -377,6 +383,11 @@ const i18n = {
     brand: "ai-image-studio",
     promptLibrary: "Gallery",
     imageEditor: "Image Editor",
+    canvasWorkspace: "Canvas",
+    openCanvasWorkspace: "Open Canvas",
+    canvasComingTitle: "Connect prompts, images, and generation steps on a canvas",
+    canvasComingDesc: "Canvas projects and nodes will be connected in upcoming tasks; this is the stable signed-in entry.",
+    backHome: "Back home",
     notifications: "Notices",
     notificationsTitle: "Notices",
     notificationsEmpty: "No notices",
@@ -834,11 +845,15 @@ const elements = {
   chatView: $("#chatView"),
   libraryView: $("#libraryView"),
   editorView: $("#editorView"),
+  canvasView: $("#canvasView"),
   modalLayer: $("#modalLayer"),
   toastLayer: $("#toastLayer"),
   brandBtn: $("#brandBtn"),
   promptLibraryBtn: $("#promptLibraryBtn"),
   imageEditorBtn: $("#imageEditorBtn"),
+  canvasWorkspaceBtn: $("#canvasWorkspaceBtn"),
+  openCanvasInlineBtn: $("#openCanvasInlineBtn"),
+  canvasBackHomeBtn: $("#canvasBackHomeBtn"),
   notificationBtn: $("#notificationBtn"),
   notificationBadge: $("#notificationBadge"),
   contactBtn: $("#contactBtn"),
@@ -1421,6 +1436,7 @@ function setView(view) {
   elements.chatView.classList.toggle("hidden", view !== "home" || shouldShowHero());
   elements.libraryView.classList.toggle("hidden", view !== "library");
   elements.editorView.classList.toggle("hidden", view !== "editor");
+  elements.canvasView?.classList.toggle("hidden", view !== "canvas");
   elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   if (view === "library") renderLibrary();
   if (view === "editor") renderEditor();
@@ -1476,7 +1492,7 @@ function routeFromLocation() {
   const view = params.get("view") || "home";
   const galleryId = params.get("gallery") || (hashGalleryMatch ? decodeURIComponent(hashGalleryMatch[1]) : "");
   return {
-    view: ["home", "library", "editor"].includes(view) ? view : (galleryId ? "library" : "home"),
+    view: ["home", "library", "editor", "canvas"].includes(view) ? view : (galleryId ? "library" : "home"),
     forceHero: params.get("workspace") !== "1",
     modal: params.get("modal") || (galleryId ? "square" : ""),
     workDetailId: params.get("work") || "",
@@ -1492,6 +1508,11 @@ function replaceRoute(extra = {}) {
 }
 
 function navigate(view, options = {}) {
+  if (view === "canvas" && !state.user) {
+    state.pendingAuthView = "canvas";
+    openAuthModal("login");
+    return;
+  }
   if (view === "home" && options.hero !== false) {
     state.forceHero = true;
     elements.app.classList.remove("session-panel-open");
@@ -5367,8 +5388,11 @@ async function submitAuth(event) {
     ensureImageSessions();
     await loadAnnouncements();
     closeModal();
-    state.forceHero = true;
+    const pendingView = state.pendingAuthView;
+    state.pendingAuthView = "";
+    state.forceHero = pendingView ? false : true;
     renderAll();
+    if (pendingView) navigate(pendingView, { scrollTop: true });
     setTimeout(maybeOpenUnreadAnnouncementModal, 300);
     window.scrollTo({ top: 0, behavior: "auto" });
     restartHeroVideo();
@@ -5854,6 +5878,7 @@ function bindGlobalEvents() {
     openHomeHero({ scroll: true });
   });
   elements.promptLibraryBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
+  elements.canvasWorkspaceBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
   elements.sessionDrawerToggle?.addEventListener("click", () => {
     if (state.view === "home" && !shouldShowHero()) {
       elements.app.classList.toggle("chat-panel-collapsed");
@@ -5880,6 +5905,8 @@ function bindGlobalEvents() {
   });
   elements.imageEditorBtn.addEventListener("click", () => openImageEditor());
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
+  elements.openCanvasInlineBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
+  elements.canvasBackHomeBtn?.addEventListener("click", () => navigate("home", { scrollTop: true }));
   elements.notificationBtn?.addEventListener("click", openNotificationsModal);
   elements.contactBtn.addEventListener("click", openContactModal);
   elements.langBtn.addEventListener("click", () => {

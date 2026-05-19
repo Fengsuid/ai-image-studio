@@ -32,6 +32,10 @@
             <i class="ri-magic-line"></i>
             <span data-i18n="imageEditor">图片编辑</span>
           </button>
+          <button id="canvasWorkspaceBtn" class="nav-pill" type="button">
+            <i class="ri-node-tree"></i>
+            <span data-i18n="canvasWorkspace">画布工作台</span>
+          </button>
           <button id="notificationBtn" class="nav-pill hidden notification-pill" type="button">
             <i class="ri-notification-3-line"></i>
             <span data-i18n="notifications">通知</span>
@@ -105,6 +109,10 @@
           </h1>
           <p data-i18n="desc" class="hero-desc">用 GPT Image 将你的创意变为精美图片，只需描述你脑海中的画面。</p>
           <div id="heroComposerMount" class="composer-mount"></div>
+          <button id="openCanvasInlineBtn" class="hero-canvas-button" type="button">
+            <i class="ri-node-tree"></i>
+            <span data-i18n="openCanvasWorkspace">打开画布工作台</span>
+          </button>
           <p class="reviews"><i class="ri-image-circle-line"></i><span data-i18n="reviews">生成后会自动保存到你的图库</span></p>
         </section>
 
@@ -233,6 +241,20 @@
               </button>
             </form>
           </div>
+        </section>
+      </main>
+
+      <main id="canvasView" class="canvas-view hidden">
+        <section class="canvas-empty-workspace">
+          <div>
+            <span data-i18n="canvasWorkspace">画布工作台</span>
+            <h2 data-i18n="canvasComingTitle">把提示词、图片和生成步骤串成画布</h2>
+            <p data-i18n="canvasComingDesc">画布项目与节点系统会在后续任务接入；这里先提供稳定入口和登录后跳转。</p>
+          </div>
+          <button id="canvasBackHomeBtn" type="button">
+            <i class="ri-arrow-left-line"></i>
+            <span data-i18n="backHome">返回首页</span>
+          </button>
         </section>
       </main>
 

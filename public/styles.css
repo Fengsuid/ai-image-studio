@@ -269,7 +269,8 @@ a {
 
 .home-view,
 .chat-view,
-.library-view {
+.library-view,
+.canvas-view {
   position: relative;
   z-index: 10;
 }
@@ -290,6 +291,70 @@ a {
 .hero > *:not(.hero-video-layer) {
   position: relative;
   z-index: 1;
+}
+
+.hero-canvas-button {
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+
+.canvas-view {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 120px 24px 48px;
+}
+
+.canvas-empty-workspace {
+  min-height: 480px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  padding: clamp(28px, 6vw, 72px);
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+}
+
+.canvas-empty-workspace span {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.canvas-empty-workspace h2 {
+  margin: 10px 0;
+  max-width: 760px;
+  font-size: clamp(28px, 4vw, 54px);
+}
+
+.canvas-empty-workspace p {
+  max-width: 620px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.canvas-empty-workspace button {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .hero-video-layer {
