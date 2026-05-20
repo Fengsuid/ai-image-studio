@@ -135,7 +135,12 @@ function mapUser(row) {
     status: row.status,
     credits: Number(row.credits || 0),
     createdAt: toIso(row.created_at),
-    updatedAt: toIso(row.updated_at)
+    updatedAt: toIso(row.updated_at),
+    firstPublicRewardStatus: row.first_public_reward_status || "none",
+    firstPublicRewardAmount: Number(row.first_public_reward_amount || 0),
+    firstPublicRewardGenerationId: row.first_public_reward_reference_id || "",
+    firstPublicRewardAwardedAt: toIso(row.first_public_reward_awarded_at),
+    firstPublicRewardCreatedAt: toIso(row.first_public_reward_created_at)
   };
 }
 
@@ -1369,8 +1374,56 @@ async function createUser(user) {
   return getUserById(user.id);
 }
 
-async function listUsers() {
-  const [rows] = await getPool().execute("SELECT * FROM users ORDER BY created_at DESC");
+async function listUsers({ search = "", status = "", role = "", rewardStatus = "", limit = 500, offset = 0 } = {}) {
+  const normalizedLimit = Math.max(1, Math.min(1000, Number(limit) || 500));
+  const normalizedOffset = Math.max(0, Number(offset) || 0);
+  const where = [];
+  const values = [];
+  const query = String(search || "").trim().toLowerCase();
+  if (query) {
+    where.push("(LOWER(u.name) LIKE ? OR LOWER(u.email) LIKE ? OR u.id = ?)");
+    values.push(`%${query}%`, `%${query}%`, query);
+  }
+  if (status && status !== "all") {
+    where.push("u.status = ?");
+    values.push(status);
+  }
+  if (role && role !== "all") {
+    where.push("u.role = ?");
+    values.push(role);
+  }
+  if (rewardStatus && rewardStatus !== "all") {
+    if (rewardStatus === "none") {
+      where.push("fpr.status IS NULL");
+    } else {
+      where.push("fpr.status = ?");
+      values.push(rewardStatus);
+    }
+  }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const [rows] = await getPool().execute(
+    `SELECT u.*,
+            fpr.status AS first_public_reward_status,
+            fpr.amount AS first_public_reward_amount,
+            fpr.reference_id AS first_public_reward_reference_id,
+            fpr.awarded_at AS first_public_reward_awarded_at,
+            fpr.created_at AS first_public_reward_created_at
+       FROM users u
+       LEFT JOIN (
+         SELECT rl.*
+           FROM reward_ledger rl
+           INNER JOIN (
+             SELECT user_id, MAX(id) AS id
+               FROM reward_ledger
+              WHERE reward_type = 'first_public'
+              GROUP BY user_id
+           ) latest ON latest.id = rl.id
+       ) fpr ON fpr.user_id = u.id
+       ${whereSql}
+      ORDER BY u.created_at DESC
+      LIMIT ${normalizedLimit} OFFSET ${normalizedOffset}`,
+    values
+  );
   return rows.map(mapUser);
 }
 
@@ -1840,10 +1893,86 @@ async function hasFirstPublicReward(userId) {
   );
   if (rewardRows.length) return true;
   const [pendingRows] = await getPool().execute(
-    "SELECT id FROM generations WHERE user_id = ? AND public_reward_status IN ('pending', 'awarded') LIMIT 1",
+    "SELECT id FROM generations WHERE user_id = ? AND public_reward_status IN ('pending', 'awarded', 'cancelled') LIMIT 1",
     [userId]
   );
   return pendingRows.length > 0;
+}
+
+async function claimFirstPublicReward(generationId, userId, amount = 0) {
+  const rewardAmount = Math.max(0, Number(amount) || 0);
+  if (!generationId || !userId || rewardAmount <= 0) return null;
+  const connection = await getPool().getConnection();
+  try {
+    await connection.beginTransaction();
+    const [userRows] = await connection.execute("SELECT id FROM users WHERE id = ? FOR UPDATE", [userId]);
+    if (!userRows.length) {
+      await connection.rollback();
+      return null;
+    }
+    const [existingRewards] = await connection.execute(
+      "SELECT id FROM reward_ledger WHERE user_id = ? AND reward_type = 'first_public' LIMIT 1 FOR UPDATE",
+      [userId]
+    );
+    if (existingRewards.length) {
+      await connection.rollback();
+      return null;
+    }
+    const [existingGenerationRewards] = await connection.execute(
+      "SELECT id FROM generations WHERE user_id = ? AND public_reward_status IN ('pending', 'awarded', 'cancelled') LIMIT 1 FOR UPDATE",
+      [userId]
+    );
+    if (existingGenerationRewards.length) {
+      await connection.rollback();
+      return null;
+    }
+    const [targetRows] = await connection.execute(
+      "SELECT id, is_public, archived, moderation_status FROM generations WHERE id = ? AND user_id = ? FOR UPDATE",
+      [generationId, userId]
+    );
+    const target = targetRows[0];
+    if (!target || !target.is_public || target.archived || !["visible", "restored"].includes(target.moderation_status || "visible")) {
+      await connection.rollback();
+      return null;
+    }
+    await connection.execute(
+      `UPDATE generations
+          SET public_reward_status = 'pending',
+              public_reward_amount = ?,
+              withdrawal_status = 'none',
+              published_at = IFNULL(published_at, NOW(3))
+        WHERE id = ? AND user_id = ?`,
+      [rewardAmount, generationId, userId]
+    );
+    await insertRewardLedger({
+      userId,
+      rewardType: "first_public",
+      status: "pending",
+      amount: rewardAmount,
+      referenceId: generationId,
+      note: "First public work reward pending"
+    }, connection);
+    await connection.commit();
+    return getGenerationById(generationId);
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function cancelFirstPublicReward(generationId, note = "First public reward cancelled", connection = getPool()) {
+  if (!generationId) return;
+  await connection.execute(
+    `UPDATE reward_ledger
+        SET status = 'cancelled',
+            note = ?
+      WHERE reward_type = 'first_public'
+        AND reference_id = ?
+        AND status = 'pending'`,
+    [String(note || "First public reward cancelled").slice(0, 255), generationId]
+  );
 }
 
 async function awardMaturePublicRewards({ minAgeHours = 12 } = {}) {
@@ -1852,6 +1981,7 @@ async function awardMaturePublicRewards({ minAgeHours = 12 } = {}) {
       WHERE is_public = 1
         AND archived = 0
         AND public_reward_status = 'pending'
+        AND moderation_status IN ('visible', 'restored')
         AND published_at IS NOT NULL
         AND published_at <= DATE_SUB(NOW(3), INTERVAL ? HOUR)
         AND withdrawal_status IN ('none', 'rejected')
@@ -1859,28 +1989,110 @@ async function awardMaturePublicRewards({ minAgeHours = 12 } = {}) {
       LIMIT 100`,
     [Math.max(1, Number(minAgeHours) || 12)]
   );
+  let awarded = 0;
   for (const row of rows) {
-    const generation = mapGeneration(row);
+    if (await awardMaturePublicReward(row.id, { minAgeHours })) awarded += 1;
+  }
+  return awarded;
+}
+
+async function awardMaturePublicReward(generationId, { minAgeHours = 12 } = {}) {
+  const connection = await getPool().getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.execute(
+      `SELECT *
+         FROM generations
+        WHERE id = ?
+          AND public_reward_status = 'pending'
+        FOR UPDATE`,
+      [generationId]
+    );
+    const generation = mapGeneration(rows[0]);
+    if (
+      !generation ||
+      !generation.isPublic ||
+      generation.archived ||
+      !["visible", "restored"].includes(generation.moderationStatus || "visible") ||
+      !generation.publishedAt ||
+      Date.now() - new Date(generation.publishedAt).getTime() < Math.max(1, Number(minAgeHours) || 12) * 60 * 60 * 1000 ||
+      !["none", "rejected"].includes(generation.withdrawalStatus || "none")
+    ) {
+      await connection.rollback();
+      return false;
+    }
+    await connection.execute("SELECT id FROM users WHERE id = ? FOR UPDATE", [generation.userId]);
+    const [awardedRows] = await connection.execute(
+      `SELECT id, reference_id
+         FROM reward_ledger
+        WHERE user_id = ?
+          AND reward_type = 'first_public'
+          AND status = 'awarded'
+        LIMIT 1
+        FOR UPDATE`,
+      [generation.userId]
+    );
+    if (awardedRows.length && awardedRows[0].reference_id !== generation.id) {
+      await connection.execute(
+        "UPDATE generations SET public_reward_status = 'cancelled' WHERE id = ?",
+        [generation.id]
+      );
+      await cancelFirstPublicReward(generation.id, "Superseded by existing first public reward", connection);
+      await connection.commit();
+      return false;
+    }
     const amount = Number(generation.publicRewardAmount || 0);
     if (amount > 0) {
-      await addCredits(generation.userId, amount, {
+      await connection.execute("UPDATE users SET credits = credits + ?, updated_at = ? WHERE id = ?", [
+        amount,
+        new Date(),
+        generation.userId
+      ]);
+      const [balanceRows] = await connection.execute("SELECT credits FROM users WHERE id = ? LIMIT 1", [generation.userId]);
+      await insertCreditLedger({
+        userId: generation.userId,
+        delta: amount,
+        balanceAfter: Number(balanceRows[0]?.credits || 0),
         source: "first_public_reward",
         referenceId: generation.id,
         note: "First public work reward"
-      });
-      await insertRewardLedger({
-        userId: generation.userId,
-        rewardType: "first_public",
-        status: "awarded",
-        amount,
-        referenceId: generation.id,
-        note: "Public for 12 hours",
-        awardedAt: new Date()
-      });
+      }, connection);
+      const [rewardUpdate] = await connection.execute(
+        `UPDATE reward_ledger
+            SET status = 'awarded',
+                amount = ?,
+                note = 'Public for 12 hours',
+                awarded_at = ?
+          WHERE user_id = ?
+            AND reward_type = 'first_public'
+            AND reference_id = ?
+            AND status = 'pending'`,
+        [amount, new Date(), generation.userId, generation.id]
+      );
+      if (rewardUpdate.affectedRows === 0) {
+        await insertRewardLedger({
+          userId: generation.userId,
+          rewardType: "first_public",
+          status: "awarded",
+          amount,
+          referenceId: generation.id,
+          note: "Public for 12 hours",
+          awardedAt: new Date()
+        }, connection);
+      }
     }
-    await updateGenerationPublic(generation.id, { publicRewardStatus: "awarded" });
+    await connection.execute(
+      "UPDATE generations SET public_reward_status = 'awarded' WHERE id = ?",
+      [generation.id]
+    );
+    await connection.commit();
+    return true;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
-  return rows.length;
 }
 
 async function listWithdrawalRequests({ limit = 100 } = {}) {
@@ -2751,6 +2963,16 @@ async function updateGenerationPublic(id, patch) {
   const existing = await getGenerationById(id);
   const columns = [];
   const values = [];
+  let shouldCancelPublicReward = false;
+  const setPublicRewardStatus = (status) => {
+    const index = columns.findIndex((column) => column === "public_reward_status = ?");
+    if (index >= 0) {
+      values[index] = status;
+      return;
+    }
+    columns.push("public_reward_status = ?");
+    values.push(status);
+  };
   if (Object.hasOwn(patch, "isPublic")) {
     columns.push("is_public = ?");
     values.push(patch.isPublic ? 1 : 0);
@@ -2758,9 +2980,9 @@ async function updateGenerationPublic(id, patch) {
       columns.push("published_at = ?");
       values.push(new Date());
     }
-    if (!patch.isPublic && existing?.publicRewardStatus === "pending") {
-      columns.push("public_reward_status = ?");
-      values.push("cancelled");
+    if (!patch.isPublic && existing?.publicRewardStatus === "pending" && !Object.hasOwn(patch, "publicRewardStatus")) {
+      setPublicRewardStatus("cancelled");
+      shouldCancelPublicReward = true;
     }
   }
   if (Object.hasOwn(patch, "sourceFilename")) {
@@ -2786,16 +3008,21 @@ async function updateGenerationPublic(id, patch) {
   if (Object.hasOwn(patch, "archived")) {
     columns.push("archived = ?");
     values.push(patch.archived ? 1 : 0);
-    if (patch.archived && existing?.publicRewardStatus === "pending") {
-      columns.push("public_reward_status = ?");
-      values.push("cancelled");
+    if (patch.archived && existing?.publicRewardStatus === "pending" && !Object.hasOwn(patch, "publicRewardStatus")) {
+      setPublicRewardStatus("cancelled");
+      shouldCancelPublicReward = true;
     }
   }
   if (Object.hasOwn(patch, "moderationStatus")) {
     columns.push("moderation_status = ?");
-    values.push(["visible", "reported", "reviewing", "restored", "hidden", "resolved"].includes(patch.moderationStatus) ? patch.moderationStatus : "visible");
+    const moderationStatus = ["visible", "reported", "reviewing", "restored", "hidden", "resolved"].includes(patch.moderationStatus) ? patch.moderationStatus : "visible";
+    values.push(moderationStatus);
     columns.push("moderation_checked_at = ?");
     values.push(new Date());
+    if (moderationStatus === "hidden" && existing?.publicRewardStatus === "pending" && !Object.hasOwn(patch, "publicRewardStatus")) {
+      setPublicRewardStatus("cancelled");
+      shouldCancelPublicReward = true;
+    }
   }
   if (Object.hasOwn(patch, "moderationReason")) {
     columns.push("moderation_reason = ?");
@@ -2806,8 +3033,7 @@ async function updateGenerationPublic(id, patch) {
     values.push(Math.max(0, Number(patch.reportCount) || 0));
   }
   if (Object.hasOwn(patch, "publicRewardStatus")) {
-    columns.push("public_reward_status = ?");
-    values.push(patch.publicRewardStatus);
+    setPublicRewardStatus(patch.publicRewardStatus);
     if (patch.publicRewardStatus === "pending" && !existing?.publishedAt) {
       columns.push("published_at = ?");
       values.push(new Date());
@@ -2840,6 +3066,9 @@ async function updateGenerationPublic(id, patch) {
   if (!columns.length) return getGenerationById(id);
   values.push(id);
   await getPool().execute(`UPDATE generations SET ${columns.join(", ")} WHERE id = ?`, values);
+  if (shouldCancelPublicReward) {
+    await cancelFirstPublicReward(id);
+  }
   return getGenerationById(id);
 }
 
@@ -4775,6 +5004,7 @@ module.exports = {
   listCreditLedger,
   listRewardLedger,
   hasFirstPublicReward,
+  claimFirstPublicReward,
   awardMaturePublicRewards,
   listWithdrawalRequests,
   createGenerationReport,

@@ -16,6 +16,7 @@
     "start": "node server.js",
     "smoke:public": "node scripts/smoke/check-public-api.mjs",
     "smoke:auth-admin": "node scripts/smoke/check-auth-admin.mjs",
+    "smoke:user-credits-reward": "node scripts/smoke/check-user-credits-reward.mjs",
     "smoke:canvas-history": "node scripts/smoke/check-canvas-history.mjs",
     "smoke:canvas-assistant": "node scripts/smoke/check-canvas-assistant.mjs",
     "smoke:canvas-assistant-api": "node scripts/smoke/check-canvas-assistant-api.mjs",

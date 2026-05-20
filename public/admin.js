@@ -694,7 +694,13 @@ function renderUsers() {
           <thead><tr><th><input type="checkbox" data-select-page-users></th><th>用户</th><th>角色</th><th>状态</th><th>积分</th><th>首发奖励</th><th>注册时间</th><th></th></tr></thead>
           <tbody>
             ${pageItems.map((user) => {
-              const latestReward = adminState.rewardLedger.find((item) => item.userId === user.id);
+              const latestReward = user.firstPublicRewardStatus && user.firstPublicRewardStatus !== "none"
+                ? {
+                    status: user.firstPublicRewardStatus,
+                    amount: user.firstPublicRewardAmount,
+                    referenceId: user.firstPublicRewardGenerationId
+                  }
+                : adminState.rewardLedger.find((item) => item.userId === user.id && item.rewardType === "first_public");
               return `
               <tr>
                 <td><input type="checkbox" data-user-select="${escapeHtml(user.id)}"${adminState.selectedUsers.has(user.id) ? " checked" : ""}></td>
@@ -702,7 +708,7 @@ function renderUsers() {
                 <td>${escapeHtml(user.role)}</td>
                 <td><span class="admin-badge" data-status="${escapeHtml(user.status)}">${escapeHtml(user.status)}</span></td>
                 <td>${fmtNumber(user.credits)}</td>
-                <td>${latestReward ? `${escapeHtml(latestReward.status)} · ${fmtNumber(latestReward.amount)}` : "未发放"}</td>
+                <td>${latestReward ? `${escapeHtml(latestReward.status)} · ${fmtNumber(latestReward.amount)}<small>${escapeHtml(latestReward.referenceId || "")}</small>` : "未发放"}</td>
                 <td>${fmtDate(user.createdAt)}</td>
                 <td><button type="button" data-detail="user:${escapeHtml(user.id)}">编辑</button></td>
               </tr>
@@ -1407,11 +1413,15 @@ async function userDrawer(user) {
   ]);
   const ledgerRows = creditLedger.ledger || [];
   const rewardRows = rewardLedger.rewards || [];
+  const firstPublicReward = user.firstPublicRewardStatus && user.firstPublicRewardStatus !== "none"
+    ? `${user.firstPublicRewardStatus} · ${fmtNumber(user.firstPublicRewardAmount)} · ${user.firstPublicRewardGenerationId || "-"}`
+    : "未发放";
   openDrawer("用户与积分", `
     <form id="drawerUserForm" class="admin-form-grid single">
       <label>姓名<input name="name" value="${escapeHtml(user.name || "")}"></label>
       <label>角色<select name="role"><option value="user"${user.role === "user" ? " selected" : ""}>user</option><option value="admin"${user.role === "admin" ? " selected" : ""}>admin</option></select></label>
       <label>状态<select name="status"><option value="active"${user.status === "active" ? " selected" : ""}>active</option><option value="disabled"${user.status === "disabled" ? " selected" : ""}>disabled</option></select></label>
+      <label>首发奖励<input value="${escapeHtml(firstPublicReward)}" disabled></label>
       <label>积分<input name="credits" type="number" min="0" value="${escapeHtml(user.credits || 0)}"></label>
       <label>积分调整<input name="creditDelta" type="number" value="0"></label>
       <label>备注<input name="note" value="Admin adjustment"></label>

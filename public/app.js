@@ -258,6 +258,7 @@ const i18n = {
     publishedImage: "已公开",
     publishWithOriginal: "含原图公开",
     publishDone: "已上传广场",
+    firstPublicRewardLocked: "首次公开奖励已锁定，满 12 小时入账",
     publishFailed: "上传失败",
     publishSettings: "发布设置",
     publishSettingsDesc: "公开图生图时会保留原图，便于理解来源",
@@ -587,6 +588,7 @@ const i18n = {
     publishedImage: "Published",
     publishWithOriginal: "Publish with original",
     publishDone: "Published to square",
+    firstPublicRewardLocked: "First public reward locked; credits arrive after 12 hours",
     publishFailed: "Publish failed",
     publishSettings: "Publish settings",
     publishSettingsDesc: "Image-to-image publishing keeps the source for context",
@@ -2404,7 +2406,9 @@ async function submitGeneration(form) {
     }
     if (item.isPublic) await loadPublicGallery();
     if (!continuation.active) {
-      showToast(state.lang === "zh" ? "已生成" : "Created", "ri-sparkling-2-fill");
+      showToast(item.isPublic && data.generations.length === 1
+        ? firstPublicRewardToast(generation, "publishDone")
+        : (state.lang === "zh" ? "已生成" : "Created"), "ri-sparkling-2-fill");
     }
     if (item.isPublic && data.generations.length > 1) {
       showToast(state.lang === "zh" ? "请选择最终候选后再公开" : "Choose the final candidate before publishing", "ri-gallery-upload-line");
@@ -2973,7 +2977,7 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
     );
     await loadPublicGallery();
     renderAll();
-    showToast(item.isPublic ? text("tagsSaved") : text("publishDone"), "ri-gallery-upload-line");
+    showToast(item.isPublic ? text("tagsSaved") : firstPublicRewardToast(generation, "publishDone"), "ri-gallery-upload-line");
     return true;
   } catch (error) {
     if (error?.details?.requiredMode === "image-to-image" && !item.sourceImageId && !item.sourceImageUrl && !item.sourceImageData) {
@@ -3060,7 +3064,7 @@ function openBindSourceModal({ item, publishOriginal = false, publicTags = [], a
       await loadPublicGallery();
       renderAll();
       closeModal();
-      showToast(text("publishDone"), "ri-gallery-upload-line");
+      showToast(firstPublicRewardToast(generation, "publishDone"), "ri-gallery-upload-line");
     } catch (error) {
       button.disabled = false;
       showToast(promptAuditPublishMessage(error) || error.message || text("publishFailed"), "ri-error-warning-line");
@@ -4252,13 +4256,17 @@ async function submitImageEdit(event) {
       time: generation.createdAt,
       elapsedMs: Number(generation.durationMs || 0) || null,
       model: generation.model,
-      isPublic: Boolean(generation.isPublic)
+      isPublic: Boolean(generation.isPublic),
+      publicRewardStatus: generation.publicRewardStatus || "none",
+      publicRewardAmount: Number(generation.publicRewardAmount || 0)
     };
     state.history.push(savedEntry);
     setEditorImage(generation.imageUrl);
     if (generation.isPublic) await loadPublicGallery();
     renderAll();
-    showToast(state.lang === "zh" ? "编辑完成" : "Edit created", "ri-magic-line");
+    showToast(savedEntry.isPublic
+      ? firstPublicRewardToast(savedEntry, "publishDone")
+      : (state.lang === "zh" ? "编辑完成" : "Edit created"), "ri-magic-line");
     if (savedEntry.isPublic) {
       setTimeout(() => openPublishModal(savedEntry, Boolean(generation.publishOriginal)), 180);
     }
@@ -5550,6 +5558,14 @@ function publicRewardLabel(item) {
   if (item.publicRewardStatus === "awarded") return state.lang === "zh" ? "奖励已入账" : "reward awarded";
   if (item.publicRewardStatus === "cancelled") return state.lang === "zh" ? "奖励已取消" : "reward cancelled";
   return "";
+}
+
+function firstPublicRewardToast(item, fallbackKey = "publishDone") {
+  if (item?.publicRewardStatus !== "pending") return text(fallbackKey);
+  const amount = Number(item.publicRewardAmount || 0);
+  return state.lang === "zh"
+    ? `${text("firstPublicRewardLocked")} +${amount} 积分`
+    : `${text("firstPublicRewardLocked")} (+${amount})`;
 }
 
 async function requestWorkWithdrawal(id) {

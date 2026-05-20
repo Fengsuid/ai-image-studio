@@ -239,7 +239,12 @@ function serializeUser(user) {
     role: user.role,
     status: user.status,
     credits: user.credits,
-    createdAt: user.createdAt
+    createdAt: user.createdAt,
+    firstPublicRewardStatus: user.firstPublicRewardStatus || "none",
+    firstPublicRewardAmount: Number(user.firstPublicRewardAmount || 0),
+    firstPublicRewardGenerationId: user.firstPublicRewardGenerationId || "",
+    firstPublicRewardAwardedAt: user.firstPublicRewardAwardedAt || null,
+    firstPublicRewardCreatedAt: user.firstPublicRewardCreatedAt || null
   };
 }
 
@@ -900,6 +905,13 @@ async function writeAdminAudit(current, req, action, targetType, targetId, detai
 function ensureAuthenticated(current) {
   if (!current?.user) {
     throw httpError("Please sign in first", 401);
+  }
+}
+
+function ensureActiveAuthenticated(current) {
+  ensureAuthenticated(current);
+  if (current.user.status !== "active") {
+    throw httpError("Account is not active", 403);
   }
 }
 
@@ -2411,6 +2423,16 @@ function drainGenerationQueue() {
   }
 }
 
+async function claimFirstPublicRewardForGeneration(generation) {
+  if (!generation?.id || !generation.userId || !generation.isPublic) return generation;
+  const rewarded = await store.claimFirstPublicReward(
+    generation.id,
+    generation.userId,
+    FIRST_PUBLIC_REWARD_CREDIT
+  );
+  return rewarded ? { ...generation, ...rewarded, imageUrl: generation.imageUrl } : generation;
+}
+
 async function finalizeSuccessfulGenerations({ auditId, user, request, openaiResult, requestStartedAt, expectedCount }) {
   const durationMs = Date.now() - requestStartedAt;
   const saved = (await saveGeneratedImages(user, request, openaiResult))
@@ -2419,13 +2441,8 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
     throw httpError("OpenAI did not return a savable image", 502);
   }
   await store.insertGenerations(saved);
-  if (request.isPublic && saved[0] && !(await store.hasFirstPublicReward(user.id))) {
-    const rewarded = await store.updateGenerationPublic(saved[0].id, {
-      publicRewardStatus: "pending",
-      publicRewardAmount: FIRST_PUBLIC_REWARD_CREDIT,
-      withdrawalStatus: "none"
-    });
-    saved[0] = { ...saved[0], ...rewarded, imageUrl: saved[0].imageUrl };
+  if (request.isPublic && saved[0]) {
+    saved[0] = await claimFirstPublicRewardForGeneration(saved[0]);
   }
   await store.updateGenerationRequest(auditId, {
     status: "succeeded",
@@ -3321,8 +3338,24 @@ async function routeApi(req, res, url) {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
     ensureAdmin(current);
+    const status = ["active", "disabled", "all"].includes(url.searchParams.get("status"))
+      ? url.searchParams.get("status")
+      : "";
+    const role = ["admin", "user", "all"].includes(url.searchParams.get("role"))
+      ? url.searchParams.get("role")
+      : "";
+    const rewardStatus = ["none", "pending", "awarded", "cancelled", "all"].includes(url.searchParams.get("rewardStatus"))
+      ? url.searchParams.get("rewardStatus")
+      : "";
     return sendJson(res, 200, {
-      users: (await store.listUsers()).map(serializeUser)
+      users: (await store.listUsers({
+        search: url.searchParams.get("search") || "",
+        status,
+        role,
+        rewardStatus,
+        limit: sanitizePositiveInt(url.searchParams.get("limit"), 500, 1000),
+        offset: Math.max(0, Number.parseInt(url.searchParams.get("offset"), 10) || 0)
+      })).map(serializeUser)
     });
   }
 
@@ -4300,7 +4333,7 @@ async function routeApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/images/bulk") {
     const current = await getCurrentUser(req);
-    ensureAuthenticated(current);
+    ensureActiveAuthenticated(current);
     const body = await readJsonBody(req);
     const ids = Array.isArray(body.generationIds)
       ? body.generationIds.map((id) => String(id || "").trim()).filter(Boolean).slice(0, 200)
@@ -4325,11 +4358,6 @@ async function routeApi(req, res, url) {
             kind,
             incrementUsage: true
           });
-          if (!generation.isPublic && !(await store.hasFirstPublicReward(generation.userId))) {
-            patch.publicRewardStatus = "pending";
-            patch.publicRewardAmount = FIRST_PUBLIC_REWARD_CREDIT;
-            patch.withdrawalStatus = "none";
-          }
         } else if (action === "unpublish") {
           if (generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
             throw new Error("withdrawal_request_required");
@@ -4348,7 +4376,10 @@ async function routeApi(req, res, url) {
         } else {
           throw new Error("invalid_action");
         }
-        const updated = await store.updateGenerationPublic(generation.id, patch);
+        let updated = await store.updateGenerationPublic(generation.id, patch);
+        if (action === "publish" && !generation.isPublic) {
+          updated = await claimFirstPublicRewardForGeneration(updated);
+        }
         results.push({ id, ok: true, generation: updated });
       } catch (error) {
         results.push({ id, ok: false, error: error.message || String(error) });
@@ -4513,13 +4544,8 @@ async function routeApi(req, res, url) {
         throw httpError("OpenAI did not return a savable image", 502);
       }
       await store.insertGenerations(saved);
-      if (request.isPublic && saved[0] && !(await store.hasFirstPublicReward(user.id))) {
-        const rewarded = await store.updateGenerationPublic(saved[0].id, {
-          publicRewardStatus: "pending",
-          publicRewardAmount: FIRST_PUBLIC_REWARD_CREDIT,
-          withdrawalStatus: "none"
-        });
-        saved[0] = { ...saved[0], ...rewarded, imageUrl: saved[0].imageUrl };
+      if (request.isPublic && saved[0]) {
+        saved[0] = await claimFirstPublicRewardForGeneration(saved[0]);
       }
       await store.updateGenerationRequest(auditId, {
           status: "succeeded",
@@ -4701,13 +4727,8 @@ async function routeApi(req, res, url) {
         throw httpError("OpenAI did not return a savable edited image", 502);
       }
       await store.insertGenerations(saved);
-      if (request.isPublic && saved[0] && !(await store.hasFirstPublicReward(user.id))) {
-        const rewarded = await store.updateGenerationPublic(saved[0].id, {
-          publicRewardStatus: "pending",
-          publicRewardAmount: FIRST_PUBLIC_REWARD_CREDIT,
-          withdrawalStatus: "none"
-        });
-        saved[0] = { ...saved[0], ...rewarded, imageUrl: saved[0].imageUrl };
+      if (request.isPublic && saved[0]) {
+        saved[0] = await claimFirstPublicRewardForGeneration(saved[0]);
       }
       await store.updateGenerationRequest(auditId, {
         status: "succeeded",
@@ -4756,7 +4777,7 @@ async function routeApi(req, res, url) {
   const publicMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/public$/);
   if (publicMatch && req.method === "PATCH") {
     const current = await getCurrentUser(req);
-    ensureAuthenticated(current);
+    ensureActiveAuthenticated(current);
     const generation = await store.getGenerationById(publicMatch[1]);
     if (!generation || !canTouchGeneration(current.user, generation)) {
       throw httpError("Image not found", 404);
@@ -4806,11 +4827,6 @@ async function routeApi(req, res, url) {
         withdrawalStatus: generation.withdrawalStatus
       });
     }
-    if (patch.isPublic === true && !generation.isPublic && !(await store.hasFirstPublicReward(generation.userId))) {
-      patch.publicRewardStatus = "pending";
-      patch.publicRewardAmount = FIRST_PUBLIC_REWARD_CREDIT;
-      patch.withdrawalStatus = "none";
-    }
     if (body.publishOriginal === true && body.sourceImageData) {
       patch.sourceFilename = await saveSourceImageFromData(body.sourceImageData);
       patch.publishOriginal = Boolean(patch.sourceFilename);
@@ -4833,7 +4849,10 @@ async function routeApi(req, res, url) {
         });
       }
     }
-    const updated = await store.updateGenerationPublic(generation.id, patch);
+    let updated = await store.updateGenerationPublic(generation.id, patch);
+    if (patch.isPublic === true && !generation.isPublic) {
+      updated = await claimFirstPublicRewardForGeneration(updated);
+    }
     return sendJson(res, 200, {
       generation: {
         ...updated,
