@@ -95,6 +95,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/canvas-history.js"), "/ missing canvas-history.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-selection.js"), "/ missing canvas-selection.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-io.js"), "/ missing canvas-io.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-assistant.js"), "/ missing canvas-assistant.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
@@ -105,6 +106,7 @@ async function checkHomeResources() {
   const canvasHistoryMatch = home.body.match(/src="([^"]*\/canvas-history\.js[^"]*)"/);
   const canvasSelectionMatch = home.body.match(/src="([^"]*\/canvas-selection\.js[^"]*)"/);
   const canvasIoMatch = home.body.match(/src="([^"]*\/canvas-io\.js[^"]*)"/);
+  const canvasAssistantMatch = home.body.match(/src="([^"]*\/canvas-assistant\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
@@ -112,6 +114,7 @@ async function checkHomeResources() {
   const canvasHistoryPath = canvasHistoryMatch?.[1] || "/canvas-history.js";
   const canvasSelectionPath = canvasSelectionMatch?.[1] || "/canvas-selection.js";
   const canvasIoPath = canvasIoMatch?.[1] || "/canvas-io.js";
+  const canvasAssistantPath = canvasAssistantMatch?.[1] || "/canvas-assistant.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
@@ -166,6 +169,13 @@ async function checkHomeResources() {
   assert(canvasIo.body.includes("root.io"), `${canvasIoPath} should register canvas IO module`);
   assert(canvasIo.body.includes("exportCanvas"), `${canvasIoPath} should support canvas JSON export`);
   assert(canvasIo.body.includes("importCanvas"), `${canvasIoPath} should support canvas JSON import`);
+
+  log(`GET ${canvasAssistantPath}`);
+  const canvasAssistant = await fetchText(canvasAssistantPath, "application/javascript,*/*");
+  assert(canvasAssistant.status === 200, `${canvasAssistantPath} status=${canvasAssistant.status}`);
+  assert(canvasAssistant.body.includes("root.assistant"), `${canvasAssistantPath} should register canvas assistant module`);
+  assert(canvasAssistant.body.includes("createController"), `${canvasAssistantPath} should expose assistant controller`);
+  assert(canvasAssistant.body.includes("suggestionToNodeInput"), `${canvasAssistantPath} should convert suggestions into nodes`);
 
   log(`GET ${galleryModelPath}`);
   const galleryModel = await fetchText(galleryModelPath, "application/javascript,*/*");

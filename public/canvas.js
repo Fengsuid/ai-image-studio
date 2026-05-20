@@ -25,7 +25,8 @@
     edgeError: "",
     drag: null,
     pointers: new Map(),
-    history: null
+    history: null,
+    assistant: null
   };
 
   function renderShell({ projectId = "", elements = {} } = {}) {
@@ -61,6 +62,7 @@
     });
     renderSaveStatus();
     renderHistoryControls();
+    renderAssistant();
   }
 
   function resetCanvas(projectId) {
@@ -405,6 +407,7 @@
     });
     document.querySelector("#canvasInspectorBody")?.addEventListener("change", updateSelectedNode);
     document.querySelector("#canvasInspectorBody")?.addEventListener("click", onInspectorAction);
+    ensureAssistant();
     global.addEventListener("beforeunload", (event) => {
       if (!state.dirty && state.saveStatus !== "saving" && state.saveStatus !== "failed") return;
       event.preventDefault();
@@ -586,8 +589,9 @@
     const x = Math.round((rect.width / 2 - state.viewport.x) / state.viewport.scale);
     const y = Math.round((rect.height / 2 - state.viewport.y) / state.viewport.scale);
     const isPrompt = payload.kind === "prompt";
+    const isText = payload.kind === "text";
     const node = root.nodes.createNode({
-      type: isPrompt ? "prompt" : "image",
+      type: isPrompt ? "prompt" : isText ? "text" : "image",
       x,
       y,
       data: isPrompt
@@ -599,6 +603,12 @@
             source: payload.source || "",
             tags: payload.tags || []
           }
+        : isText
+          ? {
+              title: payload.title || "Text note",
+              body: payload.body || payload.prompt || "",
+              source: payload.source || ""
+            }
         : {
             title: payload.title || "Image",
             body: payload.prompt || payload.title || "Canvas image",
@@ -614,6 +624,83 @@
     recordHistoryBefore(before);
     markDirty();
     renderBoard();
+  }
+
+  function ensureAssistant() {
+    if (state.assistant || !root.assistant?.createController) return state.assistant;
+    const container = document.querySelector("#canvasAssistantBody");
+    if (!container) return null;
+    state.assistant = root.assistant.createController({
+      container,
+      request: root.request,
+      saveCanvas: saveCanvasNow,
+      getContext: assistantContext,
+      insertSuggestion: insertAssistantSuggestion
+    });
+    state.assistant.render();
+    return state.assistant;
+  }
+
+  function renderAssistant() {
+    ensureAssistant()?.render?.();
+  }
+
+  function assistantContext() {
+    return {
+      projectId: state.projectId,
+      selectedNodeId: state.selectedNodeId,
+      selectedNodeIds: state.selectedNodeIds.slice(),
+      selectedNodes: selectedNodes().map(cloneNode),
+      nodes: state.nodes.map(cloneNode),
+      edges: state.edges.map((edge) => ({ ...edge }))
+    };
+  }
+
+  function insertAssistantSuggestion(suggestion = {}) {
+    if (!root.assistant?.suggestionToNodeInput) return null;
+    const input = root.assistant.suggestionToNodeInput(suggestion);
+    const before = captureHistory("assistant insert");
+    const anchor = selectedNode();
+    const point = assistantInsertPoint(anchor);
+    const node = root.nodes.createNode({
+      type: input.type,
+      x: point.x,
+      y: point.y,
+      data: input.data || {}
+    });
+    state.nodes.push(node);
+    if (anchor?.id) {
+      const link = root.workflows?.canConnect?.(state.edges, anchor.id, node.id);
+      if (link?.ok) state.edges.push(root.workflows.createEdge(anchor.id, node.id));
+    }
+    setSelection([node.id], node.id);
+    state.edgeError = "";
+    recordHistoryBefore(before);
+    markDirty();
+    renderBoard();
+    return node;
+  }
+
+  function assistantInsertPoint(anchor) {
+    if (anchor) {
+      return {
+        x: Math.round(Number(anchor.x || 0) + 280),
+        y: Math.round(Number(anchor.y || 0) + 36)
+      };
+    }
+    const board = document.querySelector("#canvasBoard");
+    const rect = board?.getBoundingClientRect() || { width: 800, height: 500 };
+    return {
+      x: Math.round((rect.width / 2 - state.viewport.x) / state.viewport.scale),
+      y: Math.round((rect.height / 2 - state.viewport.y) / state.viewport.scale)
+    };
+  }
+
+  function cloneNode(node = {}) {
+    return {
+      ...node,
+      data: { ...(node.data || {}) }
+    };
   }
 
   function updateSelectedNode(event) {
@@ -901,11 +988,11 @@
   }
 
   async function saveCanvasNow() {
-    if (!state.projectId || (!state.dirty && state.projectId !== "new") || state.saveStatus === "saving") return;
+    if (!state.projectId || (!state.dirty && state.projectId !== "new") || state.saveStatus === "saving") return true;
     if (typeof root.request !== "function") {
       setSaveStatus("failed", "同步失败");
       writeDraft();
-      return;
+      return false;
     }
     clearTimeout(state.saveTimer);
     setSaveStatus("saving");
@@ -926,11 +1013,14 @@
       }
       state.dirty = false;
       setSaveStatus("saved");
+      return true;
     } catch (error) {
       setSaveStatus("failed", error?.message || "同步失败");
       writeDraft();
+      return false;
+    } finally {
+      renderBoard();
     }
-    renderBoard();
   }
 
   async function exportCanvasJson() {
@@ -1179,4 +1269,6 @@
   root.renderShell = renderShell;
   root.bindShellEvents = bindShellEvents;
   root.insertItem = insertItem;
+  root.getAssistantContext = assistantContext;
+  root.addAssistantNode = insertAssistantSuggestion;
 })(window, document);

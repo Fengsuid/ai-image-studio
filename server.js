@@ -31,6 +31,7 @@ loadEnvFile(path.join(ROOT_DIR, ".env"));
 
 const store = require("./src/mysql-store");
 const promptReview = require("./src/prompt-review-service");
+const canvasAssistant = require("./src/canvas-assistant");
 const canvasImportExport = require("./src/canvas-import-export");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -38,7 +39,7 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260520-canvas-json-io-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260520-canvas-assistant-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -3478,6 +3479,20 @@ async function routeApi(req, res, url) {
         nodeCount: payload.nodeCount,
         edgeCount: payload.edgeCount
       }
+    });
+  }
+
+  const canvasAssistantMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/assistant$/);
+  if (canvasAssistantMatch && req.method === "POST") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const canvas = await store.getCanvasProjectById(canvasAssistantMatch[1]);
+    if (!canReadCanvas(current.user, canvas)) {
+      throw httpError("Canvas not found", 404);
+    }
+    const body = await readJsonBody(req);
+    return sendJson(res, 200, {
+      assistant: canvasAssistant.createAssistantResponse(canvas, body)
     });
   }
 

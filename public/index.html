@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260520-canvas-json-io-v1">
+    <link rel="stylesheet" href="/styles.css?v=20260520-canvas-assistant-v1">
   </head>
   <body>
     <div id="app" class="app">
@@ -301,6 +301,9 @@
           </section>
           <aside class="canvas-inspector">
             <strong data-i18n="canvasInspector">检查器</strong>
+            <section class="canvas-assistant" aria-label="画布助手">
+              <div id="canvasAssistantBody"></div>
+            </section>
             <div id="canvasInspectorBody"><p data-i18n="canvasInspectorEmpty">选择节点后会显示参数。</p></div>
           </aside>
         </section>
@@ -405,16 +408,17 @@
       <div id="toastLayer" class="toast-layer"></div>
     </div>
 
-    <script src="/canvas-store.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-nodes.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-geometry.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-workflows.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-minimap.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-selection.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-history.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas-io.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/canvas.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/gallery-normalize.js?v=20260520-canvas-json-io-v1" defer></script>
-    <script src="/app.js?v=20260520-canvas-json-io-v1" defer></script>
+    <script src="/canvas-store.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-nodes.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-geometry.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-workflows.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-minimap.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-selection.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-history.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-io.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-assistant.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/app.js?v=20260520-canvas-assistant-v1" defer></script>
   </body>
 </html>

@@ -745,6 +745,138 @@ a {
   gap: 12px;
 }
 
+.canvas-assistant {
+  min-width: 0;
+}
+
+#canvasAssistantBody {
+  display: grid;
+  gap: 10px;
+}
+
+.canvas-assistant-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dbe4ee;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.canvas-assistant-head,
+.canvas-assistant-context,
+.canvas-assistant-suggestion button {
+  display: flex;
+  align-items: center;
+}
+
+.canvas-assistant-head {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.canvas-assistant-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.canvas-assistant-head button,
+.canvas-assistant-suggestion button {
+  height: 32px;
+  border: 1px solid #0f766e;
+  border-radius: 8px;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 800;
+}
+
+.canvas-assistant-head button {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+
+.canvas-assistant-head button:disabled {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.canvas-assistant-context {
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+}
+
+.canvas-assistant-context strong,
+.canvas-assistant-context span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.canvas-assistant-message,
+.canvas-assistant-empty {
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.canvas-assistant-message {
+  background: #ecfeff;
+  color: #155e75;
+}
+
+.canvas-assistant-empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.canvas-assistant-suggestions {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.canvas-assistant-suggestion {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.canvas-assistant-suggestion strong,
+.canvas-assistant-suggestion p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.canvas-assistant-suggestion p {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.canvas-assistant-suggestion button {
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0 10px;
+}
+
 .canvas-selection-summary {
   display: grid;
   gap: 4px;
