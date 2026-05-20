@@ -150,6 +150,7 @@ async function checkHomeResources() {
   assert(app.body.includes("referenceRequestPayload"), `${appPath} should build reference image payloads`);
   assert(app.body.includes("referenceImages"), `${appPath} should send multi-reference images to image edit requests`);
   assert(app.body.includes("handleEditorUpload(event.target.files"), `${appPath} should pass multiple editor upload files`);
+  assert(app.body.includes("appendReferences: true"), `${appPath} should append bottom editor uploads as references`);
 
   log(`GET ${minimapPath}`);
   const minimap = await fetchText(minimapPath, "application/javascript,*/*");

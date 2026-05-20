@@ -3884,11 +3884,21 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-async function handleEditorUpload(files) {
+async function handleEditorUpload(files, { appendReferences = false } = {}) {
   try {
     const selected = await filesToReferenceImages(files, { limit: maxReferenceImages() });
+    if (!selected.length) return;
+    if (appendReferences && state.editor.imageUrl) {
+      const capacity = Math.max(0, maxReferenceImages() - state.editor.references.length);
+      const references = selected.slice(0, capacity);
+      const overflow = selected.slice(capacity);
+      if (overflow.length) revokeReferenceImages(overflow);
+      state.editor.references.push(...references);
+      renderEditor();
+      if (references.length) showToast(text("referenceUploadToast"), "ri-image-add-line");
+      return;
+    }
     const [baseImage, ...references] = selected;
-    if (!baseImage) return;
     revokeReferenceImages([baseImage]);
     setEditorImage(baseImage.imageData, baseImage.imageData, references);
     if (references.length) showToast(text("referenceUploadToast"), "ri-image-add-line");
@@ -6360,7 +6370,7 @@ function bindGlobalEvents() {
     event.target.value = "";
   });
   elements.editorBottomUploadInput.addEventListener("change", (event) => {
-    handleEditorUpload(event.target.files);
+    handleEditorUpload(event.target.files, { appendReferences: true });
     event.target.value = "";
   });
   elements.editorSourceImage.addEventListener("load", resetEditorCanvas);
