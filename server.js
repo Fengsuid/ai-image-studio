@@ -42,7 +42,11 @@ const PORT = Number(process.env.PORT || 3000);
 const APP_VERSION = process.env.APP_VERSION || "20260520-canvas-assistant-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
-const MAX_BODY_BYTES = 16 * 1024 * 1024;
+const MAX_BODY_BYTES = Math.max(
+  16 * 1024 * 1024,
+  Number.parseInt(process.env.MAX_BODY_BYTES || `${32 * 1024 * 1024}`, 10) || 32 * 1024 * 1024
+);
+const MAX_IMAGE_EDIT_INPUTS = 16;
 const DEFAULT_MODEL = "GPT-IMAGE-2";
 const CHECKIN_CREDIT = Number.parseInt(process.env.CHECKIN_CREDIT || "1", 10) || 1;
 const DEFAULT_CONTACT_ADMIN_EMAIL = "support@example.com";
@@ -1308,20 +1312,86 @@ function validateImageDataUrl(dataUrl) {
   return { buffer, mime: detected, base64: match[2] };
 }
 
+function editableImageSource(value, label = "Editable image") {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (source.startsWith("data:image/")) {
+    validateImageDataUrl(source);
+    return source;
+  }
+  if (/^https?:\/\//i.test(source)) {
+    if (!isSafeRemoteImageUrl(source)) throw httpError(`${label} URL is not allowed`, 400);
+    return source;
+  }
+  throw httpError(`${label} must be PNG/JPEG/WebP image data or a safe HTTPS image URL`, 400);
+}
+
+function imageReferenceSource(input) {
+  if (typeof input === "string") return input;
+  if (!input || typeof input !== "object") return "";
+  return input.imageData || input.dataUrl || input.url || input.imageUrl || "";
+}
+
+function normalizedEditReferenceImages(body = {}) {
+  const rawItems = Array.isArray(body.referenceImages)
+    ? body.referenceImages
+    : Array.isArray(body.referenceImageData)
+      ? body.referenceImageData
+      : [];
+  const references = [];
+  for (const item of rawItems) {
+    const source = imageReferenceSource(item);
+    if (!String(source || "").trim()) continue;
+    references.push(editableImageSource(source, "Reference image"));
+    if (references.length >= MAX_IMAGE_EDIT_INPUTS - 1) break;
+  }
+  return references;
+}
+
+async function remoteImageSourceToBlob(source) {
+  if (!isSafeRemoteImageUrl(source)) throw httpError("Image URL is not allowed", 400);
+  const response = await fetchWithTimeout("Image reference download", source, {}, IMAGE_DOWNLOAD_TIMEOUT_MS);
+  if (!response.ok) throw httpError(`Image reference download failed: ${response.status}`, 502);
+  const declared = normalizeImageMime(String(response.headers.get("content-type") || "").split(";")[0]);
+  if (declared && !ALLOWED_IMAGE_MIME.has(declared)) {
+    throw httpError(`Unsupported image type: ${declared}. Allowed: PNG/JPEG/WebP.`, 400);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const detected = detectImageMime(buffer);
+  if (!detected || (declared && detected !== declared)) {
+    throw httpError("Image content does not match the declared MIME type", 400);
+  }
+  return new Blob([buffer], { type: detected });
+}
+
 async function imageSourceToBlob(source) {
   const sourceValue = String(source || "").trim();
-  if (!/^data:image\/(png|jpeg|webp);base64,/i.test(sourceValue)) {
+  if (/^data:image\/(png|jpeg|webp);base64,/i.test(sourceValue)) {
+    return dataUrlToBlob(sourceValue);
+  }
+  if (/^https?:\/\//i.test(sourceValue)) {
+    return remoteImageSourceToBlob(sourceValue);
+  }
+  if (!sourceValue) {
     throw httpError(
       "Editable image must be uploaded as PNG/JPEG/WebP image data. Please re-upload or choose the image again.",
       400
     );
   }
-  return dataUrlToBlob(sourceValue);
+  throw httpError("Editable image must be PNG/JPEG/WebP image data or a safe HTTPS image URL.", 400);
 }
 
 async function callOpenAIImageEdits(settings, payload, { signal } = {}) {
   const routes = await resolveProviderRoutes(settings, { mode: "image-edit", candidateCount: Number(payload.n || 1) });
-  const imageBlob = await imageSourceToBlob(payload.imageData);
+  const imageSources = [
+    payload.imageData,
+    ...(Array.isArray(payload.referenceImages) ? payload.referenceImages : [])
+  ].filter(Boolean).slice(0, MAX_IMAGE_EDIT_INPUTS);
+  const imageBlobs = [];
+  for (const source of imageSources) {
+    imageBlobs.push(await imageSourceToBlob(source));
+  }
+  if (!imageBlobs.length) throw httpError("Please provide an editable image", 400);
   const maskBlob = payload.maskData?.startsWith("data:image/") ? dataUrlToBlob(payload.maskData) : null;
   let lastError = null;
   for (const route of routes) {
@@ -1333,7 +1403,11 @@ async function callOpenAIImageEdits(settings, payload, { signal } = {}) {
       form.set("n", String(payload.n || 1));
       form.set("size", payload.size || "auto");
       form.set("response_format", "url");
-      form.set("image", imageBlob, "image.png");
+      const imageField = imageBlobs.length > 1 ? "image[]" : "image";
+      imageBlobs.forEach((imageBlob, index) => {
+        const extension = extensionFromContentType(imageBlob.type, "png");
+        form.append(imageField, imageBlob, `image-${index + 1}.${extension}`);
+      });
       if (maskBlob) {
         form.set("mask", maskBlob, "mask.png");
       }
@@ -2007,8 +2081,19 @@ function tagSummary(tags = []) {
 async function saveSourceImageFromData(sourceImageData) {
   const raw = String(sourceImageData || "").trim();
   if (!raw) return "";
-  const validated = validateImageDataUrl(raw);
-  const sourceFile = await imageItemToBuffer({ b64_json: validated.base64 }, { output_format: "png" });
+  let sourceFile = null;
+  if (raw.startsWith("data:image/")) {
+    const validated = validateImageDataUrl(raw);
+    sourceFile = await imageItemToBuffer({ b64_json: validated.base64 }, { output_format: "png" });
+  } else if (/^https?:\/\//i.test(raw)) {
+    const blob = await imageSourceToBlob(raw);
+    sourceFile = {
+      buffer: Buffer.from(await blob.arrayBuffer()),
+      extension: extensionFromContentType(blob.type, "png")
+    };
+  } else {
+    throw httpError("Invalid source image data", 400);
+  }
   if (!sourceFile?.buffer?.length) return "";
   await fs.mkdir(SOURCE_DIR, { recursive: true });
   const id = randomId("src_");
@@ -2394,15 +2479,15 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
   }
 }
 
-async function runQueuedImageEdit({ auditId, user, settings, request, payload, costPerImage, requestStartedAt }) {
+async function runQueuedImageEdit({ auditId, user, settings, request, payload, totalCost, costPerImage, requestStartedAt }) {
   let reservedCredits = false;
   try {
     await store.updateGenerationRequest(auditId, { status: "running" });
-    if (costPerImage > 0) {
-      reservedCredits = await store.reserveCredits(user.id, costPerImage, {
+    if (totalCost > 0) {
+      reservedCredits = await store.reserveCredits(user.id, totalCost, {
         source: "generation_charge",
         referenceId: auditId,
-        note: "image edit"
+        note: request.n > 1 ? `image edit ${request.n} image(s)` : "image edit"
       });
       if (!reservedCredits) {
         await store.updateGenerationRequest(auditId, {
@@ -2414,17 +2499,24 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, c
       }
     }
     const openaiResult = await callOpenAIImageEdits(settings, payload);
-    await finalizeSuccessfulGenerations({
+    const { missing } = await finalizeSuccessfulGenerations({
       auditId,
       user,
       request,
       openaiResult,
       requestStartedAt,
-      expectedCount: 1
+      expectedCount: request.n
     });
     reservedCredits = false;
+    if (costPerImage > 0 && missing > 0) {
+      await store.addCredits(user.id, costPerImage * missing, {
+        source: "generation_refund",
+        referenceId: auditId,
+        note: "unused image edit candidate refund"
+      }).catch((error) => console.error(error));
+    }
   } catch (error) {
-    if (reservedCredits) await store.addCredits(user.id, costPerImage, {
+    if (reservedCredits) await store.addCredits(user.id, totalCost, {
       source: "generation_error_refund",
       referenceId: auditId,
       note: "image edit failed"
@@ -4471,11 +4563,12 @@ async function routeApi(req, res, url) {
     const prompt = cleanPrompt(body.prompt);
     const imageData = String(body.imageData || "").trim();
     const maskData = String(body.maskData || "").trim();
-    if (!imageData || (!imageData.startsWith("data:image/") && !/^https?:\/\//i.test(imageData))) {
+    if (!imageData) {
       throw httpError("Please provide an editable image", 400);
     }
-    if (imageData.startsWith("data:image/")) validateImageDataUrl(imageData);
+    editableImageSource(imageData, "Editable image");
     if (maskData.startsWith("data:image/")) validateImageDataUrl(maskData);
+    const referenceImages = normalizedEditReferenceImages(body);
 
     const settings = await store.getSettings();
 
@@ -4484,14 +4577,17 @@ async function routeApi(req, res, url) {
       throw httpError("Account is not active", 403);
     }
 
+    const maxImages = Number(settings.maxImagesPerRequest || 1);
+    const n = sanitizePositiveInt(body.n, 1, maxImages);
     const costPerImage = normalizeGenerationCost(settings.generationCreditCost ?? 1);
+    const totalCost = costPerImage * n;
     const sourceFilename = body.publishOriginal === true
       ? await saveSourceImageFromData(body.sourceImageData || imageData)
       : "";
     const request = {
       model: String(settings.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
       prompt,
-      n: 1,
+      n,
       size: normalizeImageSize(body.size),
       quality: "auto",
       background: "auto",
@@ -4530,9 +4626,10 @@ async function routeApi(req, res, url) {
       prompt: maskData
         ? `${prompt}\nThe uploaded image contains a purple visual annotation. Only modify the purple boxed or purple painted area, keep all unmarked areas unchanged, and remove the purple annotation from the final image.`
         : prompt,
-      n: 1,
+      n: request.n,
       size: request.size,
       imageData,
+      referenceImages,
       maskData
     };
 
@@ -4546,6 +4643,7 @@ async function routeApi(req, res, url) {
           settings,
           request,
           payload,
+          totalCost,
           costPerImage,
           requestStartedAt
         })
@@ -4563,11 +4661,11 @@ async function routeApi(req, res, url) {
     }
 
     let reservedCredits = false;
-    if (costPerImage > 0) {
-      reservedCredits = await store.reserveCredits(user.id, costPerImage, {
+    if (totalCost > 0) {
+      reservedCredits = await store.reserveCredits(user.id, totalCost, {
         source: "generation_charge",
         referenceId: auditId,
-        note: "image edit"
+        note: request.n > 1 ? `image edit ${request.n} image(s)` : "image edit"
       });
       if (!reservedCredits) {
         await store.updateGenerationRequest(auditId, {
@@ -4604,6 +4702,13 @@ async function routeApi(req, res, url) {
         durationMs
       });
       reservedCredits = false;
+      if (costPerImage > 0 && saved.length < request.n) {
+        await store.addCredits(user.id, costPerImage * (request.n - saved.length), {
+          source: "generation_refund",
+          referenceId: auditId,
+          note: "unused image edit candidate refund"
+        }).catch((error) => console.error(error));
+      }
 
       return sendJson(res, 200, {
         generations: saved,
@@ -4613,7 +4718,7 @@ async function routeApi(req, res, url) {
     } catch (error) {
       const cancelled = aborter.isAborted() || error?.name === "AbortError";
       const durationMs = Date.now() - requestStartedAt;
-      if (reservedCredits) await store.addCredits(user.id, costPerImage, {
+      if (reservedCredits) await store.addCredits(user.id, totalCost, {
         source: cancelled ? "generation_cancel_refund" : "generation_error_refund",
         referenceId: auditId,
         note: cancelled ? "client aborted" : "image edit failed"

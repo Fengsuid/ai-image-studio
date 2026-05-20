@@ -97,6 +97,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/canvas-io.js"), "/ missing canvas-io.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-assistant.js"), "/ missing canvas-assistant.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
 
@@ -108,6 +109,7 @@ async function checkHomeResources() {
   const canvasIoMatch = home.body.match(/src="([^"]*\/canvas-io\.js[^"]*)"/);
   const canvasAssistantMatch = home.body.match(/src="([^"]*\/canvas-assistant\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
+  const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
@@ -116,6 +118,7 @@ async function checkHomeResources() {
   const canvasIoPath = canvasIoMatch?.[1] || "/canvas-io.js";
   const canvasAssistantPath = canvasAssistantMatch?.[1] || "/canvas-assistant.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
+  const referenceImagesPath = referenceImagesMatch?.[1] || "/reference-images.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
   assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
@@ -144,6 +147,9 @@ async function checkHomeResources() {
   assert(app.body.includes("function isImageToImageItem"), `${appPath} should classify image-to-image works from source metadata`);
   assert(app.body.includes("window.history.replaceState(route"), `${appPath} should close modal routes without adding history entries`);
   assert(app.body.includes("publicTagsForKind(selectedKinds[0]"), `${appPath} should preserve kind tags in bulk publish`);
+  assert(app.body.includes("referenceRequestPayload"), `${appPath} should build reference image payloads`);
+  assert(app.body.includes("referenceImages"), `${appPath} should send multi-reference images to image edit requests`);
+  assert(app.body.includes("handleEditorUpload(event.target.files"), `${appPath} should pass multiple editor upload files`);
 
   log(`GET ${minimapPath}`);
   const minimap = await fetchText(minimapPath, "application/javascript,*/*");
@@ -186,6 +192,13 @@ async function checkHomeResources() {
   assert(galleryModel.body.includes("ImageStudioGalleryModel"), `${galleryModelPath} should register gallery model helpers`);
   assert(galleryModel.body.includes("promptImageDisplayUrl"), `${galleryModelPath} should normalize prompt image URLs`);
   assert(galleryModel.body.includes("generationEntryFromApi"), `${galleryModelPath} should normalize gallery API entries`);
+
+  log(`GET ${referenceImagesPath}`);
+  const referenceImages = await fetchText(referenceImagesPath, "application/javascript,*/*");
+  assert(referenceImages.status === 200, `${referenceImagesPath} status=${referenceImages.status}`);
+  assert(referenceImages.body.includes("ImageStudioReferenceImages"), `${referenceImagesPath} should register reference image helpers`);
+  assert(referenceImages.body.includes("filesToReferences"), `${referenceImagesPath} should read multiple reference files`);
+  assert(referenceImages.body.includes("revokeReferences"), `${referenceImagesPath} should release reference object URLs`);
   log("/ resources ok:", "asset version", appVersion || "none");
 }
 

@@ -51,6 +51,7 @@ const state = {
   editor: {
     imageUrl: "",
     imageData: "",
+    references: [],
     prompt: "",
     tool: "brush",
     color: "#7c3aed",
@@ -157,11 +158,11 @@ const i18n = {
     generatingElapsed: "生成中",
     generating: "生成中...",
     reference: "参考图",
-    referencePreviewOnly: "参考图仅作灵感记录",
-    referencePreviewToast: "已添加参考图预览；当前版本不会把参考图发送给生图模型",
+    referenceUploadNote: "参考图会随本次生成发送",
+    referenceUploadToast: "已添加参考图，将作为生成参考",
     options: "参数",
     composerParams: "尺寸 / 质量 / 格式",
-    addReference: "添加参考图预览",
+    addReference: "添加参考图",
     generateDisabledApiKey: "API 未配置",
     generateDisabledGenerating: "正在生成",
     generateDisabledCredits: "积分不足",
@@ -183,7 +184,7 @@ const i18n = {
     openEditor: "图生图",
     emptyWorks: "还没有生成记录",
     uploadEditImage: "上传或从作品中选择图片",
-    uploadEditHint: "支持画笔、矩形选区和局部编辑描述",
+    uploadEditHint: "支持多参考、画笔和局部编辑描述",
     copy: "复制提示词",
     use: "去生成",
     libraryBadge: "公开图片画廊",
@@ -484,11 +485,11 @@ const i18n = {
     generatingElapsed: "Generating",
     generating: "Creating...",
     reference: "Reference",
-    referencePreviewOnly: "Reference is saved as inspiration only",
-    referencePreviewToast: "Reference previews added; this version does not send them to the image model",
+    referenceUploadNote: "References are sent with this request",
+    referenceUploadToast: "Reference images added for this request",
     options: "Options",
     composerParams: "Size / Quality / Format",
-    addReference: "Add reference preview",
+    addReference: "Add references",
     generateDisabledApiKey: "API key not configured",
     generateDisabledGenerating: "Generating",
     generateDisabledCredits: "Not enough credits",
@@ -510,7 +511,7 @@ const i18n = {
     openEditor: "Edit image",
     emptyWorks: "No generated images yet",
     uploadEditImage: "Upload or choose an image",
-    uploadEditHint: "Brush, rectangle selection, and local edit prompts",
+    uploadEditHint: "Multiple references, brush marks, and local edit prompts",
     copy: "Copy prompt",
     use: "Generate",
     libraryBadge: "Public Image Gallery",
@@ -957,6 +958,8 @@ const elements = {
   editorImageScaler: $("#editorImageScaler"),
   editorSourceImage: $("#editorSourceImage"),
   editorMaskCanvas: $("#editorMaskCanvas"),
+  editorReferenceStrip: $("#editorReferenceStrip"),
+  editorReferenceThumbs: $("#editorReferenceThumbs"),
   editorPromptForm: $("#editorPromptForm"),
   editorPromptInput: $("#editorPromptInput"),
   editorPublicInput: $("#editorPublicInput"),
@@ -1948,6 +1951,74 @@ function ensureContinuationToggle(form) {
   return row;
 }
 
+function referenceImageTools() {
+  return window.ImageStudioReferenceImages || {};
+}
+
+function maxReferenceImages() {
+  return Math.max(1, Number(referenceImageTools().maxItems || 4));
+}
+
+async function filesToReferenceImages(files, { limit = maxReferenceImages() } = {}) {
+  const tools = referenceImageTools();
+  if (tools.filesToReferences) return tools.filesToReferences(files, { limit });
+  const selected = [...(files || [])].filter(Boolean).slice(0, limit);
+  return Promise.all(selected.map(async (file) => ({
+    file,
+    name: file.name || "reference-image",
+    url: URL.createObjectURL(file),
+    imageData: await blobToDataUrl(file)
+  })));
+}
+
+function revokeReferenceImages(references = []) {
+  const tools = referenceImageTools();
+  if (tools.revokeReferences) {
+    tools.revokeReferences(references);
+    return;
+  }
+  references.forEach((reference) => {
+    if (/^blob:/i.test(reference?.url || "")) URL.revokeObjectURL(reference.url);
+  });
+}
+
+function referenceRequestPayload(references = [], { limit = maxReferenceImages() } = {}) {
+  const tools = referenceImageTools();
+  if (tools.payload) return tools.payload(references, { limit });
+  return references
+    .map((reference) => ({
+      name: reference?.name || "reference-image",
+      imageData: String(reference?.imageData || "").trim()
+    }))
+    .filter((reference) => reference.imageData.startsWith("data:image/"))
+    .slice(0, limit);
+}
+
+function clearComposerReferences({ sync = true } = {}) {
+  revokeReferenceImages(state.references);
+  state.references = [];
+  if (sync) syncReferences();
+}
+
+async function handleComposerReferenceUpload(referenceInput, referenceRow, form) {
+  clearComposerReferences({ sync: false });
+  try {
+    state.references = await filesToReferenceImages(referenceInput.files, { limit: maxReferenceImages() });
+    renderReferences(referenceRow);
+    syncReferences(form);
+    if (state.references.length) {
+      showToast(text("referenceUploadToast"), "ri-image-add-line");
+    }
+  } catch (error) {
+    state.references = [];
+    renderReferences(referenceRow);
+    syncReferences(form);
+    showToast(error.message || text("referenceUploadToast"), "ri-error-warning-line");
+  } finally {
+    referenceInput.value = "";
+  }
+}
+
 function createComposer(sticky) {
   const fragment = elements.composerTemplate.content.cloneNode(true);
   const form = $(".composer", fragment);
@@ -1968,19 +2039,7 @@ function createComposer(sticky) {
       form.requestSubmit();
     }
   });
-  referenceInput.addEventListener("change", () => {
-    const files = [...referenceInput.files].slice(0, 4);
-    state.references = files.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-      name: file.name
-    }));
-    renderReferences(referenceRow);
-    syncReferences(form);
-    if (state.references.length) {
-      showToast(text("referencePreviewToast"), "ri-image-add-line");
-    }
-  });
+  referenceInput.addEventListener("change", () => handleComposerReferenceUpload(referenceInput, referenceRow, form));
   optionsToggle.addEventListener("click", () => {
     advanced.classList.toggle("hidden");
     optionsToggle.classList.toggle("active", !advanced.classList.contains("hidden"));
@@ -2140,6 +2199,7 @@ function syncComposers(sourceForm) {
 }
 
 function renderReferences(row) {
+  if (!row) return;
   const thumbs = state.references.map((reference, index) => `
     <div class="reference-thumb">
       <img src="${reference.url}" alt="${escapeHtml(reference.name)}">
@@ -2148,7 +2208,7 @@ function renderReferences(row) {
   `).join("");
   const note = state.references.length ? `
     <span class="context-badge">${escapeHtml(text("reference"))}</span>
-    <span class="reference-note">${escapeHtml(text("referencePreviewOnly"))}</span>
+    <span class="reference-note">${escapeHtml(text("referenceUploadNote"))}</span>
   ` : "";
   row.innerHTML = `${note}<div class="reference-thumbs">${thumbs}</div>`;
   row.classList.toggle("hidden", state.references.length === 0);
@@ -2156,7 +2216,7 @@ function renderReferences(row) {
     button.addEventListener("click", () => {
       const index = Number(button.dataset.removeReference);
       const [removed] = state.references.splice(index, 1);
-      if (removed?.url) URL.revokeObjectURL(removed.url);
+      revokeReferenceImages([removed]);
       $$(".reference-row").forEach(renderReferences);
     });
   });
@@ -2192,6 +2252,8 @@ async function submitGeneration(form) {
   state.generationOptions = getComposerOptions(form);
   state.publishToSquare = state.generationOptions.isPublic;
   const candidateCount = Math.max(1, Number(state.generationOptions.candidateCount || 1));
+  const composerReferencePayload = referenceRequestPayload(state.references);
+  const primaryComposerReference = composerReferencePayload[0] || null;
   const fromHeroComposer = form?.dataset?.sticky !== "1" && state.view === "home" && shouldShowHero();
   if (fromHeroComposer) {
     startNewImageSession(prompt);
@@ -2208,6 +2270,7 @@ async function submitGeneration(form) {
     isPublic: state.publishToSquare,
     publicTags: [],
     options: { ...state.generationOptions },
+    sourceImageData: primaryComposerReference?.imageData || "",
     references: state.references.map((reference) => reference.url)
   };
   addGenerationToActiveSession(tempId, prompt);
@@ -2215,7 +2278,7 @@ async function submitGeneration(form) {
   state.forceHero = false;
   state.generating = true;
   state.generationStartedAt = startedAt;
-  state.references = [];
+  clearComposerReferences();
   startFunMessages();
   startGenerationTimer(startedAt);
   renderAll();
@@ -2228,11 +2291,19 @@ async function submitGeneration(form) {
   state.generateAbortController = new AbortController();
   // 续图判断必须放在 fromHeroComposer 之后：hero 入口创建了新会话，必然没有上一张图。
   const continuation = fromHeroComposer ? { active: false, reason: "hero" } : getContinuationContext();
+  let sourceImageDataForEntry = item.sourceImageData || "";
   try {
     let data;
-    if (continuation.active && continuation.lastImageUrl) {
-      // 走图生图路径：上一张图作为基底图，自动转成 data URL。
-      const imageData = await imageReferenceForEdit(continuation.lastImageUrl);
+    const useImageEdit = (continuation.active && continuation.lastImageUrl) || composerReferencePayload.length > 0;
+    if (useImageEdit) {
+      // 走图生图路径：续图源或第一张参考图作为基底图，其他参考图随请求发送。
+      const imageData = continuation.active && continuation.lastImageUrl
+        ? await imageReferenceForEdit(continuation.lastImageUrl)
+        : composerReferencePayload[0]?.imageData || "";
+      const extraReferences = continuation.active && continuation.lastImageUrl
+        ? composerReferencePayload
+        : composerReferencePayload.slice(1);
+      sourceImageDataForEntry = imageData || sourceImageDataForEntry;
       const sourceImageData = state.publishToSquare && imageData ? imageData : "";
       data = await api("/api/images/edit", {
         method: "POST",
@@ -2243,6 +2314,8 @@ async function submitGeneration(form) {
           maskData: "",
           isPublic: item.isPublic && candidateCount === 1,
           async: true,
+          n: candidateCount,
+          referenceImages: extraReferences,
           publishOriginal: Boolean(sourceImageData),
           sourceImageData,
           publicTags: item.publicTags,
@@ -2280,7 +2353,7 @@ async function submitGeneration(form) {
     const elapsedMs = Number(generation.durationMs || 0) || (Date.now() - startedAt);
     replaceSessionGenerationId(tempId, generation.id, elapsedMs);
     const savedEntry = {
-      ...generationEntryFromApi(generation, { ...item, status: "done", elapsedMs }),
+      ...generationEntryFromApi(generation, { ...item, status: "done", elapsedMs, sourceImageData: sourceImageDataForEntry }),
       images: data.generations.map((candidate) => candidate.imageUrl).filter(Boolean),
       candidateIds: data.generations.map((candidate) => candidate.id).filter(Boolean)
     };
@@ -2328,7 +2401,8 @@ async function submitGeneration(form) {
     renderAll();
     focusGenerationWorkspace(focusId, "smooth");
     if (postPublishItem) {
-      setTimeout(() => openPublishModal(postPublishItem, false), 180);
+      const hasSourceImage = Boolean(postPublishItem.sourceImageData || postPublishItem.sourceImageUrl || postPublishItem.sourceFilename);
+      setTimeout(() => openPublishModal(postPublishItem, hasSourceImage), 180);
     } else {
       setTimeout(maybeOpenUnreadAnnouncementModal, 260);
     }
@@ -3657,12 +3731,37 @@ function renderEditor() {
   if (state.editor.imageUrl && elements.editorSourceImage.getAttribute("src") !== state.editor.imageUrl) {
     elements.editorSourceImage.src = state.editor.imageUrl;
   }
+  renderEditorReferences();
   syncEditorRecentStrip();
 }
 
-function setEditorImage(src, imageData = "") {
+function renderEditorReferences() {
+  const strip = elements.editorReferenceStrip;
+  const thumbsNode = elements.editorReferenceThumbs;
+  if (!strip || !thumbsNode) return;
+  const references = state.editor.references || [];
+  strip.classList.toggle("hidden", references.length === 0);
+  thumbsNode.innerHTML = references.map((reference, index) => `
+    <div class="editor-reference-thumb">
+      <img src="${escapeHtml(reference.url || reference.imageData)}" alt="${escapeHtml(reference.name || text("reference"))}">
+      <button type="button" data-remove-editor-reference="${index}" title="${escapeHtml(text("close"))}" aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
+    </div>
+  `).join("");
+  $$("[data-remove-editor-reference]", thumbsNode).forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.removeEditorReference);
+      const [removed] = state.editor.references.splice(index, 1);
+      revokeReferenceImages([removed]);
+      renderEditor();
+    });
+  });
+}
+
+function setEditorImage(src, imageData = "", references = []) {
+  revokeReferenceImages(state.editor.references);
   state.editor.imageUrl = src;
   state.editor.imageData = imageData || (src.startsWith("data:") ? src : "");
+  state.editor.references = Array.isArray(references) ? references : [];
   state.editor.zoom = 1;
   state.editor.history = [];
   renderEditor();
@@ -3785,13 +3884,22 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-async function handleEditorUpload(file) {
-  if (!file) return;
-  const dataUrl = await blobToDataUrl(file);
-  setEditorImage(dataUrl, dataUrl);
+async function handleEditorUpload(files) {
+  try {
+    const selected = await filesToReferenceImages(files, { limit: maxReferenceImages() });
+    const [baseImage, ...references] = selected;
+    if (!baseImage) return;
+    revokeReferenceImages([baseImage]);
+    setEditorImage(baseImage.imageData, baseImage.imageData, references);
+    if (references.length) showToast(text("referenceUploadToast"), "ri-image-add-line");
+  } catch (error) {
+    showToast(error.message || text("referenceUploadToast"), "ri-error-warning-line");
+  }
 }
 
 function blobToDataUrl(blob) {
+  const tools = referenceImageTools();
+  if (tools.blobToDataUrl) return tools.blobToDataUrl(blob);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -4049,6 +4157,7 @@ async function submitImageEdit(event) {
   startEditorTimer(text("generating"));
   try {
     const originalData = state.editor.imageData || await imageReferenceForEdit(state.editor.imageUrl);
+    const editorReferences = referenceRequestPayload(state.editor.references);
     const { imageData, maskData } = await editorAnnotatedImageData(originalData);
     const draftRoute = conversationRouteWithDraft({
       id: `edit_${Date.now()}`,
@@ -4076,6 +4185,7 @@ async function submitImageEdit(event) {
           : prompt,
         imageData,
         maskData,
+        referenceImages: editorReferences,
         isPublic,
         publishOriginal,
         sourceImageData: publishOriginal ? originalData : "",
@@ -6245,8 +6355,14 @@ function bindGlobalEvents() {
   elements.editorPromptInput.addEventListener("input", () => {
     state.editor.prompt = elements.editorPromptInput.value;
   });
-  elements.editorUploadInput.addEventListener("change", (event) => handleEditorUpload(event.target.files?.[0]));
-  elements.editorBottomUploadInput.addEventListener("change", (event) => handleEditorUpload(event.target.files?.[0]));
+  elements.editorUploadInput.addEventListener("change", (event) => {
+    handleEditorUpload(event.target.files);
+    event.target.value = "";
+  });
+  elements.editorBottomUploadInput.addEventListener("change", (event) => {
+    handleEditorUpload(event.target.files);
+    event.target.value = "";
+  });
   elements.editorSourceImage.addEventListener("load", resetEditorCanvas);
   elements.editorMaskCanvas.addEventListener("pointerdown", editorPointerDown);
   elements.editorMaskCanvas.addEventListener("pointermove", editorPointerMove);

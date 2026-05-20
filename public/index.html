@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260520-canvas-assistant-v2">
+    <link rel="stylesheet" href="/styles.css?v=20260520-multi-reference-v1">
   </head>
   <body>
     <div id="app" class="app">
@@ -196,14 +196,18 @@
               <label id="editorUploadCard" class="editor-upload-card">
                 <i class="ri-image-add-line"></i>
                 <strong data-i18n="uploadEditImage">上传或从作品中选择图片</strong>
-                <span data-i18n="uploadEditHint">支持画笔、矩形选区和局部编辑描述</span>
-                <input id="editorUploadInput" type="file" accept="image/*">
+                <span data-i18n="uploadEditHint">支持多参考、画笔和局部编辑描述</span>
+                <input id="editorUploadInput" type="file" accept="image/*" multiple>
               </label>
               <div id="editorImageFrame" class="editor-image-frame hidden">
                 <div id="editorImageScaler" class="editor-image-scaler">
                   <img id="editorSourceImage" alt="编辑图片">
                   <canvas id="editorMaskCanvas"></canvas>
                 </div>
+              </div>
+              <div id="editorReferenceStrip" class="editor-reference-strip hidden" aria-label="参考图">
+                <span data-i18n="reference">参考图</span>
+                <div id="editorReferenceThumbs" class="editor-reference-thumbs"></div>
               </div>
             </div>
             <div class="editor-zoom">
@@ -231,7 +235,7 @@
             <form id="editorPromptForm" class="editor-prompt-bar">
               <label class="editor-attach">
                 <i class="ri-image-add-line"></i>
-                <input id="editorBottomUploadInput" type="file" accept="image/*">
+                <input id="editorBottomUploadInput" type="file" accept="image/*" multiple>
               </label>
               <i class="ri-sparkling-2-fill editor-prompt-icon"></i>
               <input id="editorPromptInput" placeholder="让背景池塘开满荷花">
@@ -340,7 +344,7 @@
           </div>
           <div class="reference-row hidden"></div>
           <div class="composer-bar">
-            <label class="add-reference-button" title="参考图仅作灵感记录" data-i18n-title="referencePreviewOnly">
+            <label class="add-reference-button" title="添加参考图" data-i18n-title="addReference">
               <i class="ri-add-line"></i>
               <input class="reference-input" type="file" accept="image/*" multiple>
             </label>
@@ -432,6 +436,7 @@
     <script src="/canvas-market.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/canvas.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v2" defer></script>
-    <script src="/app.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/reference-images.js?v=20260520-multi-reference-v1" defer></script>
+    <script src="/app.js?v=20260520-multi-reference-v1" defer></script>
   </body>
 </html>

@@ -4843,6 +4843,70 @@ a {
   font-size: 13px;
 }
 
+.editor-reference-strip {
+  position: absolute;
+  left: 28px;
+  top: 28px;
+  z-index: 7;
+  max-width: min(320px, calc(100% - 56px));
+  min-height: 58px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.editor-reference-strip > span {
+  flex: 0 0 auto;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.editor-reference-thumbs {
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.editor-reference-thumb {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.96);
+  background: #f8fafc;
+}
+
+.editor-reference-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.editor-reference-thumb button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 14px;
+}
+
 .editor-upload-card input,
 .editor-attach input {
   display: none;
@@ -7194,6 +7258,12 @@ button.tag-chip.active {
 }
 
 @media (max-width: 1099px) {
+  .editor-reference-strip {
+    left: 16px;
+    top: 92px;
+    max-width: min(290px, calc(100vw - 32px));
+  }
+
   .editor-publish-panel {
     right: 16px;
     top: 92px;
@@ -7206,6 +7276,13 @@ button.tag-chip.active {
 }
 
 @media (max-width: 768px) {
+  .editor-reference-strip {
+    left: 12px;
+    right: 12px;
+    top: 104px;
+    max-width: none;
+  }
+
   .editor-publish-panel {
     left: 12px;
     right: 12px;
