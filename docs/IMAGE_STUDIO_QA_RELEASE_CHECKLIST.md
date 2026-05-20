@@ -172,6 +172,19 @@ Record the outcome in the relevant development document or release note before m
 - Local full `smoke:public` blocker: local MySQL rejected `root@localhost` without password, so production container smoke is the authoritative public check.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-20 Canvas JSON Import Export Batch
+
+- Task covered: `AIS-RLS-029`.
+- Commit covered: `5c52c5a`.
+- Local checks: `node --check src/canvas-import-export.js`, `node --check public/canvas-io.js`, `node --check public/canvas.js`, `node --check server.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check scripts/smoke/check-canvas-import-export.mjs`, `node --check scripts/smoke/check-canvas-import-export-api.mjs`, `npm run smoke:canvas-import-export`, `npm run smoke:canvas-selection`, `npm run smoke:canvas-history`, `git diff --check`.
+- Backend coverage: canvas export/import validation is split into `src/canvas-import-export.js`; API routes provide authenticated `GET /api/canvases/:id/export` and owner-managed `POST /api/canvases/:id/import`.
+- Frontend coverage: browser file picking, JSON parse, upload, and download behavior live in `public/canvas-io.js`; `public/canvas.js` only wires toolbar actions and applies imported project data.
+- Schema coverage: import validation checks package format, node/edge shape, edge node references, and rejects embedded `data:`/`blob:` image payloads or oversized image strings.
+- Smoke coverage: `npm run smoke:canvas-import-export` verifies export package shape, import normalization, schema errors, and embedded image rejection; `npm run smoke:canvas-import-export-api` verifies authenticated export/import against the production container.
+- Deployment checks: app container running, production version `20260520-canvas-json-io-v1`, public smoke passed, canvas import/export module smoke passed, authenticated import/export API smoke passed, canvas selection/history regressions passed, and container syntax checks passed.
+- Local full API smoke blocker: local MySQL rejected `root@localhost` without password, so production container smoke is the authoritative authenticated API check.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.

@@ -859,6 +859,15 @@
 - 非法 JSON 有明确错误。
 - 图片使用 file id/url 引用，不把大文件塞入 JSON。
 
+完成记录：
+
+- `src/canvas-import-export.js` 独立承载导出包生成、导入归一化和 schema 校验，避免把 JSON IO 规则塞进 `server.js`。
+- 新增 `GET /api/canvases/:id/export` 和 `POST /api/canvases/:id/import`，分别使用画布读取权限和管理权限，导入后更新现有画布数据与节点/连线计数。
+- `public/canvas-io.js` 独立承载前端 JSON 文件选择、解析、上传和下载；`public/canvas.js` 只负责工具栏接线、保存当前画布和应用导入结果。
+- 导入校验覆盖包格式、节点/连线结构、连线引用节点存在性，并拒绝 `data:`/`blob:` 图片和过大的嵌入式图片字符串。
+- `npm run smoke:canvas-import-export` 覆盖导出包、导入归一化、非法 JSON 错误和嵌入式图片拒绝；`npm run smoke:canvas-import-export-api` 覆盖生产容器中的认证导入导出 API。
+- 线上版本 `20260520-canvas-json-io-v1` 已通过 public smoke、canvas import/export 模块 smoke、canvas import/export API smoke、canvas selection/history 回归 smoke 和容器内脚本语法检查。
+
 ### AIS-RLS-030：画布助手
 
 优先级：P2  
