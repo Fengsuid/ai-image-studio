@@ -104,10 +104,42 @@ function renderNode(node, flags) {
       <div class="canvas-v2-node-body">
         ${fields}
         <p>${escapeHtml(nodeSummary(node))}</p>
+        ${renderGenerationControls(node)}
       </div>
       <button type="button" class="canvas-v2-node-resize" data-canvas-node-resize data-canvas-node-id="${escapeAttr(node.id)}" aria-label="Resize node"></button>
     </article>
   `;
+}
+
+function renderGenerationControls(node) {
+  if (node.type !== "output") return "";
+  const status = node.generationStatus || node.status || "idle";
+  const image = node.imageUrl ? `<img class="canvas-v2-output-image" src="${escapeAttr(node.imageUrl)}" alt="Generated output">` : "";
+  const prompt = node.prompt ? `<small>${escapeHtml(node.prompt)}</small>` : "";
+  const generationId = node.generationId ? `<small>${escapeHtml(node.generationId)}</small>` : "";
+  const error = node.generationError ? `<small class="canvas-v2-output-error">${escapeHtml(node.generationError)}</small>` : "";
+  return `
+    <div class="canvas-v2-output-run" data-canvas-output-status="${escapeAttr(status)}">
+      <button
+        type="button"
+        data-canvas-editor-action="generate-output"
+        data-canvas-output-node-id="${escapeAttr(node.id)}"
+        ${status === "queued" || status === "running" ? "disabled" : ""}>生成</button>
+      <span>${escapeHtml(statusCopy(status))}</span>
+      ${image}
+      ${prompt}
+      ${generationId}
+      ${error}
+    </div>
+  `;
+}
+
+function statusCopy(status) {
+  if (status === "queued") return "排队中";
+  if (status === "running") return "生成中";
+  if (status === "success") return "成功";
+  if (status === "error") return "失败";
+  return "等待生成";
 }
 
 function renderEmptyState(hasProject) {

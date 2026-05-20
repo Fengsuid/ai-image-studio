@@ -80,6 +80,7 @@ const canvasService = createCanvasService({
   getClientIp,
   getUserAgent,
   isPubliclyVisibleGeneration,
+  resolveCanvasImageData,
   defaultModel: DEFAULT_MODEL
 });
 
@@ -1005,6 +1006,45 @@ function sourceImageAuditFields(generation) {
     sourcePrompt: generation?.sourcePrompt || "",
     originGalleryId: generation?.originGalleryId || generation?.sourceImageId || ""
   };
+}
+
+function canvasImageRouteReference(value = "") {
+  const match = String(value || "").trim().match(/^\/api\/images\/([^/]+)\/(file|source-file)(?:[?#].*)?$/);
+  return match ? { id: match[1], kind: match[2] } : { id: "", kind: "" };
+}
+
+async function localImageFileDataUrl(kind, filename) {
+  const absolutePath = imageFileAbsolutePath(kind, filename);
+  const buffer = await fs.readFile(absolutePath).catch((error) => {
+    if (error?.code === "ENOENT") throw httpError("Image file not found", 404);
+    throw error;
+  });
+  const mime = detectImageMime(buffer);
+  if (!mime || !ALLOWED_IMAGE_MIME.has(mime)) {
+    throw httpError("Canvas image node is missing an editable PNG/JPEG/WebP image", 400);
+  }
+  return `data:${mime};base64,${buffer.toString("base64")}`;
+}
+
+async function resolveCanvasImageData({ imageData = "", user = null } = {}) {
+  const source = String(imageData || "").trim();
+  const reference = canvasImageRouteReference(source);
+  if (!reference.id) return source;
+  const generation = await store.getGenerationById(reference.id);
+  if (!generation) throw httpError("Image not found", 404);
+
+  if (reference.kind === "source-file") {
+    if (!generation.sourceFilename) throw httpError("Image not found", 404);
+    if (!isPubliclyVisibleGeneration(generation) || !generation.publishOriginal) {
+      if (!user || !canTouchGeneration(user, generation)) throw httpError("Image not found", 404);
+    }
+    return localImageFileDataUrl("source", generation.sourceFilename);
+  }
+
+  if (!isPubliclyVisibleGeneration(generation)) {
+    if (!user || !canTouchGeneration(user, generation)) throw httpError("Image not found", 404);
+  }
+  return localImageFileDataUrl("generated", generation.filename);
 }
 
 function requestedSourceImageId(body = {}) {

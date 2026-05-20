@@ -169,6 +169,9 @@ function handleEditorAction(event, action, api) {
   } else if (name === "seed-100") {
     api.mutateDocument((canvasDocument) => createHundredNodeDocument(canvasDocument), { commit: true });
     api.setState({ selectedNodeIds: [], selectedEdgeIds: [] });
+  } else if (name === "generate-output") {
+    const outputNodeId = action.dataset.canvasOutputNodeId || "";
+    void api.runOutputGeneration?.(outputNodeId);
   }
 }
 

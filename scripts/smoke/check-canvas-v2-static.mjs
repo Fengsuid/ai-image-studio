@@ -17,6 +17,7 @@ assert.equal(packageJson.scripts["canvas:v2:build"], "npm run build --prefix app
 assert.equal(packageJson.scripts["smoke:canvas-v2"], "node scripts/smoke/check-canvas-v2.mjs", "root smoke:canvas-v2 script missing");
 assert.equal(packageJson.scripts["smoke:canvas-v2:static"], "node scripts/smoke/check-canvas-v2-static.mjs", "root smoke:canvas-v2:static script missing");
 assert.equal(packageJson.scripts["smoke:canvas-v2:editor"], "node scripts/smoke/check-canvas-v2-editor.mjs", "root smoke:canvas-v2:editor script missing");
+assert.equal(packageJson.scripts["smoke:canvas-v2:generation"], "node scripts/smoke/check-canvas-v2-generation.mjs", "root smoke:canvas-v2:generation script missing");
 assert.equal(canvasPackage.scripts.check, "node scripts/check-syntax.mjs", "canvas-v2 check script missing");
 assert.equal(canvasPackage.scripts.typecheck, "npm run check", "canvas-v2 typecheck script missing");
 assert(canvasPackage.scripts.build.includes("node scripts/build.mjs"), "canvas-v2 build script missing");
@@ -47,6 +48,8 @@ assert(appModule.includes("createCanvasProject"), "app module must create canvas
 assert(appModule.includes("updateCanvasProject"), "app module must save canvas projects");
 assert(appModule.includes("deleteCanvasProject"), "app module must delete canvas projects");
 assert(appModule.includes("installEditorController"), "app module must install Canvas v2 editor interactions");
+assert(appModule.includes("generateCanvasOutput"), "app module must call backend canvas generation adapter");
+assert(appModule.includes("saveCurrentCanvasForGeneration"), "app module must save before generation");
 
 const apiImport = appModule.match(/\bfrom\s*["'](\.\.\/adapters\/ai-image-studio-api\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
 assert(apiImport, "app module must import hashed API adapter");
@@ -60,6 +63,10 @@ assert(apiModule.includes("X-CSRF-Token"), "api adapter must attach CSRF token o
 assert(apiModule.includes("POST"), "api adapter must expose POST writes");
 assert(apiModule.includes("PATCH"), "api adapter must expose PATCH writes");
 assert(apiModule.includes("DELETE"), "api adapter must expose DELETE writes");
+assert(apiModule.includes("/generate"), "api adapter must expose backend canvas generate route");
+assert(apiModule.includes("outputNodeId"), "api adapter must send output node selector");
+assert(!apiModule.includes("openai.com"), "api adapter must not call OpenAI directly");
+assert(!apiModule.includes("apiKey"), "api adapter must not handle provider API keys");
 const shellImport = appModule.match(/\bfrom\s*["'](\.\/shell\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
 assert(shellImport, "app module must import hashed shell renderer");
 const shellModule = fs.readFileSync(publicPath(resolveAssetPath(appModulePath, shellImport)), "utf8");
@@ -75,6 +82,8 @@ assert(editorModule.includes("data-canvas-stage"), "editor renderer must expose 
 assert(editorModule.includes("data-canvas-minimap"), "editor renderer must expose minimap");
 assert(editorModule.includes("data-canvas-port"), "editor renderer must expose node ports");
 assert(editorModule.includes("data-canvas-node-resize"), "editor renderer must expose resize handles");
+assert(editorModule.includes("generate-output"), "editor renderer must expose output generation controls");
+assert(editorModule.includes("data-canvas-output-status"), "editor renderer must expose output generation status");
 assert(css.includes(".canvas-v2-shell"), "canvas-v2 CSS must style the shell");
 assert(css.includes(".canvas-v2-project-list"), "canvas-v2 CSS must style project list");
 assert(css.includes(".canvas-v2-editor-stage"), "canvas-v2 CSS must style editor stage");

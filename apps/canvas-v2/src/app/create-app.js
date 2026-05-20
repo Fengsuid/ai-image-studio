@@ -4,6 +4,7 @@ import {
   createCanvasProject,
   deleteCanvasProject,
   exportCanvasProject,
+  generateCanvasOutput,
   getCanvasProject,
   getCurrentAuth,
   getHealth,
@@ -16,6 +17,11 @@ import {
   normalizeCanvasDocument,
 } from "../adapters/canvas-schema.js";
 import { installEditorController } from "../editor/dom-controller.js";
+import {
+  applyGenerationResult,
+  applyGenerationStatus,
+  generationRequestForOutput,
+} from "../features/generation/flow.js";
 
 const SAVE_DEBOUNCE_MS = 700;
 
@@ -139,6 +145,24 @@ export function createCanvasV2App(root) {
     }
   }
 
+  async function saveCurrentCanvasForGeneration() {
+    window.clearTimeout(saveTimer);
+    if (!state.currentProjectId) throw new Error("请先新建或打开一个画布。");
+    setState({ saveStatus: "saving", saveError: "" });
+    const payload = canvasPayloadFromDocument(state.document, state.document.title);
+    const result = await updateCanvasProject(state.currentProjectId, payload);
+    const canvas = result.canvas;
+    state = {
+      ...state,
+      projects: upsertProject(state.projects, canvas),
+      document: documentFromCanvas(canvas),
+      dirty: false,
+      saveStatus: "saved",
+      saveError: "",
+    };
+    render();
+  }
+
   async function deleteCurrentProject() {
     if (!state.currentProjectId) return;
     const project = state.projects.find((item) => item.id === state.currentProjectId);
@@ -188,11 +212,68 @@ export function createCanvasV2App(root) {
     if (commit) scheduleSave();
   }
 
+  async function runOutputGeneration(outputNodeId) {
+    if (!state.currentProjectId) {
+      setState({ saveError: "请先新建或打开一个画布。", saveStatus: "error" });
+      return;
+    }
+    const request = generationRequestForOutput(state.document, outputNodeId);
+    if (!request.outputNodeId) return;
+    window.clearTimeout(saveTimer);
+    state = {
+      ...state,
+      document: normalizeCanvasDocument(applyGenerationStatus(state.document, request.outputNodeId, "queued", "已保存，准备提交生成..."), state.document.title),
+      dirty: true,
+      saveStatus: "unsaved",
+      saveError: "",
+    };
+    render();
+    try {
+      await saveCurrentCanvasForGeneration();
+      state = {
+        ...state,
+        document: normalizeCanvasDocument(applyGenerationStatus(state.document, request.outputNodeId, "running", "生成中：后端队列、积分和 Provider 已接管。"), state.document.title),
+        dirty: true,
+        saveStatus: "unsaved",
+      };
+      render();
+      const result = await generateCanvasOutput(state.currentProjectId, request);
+      state = {
+        ...state,
+        document: normalizeCanvasDocument(applyGenerationResult(state.document, request.outputNodeId, result), state.document.title),
+        dirty: true,
+        saveStatus: "unsaved",
+      };
+      render();
+      await saveCurrentCanvasForGeneration();
+    } catch (error) {
+      const message = errorMessage(error);
+      state = {
+        ...state,
+        document: normalizeCanvasDocument(applyGenerationStatus(state.document, request.outputNodeId, "error", message), state.document.title),
+        dirty: true,
+        saveStatus: "error",
+        saveError: message,
+      };
+      render();
+      try {
+        await saveCurrentCanvasForGeneration();
+      } catch (saveError) {
+        setState({
+          dirty: true,
+          saveStatus: "error",
+          saveError: `${message}；生成失败状态保存失败：${errorMessage(saveError)}`,
+        });
+      }
+    }
+  }
+
   installEditorController(root, {
     getState: () => state,
     setState,
     mutateDocument,
     commitDocument,
+    runOutputGeneration,
   });
 
   root.addEventListener("click", (event) => {

@@ -345,6 +345,38 @@ body {
   -webkit-line-clamp: 2;
 }
 
+.canvas-v2-output-run {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.canvas-v2-output-run button {
+  justify-self: start;
+  border-color: rgba(15, 118, 110, 0.42) !important;
+  background: #0f766e !important;
+  color: #fff !important;
+}
+
+.canvas-v2-output-run span {
+  color: #0f766e;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.canvas-v2-output-run[data-canvas-output-status="error"] span,
+.canvas-v2-output-error {
+  color: #9f2d20 !important;
+}
+
+.canvas-v2-output-image {
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+  border: 1px solid rgba(54, 43, 30, 0.12);
+  border-radius: 12px;
+}
+
 .canvas-v2-port {
   position: absolute;
   top: 50%;

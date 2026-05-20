@@ -2,7 +2,7 @@ const NODE_DEFAULTS = {
   image: { width: 260, height: 190, imageUrl: "/api/images/example/file", content: "Image reference" },
   text: { width: 280, height: 150, content: "Canvas v2 text node" },
   prompt: { width: 320, height: 170, prompt: "Describe the image you want to create" },
-  config: { width: 260, height: 180, model: "default", size: "1024x1024", quality: "standard" },
+  config: { width: 260, height: 180, model: "default", size: "1024x1024", quality: "auto", candidateCount: 1 },
   output: { width: 320, height: 210, content: "Generation output" },
   group: { width: 380, height: 260, content: "Group" },
 };
@@ -60,7 +60,8 @@ export function fieldSpecsForNode(node) {
     return [
       { key: "model", label: "Model", placeholder: "default" },
       { key: "size", label: "Size", placeholder: "1024x1024" },
-      { key: "quality", label: "Quality", placeholder: "standard" },
+      { key: "quality", label: "Quality", placeholder: "auto" },
+      { key: "candidateCount", label: "Candidates", placeholder: "1" },
     ];
   }
   return [];
@@ -244,7 +245,7 @@ export function createHundredNodeDocument(canvasDocument) {
 
 function compactNodeFields(options) {
   const fields = {};
-  for (const key of ["content", "prompt", "imageUrl", "model", "size", "quality"]) {
+  for (const key of ["content", "prompt", "imageUrl", "model", "size", "quality", "candidateCount"]) {
     if (typeof options[key] === "string") fields[key] = options[key];
   }
   return fields;

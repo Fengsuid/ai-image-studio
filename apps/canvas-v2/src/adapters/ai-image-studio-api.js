@@ -83,6 +83,13 @@ export async function exportCanvasProject(canvasId) {
   return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/export`);
 }
 
+export async function generateCanvasOutput(canvasId, payload) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/generate`, jsonRequest("POST", {
+    outputNodeId: payload?.outputNodeId || "",
+    configNodeId: payload?.configNodeId || "",
+  }));
+}
+
 function jsonRequest(method, payload) {
   return {
     method,

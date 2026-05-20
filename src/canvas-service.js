@@ -56,6 +56,7 @@ function createCanvasService({
   getClientIp,
   getUserAgent,
   isPubliclyVisibleGeneration,
+  resolveCanvasImageData = async ({ imageData }) => imageData,
   defaultModel
 }) {
   function cleanCanvasProjectInput(body = {}, { partial = false } = {}) {
@@ -178,11 +179,43 @@ function createCanvasService({
     };
   }
 
-  function canvasGenerationPlan(body = {}) {
-    const nodes = Array.isArray(body.nodes) ? body.nodes : [];
-    const edges = Array.isArray(body.edges) ? body.edges : [];
+  function normalizeGenerationNode(node) {
+    const data = node.data && typeof node.data === "object" && !Array.isArray(node.data) ? node.data : {};
+    return {
+      ...node,
+      id: String(node.id || "").trim(),
+      type: String(node.type || "").trim(),
+      data: {
+        ...data,
+        prompt: data.prompt ?? node.prompt ?? "",
+        body: data.body ?? node.content ?? "",
+        imageUrl: data.imageUrl ?? node.imageUrl ?? "",
+        generationId: data.generationId ?? node.generationId ?? "",
+        model: data.model ?? node.model ?? "",
+        size: data.size ?? node.size ?? "",
+        quality: data.quality ?? node.quality ?? "",
+        candidateCount: data.candidateCount ?? node.candidateCount ?? node.n ?? ""
+      }
+    };
+  }
+
+  function normalizeGenerationEdge(edge) {
+    return {
+      ...edge,
+      id: String(edge.id || "").trim(),
+      sourceId: String(edge.sourceId || edge.source || "").trim(),
+      targetId: String(edge.targetId || edge.target || "").trim()
+    };
+  }
+
+  function canvasGenerationPlan(canvasData = {}, selectors = {}) {
+    const nodes = Array.isArray(canvasData.nodes) ? canvasData.nodes.map(normalizeGenerationNode).filter((node) => node.id) : [];
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    const edges = Array.isArray(canvasData.edges)
+      ? canvasData.edges.map(normalizeGenerationEdge).filter((edge) => edge.sourceId && edge.targetId && nodeIds.has(edge.sourceId) && nodeIds.has(edge.targetId))
+      : [];
     const byId = new Map(nodes.map((node) => [String(node.id || ""), node]));
-    const outputNode = byId.get(String(body.outputNodeId || "")) || nodes.find((node) => node.type === "output");
+    const outputNode = byId.get(String(selectors.outputNodeId || "")) || nodes.find((node) => node.type === "output");
     const incoming = (id) => edges.filter((edge) => String(edge.targetId || "") === String(id || ""));
     const visitUpstream = (id, seen = new Set()) => incoming(id).flatMap((edge) => {
       const sourceId = String(edge.sourceId || "");
@@ -191,30 +224,51 @@ function createCanvasService({
       const node = byId.get(sourceId);
       return node ? [node, ...visitUpstream(sourceId, seen)] : [];
     });
-    const configNode = byId.get(String(body.configNodeId || ""))
+    if (!outputNode) throw httpError("Canvas output node not found", 400);
+    const configNode = byId.get(String(selectors.configNodeId || ""))
       || visitUpstream(outputNode?.id || "").find((node) => node.type === "config")
       || nodes.find((node) => node.type === "config");
     if (!configNode) throw httpError("Canvas config node not found", 400);
-    const upstream = visitUpstream(configNode.id);
+    const upstream = uniqueNodesById([...visitUpstream(outputNode.id), ...visitUpstream(configNode.id)]);
     const promptNodes = upstream.filter((node) => node.type === "prompt");
+    const textNodes = upstream.filter((node) => node.type === "text");
     const imageNodes = upstream.filter((node) => node.type === "image");
     if (promptNodes.length > 1 || imageNodes.length > 1) {
       throw httpError("Canvas input conflict: use at most one prompt and one image", 400);
     }
-    const prompt = cleanPrompt(body.prompt || promptNodes[0]?.data?.prompt || promptNodes[0]?.data?.body || "");
+    const promptSource = promptNodes[0] || textNodes[0] || null;
+    const prompt = cleanPrompt(promptSource?.data?.prompt || promptSource?.data?.body || "");
+    if (!prompt) throw httpError("Canvas prompt node is required before generation", 400);
     const imageNode = imageNodes[0] || null;
+    const imageUrl = String(imageNode?.data?.imageUrl || "");
+    const imageReference = canvasImageReference(imageUrl);
+    const sourceImageId = String(imageNode?.data?.generationId || imageReference.id || "");
+    const imageData = imageUrl || (sourceImageId ? `/api/images/${sourceImageId}/file` : "");
+    const qualityValue = String(configNode.data?.quality || "").trim();
+    const quality = qualityValue === "standard"
+      ? "auto"
+      : choose(qualityValue, ["auto", "low", "medium", "high"], "auto");
     return {
-      outputNodeId: String(outputNode?.id || body.outputNodeId || ""),
+      outputNodeId: String(outputNode.id || selectors.outputNodeId || ""),
       configNodeId: String(configNode.id || ""),
       prompt,
-      imageData: String(imageNode?.data?.imageUrl || ""),
-      sourceImageId: String(imageNode?.data?.generationId || ""),
+      imageData,
+      sourceImageId,
       sourcePrompt: String(imageNode?.data?.prompt || ""),
       model: String(configNode.data?.model || defaultModel),
-      size: normalizeImageSize(configNode.data?.size || body.size),
-      quality: choose(configNode.data?.quality || body.quality, ["auto", "low", "medium", "high"], "auto"),
-      n: sanitizePositiveInt(configNode.data?.candidateCount || body.n, 1, 4)
+      size: normalizeImageSize(configNode.data?.size),
+      quality,
+      n: sanitizePositiveInt(configNode.data?.candidateCount, 1, 4)
     };
+  }
+
+  function uniqueNodesById(nodes = []) {
+    const seen = new Set();
+    return nodes.filter((node) => {
+      if (!node?.id || seen.has(node.id)) return false;
+      seen.add(node.id);
+      return true;
+    });
   }
 
   async function list(user, { limit, scope }) {
@@ -314,7 +368,15 @@ function createCanvasService({
     const canvas = await store.getCanvasProjectById(canvasId);
     const user = await store.getUserById(userId);
     if (!canManageCanvas(user, canvas)) throw httpError("Canvas not found", 404);
-    const plan = canvasGenerationPlan(body);
+    const plan = canvasGenerationPlan(canvas.dataJson || {}, body);
+    if (plan.imageData) {
+      plan.imageData = await resolveCanvasImageData({
+        imageData: plan.imageData,
+        sourceImageId: plan.sourceImageId,
+        user,
+        canvas
+      });
+    }
     if (plan.imageData && !plan.imageData.startsWith("data:image/") && !/^https?:\/\//i.test(plan.imageData)) {
       throw httpError("Canvas image node is missing an editable image", 400);
     }

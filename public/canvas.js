@@ -715,11 +715,16 @@
     markDirty();
     renderBoard();
     try {
+      const saved = await saveCanvasNow();
+      if (!saved) {
+        markOutput(output, "error", "Save this canvas before running generation.");
+        markDirty();
+        renderBoard();
+        return;
+      }
       const result = await root.request(`/api/canvases/${encodeURIComponent(state.projectId)}/generate`, {
         method: "POST",
         body: JSON.stringify({
-          nodes: state.nodes,
-          edges: state.edges,
           outputNodeId: output.id,
           configNodeId: config?.id || ""
         })

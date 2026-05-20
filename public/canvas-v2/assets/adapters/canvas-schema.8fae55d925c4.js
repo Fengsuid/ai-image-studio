@@ -105,12 +105,13 @@ function normalizeNode(node) {
     y: finiteNumber(node.y, 0),
   };
 
-  for (const key of ["width", "height", "promptId", "generationId"]) {
+  for (const key of ["width", "height", "promptId", "candidateCount"]) {
     if (Number.isFinite(Number(node[key]))) clean[key] = Number(node[key]);
   }
-  for (const key of ["content", "prompt", "imageUrl", "model", "size", "quality"]) {
+  for (const key of ["content", "prompt", "imageUrl", "model", "size", "quality", "generationId", "status", "generationStatus", "generationError"]) {
     if (typeof node[key] === "string" && node[key].trim()) clean[key] = node[key].trim();
   }
+  if (Array.isArray(node.generationIds)) clean.generationIds = node.generationIds.map((id) => String(id || "").trim()).filter(Boolean).slice(0, 16);
   if (clean.imageUrl && !isPersistableImageUrl(clean.imageUrl)) delete clean.imageUrl;
   return clean;
 }

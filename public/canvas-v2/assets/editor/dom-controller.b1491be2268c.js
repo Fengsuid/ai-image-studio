@@ -12,7 +12,7 @@ import {
   resizeNode,
   selectNodesInRect,
   updateNodeField,
-} from "./model.387f332cea0f.js";
+} from "./model.f0b905430bbe.js";
 
 export function installEditorController(root, api) {
   const gesture = { current: null };
@@ -169,6 +169,9 @@ function handleEditorAction(event, action, api) {
   } else if (name === "seed-100") {
     api.mutateDocument((canvasDocument) => createHundredNodeDocument(canvasDocument), { commit: true });
     api.setState({ selectedNodeIds: [], selectedEdgeIds: [] });
+  } else if (name === "generate-output") {
+    const outputNodeId = action.dataset.canvasOutputNodeId || "";
+    void api.runOutputGeneration?.(outputNodeId);
   }
 }
 
