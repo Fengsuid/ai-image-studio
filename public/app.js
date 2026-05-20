@@ -269,6 +269,8 @@ const i18n = {
     publishDialogTitle: "发布到广场",
     editPublicTags: "编辑标签",
     publishDialogDesc: "给作品加上标签，别人就能在广场里更容易搜到它。",
+    publishTitleLabel: "图片标题",
+    publishTitlePlaceholder: "不填则自动取提示词前 42 字",
     publicTags: "公开标签",
     tagInputHint: "仅能选择已有标签，新标签请联系管理员处理",
     requiredPublicTag: "系统自动标签",
@@ -291,6 +293,11 @@ const i18n = {
     unlikeImage: "取消点赞",
     galleryLeaderboard: "点赞排行榜",
     galleryLeaderboardDesc: "按点赞数展示最近受欢迎的公开作品",
+    galleryLeaderboardPage: "榜单",
+    openLeaderboard: "查看完整榜单",
+    deleteConversation: "删除对话",
+    viewUserConversations: "查看对话",
+    userConversationsTitle: "用户对话记录",
     saveTags: "保存标签",
     tagsSaved: "标签已保存",
     authorBy: "作者",
@@ -599,6 +606,8 @@ const i18n = {
     publishDialogTitle: "Publish to square",
     editPublicTags: "Edit tags",
     publishDialogDesc: "Add tags so people can find this work in the square.",
+    publishTitleLabel: "Image title",
+    publishTitlePlaceholder: "Defaults to the first 42 prompt characters",
     publicTags: "Public tags",
     tagInputHint: "Choose existing tags only. Contact an admin for new tag requests.",
     requiredPublicTag: "Required system tag",
@@ -621,6 +630,11 @@ const i18n = {
     unlikeImage: "Unlike",
     galleryLeaderboard: "Like leaderboard",
     galleryLeaderboardDesc: "Popular public works ranked by likes",
+    galleryLeaderboardPage: "Leaderboard",
+    openLeaderboard: "Open leaderboard",
+    deleteConversation: "Delete chat",
+    viewUserConversations: "View chats",
+    userConversationsTitle: "User conversations",
     saveTags: "Save tags",
     tagsSaved: "Tags saved",
     authorBy: "By",
@@ -914,6 +928,8 @@ const elements = {
   homeView: $("#homeView"),
   chatView: $("#chatView"),
   libraryView: $("#libraryView"),
+  leaderboardView: $("#leaderboardView"),
+  leaderboardPage: $("#leaderboardPage"),
   editorView: $("#editorView"),
   canvasView: $("#canvasView"),
   canvasListView: $("#canvasListView"),
@@ -964,6 +980,7 @@ const elements = {
   librarySearchInput: $("#librarySearchInput"),
   tagFilters: $("#tagFilters"),
   promptGrid: $("#promptGrid"),
+  leaderboardBtn: $("#leaderboardBtn"),
   composerTemplate: $("#composerTemplate"),
   editorCanvasArea: $("#editorCanvasArea"),
   editorUploadCard: $("#editorUploadCard"),
@@ -1489,6 +1506,37 @@ function addGenerationToActiveSession(itemId, prompt) {
   saveImageSessionState();
 }
 
+function deleteImageSession(sessionIdToDelete) {
+  const id = String(sessionIdToDelete || "");
+  if (!id) return;
+  state.imageSessions = state.imageSessions.filter((session) => String(session.id) !== id);
+  if (state.activeImageSessionId === id) {
+    state.activeImageSessionId = state.imageSessions[0]?.id || "";
+  }
+  if (!state.imageSessions.length) {
+    const session = createImageSession();
+    state.imageSessions.unshift(session);
+    state.activeImageSessionId = session.id;
+  }
+  state.continuationLockedSessionId = "";
+  state.continuationLastImageUrl = "";
+  saveImageSessionState();
+  renderAll();
+}
+
+function renameImageSession(sessionIdToRename, title) {
+  const id = String(sessionIdToRename || "");
+  const nextTitle = String(title || "").trim().slice(0, 48);
+  if (!id || !nextTitle) return;
+  state.imageSessions = state.imageSessions.map((session) =>
+    String(session.id) === id
+      ? { ...session, title: nextTitle, updatedAt: new Date().toISOString() }
+      : session
+  );
+  saveImageSessionState();
+  renderImageSessions();
+}
+
 function replaceSessionGenerationId(oldId, newId, elapsedMs) {
   state.imageSessions.forEach((session) => {
     session.generationIds = (session.generationIds || []).map((id) => String(id) === String(oldId) ? String(newId) : id);
@@ -1555,11 +1603,13 @@ function setView(view) {
     elements.homeView.classList.toggle("hidden", view !== "home" || (!heroVisible && view === "home"));
     elements.chatView.classList.toggle("hidden", view !== "home" || heroVisible);
     elements.libraryView.classList.toggle("hidden", view !== "library");
+    elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");
     elements.editorView.classList.toggle("hidden", view !== "editor");
     elements.canvasView?.classList.toggle("hidden", view !== "canvas");
     elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   }
   if (view === "library") renderLibrary();
+  if (view === "leaderboard") renderLeaderboardPage();
   if (view === "editor") renderEditor();
   if (view === "canvas") renderCanvasShell();
   updateNav();
@@ -1623,7 +1673,7 @@ function routeFromLocation() {
   const galleryId = params.get("gallery") || (hashGalleryMatch ? decodeURIComponent(hashGalleryMatch[1]) : "");
   const canvasProjectId = hashCanvasMatch?.[1] ? decodeURIComponent(hashCanvasMatch[1]) : "";
   return {
-    view: hashCanvasMatch ? "canvas" : ["home", "library", "editor", "canvas"].includes(view) ? view : (galleryId ? "library" : "home"),
+    view: hashCanvasMatch ? "canvas" : ["home", "library", "leaderboard", "editor", "canvas"].includes(view) ? view : (galleryId ? "library" : "home"),
     forceHero: params.get("workspace") !== "1",
     modal: params.get("modal") || (galleryId ? "square" : ""),
     workDetailId: params.get("work") || "",
@@ -1715,6 +1765,7 @@ function renderAll() {
   renderImageSessions();
   renderHistory();
   if (state.view === "library") renderLibrary();
+  if (state.view === "leaderboard") renderLeaderboardPage();
   if (state.view === "editor") renderEditor();
   renderComposers();
   setView(state.view);
@@ -2341,6 +2392,7 @@ async function submitGeneration(form) {
   const startedAt = Date.now();
   const item = {
     id: tempId,
+    title: prompt.slice(0, 42),
     prompt,
     images: [],
     status: "generating",
@@ -2388,6 +2440,7 @@ async function submitGeneration(form) {
         signal: state.generateAbortController.signal,
         body: JSON.stringify({
           prompt,
+          title: prompt.slice(0, 42),
           imageData,
           maskData: "",
           isPublic: item.isPublic && candidateCount === 1,
@@ -2407,6 +2460,7 @@ async function submitGeneration(form) {
         signal: state.generateAbortController.signal,
         body: JSON.stringify({
           prompt,
+          title: prompt.slice(0, 42),
           size: item.options.size,
           quality: item.options.quality,
           background: item.options.background,
@@ -2478,7 +2532,9 @@ async function submitGeneration(form) {
     state.currentGenerationRequestId = "";
     stopFunMessages();
     stopGenerationTimer();
-    renderAll();
+    renderHistory();
+    renderImageSessions();
+    renderComposers();
     focusGenerationWorkspace(focusId, "smooth");
     if (postPublishItem) {
       const hasSourceImage = Boolean(postPublishItem.sourceImageData || postPublishItem.sourceImageUrl || postPublishItem.sourceFilename);
@@ -2602,7 +2658,7 @@ async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now(
       if (status === "failed" || status === "cancelled") {
         throw new Error(request.errorMessage || (status === "cancelled" ? "Generation cancelled" : "Generation failed"));
       }
-      if (!updateGeneratingHistoryCard(itemId)) renderHistory();
+      updateGeneratingHistoryCard(itemId);
       lastError = null;
     } catch (error) {
       lastError = error;
@@ -2665,7 +2721,9 @@ function finishRestoredGeneration(tempId, data) {
         }
       : entry
   );
-  renderAll();
+  renderHistory();
+  renderImageSessions();
+  renderComposers();
 }
 
 async function loadHistory() {
@@ -2694,32 +2752,36 @@ async function loadHistory() {
 
 function renderImageSessions() {
   if (!elements.imageSessionList) return;
-  const historyById = new Map(state.history.map((item) => [String(item.id), item]));
-  if (!state.imageSessions.length) {
-    elements.imageSessionList.innerHTML = `<div class="session-empty">${text("emptyWorks")}</div>`;
-    return;
-  }
+  elements.imageSessionList.innerHTML = window.ImageStudioSessionList?.render?.({
+    sessions: state.imageSessions,
+    history: state.history,
+    activeSessionId: state.activeImageSessionId,
+    text,
+    escapeHtml,
+    truncate,
+    imageVariantUrl,
+    imageFallbackImgAttrs,
+    imageFallbackContainerAttrs,
+    lang: state.lang
+  }) || "";
 
-  elements.imageSessionList.innerHTML = state.imageSessions.map((session) => {
-    const items = (session.generationIds || []).map((id) => historyById.get(String(id))).filter(Boolean);
-    const latest = [...items].reverse().find((item) => item.images?.[0]);
-    const latestPrompt = items.at(-1)?.prompt || "";
-    const count = items.length;
-    const active = session.id === state.activeImageSessionId ? "active" : "";
-    const thumb = latest
-    ? `<img src="${escapeHtml(imageVariantUrl(latest.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(latest.prompt, 60))}">`
-      : `<i class="ri-chat-3-line"></i>`;
-    return `
-      <button class="chat-session-card ${active}" type="button" data-session-id="${escapeHtml(session.id)}">
-        <span class="session-thumb" ${imageFallbackContainerAttrs()}>${thumb}</span>
-        <span class="session-copy">
-          <strong>${escapeHtml(session.title || text("sessionUntitled"))}</strong>
-          <em>${count} ${text("roundCount")}</em>
-          <small>${escapeHtml(truncate(latestPrompt || session.updatedAt || "", 42))}</small>
-        </span>
-      </button>
-    `;
-  }).join("");
+  $$("[data-rename-session]", elements.imageSessionList).forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const session = state.imageSessions.find((item) => String(item.id) === String(button.dataset.renameSession));
+      const nextTitle = window.prompt(state.lang === "zh" ? "编辑对话标题" : "Edit chat title", session?.title || "");
+      if (nextTitle !== null) renameImageSession(button.dataset.renameSession, nextTitle);
+    });
+  });
+
+  $$("[data-delete-session]", elements.imageSessionList).forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const confirmed = window.confirm(state.lang === "zh" ? "删除这个对话？生成历史和公开作品不会被删除。" : "Delete this chat? Generated works and public posts are kept.");
+      if (!confirmed) return;
+      deleteImageSession(button.dataset.deleteSession);
+    });
+  });
 
   $$("[data-session-id]", elements.imageSessionList).forEach((button) => {
     button.addEventListener("click", () => {
@@ -2916,6 +2978,7 @@ function openPublishModal(item, publishOriginal = false) {
     .filter((tag) => !["text-to-image", "image-to-image"].includes(tag.toLowerCase()));
   const selectedTags = new Set(currentTags.map((tag) => tag.toLowerCase()));
   const kindInfo = tagInfo(kindTag);
+  const defaultTitle = (item.title || item.prompt || "").trim().slice(0, 42);
   const choices = existingPublishTagChoices(currentTags);
   const suggestionButtons = choices.map((tag) => {
     const info = tagInfo(tag.slug);
@@ -2936,6 +2999,11 @@ function openPublishModal(item, publishOriginal = false) {
         </div>
       </div>
       <form id="publishForm" class="publish-form">
+        <label class="publish-title-field">
+          <span>${escapeHtml(text("publishTitleLabel"))}</span>
+          <input id="publishTitleInput" maxlength="80" value="${escapeHtml(item.title || "")}" placeholder="${escapeHtml(text("publishTitlePlaceholder"))}">
+          <small>${escapeHtml(defaultTitle)}</small>
+        </label>
         <div class="publish-required-tag">
           <span>${escapeHtml(text("requiredPublicTag"))}</span>
           <strong class="tag-chip active" style="--tag-hue:${kindInfo.hue}">${escapeHtml(kindInfo.label)}</strong>
@@ -3003,6 +3071,7 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
       sourceImageData: publishOriginal || forceOriginal ? item.sourceImageData || "" : "",
       sourceImageId: sourceItem?.id || item.sourceImageId || "",
       publicTags: publicTagsForKind(kind, publicTags),
+      title: $("#publishTitleInput", elements.modalLayer)?.value.trim() || item.title || "",
       conversationRoute: item.conversation?.length ? item.conversation : conversationRouteForItem(item)
     };
     return api(`/api/images/${item.id}/public`, {
@@ -3339,10 +3408,11 @@ function renderLibrary() {
     : null;
   const cardsHtml = visible.map(promptCardHtml).join("")
     + (visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : "");
+  const leaderboardCta = `<div class="leaderboard-cta"><button type="button" data-open-leaderboard><i class="ri-trophy-line"></i>${escapeHtml(text("openLeaderboard"))}</button></div>`;
   elements.promptGrid.innerHTML = state.promptLoading
     ? `<div class="empty-message">${text("loadingPrompts")}</div>`
     : filtered.length
-      ? `<div class="gallery-main-grid">${cardsHtml}</div>${renderGalleryLeaderboard()}`
+      ? `${leaderboardCta}<div class="gallery-main-grid">${cardsHtml}</div>`
       : selectedInfo
         ? emptyTagMessageHtml(selectedInfo)
         : `<div class="empty-message">${text("noResults")}</div>`;
@@ -3398,7 +3468,7 @@ function renderLibrary() {
     renderLibrary();
   });
   bindPromptCards(elements.promptGrid);
-  bindGalleryLeaderboardControls(elements.promptGrid);
+  $("[data-open-leaderboard]", elements.promptGrid)?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
 }
 
 function renderGalleryLeaderboard() {
@@ -3414,13 +3484,28 @@ function renderGalleryLeaderboard() {
   }) || "";
 }
 
+function renderLeaderboardPage() {
+  if (!elements.leaderboardPage) return;
+  elements.leaderboardPage.innerHTML = `
+    <div class="leaderboard-page-head">
+      <span class="library-badge"><i class="ri-trophy-line"></i>${escapeHtml(text("galleryLeaderboardPage"))}</span>
+      <h1>${escapeHtml(text("galleryLeaderboard"))}</h1>
+      <p>${escapeHtml(text("galleryLeaderboardDesc"))}</p>
+    </div>
+    ${renderGalleryLeaderboard()}
+  `;
+  bindGalleryLeaderboardControls(elements.leaderboardPage);
+  bindPromptCards(elements.leaderboardPage);
+}
+
 function bindGalleryLeaderboardControls(root = document) {
   $$("[data-rank-range]", root).forEach((button) => {
     button.addEventListener("click", async () => {
       if (button.dataset.rankRange === state.galleryLeaderboardRange || state.galleryLeaderboardLoading) return;
       state.galleryLeaderboardRange = button.dataset.rankRange;
       await loadGalleryLeaderboard();
-      renderLibrary();
+      if (state.view === "leaderboard") renderLeaderboardPage();
+      else renderLibrary();
     });
   });
   $$("[data-rank-type]", root).forEach((button) => {
@@ -3428,7 +3513,8 @@ function bindGalleryLeaderboardControls(root = document) {
       if (button.dataset.rankType === state.galleryLeaderboardType || state.galleryLeaderboardLoading) return;
       state.galleryLeaderboardType = button.dataset.rankType;
       await loadGalleryLeaderboard();
-      renderLibrary();
+      if (state.view === "leaderboard") renderLeaderboardPage();
+      else renderLibrary();
     });
   });
 }
@@ -4235,6 +4321,7 @@ async function submitImageEdit(event) {
         publishOriginal,
         sourceImageData: publishOriginal ? originalData : "",
         publicTags: [],
+        title: prompt.slice(0, 42),
         conversationRoute: draftRoute
       })
     });
@@ -4244,16 +4331,17 @@ async function submitImageEdit(event) {
     addGenerationToActiveSession(generation.id, generation.prompt);
     const savedEntry = {
       id: generation.id,
+      title: generation.title || "",
       prompt: generation.prompt,
       images: [generation.imageUrl],
       sourceImageUrl: generation.sourceImageUrl || "",
       sourceImageData: originalData,
       publishOriginal: Boolean(generation.publishOriginal),
       conversation: generation.conversation || draftRoute,
-        publicTags: generation.publicTags || [],
-        userId: generation.userId || "",
-        userName: generation.userName || "",
-        status: "done",
+      publicTags: generation.publicTags || [],
+      userId: generation.userId || "",
+      userName: generation.userName || "",
+      status: "done",
       time: generation.createdAt,
       elapsedMs: Number(generation.durationMs || 0) || null,
       model: generation.model,
@@ -6304,12 +6392,58 @@ async function loadUsers() {
       </td>
       <td><input class="credits-input" type="number" min="0" value="${Number(user.credits || 0)}"></td>
       <td><input class="credit-delta-input" type="number" step="1" value="0"></td>
-      <td><button class="tiny-button save-user" type="button"><i class="ri-save-line"></i>${text("save")}</button></td>
+      <td>
+        <div class="user-action-row">
+          <button class="tiny-button view-user-conversations" type="button"><i class="ri-chat-history-line"></i>${text("viewUserConversations")}</button>
+          <button class="tiny-button save-user" type="button"><i class="ri-save-line"></i>${text("save")}</button>
+        </div>
+      </td>
     </tr>
   `).join("");
+  $$(".view-user-conversations", body).forEach((button) => {
+    button.addEventListener("click", () => openUserConversationsModal(button.closest("tr")?.dataset.userId));
+  });
   $$(".save-user", body).forEach((button) => {
     button.addEventListener("click", () => saveUser(button.closest("tr")));
   });
+}
+
+async function openUserConversationsModal(userId) {
+  if (!userId || state.user?.role !== "admin") return;
+  const data = await api(`/api/admin/users/${encodeURIComponent(userId)}/generations?includeArchived=1&limit=200`);
+  const generations = (data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" }));
+  const conversations = generations
+    .filter((item) => item.prompt || item.images?.[0])
+    .map((item) => ({
+      id: item.id,
+      title: item.title || truncate(item.prompt, 42),
+      prompt: item.prompt || "",
+      image: item.images?.[0] || "",
+      route: item.conversation || [],
+      createdAt: item.time || item.createdAt || ""
+    }));
+  openModal(`
+    <section class="modal admin-conversations-modal">
+      <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
+      <div class="modal-title">
+        <i class="ri-chat-history-line"></i>
+        <h2>${escapeHtml(text("userConversationsTitle"))}</h2>
+      </div>
+      <p class="admin-conversations-user">${escapeHtml(data.user?.name || data.user?.email || userId)}</p>
+      <div class="admin-conversation-list">
+        ${conversations.length ? conversations.map((item) => `
+          <article class="admin-conversation-card">
+            ${item.image ? `<img src="${escapeHtml(imageVariantUrl(item.image))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="">` : `<span><i class="ri-image-line"></i></span>`}
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <small>${escapeHtml(formatDate(item.createdAt))} · ${Number(item.route.length || 1)} ${escapeHtml(text("roundCount"))}</small>
+              <p>${escapeHtml(truncate(item.prompt, 140))}</p>
+            </div>
+          </article>
+        `).join("") : `<div class="session-empty">${escapeHtml(text("emptyWorks"))}</div>`}
+      </div>
+    </section>
+  `);
 }
 
 async function saveUser(row) {
@@ -6378,6 +6512,7 @@ function bindGlobalEvents() {
     openHomeHero({ scroll: true });
   });
   elements.promptLibraryBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
+  elements.leaderboardBtn?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
   elements.canvasWorkspaceBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
   elements.sessionDrawerToggle?.addEventListener("click", () => {
     if (state.view === "home" && !shouldShowHero()) {
@@ -6481,6 +6616,11 @@ function bindGlobalEvents() {
   elements.editorBottomUploadInput.addEventListener("change", (event) => {
     handleEditorUpload(event.target.files, { appendReferences: true });
     event.target.value = "";
+  });
+  window.ImageStudioEditorImageImport?.bindEditor?.({
+    root: elements.editorView,
+    dropTargets: [$("#editorCanvasArea"), $("#editorUploadCard"), $("#editorImageFrame")],
+    onFiles: (files) => handleEditorUpload(files, { appendReferences: Boolean(state.editor.imageUrl) })
   });
   elements.editorSourceImage.addEventListener("load", resetEditorCanvas);
   elements.editorMaskCanvas.addEventListener("pointerdown", editorPointerDown);

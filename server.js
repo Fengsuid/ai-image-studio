@@ -327,6 +327,24 @@ function isSafeRemoteImageUrl(value = "") {
   }
 }
 
+function normalizeRemoteImageUrl(value = "") {
+  const raw = String(value || "").trim();
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+    if (host !== "github.com") return raw;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const blobIndex = parts.indexOf("blob");
+    if (parts.length < 5 || blobIndex !== 2) return raw;
+    const [owner, repo] = parts;
+    const branch = parts[blobIndex + 1];
+    const filePath = parts.slice(blobIndex + 2).map(encodeURIComponent).join("/");
+    return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${filePath}`;
+  } catch {
+    return raw;
+  }
+}
+
 function providerCapabilities(settings = {}) {
   const model = String(settings.model || DEFAULT_MODEL).toLowerCase();
   const configured = settings.providerCapabilityConfig && typeof settings.providerCapabilityConfig === "object"
@@ -588,6 +606,12 @@ function cleanPrompt(prompt) {
     throw httpError("Prompt cannot exceed 4000 characters", 400);
   }
   return value;
+}
+
+function sanitizeGenerationTitle(value = "", prompt = "") {
+  const explicit = String(value || "").trim().replace(/\s+/g, " ").slice(0, 80);
+  if (explicit) return explicit;
+  return String(prompt || "").trim().replace(/\s+/g, " ").slice(0, 42);
 }
 
 function choose(value, allowed, fallback) {
@@ -1995,6 +2019,7 @@ async function saveGeneratedImages(user, request, openaiResult) {
     const generation = {
       id,
       userId: user.id,
+      title: sanitizeGenerationTitle(request.title, request.prompt),
       prompt: request.prompt,
       model: request.model,
       size: request.size,
@@ -3809,6 +3834,23 @@ async function routeApi(req, res, url) {
     return sendJson(res, 200, { generations });
   }
 
+  const adminUserGenerationsMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)\/generations$/);
+  if (adminUserGenerationsMatch && req.method === "GET") {
+    const current = await getCurrentUser(req);
+    ensureAdmin(current);
+    const target = await store.getUserById(adminUserGenerationsMatch[1]);
+    if (!target) throw httpError("User not found", 404);
+    const includeArchived = url.searchParams.get("includeArchived") === "1";
+    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 120, 200);
+    const generations = (await store.listGenerationsForUserId(target.id, limit, { includeArchived })).map((generation) => ({
+      ...generation,
+      imageUrl: `/api/images/${generation.id}/file`,
+      sourceImageUrl: sourceImageUrlForGeneration(generation, { includePrivateSource: true }),
+      ...sourceImageAuditFields(generation)
+    }));
+    return sendJson(res, 200, { user: serializeUser(target), generations });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/images/public") {
     const current = await getCurrentUser(req);
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 60, 120);
@@ -3859,10 +3901,11 @@ async function routeApi(req, res, url) {
       res.end(await fs.readFile(absolutePath));
       return;
     }
-    if (!isSafeRemoteImageUrl(sourceUrl)) {
+    const proxyUrl = normalizeRemoteImageUrl(sourceUrl);
+    if (!isSafeRemoteImageUrl(proxyUrl)) {
       throw httpError("Prompt image is not proxyable", 404);
     }
-    const upstream = await fetchWithTimeout("Prompt image proxy", sourceUrl, {
+    const upstream = await fetchWithTimeout("Prompt image proxy", proxyUrl, {
       method: "GET",
       headers: { Accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8" }
     }, 20_000);
@@ -4109,6 +4152,7 @@ async function routeApi(req, res, url) {
     const totalCost = costPerImage * n;
     const request = {
       model: String(settings.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
+      title: sanitizeGenerationTitle(body.title, prompt),
       prompt,
       n,
       size: normalizeImageSize(body.size),
@@ -4293,6 +4337,7 @@ async function routeApi(req, res, url) {
       : "";
     const request = {
       model: String(settings.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
+      title: sanitizeGenerationTitle(body.title, prompt),
       prompt,
       n,
       size: normalizeImageSize(body.size),
@@ -4455,6 +4500,9 @@ async function routeApi(req, res, url) {
     };
     if (Object.hasOwn(body, "conversationRoute")) {
       patch.conversation = sanitizeConversationRoute(body.conversationRoute);
+    }
+    if (Object.hasOwn(body, "title")) {
+      patch.title = sanitizeGenerationTitle(body.title, generation.prompt);
     }
     const boundSource = patch.isPublic === true ? await resolvePublishSourceImage({ body, generation }) : null;
     if (boundSource) {

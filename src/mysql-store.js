@@ -255,6 +255,7 @@ function mapGeneration(row) {
     userId: row.user_id,
     userName: row.user_name || "",
     userEmail: row.user_email || "",
+    title: row.title || "",
     prompt: row.prompt,
     model: row.model,
     size: row.size,
@@ -585,6 +586,7 @@ async function runMigrations() {
     CREATE TABLE IF NOT EXISTS generations (
       id VARCHAR(32) NOT NULL PRIMARY KEY,
       user_id VARCHAR(32) NOT NULL,
+      title VARCHAR(160) NOT NULL DEFAULT '',
       prompt TEXT NOT NULL,
       model VARCHAR(80) NOT NULL,
       size VARCHAR(20) NOT NULL,
@@ -625,6 +627,10 @@ async function runMigrations() {
   const [generationColumns] = await db.execute("SHOW COLUMNS FROM generations LIKE 'is_public'");
   if (!generationColumns.length) {
     await db.query("ALTER TABLE generations ADD COLUMN is_public TINYINT(1) NOT NULL DEFAULT 0 AFTER filename");
+  }
+  const [generationTitleColumns] = await db.execute("SHOW COLUMNS FROM generations LIKE 'title'");
+  if (!generationTitleColumns.length) {
+    await db.query("ALTER TABLE generations ADD COLUMN title VARCHAR(160) NOT NULL DEFAULT '' AFTER user_id");
   }
   const [sourceColumns] = await db.execute("SHOW COLUMNS FROM generations LIKE 'source_filename'");
   if (!sourceColumns.length) {
@@ -2592,11 +2598,12 @@ async function insertGenerations(generations) {
     for (const generation of generations) {
       await connection.execute(
         `INSERT INTO generations
-          (id, user_id, prompt, model, size, quality, background, output_format, filename, is_public, source_filename, source_image_id, source_prompt, origin_gallery_id, publish_original, conversation_json, public_tags_json, revised_prompt, usage_json, duration_ms, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, user_id, title, prompt, model, size, quality, background, output_format, filename, is_public, source_filename, source_image_id, source_prompt, origin_gallery_id, publish_original, conversation_json, public_tags_json, revised_prompt, usage_json, duration_ms, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           generation.id,
           generation.userId,
+          String(generation.title || "").trim().slice(0, 160),
           generation.prompt,
           generation.model,
           generation.size,
@@ -2731,20 +2738,27 @@ async function listActiveGenerationRequestsForUser(userId, limit = 20) {
 async function listGenerationsForUser(user, limit = 60, { includeArchived = false } = {}) {
   const normalizedLimit = Math.max(1, Math.min(200, Number(limit) || 60));
   const archivedWhere = includeArchived ? "" : "g.archived = 0";
-  const sql =
-    user.role === "admin"
-      ? `SELECT g.*, u.name AS user_name, u.email AS user_email
-           FROM generations g
-           LEFT JOIN users u ON u.id = g.user_id
-          ${archivedWhere ? `WHERE ${archivedWhere}` : ""}
-          ORDER BY g.created_at DESC LIMIT ${normalizedLimit}`
-      : `SELECT g.*, u.name AS user_name, u.email AS user_email
-           FROM generations g
-           LEFT JOIN users u ON u.id = g.user_id
-          WHERE g.user_id = ?${archivedWhere ? ` AND ${archivedWhere}` : ""}
-          ORDER BY g.created_at DESC LIMIT ${normalizedLimit}`;
-  const params = user.role === "admin" ? [] : [user.id];
+  const sql = `SELECT g.*, u.name AS user_name, u.email AS user_email
+     FROM generations g
+     LEFT JOIN users u ON u.id = g.user_id
+    WHERE g.user_id = ?${archivedWhere ? ` AND ${archivedWhere}` : ""}
+    ORDER BY g.created_at DESC LIMIT ${normalizedLimit}`;
+  const params = [user.id];
   const [rows] = await getPool().execute(sql, params);
+  return rows.map(mapGeneration);
+}
+
+async function listGenerationsForUserId(userId, limit = 60, { includeArchived = false } = {}) {
+  const normalizedLimit = Math.max(1, Math.min(200, Number(limit) || 60));
+  const archivedWhere = includeArchived ? "" : "AND g.archived = 0";
+  const [rows] = await getPool().execute(
+    `SELECT g.*, u.name AS user_name, u.email AS user_email
+       FROM generations g
+       LEFT JOIN users u ON u.id = g.user_id
+      WHERE g.user_id = ? ${archivedWhere}
+      ORDER BY g.created_at DESC LIMIT ${normalizedLimit}`,
+    [userId]
+  );
   return rows.map(mapGeneration);
 }
 
@@ -2986,6 +3000,10 @@ async function updateGenerationPublic(id, patch) {
       setPublicRewardStatus("cancelled");
       shouldCancelPublicReward = true;
     }
+  }
+  if (Object.hasOwn(patch, "title")) {
+    columns.push("title = ?");
+    values.push(String(patch.title || "").trim().slice(0, 160));
   }
   if (Object.hasOwn(patch, "sourceFilename")) {
     columns.push("source_filename = ?");
@@ -4492,7 +4510,8 @@ const PROMPT_SOURCE_SEED = [
   { id: "ps_imgedify_gpt4o", name: "ImgEdify GPT-4o Image Prompts", repoUrl: "https://github.com/ImgEdify/Awesome-GPT4o-Image-Prompts", parser: "github-generic", sortOrder: 30 },
   { id: "ps_youmind_gpt_image_2", name: "YouMind GPT Image 2", repoUrl: "https://github.com/YouMind-OpenLab/awesome-gpt-image-2", parser: "github-generic", sortOrder: 40 },
   { id: "ps_youmind_nano_banana_pro", name: "YouMind Nano Banana Pro", repoUrl: "https://github.com/YouMind-OpenLab/awesome-nano-banana-pro-prompts", parser: "github-generic", sortOrder: 50 },
-  { id: "ps_basketikun_infinite_canvas", name: "Infinite Canvas Prompt Library", repoUrl: "https://github.com/basketikun/infinite-canvas", parser: "infinite-canvas", sortOrder: 60 }
+  { id: "ps_basketikun_infinite_canvas", name: "Infinite Canvas Prompt Library", repoUrl: "https://github.com/basketikun/infinite-canvas", parser: "infinite-canvas", sortOrder: 60 },
+  { id: "ps_davidwuw_gpt_image2_prompts", name: "Awesome GPT Image2 Prompts", repoUrl: "https://github.com/davidwuw0811-boop/awesome-gpt-image2-prompts", parser: "awesome-gpt-image2-prompts", sortOrder: 70 }
 ];
 
 function systemTagMeta(index) {
@@ -5047,6 +5066,7 @@ module.exports = {
   getGenerationRequestById,
   listActiveGenerationRequestsForUser,
   listGenerationsForUser,
+  listGenerationsForUserId,
   listPublicGenerations,
   setGenerationLike,
   listGenerationLeaderboard,

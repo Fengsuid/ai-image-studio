@@ -40,7 +40,8 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | 5 | `AIS-RLS-041` 画廊榜单侧栏化与点赞按钮优化 | Gallery | 榜单已有基础能力，下一步做体验收口 |
 | 6 | `AIS-RLS-043` 接入 infinite-canvas 提示词源到画廊 | Prompt | 扩充提示词库，并打通画布插入 |
 | 7 | `AIS-RLS-039` 画布模块边界与反单文件治理 | Canvas | 后续画布增强前必须继续拆分 |
-| 8 | `AIS-RLS-046` 画廊展示与输入体验综合修复 | Experience/Gallery/Prompt | 最新反馈集中修复：图片展示、榜单独立页、标题、删除对话、图生图导入和新提示词源 |
+| 8 | `AIS-RLS-046` 画廊展示与输入体验综合修复 | Experience/Gallery/Prompt | 最新反馈集中修复：图片展示、榜单独立页、标题、删除/重命名对话、生成闪烁、admin 用户对话入口、图生图导入和新提示词源 |
+| 9 | `AIS-RLS-047` 画布工作台布局与连线系统重构 | Canvas/Experience | 修复画布居中、右侧遮挡、工具栏错位和节点连线不贴合，完成画布核心能力回归 |
 
 ## 3. 全量 Trellis 任务表
 
@@ -92,6 +93,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-044` | 画廊详情主图联动修复 | Backlog | P0 | Gallery | M6 体验回归 | `AIS-RLS-003`, `AIS-RLS-006`, `AIS-RLS-025` |
 | `AIS-RLS-045` | 画廊卡片标签去重与用户标签展示 | Backlog | P0 | Gallery | M6 体验回归 | `AIS-RLS-007`, `AIS-RLS-024`, `AIS-RLS-035` |
 | `AIS-RLS-046` | 画廊展示与输入体验综合修复 | Backlog | P0 | Experience/Gallery/Prompt | M6 体验回归 | `AIS-RLS-041`, `AIS-RLS-043`, `AIS-RLS-044`, `AIS-RLS-045` |
+| `AIS-RLS-047` | 画布工作台布局与连线系统重构 | Backlog | P0 | Canvas/Experience | M6 体验回归 | `AIS-RLS-039`, `AIS-RLS-046` |
 
 ## 4. 历史 T 编号映射
 

@@ -34,6 +34,7 @@
     "smoke:infinite-canvas-prompt-source": "node scripts/smoke/check-infinite-canvas-prompt-source.mjs",
     "smoke:gallery-detail-media": "node scripts/smoke/check-gallery-detail-media.mjs",
     "smoke:gallery-card-tags": "node scripts/smoke/check-gallery-card-tags.mjs",
+    "smoke:gallery-experience-task46": "node scripts/smoke/check-gallery-experience-task46.mjs",
     "smoke:prompt-review": "node scripts/smoke/check-prompt-review-service.mjs",
     "smoke:data": "node scripts/smoke/check-data-counts.mjs"
   },

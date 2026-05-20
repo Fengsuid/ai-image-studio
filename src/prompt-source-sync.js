@@ -273,6 +273,38 @@ function parseYouMindReadme(readme, source) {
   return items;
 }
 
+function parseAwesomeGptImage2PromptsBackup(markdown, source) {
+  const items = [];
+  let currentCategory = "";
+  const sections = String(markdown || "").split(/\n(?=###\s+#\d+\s+)/);
+  for (const section of sections) {
+    const titleMatch = section.match(/^###\s+#(\d+)\s+(.+)$/m);
+    if (!titleMatch) continue;
+    const categoryMatch = section.match(/\*\*分类\*\*[:：]\s*([^\n]+)/);
+    const promptMatch = section.match(/\*\*提示词\*\*[:：]\s*\r?\n\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/);
+    if (!promptMatch) continue;
+    currentCategory = String(categoryMatch?.[1] || currentCategory || source.category || "general").trim();
+    const author = String(section.match(/\*\*作者\*\*[:：]\s*([^\n]+)/)?.[1] || "").trim();
+    const title = titleFromMarkdownHeading(titleMatch[2]);
+    items.push({
+      title,
+      prompt: String(promptMatch[1] || "").trim(),
+      image: "",
+      tags: depsSafeTags([source.category, "awesome-gpt-image2-prompts", currentCategory, author]),
+      category: promptCategoryFromPath(`${currentCategory}/${title}`),
+      sourceCategory: currentCategory,
+      remoteId: `${source.key || source.name}:${titleMatch[1]}:${title}`,
+      author,
+      githubUrl: repoBlobUrl(source.repo, "prompts_backup.md")
+    });
+  }
+  return items;
+}
+
+function depsSafeTags(values) {
+  return values.filter(Boolean).map((value) => String(value).trim()).filter(Boolean);
+}
+
 async function upsertSyncedPrompt(item, source, deps, { sourceRepo, sourceUrl, githubUrl }) {
   const prompt = await deps.store.upsertRemotePrompt({
     ...item,
@@ -382,8 +414,45 @@ async function syncInfiniteCanvasPromptSource(source, deps) {
   return { fetched, upserted, skipped, errors };
 }
 
+async function syncAwesomeGptImage2PromptSource(source, deps) {
+  const repo = githubRepoParts(source.repoUrl);
+  if (!repo) throw deps.httpError("Invalid GitHub repo URL", 400);
+  const branch = source.branch || "main";
+  const sourceRepo = `${repo.owner}/${repo.repo}`;
+  const sourceInfo = {
+    key: "awesome-gpt-image2-prompts",
+    category: "gpt-image-2-prompts",
+    repo: sourceRepo,
+    name: source.name
+  };
+  const raw = await fetchGithubText(rawUrl(sourceRepo, "prompts_backup.md", branch), `${source.name} prompts_backup`, deps);
+  const normalized = parseAwesomeGptImage2PromptsBackup(raw, sourceInfo)
+    .map((item) => normalizeRemotePromptItem(item, {
+      sourceRepo,
+      sourceCategory: item.sourceCategory || sourceInfo.category,
+      category: promptCategoryFromPath(item.sourceCategory || sourceInfo.category),
+      tags: item.tags || []
+    }, deps))
+    .filter(Boolean)
+    .slice(0, 600);
+  let upserted = 0;
+  for (const item of normalized) {
+    await upsertSyncedPrompt(item, source, {
+      ...deps,
+      sanitizePromptTags: deps.sanitizePromptTags
+    }, {
+      sourceRepo,
+      sourceUrl: source.repoUrl,
+      githubUrl: item.githubUrl || repoBlobUrl(sourceRepo, "prompts_backup.md", branch)
+    });
+    upserted += 1;
+  }
+  return { fetched: normalized.length, upserted, skipped: 0, errors: [] };
+}
+
 async function runPromptSourceSync(source, deps) {
   if (source.parser === "infinite-canvas") return syncInfiniteCanvasPromptSource(source, deps);
+  if (source.parser === "awesome-gpt-image2-prompts") return syncAwesomeGptImage2PromptSource(source, deps);
   if (source.parser && source.parser !== "github-generic") {
     throw deps.httpError(`Unsupported parser '${source.parser}'`, 400);
   }
@@ -395,5 +464,6 @@ module.exports = {
   githubRepoParts,
   normalizeRemotePromptItem,
   parseMarkdownPromptItems,
+  parseAwesomeGptImage2PromptsBackup,
   INFINITE_CANVAS_SOURCE_REPO
 };
