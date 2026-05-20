@@ -27,6 +27,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `node --check src/prompt-review-service.js`
   - `node --check src/mysql-store.js`
   - `node --check scripts/smoke/check-canvas-module-boundaries.mjs`
+  - `node --check scripts/smoke/check-generation-flicker-guard.mjs`
   - `node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('package-lock.json','utf8'))"`
 - Run diff hygiene:
   - `git diff --check`
@@ -37,6 +38,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `npm run smoke:canvas-import-export`
   - `npm run smoke:canvas-assistant`
   - `npm run smoke:canvas-module-boundaries`
+  - `npm run smoke:generation-flicker`
   - `npm run smoke:prompt-review`
 - Start a local server with a disposable data directory and run public smoke:
   - `PORT=3100 DATA_DIR=data-smoke node server.js`

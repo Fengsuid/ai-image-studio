@@ -5,6 +5,7 @@ const state = {
   firstRun: false,
   view: "home",
   forceHero: false,
+  activeViewSignature: "",
   history: [],
   imageSessions: [],
   activeImageSessionId: "",
@@ -1521,25 +1522,31 @@ function formatElapsed(ms) {
 }
 
 function setView(view) {
+  const heroVisible = shouldShowHero();
+  const showingChatWorkspace = view === "home" && !heroVisible;
+  const nextViewSignature = `${view}:${heroVisible ? "hero" : "workspace"}`;
+  const viewChanged = state.activeViewSignature !== nextViewSignature;
   state.view = view;
-  const showingChatWorkspace = view === "home" && !shouldShowHero();
-  if (view !== "home" || !showingChatWorkspace) {
-    elements.app.classList.remove("session-panel-open");
-    elements.app.classList.remove("chat-panel-collapsed");
+  if (viewChanged) {
+    state.activeViewSignature = nextViewSignature;
+    if (view !== "home" || !showingChatWorkspace) {
+      elements.app.classList.remove("session-panel-open");
+      elements.app.classList.remove("chat-panel-collapsed");
+    }
+    elements.app.classList.toggle("editor-mode", view === "editor");
+    elements.app.classList.toggle("chat-panel-visible", showingChatWorkspace);
+    elements.homeView.classList.toggle("hidden", view !== "home" || (!heroVisible && view === "home"));
+    elements.chatView.classList.toggle("hidden", view !== "home" || heroVisible);
+    elements.libraryView.classList.toggle("hidden", view !== "library");
+    elements.editorView.classList.toggle("hidden", view !== "editor");
+    elements.canvasView?.classList.toggle("hidden", view !== "canvas");
+    elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   }
-  elements.app.classList.toggle("editor-mode", view === "editor");
-  elements.app.classList.toggle("chat-panel-visible", showingChatWorkspace);
-  elements.homeView.classList.toggle("hidden", view !== "home" || (!shouldShowHero() && view === "home"));
-  elements.chatView.classList.toggle("hidden", view !== "home" || shouldShowHero());
-  elements.libraryView.classList.toggle("hidden", view !== "library");
-  elements.editorView.classList.toggle("hidden", view !== "editor");
-  elements.canvasView?.classList.toggle("hidden", view !== "canvas");
-  elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   if (view === "library") renderLibrary();
   if (view === "editor") renderEditor();
   if (view === "canvas") renderCanvasShell();
   updateNav();
-  if (view === "home" && shouldShowHero()) {
+  if (viewChanged && view === "home" && heroVisible) {
     requestAnimationFrame(playHeroVideo);
   }
 }
@@ -2337,7 +2344,6 @@ async function submitGeneration(form) {
   startFunMessages();
   startGenerationTimer(startedAt);
   renderAll();
-  setView("home");
   focusGenerationWorkspace(tempId, "auto");
 
   let focusId = tempId;
@@ -2510,7 +2516,29 @@ function updateGenerationTimer() {
       const selectorId = String(item.id || "").replace(/["\\]/g, "\\$&");
       const node = $(`[data-elapsed-for="${selectorId}"]`, elements.historyList);
       if (node) node.textContent = `${text("generatingElapsed")} ${formatElapsed(elapsed)}`;
+      updateGeneratingHistoryCard(item.id);
     });
+}
+
+function generatingActionText(item = {}) {
+  const elapsed = Date.now() - (Number(item.startedAt) || state.generationStartedAt || Date.now());
+  const queueMeta = item.queuePosition !== undefined && item.queuePosition !== null
+    ? `<span class="queue-pill">${item.queuePosition === 0 ? text("queueRunning") : `${text("queuePosition")} ${item.queuePosition}/${item.queueTotal || item.queuePosition}`}</span>`
+    : "";
+  return `<i class="ri-loader-4-line"></i>${queueMeta}${text("generatingElapsed")} ${formatElapsed(elapsed)}`;
+}
+
+function updateGeneratingHistoryCard(itemId) {
+  const item = state.history.find((entry) => String(entry.id) === String(itemId) || String(entry.requestId || "") === String(itemId));
+  if (!item || item.status !== "generating") return false;
+  const selectorId = String(item.id || "").replace(/["\\]/g, "\\$&");
+  const card = $(`[data-history-id="${selectorId}"]`, elements.historyList);
+  if (!card) return false;
+  const progress = $("[data-generation-progress]", card);
+  if (progress) progress.innerHTML = generatingActionText(item);
+  const cancel = $("[data-generate-cancel]", card);
+  if (cancel) cancel.dataset.generateCancel = item.requestId || state.currentGenerationRequestId || "";
+  return true;
 }
 
 function focusGenerationWorkspace(itemId, behavior = "smooth") {
@@ -2557,7 +2585,7 @@ async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now(
       if (status === "failed" || status === "cancelled") {
         throw new Error(request.errorMessage || (status === "cancelled" ? "Generation cancelled" : "Generation failed"));
       }
-      renderAll();
+      if (!updateGeneratingHistoryCard(itemId)) renderHistory();
       lastError = null;
     } catch (error) {
       lastError = error;
@@ -2567,6 +2595,7 @@ async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now(
     state.history = state.history.map((entry) =>
       String(entry.id) === String(itemId) ? { ...entry, elapsedMs: Date.now() - startedAt } : entry
     );
+    updateGeneratingHistoryCard(itemId);
   }
 }
 
@@ -2714,9 +2743,6 @@ function renderHistory() {
     const meta = elapsedMs
       ? `<div class="message-meta"><span ${item.status === "generating" ? `data-elapsed-for="${escapeHtml(item.id)}"` : ""}>${item.status === "generating" ? text("generatingElapsed") : text("elapsed")} ${formatElapsed(elapsedMs)}</span></div>`
       : "";
-    const queueMeta = item.status === "generating" && item.queuePosition !== undefined && item.queuePosition !== null
-      ? `<span class="queue-pill">${item.queuePosition === 0 ? text("queueRunning") : `${text("queuePosition")} ${item.queuePosition}/${item.queueTotal || item.queuePosition}`}</span>`
-      : "";
     const image = item.status === "done" && item.images[0]
       ? `<img class="img-reveal" src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">`
       : item.status === "generating"
@@ -2781,7 +2807,7 @@ function renderHistory() {
       </div>
     ` : item.status === "generating" ? `
       <div class="message-actions generating-actions">
-        <span><i class="ri-loader-4-line"></i>${queueMeta}${text("generatingElapsed")} ${elapsedMs ? formatElapsed(elapsedMs) : ""}</span>
+        <span data-generation-progress>${generatingActionText(item)}</span>
         <button type="button" data-generate-cancel="${escapeHtml(item.requestId || state.currentGenerationRequestId || "")}"><i class="ri-stop-circle-line"></i>${text("editorCancel")}</button>
       </div>
     ` : "";
