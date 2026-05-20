@@ -149,6 +149,8 @@ async function checkHomeResources() {
   assert(app.body.includes("publicTagsForKind(selectedKinds[0]"), `${appPath} should preserve kind tags in bulk publish`);
   assert(app.body.includes("referenceRequestPayload"), `${appPath} should build reference image payloads`);
   assert(app.body.includes("referenceImages"), `${appPath} should send multi-reference images to image edit requests`);
+  assert(app.body.includes("maxReferenceImages"), `${appPath} should read configurable reference image limits`);
+  assert(app.body.includes("data-reference-row-input"), `${appPath} should let the reference row append more images`);
   assert(app.body.includes("handleEditorUpload(event.target.files"), `${appPath} should pass multiple editor upload files`);
   assert(app.body.includes("appendReferences: true"), `${appPath} should append bottom editor uploads as references`);
 
@@ -200,6 +202,7 @@ async function checkHomeResources() {
   assert(referenceImages.body.includes("ImageStudioReferenceImages"), `${referenceImagesPath} should register reference image helpers`);
   assert(referenceImages.body.includes("filesToReferences"), `${referenceImagesPath} should read multiple reference files`);
   assert(referenceImages.body.includes("revokeReferences"), `${referenceImagesPath} should release reference object URLs`);
+  assert(referenceImages.body.includes("normalizeLimit"), `${referenceImagesPath} should clamp configurable reference limits`);
   log("/ resources ok:", "asset version", appVersion || "none");
 }
 
@@ -245,6 +248,7 @@ async function checkAdminResources() {
   assert(script.body.includes("growthConfig"), `${scriptPath} should expose growth configuration`);
   assert(script.body.includes("providerCapabilityConfig"), `${scriptPath} should expose provider capability configuration`);
   assert(script.body.includes("contactEmail"), `${scriptPath} should expose contact email settings`);
+  assert(script.body.includes("maxReferenceImages"), `${scriptPath} should expose reference image upload limit settings`);
   assert(script.body.includes("if (isNew || apiKey) payload.apiKey = apiKey"), `${scriptPath} should not clear provider API keys when edit field is blank`);
   assert(script.body.includes("Provider JSON 格式错误"), `${scriptPath} should handle invalid provider JSON before saving`);
   log("/admin resources ok:", "asset version", scriptVersion || "none");

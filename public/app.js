@@ -160,6 +160,8 @@ const i18n = {
     reference: "参考图",
     referenceUploadNote: "参考图会随本次生成发送",
     referenceUploadToast: "已添加参考图，将作为生成参考",
+    referenceLimitReached: "参考图已达到上传上限",
+    addMoreReferences: "继续添加参考图",
     options: "参数",
     composerParams: "尺寸 / 质量 / 格式",
     addReference: "添加参考图",
@@ -487,6 +489,8 @@ const i18n = {
     reference: "Reference",
     referenceUploadNote: "References are sent with this request",
     referenceUploadToast: "Reference images added for this request",
+    referenceLimitReached: "Reference image limit reached",
+    addMoreReferences: "Add more references",
     options: "Options",
     composerParams: "Size / Quality / Format",
     addReference: "Add references",
@@ -1956,7 +1960,11 @@ function referenceImageTools() {
 }
 
 function maxReferenceImages() {
-  return Math.max(1, Number(referenceImageTools().maxItems || 4));
+  const tools = referenceImageTools();
+  const configured = Number(state.settings?.maxReferenceImages || 0);
+  const fallback = Number(tools.maxItems || 4);
+  const serverMax = Number(tools.serverMaxItems || 15);
+  return Math.max(1, Math.min(serverMax, configured || fallback));
 }
 
 async function filesToReferenceImages(files, { limit = maxReferenceImages() } = {}) {
@@ -2000,22 +2008,32 @@ function clearComposerReferences({ sync = true } = {}) {
   if (sync) syncReferences();
 }
 
-async function handleComposerReferenceUpload(referenceInput, referenceRow, form) {
-  clearComposerReferences({ sync: false });
+async function handleComposerReferenceUpload(referenceInput, referenceRow, form, { append = true } = {}) {
+  const files = [...(referenceInput?.files || [])].filter(Boolean);
+  const capacity = append ? Math.max(0, maxReferenceImages() - state.references.length) : maxReferenceImages();
+  if (!capacity) {
+    showToast(text("referenceLimitReached"), "ri-image-close-line");
+    if (referenceInput) referenceInput.value = "";
+    return;
+  }
   try {
-    state.references = await filesToReferenceImages(referenceInput.files, { limit: maxReferenceImages() });
+    const selected = await filesToReferenceImages(files, { limit: capacity });
+    if (!append) clearComposerReferences({ sync: false });
+    state.references = append ? [...state.references, ...selected] : selected;
     renderReferences(referenceRow);
     syncReferences(form);
-    if (state.references.length) {
+    if (selected.length) {
       showToast(text("referenceUploadToast"), "ri-image-add-line");
     }
+    if (files.length > selected.length) {
+      showToast(text("referenceLimitReached"), "ri-information-line");
+    }
   } catch (error) {
-    state.references = [];
     renderReferences(referenceRow);
     syncReferences(form);
     showToast(error.message || text("referenceUploadToast"), "ri-error-warning-line");
   } finally {
-    referenceInput.value = "";
+    if (referenceInput) referenceInput.value = "";
   }
 }
 
@@ -2159,7 +2177,7 @@ function syncComposers(sourceForm) {
     }
     $(".model-label", form).textContent = "GPT-IMAGE-2";
     $(".options-summary", form).textContent = composerOptionSummary();
-    $(".add-reference-button", form).setAttribute("title", text("addReference"));
+    $(".add-reference-button", form).setAttribute("title", `${text("addReference")} (${state.references.length}/${maxReferenceImages()})`);
     const sendButton = $(".send-button", form);
     sendButton.disabled = Boolean(disabledReason);
     sendButton.setAttribute("aria-disabled", String(Boolean(disabledReason)));
@@ -2200,18 +2218,26 @@ function syncComposers(sourceForm) {
 
 function renderReferences(row) {
   if (!row) return;
+  const maxItems = maxReferenceImages();
+  const count = state.references.length;
   const thumbs = state.references.map((reference, index) => `
     <div class="reference-thumb">
-      <img src="${reference.url}" alt="${escapeHtml(reference.name)}">
+      <img src="${escapeHtml(reference.url)}" alt="${escapeHtml(reference.name)}">
       <button type="button" data-remove-reference="${index}" title="${escapeHtml(text("close"))}" aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
     </div>
   `).join("");
-  const note = state.references.length ? `
+  const addControl = count < maxItems ? `
+    <label class="reference-add-inline" title="${escapeHtml(text("addMoreReferences"))}" aria-label="${escapeHtml(text("addMoreReferences"))}">
+      <i class="ri-add-line"></i>
+      <input data-reference-row-input type="file" accept="image/*" multiple>
+    </label>
+  ` : `<span class="reference-limit-badge">${count}/${maxItems}</span>`;
+  const note = count ? `
     <span class="context-badge">${escapeHtml(text("reference"))}</span>
-    <span class="reference-note">${escapeHtml(text("referenceUploadNote"))}</span>
+    <span class="reference-note">${escapeHtml(text("referenceUploadNote"))} · ${count}/${maxItems}</span>
   ` : "";
-  row.innerHTML = `${note}<div class="reference-thumbs">${thumbs}</div>`;
-  row.classList.toggle("hidden", state.references.length === 0);
+  row.innerHTML = `${note}<div class="reference-thumbs">${thumbs}${addControl}</div>`;
+  row.classList.toggle("hidden", count === 0);
   $$("[data-remove-reference]", row).forEach((button) => {
     button.addEventListener("click", () => {
       const index = Number(button.dataset.removeReference);
@@ -2219,6 +2245,10 @@ function renderReferences(row) {
       revokeReferenceImages([removed]);
       $$(".reference-row").forEach(renderReferences);
     });
+  });
+  $("[data-reference-row-input]", row)?.addEventListener("change", (event) => {
+    const form = row.closest(".composer");
+    handleComposerReferenceUpload(event.currentTarget, row, form, { append: true });
   });
 }
 

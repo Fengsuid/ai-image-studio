@@ -67,6 +67,7 @@ function mapSettings(row = {}) {
     allowRegistration: Boolean(row.allow_registration ?? 1),
     requireApproval: Boolean(row.require_approval ?? 0),
     maxImagesPerRequest: Number(row.max_images_per_request ?? 1),
+    maxReferenceImages: Number(row.max_reference_images ?? 4),
     contactAdminEmail: Object.hasOwn(row, "contact_admin_email")
       ? String(row.contact_admin_email || "")
       : DEFAULT_CONTACT_ADMIN_EMAIL,
@@ -468,6 +469,7 @@ async function runMigrations() {
       allow_registration TINYINT(1) NOT NULL DEFAULT 1,
       require_approval TINYINT(1) NOT NULL DEFAULT 0,
       max_images_per_request TINYINT UNSIGNED NOT NULL DEFAULT 1,
+      max_reference_images TINYINT UNSIGNED NOT NULL DEFAULT 4,
       contact_admin_email VARCHAR(255) NOT NULL DEFAULT 'support@example.com',
       growth_config_json LONGTEXT NULL,
       provider_capability_json LONGTEXT NULL,
@@ -485,13 +487,17 @@ async function runMigrations() {
   if (!settingsCostColumns.length) {
     await db.query("ALTER TABLE app_settings ADD COLUMN generation_credit_cost INT UNSIGNED NOT NULL DEFAULT 1 AFTER default_credits");
   }
-  const [growthConfigColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'growth_config_json'");
-  if (!growthConfigColumns.length) {
-    await db.query("ALTER TABLE app_settings ADD COLUMN growth_config_json LONGTEXT NULL AFTER max_images_per_request");
+  const [settingsReferenceColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'max_reference_images'");
+  if (!settingsReferenceColumns.length) {
+    await db.query("ALTER TABLE app_settings ADD COLUMN max_reference_images TINYINT UNSIGNED NOT NULL DEFAULT 4 AFTER max_images_per_request");
   }
   const [contactAdminEmailColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'contact_admin_email'");
   if (!contactAdminEmailColumns.length) {
-    await db.query("ALTER TABLE app_settings ADD COLUMN contact_admin_email VARCHAR(255) NOT NULL DEFAULT 'support@example.com' AFTER max_images_per_request");
+    await db.query("ALTER TABLE app_settings ADD COLUMN contact_admin_email VARCHAR(255) NOT NULL DEFAULT 'support@example.com' AFTER max_reference_images");
+  }
+  const [growthConfigColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'growth_config_json'");
+  if (!growthConfigColumns.length) {
+    await db.query("ALTER TABLE app_settings ADD COLUMN growth_config_json LONGTEXT NULL AFTER contact_admin_email");
   }
   const [providerCapabilityColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'provider_capability_json'");
   if (!providerCapabilityColumns.length) {
@@ -946,8 +952,8 @@ async function runMigrations() {
 
   await db.execute(
     `INSERT IGNORE INTO app_settings
-      (id, openai_api_key, api_base_url, model, default_credits, generation_credit_cost, allow_registration, require_approval, max_images_per_request, contact_admin_email)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, openai_api_key, api_base_url, model, default_credits, generation_credit_cost, allow_registration, require_approval, max_images_per_request, max_reference_images, contact_admin_email)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       process.env.AI_API_KEY || process.env.OPENAI_API_KEY || "",
       process.env.AI_API_BASE_URL || process.env.OPENAI_BASE_URL || "",
@@ -957,6 +963,7 @@ async function runMigrations() {
       boolEnv("ALLOW_REGISTRATION", true) ? 1 : 0,
       boolEnv("REQUIRE_APPROVAL", false) ? 1 : 0,
       intEnv("MAX_IMAGES_PER_REQUEST", 1),
+      intEnv("MAX_REFERENCE_IMAGES", 4),
       process.env.CONTACT_ADMIN_EMAIL || DEFAULT_CONTACT_ADMIN_EMAIL
     ]
   );
@@ -1289,6 +1296,7 @@ async function updateSettings(patch) {
     allowRegistration: "allow_registration",
     requireApproval: "require_approval",
     maxImagesPerRequest: "max_images_per_request",
+    maxReferenceImages: "max_reference_images",
     contactAdminEmail: "contact_admin_email",
     growthConfig: "growth_config_json",
     providerCapabilityConfig: "provider_capability_json",

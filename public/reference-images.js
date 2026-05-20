@@ -1,5 +1,12 @@
 (function () {
-  const MAX_ITEMS = 4;
+  const DEFAULT_MAX_ITEMS = 4;
+  const SERVER_MAX_ITEMS = 15;
+
+  function normalizeLimit(limit = DEFAULT_MAX_ITEMS) {
+    const parsed = Number.parseInt(limit, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_MAX_ITEMS;
+    return Math.min(parsed, SERVER_MAX_ITEMS);
+  }
 
   function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
@@ -20,8 +27,8 @@
     };
   }
 
-  async function filesToReferences(files, { limit = MAX_ITEMS } = {}) {
-    const selected = [...(files || [])].filter(Boolean).slice(0, Math.max(1, limit));
+  async function filesToReferences(files, { limit = DEFAULT_MAX_ITEMS } = {}) {
+    const selected = [...(files || [])].filter(Boolean).slice(0, normalizeLimit(limit));
     return Promise.all(selected.map(fileToReference));
   }
 
@@ -33,18 +40,20 @@
     });
   }
 
-  function payload(references = [], { limit = MAX_ITEMS } = {}) {
+  function payload(references = [], { limit = DEFAULT_MAX_ITEMS } = {}) {
     return references
       .map((reference) => ({
         name: reference?.name || "reference-image",
         imageData: String(reference?.imageData || "").trim()
       }))
       .filter((reference) => reference.imageData.startsWith("data:image/"))
-      .slice(0, Math.max(1, limit));
+      .slice(0, normalizeLimit(limit));
   }
 
   window.ImageStudioReferenceImages = {
-    maxItems: MAX_ITEMS,
+    maxItems: DEFAULT_MAX_ITEMS,
+    serverMaxItems: SERVER_MAX_ITEMS,
+    normalizeLimit,
     blobToDataUrl,
     filesToReferences,
     revokeReferences,

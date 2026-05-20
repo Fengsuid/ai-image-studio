@@ -852,6 +852,7 @@ function renderSettings() {
         <label>默认积分<input name="defaultCredits" type="number" min="0" value="${escapeHtml(s.defaultCredits ?? 10)}"></label>
         <label>单图消耗<input name="generationCreditCost" type="number" min="0" value="${escapeHtml(s.generationCreditCost ?? 1)}"></label>
         <label>单次最大张数<input name="maxImagesPerRequest" type="number" min="1" max="4" value="${escapeHtml(s.maxImagesPerRequest ?? 1)}"></label>
+        <label>参考图最大上传数<input name="maxReferenceImages" type="number" min="1" max="15" value="${escapeHtml(s.maxReferenceImages ?? 4)}"></label>
         <label>联系管理员邮箱<input name="contactEmail" type="email" value="${escapeHtml(s.contactEmail ?? s.contactAdminEmail ?? "")}" placeholder="support@example.com"></label>
         <label>运营增长配置<textarea name="growthConfig" rows="6">${escapeHtml(JSON.stringify(s.growthConfig || {}, null, 2))}</textarea></label>
         <label>Provider 能力配置<textarea name="providerCapabilityConfig" rows="6">${escapeHtml(JSON.stringify(s.providerCapabilityConfig || {}, null, 2))}</textarea></label>
@@ -1854,6 +1855,7 @@ async function saveSettings(event) {
       defaultCredits: form.get("defaultCredits"),
       generationCreditCost: form.get("generationCreditCost"),
       maxImagesPerRequest: form.get("maxImagesPerRequest"),
+      maxReferenceImages: form.get("maxReferenceImages"),
       contactEmail: form.get("contactEmail"),
       allowRegistration: Boolean(form.get("allowRegistration")),
       requireApproval: Boolean(form.get("requireApproval")),

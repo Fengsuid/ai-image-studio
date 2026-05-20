@@ -466,6 +466,7 @@ function publicSettings(settings, activeProvider = null) {
     contactAdminEmail: contactAdminEmail(settings),
     checkinCredit: CHECKIN_CREDIT,
     maxImagesPerRequest: Number(settings.maxImagesPerRequest || 1),
+    maxReferenceImages: normalizeMaxReferenceImages(settings.maxReferenceImages),
     providerCapabilities: capabilities,
     provider: activeProvider?.providerType || "openai-compatible",
     activeProvider: activeProvider ? {
@@ -576,6 +577,12 @@ function normalizeGenerationCost(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < 0) return 0;
   return Math.min(parsed, 10000);
+}
+
+function normalizeMaxReferenceImages(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 4;
+  return Math.min(parsed, MAX_IMAGE_EDIT_INPUTS - 1);
 }
 
 function cleanProviderInput(body = {}, existing = null) {
@@ -1332,18 +1339,20 @@ function imageReferenceSource(input) {
   return input.imageData || input.dataUrl || input.url || input.imageUrl || "";
 }
 
-function normalizedEditReferenceImages(body = {}) {
+function normalizedEditReferenceImages(body = {}, { limit = MAX_IMAGE_EDIT_INPUTS - 1 } = {}) {
   const rawItems = Array.isArray(body.referenceImages)
     ? body.referenceImages
     : Array.isArray(body.referenceImageData)
       ? body.referenceImageData
       : [];
   const references = [];
+  const maxReferences = Math.max(0, Math.min(MAX_IMAGE_EDIT_INPUTS - 1, Number.parseInt(limit, 10) || 0));
+  if (maxReferences < 1) return references;
   for (const item of rawItems) {
     const source = imageReferenceSource(item);
     if (!String(source || "").trim()) continue;
     references.push(editableImageSource(source, "Reference image"));
-    if (references.length >= MAX_IMAGE_EDIT_INPUTS - 1) break;
+    if (references.length >= maxReferences) break;
   }
   return references;
 }
@@ -3278,6 +3287,9 @@ async function routeApi(req, res, url) {
     if (body.maxImagesPerRequest !== undefined) {
       patch.maxImagesPerRequest = Math.max(1, Math.min(4, Number.parseInt(body.maxImagesPerRequest, 10) || 1));
     }
+    if (body.maxReferenceImages !== undefined) {
+      patch.maxReferenceImages = normalizeMaxReferenceImages(body.maxReferenceImages);
+    }
     const contactEmailInput = typeof body.contactEmail === "string" ? body.contactEmail : body.contactAdminEmail;
     if (typeof contactEmailInput === "string") {
       const email = normalizeEmail(contactEmailInput);
@@ -4568,9 +4580,11 @@ async function routeApi(req, res, url) {
     }
     editableImageSource(imageData, "Editable image");
     if (maskData.startsWith("data:image/")) validateImageDataUrl(maskData);
-    const referenceImages = normalizedEditReferenceImages(body);
 
     const settings = await store.getSettings();
+    const referenceImages = normalizedEditReferenceImages(body, {
+      limit: normalizeMaxReferenceImages(settings.maxReferenceImages)
+    });
 
     const user = await store.getUserById(current.user.id);
     if (!user || user.status !== "active") {
