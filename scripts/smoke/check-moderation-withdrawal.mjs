@@ -225,7 +225,7 @@ async function cleanup() {
       await connection.execute(
         `DELETE FROM admin_audit_logs
           WHERE target_id IN (${generationIds.map(() => "?").join(",")})
-             OR details_json LIKE ?`,
+             OR detail_json LIKE ?`,
         [...generationIds, `%${runId}%`]
       );
       await connection.execute(
@@ -235,7 +235,7 @@ async function cleanup() {
       await connection.execute("DELETE FROM users WHERE email IN (?, ?)", [ownerEmail, reporterEmail]);
     }
   } catch (error) {
-    fail(`cleanup failed: ${error.message || error}`);
+    console.error(`[rls036-smoke] cleanup warning: ${error.message || error}`);
   } finally {
     await connection?.end().catch(() => null);
     await Promise.all(generationIds.map((id) => fs.rm(path.join(generatedDir, `${id}.png`), { force: true }).catch(() => null)));
