@@ -427,6 +427,7 @@ function mapCanvasProject(row = {}) {
     description: row.description || "",
     coverUrl: row.cover_url || "",
     visibility: row.visibility || "private",
+    isTemplate: Boolean(Number(row.is_template || 0)),
     dataJson: parseJsonObject(row.data_json, {}),
     nodeCount: Number(row.node_count || 0),
     edgeCount: Number(row.edge_count || 0),
@@ -715,6 +716,7 @@ async function runMigrations() {
       description VARCHAR(1000) NOT NULL DEFAULT '',
       cover_url VARCHAR(500) NOT NULL DEFAULT '',
       visibility VARCHAR(16) NOT NULL DEFAULT 'private',
+      is_template TINYINT(1) NOT NULL DEFAULT 0,
       data_json LONGTEXT NOT NULL,
       node_count INT UNSIGNED NOT NULL DEFAULT 0,
       edge_count INT UNSIGNED NOT NULL DEFAULT 0,
@@ -723,6 +725,7 @@ async function runMigrations() {
       updated_at DATETIME(3) NOT NULL,
       INDEX idx_canvas_projects_user_updated (user_id, updated_at),
       INDEX idx_canvas_projects_visibility_updated (visibility, updated_at),
+      INDEX idx_canvas_projects_template_updated (is_template, updated_at),
       INDEX idx_canvas_projects_status_updated (status, updated_at),
       CONSTRAINT fk_canvas_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -2859,6 +2862,9 @@ function normalizeCanvasProjectInput(input = {}, existing = null) {
     description: String(input.description ?? existing?.description ?? "").trim().slice(0, 1000),
     coverUrl: String(input.coverUrl ?? input.cover ?? existing?.coverUrl ?? "").trim().slice(0, 500),
     visibility: ["private", "public", "unlisted"].includes(input.visibility) ? input.visibility : existing?.visibility || "private",
+    isTemplate: Object.hasOwn(input, "isTemplate")
+      ? Boolean(input.isTemplate)
+      : Boolean(existing?.isTemplate),
     dataJson: safeData,
     nodeCount: Math.max(0, Math.min(10000, Math.floor(nodeCount || 0))),
     edgeCount: Math.max(0, Math.min(10000, Math.floor(edgeCount || 0)))
@@ -2869,7 +2875,10 @@ async function listCanvasProjectsForUser(user, { limit = 100, scope = "mine" } =
   const normalizedLimit = Math.max(1, Math.min(200, Number(limit) || 100));
   const params = [];
   const where = ["c.status = 'active'"];
-  if (scope === "public" && user?.role === "admin") {
+  if (scope === "templates") {
+    where.push("c.visibility = 'public'");
+    where.push("c.is_template = 1");
+  } else if (scope === "public" && user?.role === "admin") {
     where.push("c.visibility = 'public'");
   } else {
     where.push("c.user_id = ?");
@@ -2904,8 +2913,8 @@ async function createCanvasProject(input = {}) {
   const now = new Date();
   await getPool().execute(
     `INSERT INTO canvas_projects
-        (id, user_id, title, description, cover_url, visibility, data_json, node_count, edge_count, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+        (id, user_id, title, description, cover_url, visibility, is_template, data_json, node_count, edge_count, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
     [
       input.id,
       input.userId,
@@ -2913,6 +2922,7 @@ async function createCanvasProject(input = {}) {
       values.description,
       values.coverUrl,
       values.visibility,
+      values.isTemplate ? 1 : 0,
       JSON.stringify(values.dataJson),
       values.nodeCount,
       values.edgeCount,
@@ -2944,6 +2954,10 @@ async function updateCanvasProject(id, patch = {}) {
   if (Object.hasOwn(patch, "visibility")) {
     columns.push("visibility = ?");
     params.push(values.visibility);
+  }
+  if (Object.hasOwn(patch, "isTemplate")) {
+    columns.push("is_template = ?");
+    params.push(values.isTemplate ? 1 : 0);
   }
   if (Object.hasOwn(patch, "dataJson") || Object.hasOwn(patch, "data")) {
     columns.push("data_json = ?");

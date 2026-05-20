@@ -667,6 +667,9 @@ function cleanCanvasProjectInput(body = {}, { partial = false } = {}) {
   if (!partial || has("visibility")) {
     payload.visibility = choose(String(body.visibility || "private"), ["private", "public", "unlisted"], "private");
   }
+  if (!partial || has("isTemplate")) {
+    payload.isTemplate = Boolean(body.isTemplate);
+  }
   if (!partial || has("dataJson") || has("data")) {
     const data = has("dataJson") ? body.dataJson : body.data;
     if (data && (typeof data !== "object" || Array.isArray(data))) {
@@ -3554,7 +3557,7 @@ async function routeApi(req, res, url) {
     ensureAuthenticated(current);
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 100, 200);
     const requestedScope = url.searchParams.get("scope");
-    const scope = requestedScope === "public" ? "public" : requestedScope === "all" ? "all" : "mine";
+    const scope = requestedScope === "public" ? "public" : requestedScope === "templates" ? "templates" : requestedScope === "all" ? "all" : "mine";
     if (scope === "all") ensureAdmin(current);
     const canvases = await store.listCanvasProjectsForUser(current.user, { limit, scope });
     return sendJson(res, 200, { canvases });
@@ -3649,6 +3652,14 @@ async function routeApi(req, res, url) {
         edgeCount: payload.edgeCount
       }
     });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/canvases/templates") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 24, 100);
+    const canvases = await store.listCanvasProjectsForUser(current.user, { limit, scope: "templates" });
+    return sendJson(res, 200, { canvases });
   }
 
   const canvasMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)$/);

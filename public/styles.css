@@ -323,6 +323,130 @@ a {
   margin-bottom: 20px;
 }
 
+.canvas-list-tabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.canvas-list-tabs button {
+  height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.canvas-list-tabs button.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.canvas-list-panels {
+  display: grid;
+  gap: 24px;
+}
+
+.canvas-list-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.canvas-template-head {
+  display: grid;
+  gap: 6px;
+}
+
+.canvas-template-head strong {
+  font-size: 18px;
+}
+
+.canvas-template-head span {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.canvas-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.canvas-project-card {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.canvas-project-card header {
+  display: grid;
+  gap: 6px;
+}
+
+.canvas-project-card strong {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.canvas-project-card p,
+.canvas-project-card span {
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.canvas-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.canvas-project-badge {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.canvas-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.canvas-project-actions button {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canvas-project-actions button.secondary {
+  background: #fff;
+  color: #0f172a;
+}
+
 .canvas-list-head button,
 .canvas-sidebar button {
   height: 40px;

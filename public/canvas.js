@@ -4,9 +4,12 @@
   const root = global.ImageStudioCanvas || (global.ImageStudioCanvas = {});
   const DRAFT_PREFIX = "imageStudio.canvasDraft.v1.";
   const SAVE_DEBOUNCE_MS = 800;
+  const text = (key, fallback) => (typeof global.ImageStudioText === "function" ? global.ImageStudioText(key) : fallback);
   const state = {
     projectId: "",
     projectTitle: "Untitled canvas",
+    projectVisibility: "private",
+    isTemplate: false,
     lastServerUpdatedAt: "",
     loadingProjectId: "",
     saveStatus: "saved",
@@ -39,6 +42,11 @@
 
     const title = document.querySelector("#canvasTitleText");
     if (title) title.textContent = state.projectTitle || (normalizedId === "new" ? "Untitled canvas" : normalizedId || "Untitled");
+    if (!normalizedId) {
+      root.market?.renderListView?.();
+      void root.market?.loadCanvasList?.();
+      return;
+    }
     renderBoard();
   }
 
@@ -49,6 +57,18 @@
     board.dataset.background = state.background;
     viewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
     viewport.innerHTML = edgeTemplate() + selectionBoxTemplate() + renderNodes().map((node) => nodeTemplate(node)).join("");
+    const templateButton = document.querySelector(".canvas-toolbar [data-canvas-template-toggle]");
+    if (templateButton) {
+      const canToggle = Boolean(state.projectId && state.projectId !== "new");
+      templateButton.disabled = !canToggle;
+      templateButton.dataset.templateState = state.isTemplate ? "1" : "0";
+      templateButton.innerHTML = state.isTemplate
+        ? `<i class="ri-store-2-line"></i><span>${escapeHtml(text("canvasUnpublishTemplate", "Remove template"))}</span>`
+        : `<i class="ri-store-2-line"></i><span>${escapeHtml(text("canvasPublishTemplate", "Publish as template"))}</span>`;
+      templateButton.title = state.isTemplate
+        ? text("canvasUnpublishTemplate", "Remove template")
+        : text("canvasPublishTemplate", "Publish as template");
+    }
     root.minimap?.render?.(board, {
       viewport: state.viewport,
       nodes: state.nodes,
@@ -68,6 +88,8 @@
   function resetCanvas(projectId) {
     state.projectId = projectId;
     state.projectTitle = projectId === "new" ? "Untitled canvas" : projectId || "Untitled";
+    state.projectVisibility = "private";
+    state.isTemplate = false;
     state.lastServerUpdatedAt = "";
     state.nodes = projectId ? root.nodes?.defaultNodes?.() || [] : [];
     state.edges = projectId ? defaultEdges() : [];
@@ -134,6 +156,8 @@
     if (!project) return;
     state.projectId = project.id || state.projectId;
     state.projectTitle = project.title || state.projectTitle || "Untitled canvas";
+    state.projectVisibility = project.visibility || state.projectVisibility || "private";
+    state.isTemplate = Boolean(project.isTemplate);
     state.lastServerUpdatedAt = project.updatedAt || "";
     hydrateFromData(project.dataJson || {});
     state.dirty = false;
@@ -361,11 +385,9 @@
 
   function bindShellEvents({ elements = {}, navigate } = {}) {
     if (typeof navigate !== "function") return;
+    root.market?.bindListEvents?.({ navigate });
     elements.canvasCreateBtn?.addEventListener("click", () => {
       navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } });
-    });
-    document.querySelectorAll("[data-canvas-list]").forEach((button) => {
-      button.addEventListener("click", () => navigate("canvas", { scrollTop: true, route: { canvasProjectId: "" } }));
     });
     bindBoardEvents();
   }
@@ -1006,6 +1028,8 @@
         const previousDraftKey = draftKey(state.projectId);
         state.projectId = canvas.id;
         state.projectTitle = canvas.title || state.projectTitle;
+        state.projectVisibility = canvas.visibility || state.projectVisibility || "private";
+        state.isTemplate = Boolean(canvas.isTemplate);
         state.lastServerUpdatedAt = canvas.updatedAt || state.lastServerUpdatedAt;
         removeDraft(previousDraftKey);
         removeDraft(draftKey(state.projectId));
@@ -1070,7 +1094,8 @@
     };
     return {
       title: state.projectTitle || "Untitled canvas",
-      visibility: "private",
+      visibility: state.projectVisibility || "private",
+      isTemplate: Boolean(state.isTemplate),
       dataJson: data,
       nodeCount: state.nodes.length,
       edgeCount: state.edges.length
@@ -1127,9 +1152,10 @@
       failed: "同步失败"
     };
     status.dataset.status = state.saveStatus;
+    const templateLabel = state.isTemplate ? ` · ${text("canvasTemplateBadge", "Template")}` : "";
     status.textContent = state.saveError && state.saveStatus === "failed"
-      ? `${labels.failed}: ${state.saveError}`
-      : labels[state.saveStatus] || labels.saved;
+      ? `${labels.failed}: ${state.saveError}${templateLabel}`
+      : `${labels[state.saveStatus] || labels.saved}${templateLabel}`;
   }
 
   function renderHistoryControls() {
@@ -1256,6 +1282,16 @@
     renderBoard();
   }
 
+  function syncCurrentCanvasTemplate(updated = {}) {
+    if (!updated || updated.id !== state.projectId) return;
+    state.projectVisibility = updated.visibility || state.projectVisibility;
+    state.isTemplate = Boolean(updated.isTemplate);
+    state.projectTitle = updated.title || state.projectTitle;
+    state.lastServerUpdatedAt = updated.updatedAt || state.lastServerUpdatedAt;
+    setSaveStatus("saved");
+    renderBoard();
+  }
+
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;",
@@ -1271,4 +1307,5 @@
   root.insertItem = insertItem;
   root.getAssistantContext = assistantContext;
   root.addAssistantNode = insertAssistantSuggestion;
+  root.syncCurrentCanvasTemplate = syncCurrentCanvasTemplate;
 })(window, document);

@@ -250,14 +250,25 @@
             <div>
               <span data-i18n="canvasWorkspace">画布工作台</span>
               <h2 data-i18n="canvasComingTitle">把提示词、图片和生成步骤串成画布</h2>
-              <p data-i18n="canvasComingDesc">画布项目与节点系统会在后续任务接入；这里先提供稳定入口和登录后跳转。</p>
+              <p data-i18n="canvasComingDesc">在这里管理你的画布，也从公开模板快速创建私有可编辑副本。</p>
             </div>
             <button id="canvasCreateBtn" type="button"><i class="ri-add-line"></i><span data-i18n="newCanvas">新建画布</span></button>
           </div>
-          <div class="canvas-empty-workspace">
-            <i class="ri-node-tree"></i>
-            <strong data-i18n="canvasEmptyTitle">还没有画布项目</strong>
-            <span data-i18n="canvasEmptyDesc">新建一个画布，后续任务会接入保存、节点和连线。</span>
+          <div class="canvas-list-tabs" role="tablist" aria-label="Canvas sections">
+            <button type="button" class="active" data-canvas-tab="mine"><i class="ri-stack-line"></i><span data-i18n="canvasMyCanvases">我的画布</span></button>
+            <button type="button" data-canvas-tab="templates"><i class="ri-store-2-line"></i><span data-i18n="canvasTemplateMarket">模板市场</span></button>
+          </div>
+          <div class="canvas-list-panels">
+            <section class="canvas-list-panel" data-canvas-panel="mine">
+              <div class="canvas-project-grid" id="canvasMineList"></div>
+            </section>
+            <section class="canvas-list-panel hidden" data-canvas-panel="templates">
+              <div class="canvas-template-head">
+                <strong data-i18n="canvasTemplateMarket">模板市场</strong>
+                <span data-i18n="canvasTemplateHint">先把一个高质量画布发布为可复用模板。</span>
+              </div>
+              <div class="canvas-project-grid" id="canvasTemplateList"></div>
+            </section>
           </div>
         </section>
         <section id="canvasWorkspaceView" class="canvas-workspace-view hidden">
@@ -286,6 +297,7 @@
                 <button type="button" aria-label="Delete selected canvas nodes" data-canvas-delete disabled><i class="ri-delete-bin-line"></i></button>
                 <button type="button" aria-label="Export canvas JSON" data-canvas-export><i class="ri-download-2-line"></i></button>
                 <button type="button" aria-label="Import canvas JSON" data-canvas-import><i class="ri-upload-2-line"></i></button>
+                <button type="button" aria-label="Publish or unpublish template" data-canvas-template-toggle><i class="ri-store-2-line"></i></button>
                 <div class="canvas-bg-toggle" aria-label="Canvas background">
                   <button type="button" data-canvas-background="dots" data-i18n="canvasBgDots">点</button>
                   <button type="button" data-canvas-background="grid" data-i18n="canvasBgGrid">格</button>
@@ -408,17 +420,18 @@
       <div id="toastLayer" class="toast-layer"></div>
     </div>
 
-    <script src="/canvas-store.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-nodes.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-geometry.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-workflows.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-minimap.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-selection.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-history.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-io.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas-assistant.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/canvas.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v1" defer></script>
-    <script src="/app.js?v=20260520-canvas-assistant-v1" defer></script>
+    <script src="/canvas-store.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-nodes.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-geometry.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-workflows.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-minimap.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-selection.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-history.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-io.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-assistant.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas-market.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/canvas.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v2" defer></script>
+    <script src="/app.js?v=20260520-canvas-assistant-v2" defer></script>
   </body>
 </html>

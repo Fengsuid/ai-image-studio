@@ -97,6 +97,14 @@ const i18n = {
     canvasEmptyDesc: "新建一个画布，后续任务会接入保存、节点和连线。",
     newCanvas: "新建画布",
     canvasProjectList: "项目列表",
+    canvasMyCanvases: "我的画布",
+    canvasTemplateMarket: "模板市场",
+    canvasTemplateBadge: "模板",
+    canvasPublishTemplate: "发布为模板",
+    canvasUnpublishTemplate: "取消模板",
+    canvasUseTemplate: "从模板新建",
+    canvasTemplateEmpty: "暂无公开模板",
+    canvasTemplateHint: "先把一个高质量画布发布为可复用模板。",
     canvasAddNode: "添加节点",
     canvasDraft: "草稿画布",
     canvasBoardPlaceholder: "节点系统将在后续任务接入",
@@ -416,6 +424,14 @@ const i18n = {
     canvasEmptyDesc: "Create a canvas; saving, nodes, and edges will be connected in upcoming tasks.",
     newCanvas: "New canvas",
     canvasProjectList: "Projects",
+    canvasMyCanvases: "My canvases",
+    canvasTemplateMarket: "Template market",
+    canvasTemplateBadge: "Template",
+    canvasPublishTemplate: "Publish as template",
+    canvasUnpublishTemplate: "Remove template",
+    canvasUseTemplate: "New from template",
+    canvasTemplateEmpty: "No public templates yet",
+    canvasTemplateHint: "Publish a strong canvas as a reusable template first.",
     canvasAddNode: "Add node",
     canvasDraft: "Draft canvas",
     canvasBoardPlaceholder: "Node editing lands in upcoming tasks",
@@ -1082,6 +1098,8 @@ function readCookie(name) {
 function text(key) {
   return i18n[state.lang][key] || i18n.zh[key] || key;
 }
+
+window.ImageStudioText = text;
 
 function local(value) {
   if (value && typeof value === "object") return value[state.lang] || value.zh || value.en || "";
