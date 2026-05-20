@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260520-home-design-v2">
+    <link rel="stylesheet" href="/styles.css?v=20260520-home-design-v3">
   </head>
   <body>
     <div id="app" class="app">
@@ -49,6 +49,10 @@
             <i class="ri-customer-service-2-line"></i>
             <span data-i18n="contact">联系管理员</span>
           </button>
+          <a class="nav-pill github-pill" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer">
+            <i class="ri-github-fill"></i>
+            <span>GitHub</span>
+          </a>
           <button id="langBtn" class="icon-pill" type="button" title="Language">中/EN</button>
           <button id="creditsBtn" class="nav-pill hidden" type="button">
             <i class="ri-coin-line"></i>
@@ -93,17 +97,20 @@
             </video>
             <div class="hero-video-gradient"></div>
           </div>
-          <p id="apiStatus" class="config-chip">Checking...</p>
-          <div class="daily-metric" aria-live="polite">
-            <span class="metric-stars">★★★★★</span>
-            <span id="todayGeneratedText">今日已生成 4,200+ 张图片</span>
-            <span class="metric-dots" aria-hidden="true">
-              <i></i><i></i><i></i><i></i><i></i>
-            </span>
+          <div class="hero-meta-row">
+            <p id="apiStatus" class="config-chip">GPT-IMAGE-2</p>
+            <span class="hero-meta-separator" aria-hidden="true"></span>
+            <div class="daily-metric" aria-live="polite">
+              <span class="metric-stars">★★★★★</span>
+              <span id="todayGeneratedText">今日已生成 4,200+ 张图片</span>
+              <span class="metric-dots" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </div>
           </div>
           <h1>
-            <span data-i18n="headPre">Imagination is</span>
-            <em data-i18n="headItalic">all your need</em>
+            <span>Imagination</span>
+            <em>is all your need</em>
           </h1>
           <p data-i18n="desc" class="hero-desc">将脑海中的画面，转化为触手可及的惊艳视觉。</p>
           <div id="heroComposerMount" class="composer-mount"></div>
@@ -430,6 +437,6 @@
     <script src="/canvas.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/reference-images.js?v=20260520-reference-upload-v1" defer></script>
-    <script src="/app.js?v=20260520-home-design-v2" defer></script>
+    <script src="/app.js?v=20260520-home-design-v3" defer></script>
   </body>
 </html>
