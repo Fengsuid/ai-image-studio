@@ -19,9 +19,9 @@ assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${rende
 assert(!app.includes("bindGalleryLeaderboardControls(elements.promptGrid);"), "library view must not bind leaderboard controls inside the gallery grid");
 assert(indexHtml.includes("/gallery-leaderboard.js"), "index.html must load gallery-leaderboard.js before app.js");
 assert(indexHtml.indexOf("/gallery-leaderboard.js") < indexHtml.indexOf("/app.js"), "gallery-leaderboard.js must load before app.js");
-assert(indexHtml.includes("/gallery-leaderboard.js?v=20260521-leaderboard-visible-v2"), "leaderboard module must have a fresh cache-busting version");
-assert(indexHtml.includes("/styles.css?v=20260521-leaderboard-visible-v2"), "styles bundle must have a fresh cache-busting version");
-assert(indexHtml.includes("/app.js?v=20260521-leaderboard-visible-v2"), "app bundle must have a fresh cache-busting version");
+assert(indexHtml.includes("/gallery-leaderboard.js?v=20260521-leaderboard-visible-v3"), "leaderboard module must have a fresh cache-busting version");
+assert(indexHtml.includes("/styles.css?v=20260521-leaderboard-visible-v3"), "styles bundle must have a fresh cache-busting version");
+assert(indexHtml.includes("/app.js?v=20260521-leaderboard-visible-v3"), "app bundle must have a fresh cache-busting version");
 assert(leaderboard.includes("ImageStudioGalleryLeaderboard"), "leaderboard module must register a global helper");
 assert(leaderboard.includes("<aside class=\"gallery-leaderboard"), "leaderboard must render as a navigation/sidebar aside");
 assert(leaderboard.includes("const items = rawItems.slice(0, 24);"), "leaderboard must not silently filter API items without images");
@@ -36,11 +36,17 @@ assert(app.includes("state.promptItems = state.promptItems.map(apply);"), "galle
 assert(app.includes('galleryLeaderboardRange: "all"'), "leaderboard must default to all-time so the first page is populated");
 assert(app.includes("openSquarePreviewById(id);"), "leaderboard gallery cards must fall back to API detail loading");
 assert(app.includes("getPromptById(id) || findPromptLikeItem(id)"), "leaderboard prompt cards must open from leaderboard cache before prompt library finishes loading");
+assert(app.includes('elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");'), "setView must always sync leaderboard visibility");
+assert(app.indexOf('elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");') > app.indexOf("if (viewChanged) {"), "visibility sync must not be skipped when the route signature is unchanged");
 
 const leaderboardBlock = css.match(/\.gallery-leaderboard\s*\{[^}]*\}/)?.[0] || "";
 const rankCardBlock = css.match(/(^|\n)\.gallery-rank-card\s*\{[^}]*\}/)?.[0] || "";
 assert(css.includes(".leaderboard-page .gallery-leaderboard"), "standalone leaderboard page styles must be present");
 assert(css.includes("grid-template-columns: minmax(0, 1fr);"), "desktop library must stay single-column without an inline leaderboard sidebar");
+assert(css.includes(".leaderboard-view,\n.canvas-view") || css.includes(".leaderboard-view,\r\n.canvas-view"), "leaderboard view must share the normal foreground view layer");
+assert(css.includes("isolation: isolate;"), "leaderboard page must isolate itself from ambient/background layers");
+assert(css.includes("width: min(1320px, 100%);"), "standalone leaderboard page must have an explicit page width");
+assert(css.includes(".leaderboard-page .gallery-rank-card .rank-like"), "standalone leaderboard cards must keep like controls visible");
 assert(leaderboardBlock.includes("position: sticky"), "leaderboard module must preserve its card shell layout");
 assert(css.includes("@media (max-width: 960px)"), "tablet/mobile must keep responsive leaderboard layout coverage");
 assert(rankCardBlock.includes("display: grid"), "rank cards must use compact row layout");

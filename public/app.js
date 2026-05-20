@@ -1635,16 +1635,16 @@ function setView(view) {
       elements.app.classList.remove("session-panel-open");
       elements.app.classList.remove("chat-panel-collapsed");
     }
-    elements.app.classList.toggle("editor-mode", view === "editor");
-    elements.app.classList.toggle("chat-panel-visible", showingChatWorkspace);
-    elements.homeView.classList.toggle("hidden", view !== "home" || (!heroVisible && view === "home"));
-    elements.chatView.classList.toggle("hidden", view !== "home" || heroVisible);
-    elements.libraryView.classList.toggle("hidden", view !== "library");
-    elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");
-    elements.editorView.classList.toggle("hidden", view !== "editor");
-    elements.canvasView?.classList.toggle("hidden", view !== "canvas");
-    elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   }
+  elements.app.classList.toggle("editor-mode", view === "editor");
+  elements.app.classList.toggle("chat-panel-visible", showingChatWorkspace);
+  elements.homeView.classList.toggle("hidden", view !== "home" || (!heroVisible && view === "home"));
+  elements.chatView.classList.toggle("hidden", view !== "home" || heroVisible);
+  elements.libraryView.classList.toggle("hidden", view !== "library");
+  elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");
+  elements.editorView.classList.toggle("hidden", view !== "editor");
+  elements.canvasView?.classList.toggle("hidden", view !== "canvas");
+  elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   if (view === "library") renderLibrary();
   if (view === "leaderboard") {
     renderLeaderboardPage();
