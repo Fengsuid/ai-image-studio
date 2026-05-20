@@ -3045,6 +3045,17 @@ a {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 336px);
+  align-items: start;
+  gap: 18px;
+}
+
+.gallery-main-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+  gap: 18px;
+  min-width: 0;
 }
 
 .load-more-wrap,
@@ -4061,12 +4072,15 @@ a {
 }
 
 .gallery-leaderboard {
-  grid-column: 1 / -1;
+  position: sticky;
+  top: 88px;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 24px;
-  background: linear-gradient(135deg, rgba(255, 251, 235, 0.92), rgba(240, 249, 255, 0.92));
-  padding: 18px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+  max-height: calc(100vh - 112px);
+  overflow: auto;
 }
 
 .gallery-leaderboard-head {
@@ -4080,7 +4094,7 @@ a {
 .gallery-leaderboard-head strong {
   display: block;
   color: #0f172a;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .gallery-leaderboard-head span {
@@ -4089,21 +4103,17 @@ a {
 }
 
 .gallery-leaderboard-head i {
-  color: #f59e0b;
-  font-size: 30px;
+  color: #0f172a;
+  font-size: 22px;
 }
 
 .gallery-rank-tabs {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
   gap: 10px;
   margin-bottom: 14px;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 .gallery-rank-tabs div {
-  flex: 0 0 auto;
   display: inline-flex;
   gap: 6px;
   padding: 4px;
@@ -4113,12 +4123,12 @@ a {
 }
 
 .gallery-rank-tabs button {
-  min-height: 30px;
+  min-height: 28px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: #64748b;
-  padding: 0 11px;
+  padding: 0 10px;
   font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
@@ -4132,21 +4142,23 @@ a {
 
 .gallery-leaderboard-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .gallery-rank-card {
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.86);
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: 34px 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.78);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.78);
+  padding: 8px;
 }
 
 .gallery-rank-card.top-1 {
-  grid-column: span 2;
-  border-color: rgba(245, 158, 11, 0.55);
-  box-shadow: 0 18px 36px rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(255, 251, 235, 0.82);
 }
 
 .gallery-rank-card.top-2,
@@ -4154,18 +4166,16 @@ a {
   border-color: rgba(99, 102, 241, 0.3);
 }
 
-.gallery-rank-card.top-1 .gallery-rank-visual {
-  aspect-ratio: 2 / 1;
-}
-
 .gallery-rank-visual {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
   border: 0;
+  border-radius: 10px;
   padding: 0;
   background: #e2e8f0;
   cursor: zoom-in;
+  overflow: hidden;
 }
 
 .gallery-rank-visual img {
@@ -4175,49 +4185,56 @@ a {
   display: block;
 }
 
-.gallery-rank-visual em {
-  position: absolute;
-  z-index: 2;
-  top: 8px;
-  left: 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.86);
-  color: #fff;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 800;
-}
-
-.gallery-rank-card div {
-  padding: 10px;
+.gallery-rank-index {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .gallery-rank-card p {
-  margin: 0 0 8px;
-  color: #334155;
+  margin: 0;
+  color: #1e293b;
   font-size: 12px;
-  line-height: 1.45;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.gallery-rank-card button[data-like-gallery] {
+.gallery-rank-copy {
+  min-width: 0;
+}
+
+.gallery-rank-copy small {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-rank-card .rank-like {
   min-height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border: 1px solid rgba(226, 232, 240, 0.95);
   border-radius: 999px;
   background: #fff;
   color: #64748b;
-  padding: 0 9px;
+  padding: 0 8px;
   font-size: 12px;
   font-weight: 800;
 }
 
-.gallery-rank-card button[data-like-gallery].liked,
+.gallery-rank-card .rank-like.liked,
 .square-preview-actions button.liked {
   color: #e11d48;
-  border: 1px solid rgba(225, 29, 72, 0.3);
+  border-color: rgba(225, 29, 72, 0.3);
   background: #fff1f2;
 }
 
@@ -4231,6 +4248,18 @@ a {
   color: #64748b;
   font-weight: 800;
   background: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 960px) {
+  .prompt-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-leaderboard {
+    position: static;
+    order: -1;
+    max-height: none;
+  }
 }
 
 .prompt-status-badge {
@@ -5640,21 +5669,29 @@ a {
 }
 
 @media (max-width: 560px) {
+  .prompt-grid {
+    grid-template-columns: 1fr;
+    padding: 0 12px;
+  }
+
+  .gallery-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-leaderboard {
+    position: static;
+    order: -1;
+    max-height: none;
+    overflow: visible;
+  }
+
   .gallery-rank-tabs {
-    justify-content: flex-start;
+    overflow-x: auto;
     margin-inline: -2px;
   }
 
-  .gallery-leaderboard-list {
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  }
-
-  .gallery-rank-card.top-1 {
-    grid-column: span 1;
-  }
-
-  .gallery-rank-card.top-1 .gallery-rank-visual {
-    aspect-ratio: 1;
+  .gallery-rank-card {
+    grid-template-columns: 30px 50px minmax(0, 1fr) auto;
   }
 
   .top-actions {

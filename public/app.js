@@ -3339,10 +3339,12 @@ function renderLibrary() {
       ? categoryInfo(selectedCategory)
       : tagInfo(state.libraryTag)
     : null;
+  const cardsHtml = visible.map(promptCardHtml).join("")
+    + (visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : "");
   elements.promptGrid.innerHTML = state.promptLoading
     ? `<div class="empty-message">${text("loadingPrompts")}</div>`
     : filtered.length
-      ? `${renderGalleryLeaderboard()}${visible.map(promptCardHtml).join("")}${visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : ""}`
+      ? `<div class="gallery-main-grid">${cardsHtml}</div>${renderGalleryLeaderboard()}`
       : selectedInfo
         ? emptyTagMessageHtml(selectedInfo)
         : `<div class="empty-message">${text("noResults")}</div>`;
@@ -3402,64 +3404,16 @@ function renderLibrary() {
 }
 
 function renderGalleryLeaderboard() {
-  const items = (state.galleryLeaderboard || []).filter((item) => item.images?.[0]).slice(0, 24);
-  const rangeTabs = [
-    ["day", state.lang === "zh" ? "日榜" : "Day"],
-    ["week", state.lang === "zh" ? "周榜" : "Week"],
-    ["month", state.lang === "zh" ? "月榜" : "Month"],
-    ["all", state.lang === "zh" ? "总榜" : "All-time"]
-  ];
-  const typeTabs = [
-    ["all", state.lang === "zh" ? "全部" : "All"],
-    ["text-to-image", text("textToImage")],
-    ["image-to-image", text("imageToImage")]
-  ];
-  return `
-    <section class="gallery-leaderboard${state.galleryLeaderboardLoading ? " loading" : ""}">
-      <div class="gallery-leaderboard-head">
-        <div>
-          <strong>${escapeHtml(text("galleryLeaderboard"))}</strong>
-          <span>${escapeHtml(text("galleryLeaderboardDesc"))}</span>
-        </div>
-        <i class="ri-trophy-line"></i>
-      </div>
-      <div class="gallery-rank-tabs" aria-label="${escapeHtml(text("galleryLeaderboard"))}">
-        <div>
-          ${rangeTabs.map(([value, label]) => `<button type="button" data-rank-range="${value}" class="${state.galleryLeaderboardRange === value ? "active" : ""}">${escapeHtml(label)}</button>`).join("")}
-        </div>
-        <div>
-          ${typeTabs.map(([value, label]) => `<button type="button" data-rank-type="${value}" class="${state.galleryLeaderboardType === value ? "active" : ""}">${escapeHtml(label)}</button>`).join("")}
-        </div>
-      </div>
-      <div class="gallery-leaderboard-list">
-        ${items.length ? items.map((item, index) => {
-          const isPromptItem = item.kind === "prompt";
-          const openAttr = isPromptItem
-            ? `data-open-prompt="${escapeHtml(item.promptId || String(item.id).replace(/^prompt_/, ""))}"`
-            : `data-open-square="${escapeHtml(`square_${item.id}`)}"`;
-          const likeButton = isPromptItem
-            ? `<button type="button" data-like-prompt="${escapeHtml(item.promptId || String(item.id).replace(/^prompt_/, ""))}" class="${item.likedByCurrentUser ? "liked" : ""}">
-                <i class="${item.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(item.likeCount || 0)}
-              </button>`
-            : `<button type="button" data-like-gallery="${escapeHtml(item.id)}" class="${item.likedByCurrentUser ? "liked" : ""}">
-                <i class="${item.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(item.likeCount || 0)}
-              </button>`;
-          return `
-          <article class="gallery-rank-card ${index < 3 ? `top-${index + 1}` : ""}">
-            <button type="button" class="gallery-rank-visual" ${openAttr} ${imageFallbackContainerAttrs()}>
-              <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 70))}">
-              <em>#${index + 1}</em>
-            </button>
-            <div>
-              <p>${escapeHtml(truncate(item.prompt, 64))}</p>
-              ${likeButton}
-            </div>
-          </article>
-        `;
-        }).join("") : `<div class="gallery-rank-empty">${state.lang === "zh" ? "暂无榜单作品" : "No ranked works yet"}</div>`}
-      </div>
-    </section>
-  `;
+  return window.ImageStudioGalleryLeaderboard?.render?.({
+    state,
+    text,
+    escapeHtml,
+    truncate,
+    displayUserName,
+    imageVariantUrl,
+    imageFallbackImgAttrs,
+    imageFallbackContainerAttrs
+  }) || "";
 }
 
 function bindGalleryLeaderboardControls(root = document) {
@@ -5296,6 +5250,7 @@ function updateGalleryLikeState(generation) {
   state.publicGallery = state.publicGallery.map(apply);
   state.galleryLeaderboard = state.galleryLeaderboard.map(apply);
   state.history = state.history.map(apply);
+  state.promptItems = state.promptItems.map(apply);
   $$(`[data-like-gallery="${CSS.escape(String(updated.id))}"]`).forEach((button) => {
     button.classList.toggle("liked", updated.likedByCurrentUser);
     button.innerHTML = `<i class="${updated.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(updated.likeCount || 0)}`;

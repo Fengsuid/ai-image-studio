@@ -99,6 +99,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/canvas-toolbar.js"), "/ missing canvas-toolbar.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-inspector.js"), "/ missing canvas-inspector.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/gallery-leaderboard.js"), "/ missing gallery-leaderboard.js reference");
   assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
@@ -113,6 +114,7 @@ async function checkHomeResources() {
   const canvasToolbarMatch = home.body.match(/src="([^"]*\/canvas-toolbar\.js[^"]*)"/);
   const canvasInspectorMatch = home.body.match(/src="([^"]*\/canvas-inspector\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
+  const galleryLeaderboardMatch = home.body.match(/src="([^"]*\/gallery-leaderboard\.js[^"]*)"/);
   const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
@@ -124,6 +126,7 @@ async function checkHomeResources() {
   const canvasToolbarPath = canvasToolbarMatch?.[1] || "/canvas-toolbar.js";
   const canvasInspectorPath = canvasInspectorMatch?.[1] || "/canvas-inspector.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
+  const galleryLeaderboardPath = galleryLeaderboardMatch?.[1] || "/gallery-leaderboard.js";
   const referenceImagesPath = referenceImagesMatch?.[1] || "/reference-images.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
@@ -213,6 +216,12 @@ async function checkHomeResources() {
   assert(galleryModel.body.includes("ImageStudioGalleryModel"), `${galleryModelPath} should register gallery model helpers`);
   assert(galleryModel.body.includes("promptImageDisplayUrl"), `${galleryModelPath} should normalize prompt image URLs`);
   assert(galleryModel.body.includes("generationEntryFromApi"), `${galleryModelPath} should normalize gallery API entries`);
+
+  log(`GET ${galleryLeaderboardPath}`);
+  const galleryLeaderboard = await fetchText(galleryLeaderboardPath, "application/javascript,*/*");
+  assert(galleryLeaderboard.status === 200, `${galleryLeaderboardPath} status=${galleryLeaderboard.status}`);
+  assert(galleryLeaderboard.body.includes("ImageStudioGalleryLeaderboard"), `${galleryLeaderboardPath} should register leaderboard helpers`);
+  assert(galleryLeaderboard.body.includes("rank-like"), `${galleryLeaderboardPath} should render compact like controls`);
 
   log(`GET ${referenceImagesPath}`);
   const referenceImages = await fetchText(referenceImagesPath, "application/javascript,*/*");
