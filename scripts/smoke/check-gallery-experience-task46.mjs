@@ -21,12 +21,22 @@ const { parseAwesomeGptImage2PromptsBackup } = require(path.join(rootDir, "src/p
 assert(html.includes('id="leaderboardView"'), "leaderboard must have an independent page view");
 assert(html.includes("/editor-image-import.js"), "editor paste/drop import module must be loaded separately");
 assert(html.includes("/image-session-list.js"), "session list rendering must be split into its own module");
+assert(html.includes("/render-stamp.js"), "render stamp logic must be split into its own module");
 assert(app.includes('navigate("leaderboard"'), "top-level navigation must open the leaderboard page");
 assert(app.includes("renderLeaderboardPage"), "leaderboard page renderer must be wired");
 assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "gallery must not inline leaderboard beside cards");
+assert(!app.includes("data-open-leaderboard"), "gallery page must not show a leaderboard CTA");
+assert(!styles.includes(".leaderboard-cta"), "gallery leaderboard CTA styles must be removed");
+assert(html.includes('data-i18n="galleryLeaderboardPage">点赞排行榜</span>'), "top nav must show the Chinese leaderboard label before i18n hydration");
+assert(app.includes('galleryLeaderboardPage: "点赞排行榜"'), "leaderboard nav label must be Chinese in zh locale");
 assert(styles.includes(".leaderboard-page .gallery-leaderboard"), "leaderboard page styles must be present");
+assert(html.includes("/prompt-cover-fallback.js"), "prompt fallback cover renderer must be loaded separately");
+assert(app.includes("ImageStudioPromptCoverFallback"), "prompt cards must use fallback covers when no image exists");
+assert(styles.includes(".prompt-cover-fallback"), "prompt fallback covers must have visible styles");
 
 assert(app.includes("deleteImageSession"), "conversation delete handler must exist");
+assert(app.includes("ImageStudioRenderStamp"), "conversation/history renders must use stable render stamps");
+assert(app.includes("stamp && state.renderStamp.sessions === stamp") && app.includes("stamp && state.renderStamp.history === stamp"), "conversation/history render must skip unchanged DOM rebuilds after a valid stamp");
 assert(app.includes("window.confirm") && app.includes("生成历史和公开作品不会被删除"), "conversation delete must ask for confirmation");
 assert(app.includes("renameImageSession"), "conversation title editing must exist");
 assert(styles.includes(".session-actions"), "conversation card actions must be styled");

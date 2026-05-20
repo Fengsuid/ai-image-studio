@@ -2120,6 +2120,65 @@ a {
   font-size: 42px;
 }
 
+.prompt-cover-fallback {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--fallback-bg, var(--art-bg));
+  color: #fff;
+  overflow: hidden;
+}
+
+.prompt-cover-fallback::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.prompt-cover-fallback i {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--fallback-accent, #bfdbfe);
+  font-size: 24px;
+}
+
+.prompt-cover-fallback strong,
+.prompt-cover-fallback span {
+  position: relative;
+  z-index: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.prompt-cover-fallback strong {
+  -webkit-line-clamp: 2;
+  font-size: 18px;
+  line-height: 1.22;
+}
+
+.prompt-cover-fallback span {
+  -webkit-line-clamp: 3;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .card-art em {
   position: absolute;
   z-index: 2;
@@ -3192,24 +3251,6 @@ a {
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 18px;
-}
-
-.leaderboard-cta {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.leaderboard-cta button {
-  min-height: 40px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 12px;
-  background: #fff;
-  color: #0f172a;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 850;
 }
 
 .gallery-main-grid {

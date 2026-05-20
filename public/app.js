@@ -6,6 +6,10 @@ const state = {
   view: "home",
   forceHero: false,
   activeViewSignature: "",
+  renderStamp: {
+    sessions: "",
+    history: ""
+  },
   history: [],
   imageSessions: [],
   activeImageSessionId: "",
@@ -293,8 +297,7 @@ const i18n = {
     unlikeImage: "取消点赞",
     galleryLeaderboard: "点赞排行榜",
     galleryLeaderboardDesc: "按点赞数展示最近受欢迎的公开作品",
-    galleryLeaderboardPage: "榜单",
-    openLeaderboard: "查看完整榜单",
+    galleryLeaderboardPage: "点赞排行榜",
     deleteConversation: "删除对话",
     viewUserConversations: "查看对话",
     userConversationsTitle: "用户对话记录",
@@ -630,8 +633,7 @@ const i18n = {
     unlikeImage: "Unlike",
     galleryLeaderboard: "Like leaderboard",
     galleryLeaderboardDesc: "Popular public works ranked by likes",
-    galleryLeaderboardPage: "Leaderboard",
-    openLeaderboard: "Open leaderboard",
+    galleryLeaderboardPage: "Like leaderboard",
     deleteConversation: "Delete chat",
     viewUserConversations: "View chats",
     userConversationsTitle: "User conversations",
@@ -1535,6 +1537,23 @@ function renameImageSession(sessionIdToRename, title) {
   );
   saveImageSessionState();
   renderImageSessions();
+}
+
+function imageSessionRenderStamp() {
+  return window.ImageStudioRenderStamp?.imageSessionStamp?.({
+    lang: state.lang,
+    activeSessionId: state.activeImageSessionId,
+    sessions: state.imageSessions,
+    history: state.history
+  }) || null;
+}
+
+function historyRenderStamp() {
+  return window.ImageStudioRenderStamp?.historyStamp?.({
+    lang: state.lang,
+    activeSessionId: state.activeImageSessionId,
+    items: getActiveSessionHistory()
+  }) || null;
 }
 
 function replaceSessionGenerationId(oldId, newId, elapsedMs) {
@@ -2752,6 +2771,9 @@ async function loadHistory() {
 
 function renderImageSessions() {
   if (!elements.imageSessionList) return;
+  const stamp = imageSessionRenderStamp();
+  if (stamp && state.renderStamp.sessions === stamp) return;
+  state.renderStamp.sessions = stamp;
   elements.imageSessionList.innerHTML = window.ImageStudioSessionList?.render?.({
     sessions: state.imageSessions,
     history: state.history,
@@ -2800,6 +2822,9 @@ function renderImageSessions() {
 }
 
 function renderHistory() {
+  const stamp = historyRenderStamp();
+  if (stamp && state.renderStamp.history === stamp) return;
+  state.renderStamp.history = stamp;
   let lastDate = "";
   const visibleHistory = getActiveSessionHistory();
   if (!visibleHistory.length) {
@@ -3408,11 +3433,10 @@ function renderLibrary() {
     : null;
   const cardsHtml = visible.map(promptCardHtml).join("")
     + (visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : "");
-  const leaderboardCta = `<div class="leaderboard-cta"><button type="button" data-open-leaderboard><i class="ri-trophy-line"></i>${escapeHtml(text("openLeaderboard"))}</button></div>`;
   elements.promptGrid.innerHTML = state.promptLoading
     ? `<div class="empty-message">${text("loadingPrompts")}</div>`
     : filtered.length
-      ? `${leaderboardCta}<div class="gallery-main-grid">${cardsHtml}</div>`
+      ? `<div class="gallery-main-grid">${cardsHtml}</div>`
       : selectedInfo
         ? emptyTagMessageHtml(selectedInfo)
         : `<div class="empty-message">${text("noResults")}</div>`;
@@ -3468,7 +3492,6 @@ function renderLibrary() {
     renderLibrary();
   });
   bindPromptCards(elements.promptGrid);
-  $("[data-open-leaderboard]", elements.promptGrid)?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
 }
 
 function renderGalleryLeaderboard() {
@@ -3548,7 +3571,7 @@ function promptCardHtml(prompt) {
   }).join("");
   const art = coverUrl
     ? `<img src="${escapeHtml(imageVariantUrl(coverUrl))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
-    : `<i class="${prompt.icon || "ri-image-line"}"></i>`;
+    : window.ImageStudioPromptCoverFallback?.render?.(prompt, { escapeHtml, truncate }) || `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const canvasBadge = isCanvasRouteItem(prompt)
     ? `<b class="canvas-route-badge"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "画布线路" : "Canvas route")}</b>`
     : "";
