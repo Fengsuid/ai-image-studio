@@ -96,6 +96,8 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/canvas-selection.js"), "/ missing canvas-selection.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-io.js"), "/ missing canvas-io.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-assistant.js"), "/ missing canvas-assistant.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-toolbar.js"), "/ missing canvas-toolbar.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-inspector.js"), "/ missing canvas-inspector.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
@@ -108,6 +110,8 @@ async function checkHomeResources() {
   const canvasSelectionMatch = home.body.match(/src="([^"]*\/canvas-selection\.js[^"]*)"/);
   const canvasIoMatch = home.body.match(/src="([^"]*\/canvas-io\.js[^"]*)"/);
   const canvasAssistantMatch = home.body.match(/src="([^"]*\/canvas-assistant\.js[^"]*)"/);
+  const canvasToolbarMatch = home.body.match(/src="([^"]*\/canvas-toolbar\.js[^"]*)"/);
+  const canvasInspectorMatch = home.body.match(/src="([^"]*\/canvas-inspector\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
@@ -117,6 +121,8 @@ async function checkHomeResources() {
   const canvasSelectionPath = canvasSelectionMatch?.[1] || "/canvas-selection.js";
   const canvasIoPath = canvasIoMatch?.[1] || "/canvas-io.js";
   const canvasAssistantPath = canvasAssistantMatch?.[1] || "/canvas-assistant.js";
+  const canvasToolbarPath = canvasToolbarMatch?.[1] || "/canvas-toolbar.js";
+  const canvasInspectorPath = canvasInspectorMatch?.[1] || "/canvas-inspector.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const referenceImagesPath = referenceImagesMatch?.[1] || "/reference-images.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
@@ -188,6 +194,18 @@ async function checkHomeResources() {
   assert(canvasAssistant.body.includes("root.assistant"), `${canvasAssistantPath} should register canvas assistant module`);
   assert(canvasAssistant.body.includes("createController"), `${canvasAssistantPath} should expose assistant controller`);
   assert(canvasAssistant.body.includes("suggestionToNodeInput"), `${canvasAssistantPath} should convert suggestions into nodes`);
+
+  log(`GET ${canvasToolbarPath}`);
+  const canvasToolbar = await fetchText(canvasToolbarPath, "application/javascript,*/*");
+  assert(canvasToolbar.status === 200, `${canvasToolbarPath} status=${canvasToolbar.status}`);
+  assert(canvasToolbar.body.includes("root.toolbar"), `${canvasToolbarPath} should register canvas toolbar module`);
+  assert(canvasToolbar.body.includes("renderHistoryControls"), `${canvasToolbarPath} should expose toolbar control rendering`);
+
+  log(`GET ${canvasInspectorPath}`);
+  const canvasInspector = await fetchText(canvasInspectorPath, "application/javascript,*/*");
+  assert(canvasInspector.status === 200, `${canvasInspectorPath} status=${canvasInspector.status}`);
+  assert(canvasInspector.body.includes("root.inspector"), `${canvasInspectorPath} should register canvas inspector module`);
+  assert(canvasInspector.body.includes("connectionPanel"), `${canvasInspectorPath} should render connection inspector controls`);
 
   log(`GET ${galleryModelPath}`);
   const galleryModel = await fetchText(galleryModelPath, "application/javascript,*/*");

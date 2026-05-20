@@ -14,16 +14,39 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `node --check public/canvas-geometry.js`
   - `node --check public/canvas-minimap.js`
   - `node --check public/canvas-workflows.js`
+  - `node --check public/canvas-history.js`
+  - `node --check public/canvas-selection.js`
+  - `node --check public/canvas-io.js`
+  - `node --check public/canvas-assistant.js`
+  - `node --check public/canvas-toolbar.js`
+  - `node --check public/canvas-inspector.js`
+  - `node --check public/gallery-normalize.js`
+  - `node --check src/canvas-service.js`
+  - `node --check src/canvas-import-export.js`
+  - `node --check src/canvas-assistant.js`
+  - `node --check src/prompt-review-service.js`
+  - `node --check src/mysql-store.js`
+  - `node --check scripts/smoke/check-canvas-module-boundaries.mjs`
   - `node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('package-lock.json','utf8'))"`
 - Run diff hygiene:
   - `git diff --check`
   - `git status --short`
+- Run database-free logic smoke (always safe locally):
+  - `npm run smoke:canvas-history`
+  - `npm run smoke:canvas-selection`
+  - `npm run smoke:canvas-import-export`
+  - `npm run smoke:canvas-assistant`
+  - `npm run smoke:canvas-module-boundaries`
+  - `npm run smoke:prompt-review`
 - Start a local server with a disposable data directory and run public smoke:
   - `PORT=3100 DATA_DIR=data-smoke node server.js`
   - `npm run smoke:public -- http://localhost:3100`
-- If local MySQL is used, verify the configured user/password before treating startup failure as a code regression.
+  - `npm run smoke:gallery-images -- http://localhost:3100`
+- If local MySQL is used, verify the configured user/password before treating startup failure as a code regression. The smoke scripts default to MySQL database `gpt_image_studio`; either set `MYSQL_DATABASE` explicitly or create a database with that name to avoid silent connection mismatches.
 - For authenticated flows, run:
   - `ADMIN_EMAIL=<admin> ADMIN_PASSWORD=<password> npm run smoke:auth-admin -- http://localhost:3100`
+  - `npm run smoke:canvas-import-export-api -- http://localhost:3100`
+  - `npm run smoke:canvas-assistant-api -- http://localhost:3100`
   - `npm run smoke:data`
 
 ## 2. Online Smoke
@@ -32,8 +55,13 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `GET /api/version`
 - Run public API smoke against the production base URL:
   - `npm run smoke:public -- https://<host>`
+  - `npm run smoke:gallery-images -- https://<host>`
 - Run authenticated admin smoke with production-safe credentials:
   - `ADMIN_EMAIL=<admin> ADMIN_PASSWORD=<password> npm run smoke:auth-admin -- https://<host>`
+  - `npm run smoke:canvas-import-export-api -- https://<host>`
+  - `npm run smoke:canvas-assistant-api -- https://<host>`
+- Run targeted prompt regression where applicable:
+  - `node scripts/smoke/check-prompt-like.mjs https://<host> <promptId>`
 - Check logs for:
   - startup migration errors
   - OpenAI/provider routing errors
@@ -62,7 +90,7 @@ For every completed P0 task, record:
 - known blockers or skipped checks
 - rollback target
 
-Record the outcome in the relevant development document or release note before marking the task done.
+Record the outcome in the relevant development document or release note before marking the task done. Documentation-only updates that do not deploy to production do not need a release record entry; they are tracked in the unified master plan and Rellis tasks file instead.
 
 ### 2026-05-19 Canvas And QA Batch
 
@@ -188,7 +216,7 @@ Record the outcome in the relevant development document or release note before m
 ### 2026-05-20 Canvas Assistant Batch
 
 - Task covered: `AIS-RLS-030`.
-- Commits covered: `ce5d294`, `2eaae58`.
+- Commits covered: `ce5d294`, `2eaae58`, `e338a67`.
 - Local checks: `node --check src/canvas-assistant.js`, `node --check public/canvas-assistant.js`, `node --check public/canvas.js`, `node --check server.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check scripts/smoke/check-canvas-assistant.mjs`, `node --check scripts/smoke/check-canvas-assistant-api.mjs`, `npm run smoke:canvas-assistant`, `npm run smoke:canvas-selection`, `npm run smoke:canvas-history`, `git diff --check`.
 - Backend coverage: canvas assistant context collection and deterministic suggestion generation are split into `src/canvas-assistant.js`; the API route only authenticates, checks canvas read permission, and passes the saved canvas `dataJson` into the assistant module.
 - Frontend coverage: the right-panel controller, request payload, suggestion normalization, and suggestion-to-node conversion live in `public/canvas-assistant.js`; `public/canvas.js` only saves the canvas, provides selected context, and inserts text/prompt nodes.

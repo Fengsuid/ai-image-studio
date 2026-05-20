@@ -31,15 +31,14 @@ loadEnvFile(path.join(ROOT_DIR, ".env"));
 
 const store = require("./src/mysql-store");
 const promptReview = require("./src/prompt-review-service");
-const canvasAssistant = require("./src/canvas-assistant");
-const canvasImportExport = require("./src/canvas-import-export");
+const { createCanvasService } = require("./src/canvas-service");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260520-canvas-assistant-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260520-canvas-boundaries-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = Math.max(
@@ -61,6 +60,27 @@ const IMAGE_DOWNLOAD_TIMEOUT_MS = Math.max(
   Number.parseInt(process.env.IMAGE_DOWNLOAD_TIMEOUT_MS || "30000", 10) || 30_000
 );
 const ALLOWED_IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+const canvasService = createCanvasService({
+  store,
+  httpError,
+  randomId,
+  choose,
+  cleanPrompt,
+  sanitizePositiveInt,
+  normalizeImageSize,
+  validateImageDataUrl,
+  normalizeGenerationCost,
+  enforceGenerationRate,
+  attachRequestAbortController,
+  callOpenAIImages,
+  callOpenAIImageEdits,
+  saveGeneratedImages,
+  getClientIp,
+  getUserAgent,
+  isPubliclyVisibleGeneration,
+  defaultModel: DEFAULT_MODEL
+});
 
 const generationWindows = new Map();
 const generationQueue = [];
@@ -662,200 +682,6 @@ function cleanAnnouncementInput(body = {}, existing = null, { partial = false } 
     payload.targetUserIds = values.map((value) => String(value || "").trim()).filter(Boolean).slice(0, 200);
   }
   return payload;
-}
-
-function cleanCanvasProjectInput(body = {}, { partial = false } = {}) {
-  const payload = {};
-  const has = (key) => Object.hasOwn(body, key);
-  if (!partial || has("title")) {
-    const title = String(body.title || "").trim().slice(0, 160);
-    if (title.length < 1) throw httpError("Canvas title is required", 400);
-    payload.title = title;
-  }
-  if (!partial || has("description")) {
-    payload.description = String(body.description || "").trim().slice(0, 1000);
-  }
-  if (!partial || has("coverUrl") || has("cover")) {
-    payload.coverUrl = String(body.coverUrl || body.cover || "").trim().slice(0, 500);
-  }
-  if (!partial || has("coverGenerationId")) {
-    payload.coverGenerationId = String(body.coverGenerationId || "").trim().slice(0, 32);
-  }
-  if (!partial || has("visibility")) {
-    payload.visibility = choose(String(body.visibility || "private"), ["private", "public", "unlisted"], "private");
-  }
-  if (!partial || has("isTemplate")) {
-    payload.isTemplate = Boolean(body.isTemplate);
-  }
-  if (!partial || has("dataJson") || has("data")) {
-    const data = has("dataJson") ? body.dataJson : body.data;
-    if (data && (typeof data !== "object" || Array.isArray(data))) {
-      throw httpError("Canvas dataJson must be an object", 400);
-    }
-    payload.dataJson = data || {};
-  }
-  if (has("nodeCount")) {
-    payload.nodeCount = sanitizeCanvasCount(body.nodeCount, "nodeCount");
-  }
-  if (has("edgeCount")) {
-    payload.edgeCount = sanitizeCanvasCount(body.edgeCount, "edgeCount");
-  }
-  return payload;
-}
-
-function sanitizeCanvasCount(value, field) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0) throw httpError(`${field} must be a non-negative number`, 400);
-  return Math.min(10000, Math.floor(parsed));
-}
-
-function canReadCanvas(user, canvas) {
-  if (!user || !canvas) return false;
-  return user.role === "admin" || canvas.userId === user.id || ["public", "unlisted"].includes(canvas.visibility);
-}
-
-function canManageCanvas(user, canvas) {
-  if (!user || !canvas) return false;
-  return user.role === "admin" || canvas.userId === user.id;
-}
-
-const CANVAS_PRIVATE_KEYS = new Set([
-  "userId",
-  "userName",
-  "userEmail",
-  "author",
-  "authorId",
-  "authorName",
-  "authorEmail",
-  "owner",
-  "ownerId",
-  "ownerName",
-  "ownerEmail",
-  "createdBy",
-  "createdById",
-  "createdByName",
-  "createdByEmail",
-  "updatedBy",
-  "updatedById",
-  "updatedByName",
-  "updatedByEmail"
-]);
-const CANVAS_IMAGE_REFERENCE_KEYS = new Set([
-  "imageData",
-  "imageUrl",
-  "sourceImage",
-  "sourceImageData",
-  "sourceImageUrl",
-  "coverUrl"
-]);
-const CANVAS_GENERATION_REFERENCE_KEYS = new Set([
-  "generationId",
-  "sourceImageId",
-  "originGalleryId"
-]);
-
-function canvasImageReference(value = "") {
-  const text = String(value || "").trim();
-  const match = text.match(/^\/api\/images\/([^/]+)\/(file|source-file)(?:[?#].*)?$/);
-  return match ? { id: match[1], kind: match[2] } : { id: "", kind: "" };
-}
-
-function isCanvasReferenceAlwaysPublic(value = "") {
-  const text = String(value || "").trim();
-  return !text
-    || /^https?:\/\//i.test(text)
-    || /^\/api\/prompt-images\//i.test(text)
-    || /^\/prompt-thumbs\//i.test(text);
-}
-
-async function canCopyCanvasGenerationReference(value = "", { source = false } = {}) {
-  const text = String(value || "").trim();
-  if (!text) return true;
-  const reference = canvasImageReference(text);
-  const id = reference.id || (/^gen_/i.test(text) ? text : "");
-  if (!id) return isCanvasReferenceAlwaysPublic(text);
-  const generation = await store.getGenerationById(id);
-  if (!isPubliclyVisibleGeneration(generation)) return false;
-  return source || reference.kind === "source-file" ? Boolean(generation.publishOriginal) : true;
-}
-
-async function scrubCanvasCopyValue(value, key = "") {
-  if (Array.isArray(value)) {
-    const items = [];
-    for (const item of value) items.push(await scrubCanvasCopyValue(item, ""));
-    return items;
-  }
-  if (!value || typeof value !== "object") {
-    if (CANVAS_IMAGE_REFERENCE_KEYS.has(key)) {
-      return (await canCopyCanvasGenerationReference(value, { source: key.toLowerCase().startsWith("source") })) ? String(value || "") : "";
-    }
-    if (CANVAS_GENERATION_REFERENCE_KEYS.has(key)) {
-      return (await canCopyCanvasGenerationReference(value, { source: key === "sourceImageId" })) ? String(value || "") : "";
-    }
-    return value;
-  }
-  const clean = {};
-  for (const [entryKey, entryValue] of Object.entries(value)) {
-    if (CANVAS_PRIVATE_KEYS.has(entryKey)) continue;
-    clean[entryKey] = await scrubCanvasCopyValue(entryValue, entryKey);
-  }
-  return clean;
-}
-
-async function createCanvasDuplicatePayload(source, { title = "" } = {}, { copyMetadata = true } = {}) {
-  const exported = canvasImportExport.createCanvasExport(source);
-  const dataJson = await scrubCanvasCopyValue(exported.canvas.dataJson || {}, "dataJson");
-  const coverUrl = (await canCopyCanvasGenerationReference(source.coverUrl)) ? source.coverUrl : "";
-  const fallbackTitle = copyMetadata ? source.title : "Canvas route copy";
-  const copyTitle = String(title || fallbackTitle || "Untitled canvas").trim().slice(0, 160) || "Untitled canvas";
-  return {
-    title: copyTitle,
-    description: copyMetadata ? String(source.description || "").trim().slice(0, 1000) : "",
-    coverUrl,
-    visibility: "private",
-    dataJson,
-    nodeCount: Array.isArray(dataJson.nodes) ? dataJson.nodes.length : 0,
-    edgeCount: Array.isArray(dataJson.edges) ? dataJson.edges.length : 0
-  };
-}
-
-function canvasGenerationPlan(body = {}) {
-  const nodes = Array.isArray(body.nodes) ? body.nodes : [];
-  const edges = Array.isArray(body.edges) ? body.edges : [];
-  const byId = new Map(nodes.map((node) => [String(node.id || ""), node]));
-  const outputNode = byId.get(String(body.outputNodeId || "")) || nodes.find((node) => node.type === "output");
-  const incoming = (id) => edges.filter((edge) => String(edge.targetId || "") === String(id || ""));
-  const visitUpstream = (id, seen = new Set()) => incoming(id).flatMap((edge) => {
-    const sourceId = String(edge.sourceId || "");
-    if (!sourceId || seen.has(sourceId)) return [];
-    seen.add(sourceId);
-    const node = byId.get(sourceId);
-    return node ? [node, ...visitUpstream(sourceId, seen)] : [];
-  });
-  const configNode = byId.get(String(body.configNodeId || ""))
-    || visitUpstream(outputNode?.id || "").find((node) => node.type === "config")
-    || nodes.find((node) => node.type === "config");
-  if (!configNode) throw httpError("Canvas config node not found", 400);
-  const upstream = visitUpstream(configNode.id);
-  const promptNodes = upstream.filter((node) => node.type === "prompt");
-  const imageNodes = upstream.filter((node) => node.type === "image");
-  if (promptNodes.length > 1 || imageNodes.length > 1) {
-    throw httpError("Canvas input conflict: use at most one prompt and one image", 400);
-  }
-  const prompt = cleanPrompt(body.prompt || promptNodes[0]?.data?.prompt || promptNodes[0]?.data?.body || "");
-  const imageNode = imageNodes[0] || null;
-  return {
-    outputNodeId: String(outputNode?.id || body.outputNodeId || ""),
-    configNodeId: String(configNode.id || ""),
-    prompt,
-    imageData: String(imageNode?.data?.imageUrl || ""),
-    sourceImageId: String(imageNode?.data?.generationId || ""),
-    sourcePrompt: String(imageNode?.data?.prompt || ""),
-    model: String(configNode.data?.model || DEFAULT_MODEL),
-    size: normalizeImageSize(configNode.data?.size || body.size),
-    quality: choose(configNode.data?.quality || body.quality, ["auto", "low", "medium", "high"], "auto"),
-    n: sanitizePositiveInt(configNode.data?.candidateCount || body.n, 1, 4)
-  };
 }
 
 function normalizeImageSize(value) {
@@ -2356,7 +2182,7 @@ async function generationResponseForViewer(generation, current) {
   const response = generationResponse(generation);
   const canvasProject = await store.getCanvasProjectForGeneration(generation.id);
   if (!canvasProject || !current?.user) return response;
-  const canOpenOriginal = canReadCanvas(current.user, canvasProject);
+  const canOpenOriginal = canvasService.canReadCanvas(current.user, canvasProject);
   if (canOpenOriginal) {
     response.canvasProject = {
       ...canvasProject,
@@ -3885,288 +3711,82 @@ async function routeApi(req, res, url) {
     const requestedScope = url.searchParams.get("scope");
     const scope = requestedScope === "public" ? "public" : requestedScope === "templates" ? "templates" : requestedScope === "all" ? "all" : "mine";
     if (scope === "all") ensureAdmin(current);
-    const canvases = await store.listCanvasProjectsForUser(current.user, { limit, scope });
-    return sendJson(res, 200, { canvases });
+    return sendJson(res, 200, await canvasService.list(current.user, { limit, scope }));
   }
 
   if (req.method === "POST" && url.pathname === "/api/canvases") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
     const body = await readJsonBody(req);
-    const payload = cleanCanvasProjectInput(body);
-    const canvas = await store.createCanvasProject({
-      ...payload,
-      id: randomId("can_"),
-      userId: current.user.id
-    });
-    return sendJson(res, 201, { canvas });
+    return sendJson(res, 201, await canvasService.create(current.user, body));
   }
 
   const canvasExportMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/export$/);
   if (canvasExportMatch && req.method === "GET") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const canvas = await store.getCanvasProjectById(canvasExportMatch[1]);
-    if (!canReadCanvas(current.user, canvas)) {
-      throw httpError("Canvas not found", 404);
-    }
-    return sendJson(res, 200, canvasImportExport.createCanvasExport(canvas));
+    return sendJson(res, 200, await canvasService.exportCanvas(current.user, canvasExportMatch[1]));
   }
 
   const canvasImportMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/import$/);
   if (canvasImportMatch && req.method === "POST") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const existing = await store.getCanvasProjectById(canvasImportMatch[1]);
-    if (!canManageCanvas(current.user, existing)) {
-      throw httpError("Canvas not found", 404);
-    }
     const body = await readJsonBody(req);
-    const payload = canvasImportExport.normalizeCanvasImport(body, existing);
-    const canvas = await store.updateCanvasProject(existing.id, payload);
-    return sendJson(res, 200, {
-      canvas,
-      imported: {
-        format: canvasImportExport.FORMAT,
-        nodeCount: payload.nodeCount,
-        edgeCount: payload.edgeCount
-      }
-    });
+    return sendJson(res, 200, await canvasService.importCanvas(current.user, canvasImportMatch[1], body));
   }
 
   const canvasAssistantMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/assistant$/);
   if (canvasAssistantMatch && req.method === "POST") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const canvas = await store.getCanvasProjectById(canvasAssistantMatch[1]);
-    if (!canReadCanvas(current.user, canvas)) {
-      throw httpError("Canvas not found", 404);
-    }
     const body = await readJsonBody(req);
-    return sendJson(res, 200, {
-      assistant: canvasAssistant.createAssistantResponse(canvas, body)
-    });
+    return sendJson(res, 200, await canvasService.assistant(current.user, canvasAssistantMatch[1], body));
   }
 
   const canvasDuplicateMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/duplicate$/);
   if (canvasDuplicateMatch && req.method === "POST") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const source = await store.getCanvasProjectById(canvasDuplicateMatch[1]);
-    const canReadSource = canReadCanvas(current.user, source);
-    if (!canReadSource) {
-      const publicRouteGeneration = source ? await store.getPublicGenerationForCanvas(source.id) : null;
-      if (!isPubliclyVisibleGeneration(publicRouteGeneration)) {
-        throw httpError("Canvas not found", 404);
-      }
-    }
-    if (!source) {
-      throw httpError("Canvas not found", 404);
-    }
     const body = await readJsonBody(req);
-    const payload = await createCanvasDuplicatePayload(source, body, { copyMetadata: canReadSource });
-    const canvas = await store.createCanvasProject({
-      ...payload,
-      id: randomId("can_"),
-      userId: current.user.id
-    });
-    return sendJson(res, 201, {
-      canvas,
-      duplicated: {
-        sourceCanvasId: source.id,
-        nodeCount: payload.nodeCount,
-        edgeCount: payload.edgeCount
-      }
-    });
+    return sendJson(res, 201, await canvasService.duplicate(current.user, canvasDuplicateMatch[1], body));
   }
 
   if (req.method === "GET" && url.pathname === "/api/canvases/templates") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
     const limit = sanitizePositiveInt(url.searchParams.get("limit"), 24, 100);
-    const canvases = await store.listCanvasProjectsForUser(current.user, { limit, scope: "templates" });
-    return sendJson(res, 200, { canvases });
+    return sendJson(res, 200, await canvasService.templates(current.user, limit));
   }
 
   const canvasMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)$/);
   if (canvasMatch && req.method === "GET") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const canvas = await store.getCanvasProjectById(canvasMatch[1]);
-    if (!canReadCanvas(current.user, canvas)) {
-      throw httpError("Canvas not found", 404);
-    }
-    return sendJson(res, 200, { canvas });
+    return sendJson(res, 200, await canvasService.get(current.user, canvasMatch[1]));
   }
 
   if (canvasMatch && req.method === "PATCH") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const existing = await store.getCanvasProjectById(canvasMatch[1]);
-    if (!canManageCanvas(current.user, existing)) {
-      throw httpError("Canvas not found", 404);
-    }
     const body = await readJsonBody(req);
-    const payload = cleanCanvasProjectInput(body, { partial: true });
-    const canvas = await store.updateCanvasProject(existing.id, payload);
-    return sendJson(res, 200, { canvas });
+    return sendJson(res, 200, await canvasService.update(current.user, canvasMatch[1], body));
   }
 
   if (canvasMatch && req.method === "DELETE") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    const existing = await store.getCanvasProjectById(canvasMatch[1]);
-    if (!canManageCanvas(current.user, existing)) {
-      throw httpError("Canvas not found", 404);
-    }
-    const canvas = await store.deleteCanvasProject(existing.id);
-    return sendJson(res, 200, { ok: true, canvas });
+    return sendJson(res, 200, await canvasService.remove(current.user, canvasMatch[1]));
   }
 
   const canvasGenerateMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/generate$/);
   if (canvasGenerateMatch && req.method === "POST") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
-    enforceGenerationRate(current.user.id);
-    const canvas = await store.getCanvasProjectById(canvasGenerateMatch[1]);
-    if (!canManageCanvas(current.user, canvas)) {
-      throw httpError("Canvas not found", 404);
-    }
     const body = await readJsonBody(req);
-    const plan = canvasGenerationPlan(body);
-    if (plan.imageData && !plan.imageData.startsWith("data:image/") && !/^https?:\/\//i.test(plan.imageData)) {
-      throw httpError("Canvas image node is missing an editable image", 400);
-    }
-    if (plan.imageData.startsWith("data:image/")) validateImageDataUrl(plan.imageData);
-
-    const settings = await store.getSettings();
-    const user = await store.getUserById(current.user.id);
-    if (!user || user.status !== "active") throw httpError("Account is not active", 403);
-    const costPerImage = normalizeGenerationCost(settings.generationCreditCost ?? 1);
-    const n = plan.imageData ? 1 : Math.min(plan.n, Number(settings.maxImagesPerRequest || 1));
-    const totalCost = costPerImage * n;
-    const auditId = randomId("req_");
-    const requestStartedAt = Date.now();
-    const request = {
-      model: plan.model || String(settings.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
-      prompt: plan.prompt,
-      n,
-      size: plan.size,
-      quality: plan.imageData ? "auto" : plan.quality,
-      background: "auto",
-      output_format: "png",
-      isPublic: false,
-      sourceImageId: plan.sourceImageId,
-      sourcePrompt: plan.sourcePrompt,
-      conversation: []
-    };
-    await store.insertGenerationRequest({
-      id: auditId,
-      userId: user.id,
-      prompt: plan.imageData ? `[canvas-edit] ${plan.prompt}` : `[canvas] ${plan.prompt}`,
-      ipAddress: getClientIp(req),
-      userAgent: getUserAgent(req),
-      isPublic: false,
-      status: "pending"
-    });
-
-    let reservedCredits = false;
-    if (totalCost > 0) {
-      reservedCredits = await store.reserveCredits(user.id, totalCost, {
-        source: "canvas_generation_charge",
-        referenceId: auditId,
-        note: `${canvas.id} ${n} image(s)`
-      });
-      if (!reservedCredits) {
-        await store.updateGenerationRequest(auditId, {
-          status: "failed",
-          errorMessage: "Not enough credits",
-          durationMs: Date.now() - requestStartedAt
-        });
-        throw httpError("Not enough credits", 402);
-      }
-    }
-
-    const aborter = attachRequestAbortController(req);
-    try {
-      const openaiResult = plan.imageData
-        ? await callOpenAIImageEdits(settings, {
-            model: request.model,
-            prompt: plan.prompt,
-            n: 1,
-            size: request.size,
-            imageData: plan.imageData,
-            maskData: ""
-          }, { signal: aborter.signal })
-        : await callOpenAIImages(settings, {
-            model: request.model,
-            prompt: plan.prompt,
-            n,
-            size: request.size,
-            quality: request.quality,
-            background: request.background,
-            output_format: request.output_format
-          }, { signal: aborter.signal });
-      const durationMs = Date.now() - requestStartedAt;
-      const saved = (await saveGeneratedImages(user, request, openaiResult))
-        .map((generation) => ({ ...generation, durationMs }));
-      if (!saved.length) {
-        throw httpError("Canvas generation returned no image", 502);
-      }
-      await store.insertGenerations(saved);
-      await store.createCanvasGenerationLinks({
-        canvasId: canvas.id,
-        generationIds: saved.map((generation) => generation.id),
-        outputNodeId: plan.outputNodeId,
-        configNodeId: plan.configNodeId
-      });
-      await store.updateGenerationRequest(auditId, {
-        status: "succeeded",
-        firstGenerationId: saved[0]?.id || "",
-        generationIds: saved.map((generation) => generation.id),
-        durationMs
-      });
-      reservedCredits = false;
-      if (costPerImage > 0 && saved.length < n) {
-        await store.addCredits(user.id, costPerImage * (n - saved.length), {
-          source: "canvas_generation_refund",
-          referenceId: auditId,
-          note: "unused canvas candidate refund"
-        }).catch((error) => console.error(error));
-      }
-
-      return sendJson(res, 200, {
-        generations: saved,
-        outputNode: {
-          id: plan.outputNodeId,
-          status: "success",
-          generationIds: saved.map((generation) => generation.id)
-        },
-        credits: await store.getUserCredits(user.id),
-        generationCost: costPerImage
-      });
-    } catch (error) {
-      const cancelled = aborter.isAborted() || error?.name === "AbortError";
-      const durationMs = Date.now() - requestStartedAt;
-      if (reservedCredits) await store.addCredits(user.id, totalCost, {
-        source: cancelled ? "canvas_generation_cancel_refund" : "canvas_generation_error_refund",
-        referenceId: auditId,
-        note: cancelled ? "client aborted" : "canvas generation failed"
-      }).catch((refundError) => console.error(refundError));
-      await store.updateGenerationRequest(auditId, cancelled
-        ? { status: "cancelled", errorMessage: "client aborted", durationMs }
-        : { status: "failed", errorMessage: String(error.message || error).slice(0, 2000), durationMs }
-      ).catch((auditError) => console.error(auditError));
-      if (cancelled) {
-        if (!res.writableEnded) {
-          try { res.end(); } catch { /* ignore */ }
-        }
-        return;
-      }
-      throw error;
-    } finally {
-      aborter.detach();
-    }
+    const result = await canvasService.generate(current.user.id, canvasGenerateMatch[1], body, req, res);
+    if (result) return sendJson(res, 200, result);
+    return;
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/generations") {

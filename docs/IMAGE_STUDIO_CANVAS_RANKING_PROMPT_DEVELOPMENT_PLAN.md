@@ -1,13 +1,16 @@
 # ai-image-studio 画布、排行榜、提示词库开发文档
 
-状态：草案，已完成一次代码与线上数据审查。  
-参考项目：https://github.com/basketikun/infinite-canvas  
+状态：持续维护，已完成画布 MVP、画廊可靠性、提示词排序、AI 重复审核、小地图、历史、选择分组、JSON 导入导出和画布助手的多轮落地验证。
+参考项目：https://github.com/basketikun/infinite-canvas
 参考文档：
 
 - https://github.com/basketikun/infinite-canvas/blob/main/docs/features.md
-- https://github.com/basketikun/infinite-canvas/blob/main/docs/canvas-data-structure.md
+- https://github.com/basketikun/infinite-canvas/blob/main/docs/canvas-node-manual.md
+- https://github.com/basketikun/infinite-canvas/blob/main/docs/canvas-shortcuts.md
 - https://github.com/basketikun/infinite-canvas/blob/main/docs/backend-database.md
-- https://github.com/basketikun/infinite-canvas/blob/main/docs/third-party-prompt-repositories.md
+- https://github.com/basketikun/infinite-canvas/blob/main/docs/api-response.md
+
+2026-05-20 补充说明：`infinite-canvas` 当前 README 标注技术栈为 Next.js、React、TypeScript、Tailwind CSS、Ant Design、Zustand、TanStack Query、Go、Gin、GORM 和 Docker；本项目当前是无构建静态前端、Node.js `server.js`、`src/mysql-store.js`、MySQL 和现有 OpenAI 兼容后端代理。后续只吸收其画布产品能力、交互模型、数据结构思路和局部实现经验，不直接整体迁移框架，也不把浏览器直连 API Key 的模式照搬到本项目。
 
 ## 1. 当前结论
 
@@ -48,6 +51,37 @@
 - 提示词 preview/cover/category/visibility 字段。
 - 前台把“用户公开作品”和“系统/远程提示词”在同一个画廊中清晰分区展示，而不是混在一起导致用户误解。
 
+### 1.3 2026-05-20 新增体验缺陷与数据接入反馈
+
+本节记录用户最新发现，作为下一轮开发直接入口。
+
+1. 文生图开始生成后界面闪动
+   现象：点击生成后，文生图工作区出现一闪一闪的状态变化。
+   可能根因：生成状态轮询或历史刷新时重复调用视图切换、重建 composer、清空并重绘历史列表、滚动到顶部，导致 DOM 和布局反复变化。
+   修复方向：生成开始时只插入/更新当前生成占位卡、状态条和计时器；`renderAll()`、`setView()`、`renderComposers()`、历史列表刷新和路由 hash 更新必须做幂等保护；生成中不要反复切换 `home/chat/library/canvas` class。
+
+2. 榜单排布和点赞按钮需要重做
+   现象：榜单当前排布仍显得像附加内容块，不像画廊的长期导航能力；榜单图里的点赞按钮不好看。
+   修复方向：桌面端做成画廊右侧栏，移动端做成底部抽屉或可折叠侧栏；榜单项用紧凑缩略图 + 排名 + 标题/作者 + 点赞 icon/数字。点赞按钮统一为小型 heart icon，不使用突兀大胶囊。
+
+3. 文生图结果卡按钮多余
+   现象：截图中结果卡展示 `再次生成 / 保存 / 加入画布 / 改提示词 / 更多`，密度过高，`更多` 按钮出现默认浏览器描边。
+   修复方向：常驻最多 3 个操作：`再次生成`、`下载/保存`、`更多`。`加入画布`、`改提示词`、`图生图`、`复制提示词` 进入更多菜单或 icon-only 次级操作区；`更多` 必须沿用项目按钮样式和图标，不出现原生控件边框。
+
+4. infinite-canvas 提示词数据库加入画廊
+   现状：本项目已有 `prompt_sources`、`prompt_sync_runs`、后台同步入口和通用 GitHub parser，但默认来源没有 `basketikun/infinite-canvas`，也没有针对它提示词库结构的 parser。
+   修复方向：把 `https://github.com/basketikun/infinite-canvas` 作为新的远程提示词源接入，解析其提示词库、分类、示例图、来源 URL 和标签，写入本项目 `prompts`，并进入画廊提示词分区、搜索、标签筛选、榜单和 `加入画布` 流程。同步结果必须保留 `sourceRepo = basketikun/infinite-canvas`、`githubUrl`、`remoteId` 和来源归属，方便后续更新、去重和审计。
+
+5. 画廊详情主图联动失效
+   现象：详情页点击 `创作路线` 条目后，左侧大图不变化；图生图详情里的 `输入图` / `结果图` 也需要点击后同步切换主展示图。
+   可能根因：右侧路线列表只更新了 active class 或详情局部状态，没有把主图渲染来源统一到同一个 `selectedMedia`；输入图和结果图缩略卡可能只是普通展示卡，没有绑定切换行为。
+   修复方向：详情页/弹窗维护唯一 `selectedMedia` 状态，形如 `{ kind: "result" | "source" | "route-step", id, generationId, imageUrl, title, prompt }`。主图、active 样式、复制/加入画布/图生图动作都读取它；点击创作路线、输入图、结果图只切换 `selectedMedia`，不重新请求整条作品、不重置滚动位置。
+
+6. 画廊卡片标签展示错误
+   现象：未查看详情时，卡片展示两个 `图生图` / `文生图`，却没有展示用户设置的标签。
+   可能根因：类型标签、公开标签、管理员徽标在渲染层被混用；`publicTags` 中的系统类型词没有去重；卡片和详情页使用了不同的标签归一逻辑。
+   修复方向：新增统一的 gallery tag view model：`kindBadge` 只表示 `文生图` / `图生图` 且最多一个；`publicTags` 只展示用户/管理员设置的内容标签；`adminBadge` 独立展示，不占用标签位。渲染前过滤 `文生图`、`图生图`、`text-to-image`、`image-to-image` 等类型别名，并保留用户设置标签的顺序。
+
 ## 2. 从 infinite-canvas 吸收的能力
 
 `infinite-canvas` 的画布体系可以拆成四层：
@@ -71,6 +105,87 @@
 - 我们不能只做一个“放大版编辑器”，要做可保存、可继续、可复用的创作工作台。
 - 画廊图片、提示词卡、用户生成历史都应该能一键送入画布。
 - 画布里的输出也能发布到画廊，并保留节点线路作为创作路线。
+
+### 2.1 上游能力盘点与取舍
+
+`infinite-canvas` 值得吸收的能力不是某一个单独组件，而是一套“视觉创作项目”的组织方式：
+
+| 上游能力 | 上游做法 | 本项目吸收方式 | 不照搬的部分 |
+| --- | --- | --- | --- |
+| 多画布项目 | 支持项目创建、重命名、删除、批量删除、JSON 导入导出 | 已落到 `canvas_projects`、`GET/POST/PATCH/DELETE /api/canvases`、`canvas-io.js` | 不只放浏览器本地，必须按登录用户保存到 MySQL |
+| 无限画布 | 平移、滚轮缩放、缩放控件、重置视图、小地图、点阵/网格/空白背景 | 已落到 `public/canvas.js`、`canvas-geometry.js`、`canvas-minimap.js` | 不迁移 React/Zustand 状态层，继续使用当前无构建脚本体系 |
+| 编辑效率 | 框选、多选、全选、复制粘贴、撤销重做、删除、快捷键 | 已落到 `canvas-selection.js`、`canvas-history.js` 和 smoke | 后续不能继续往主文件堆快捷键逻辑 |
+| 节点系统 | 图片节点、文本节点、生成配置节点，节点可拖拽、缩放、连线、查看 JSON | 本项目扩展为 `image/text/prompt/config/output/group`，并绑定 generation、prompt、gallery 和 asset 来源 | 不把所有节点字段自由散落，必须经过节点模板和导入校验 |
+| AI 工作流 | 生成配置节点读取上游文本/图片，统一模型、比例、数量后生成 | 已通过 `/api/canvases/:id/generate` 复用现有文生图/图生图链路，写 `generations` 和 `canvas_generation_links` | 不允许浏览器直连模型 API，不在前端保存生产 API Key |
+| 画布助手 | 读取选中节点和上游节点，生成文本、生图，并把结果插回画布 | 已落到 `src/canvas-assistant.js`、`public/canvas-assistant.js`、`POST /api/canvases/:id/assistant` | 不读取请求里伪造的大 payload，只基于服务端保存的 `dataJson` 和权限校验 |
+| 提示词库与素材 | 提示词库、我的素材、服务器素材，支持加入画布 | 本项目已有提示词库、画廊、我的作品和 prompt 图片代理，应先把这些内容作为画布来源接好 | 素材库后续再做，不把本地素材逻辑和公开画廊混成同一数据表 |
+
+取舍原则：
+
+- 优先吸收“用户在画布上组织创作线路”的能力，而不是重做完整前端技术栈。
+- 所有生成都继续走本项目后端：鉴权、CSRF、额度、速率限制、provider 设置、`generation_requests` 审计和 `generations` 落库必须保持。
+- 图片大文件不写入画布 JSON。画布 JSON 只保存 `/api/images/:id/file`、`/api/prompt-images/:id/file`、`/prompt-thumbs/**`、上传文件 id 或公开 URL 引用。
+- 上游文档提示该项目还处于开发阶段并不保证历史数据兼容，因此本项目要有自己的 `ai-image-studio.canvas.v1` 导入导出格式，不依赖上游内部字段稳定性。
+
+### 2.2 与本项目已有功能的结合点
+
+画布不是独立孤岛，它要把本项目已经完成的能力串起来：
+
+1. 首页快速生成：生成结果卡保留 `加入画布`，生成图进入画布时写入 `generationId`、`imageUrl`、`prompt`、`sourceImage`，用户可继续整理线路。
+2. 画廊与排行榜：公开作品详情提供 `加入画布`、`用此图新建画布`，画布输出发布到广场时继续使用现有公开作品、标签、点赞、排行榜和作者管理体系。
+3. 提示词库：提示词详情和卡片可插入 `prompt` 节点，保留 `promptId`、来源仓库、标签和热度数据；使用提示词生成时继续累加 `use_count`。
+4. 图生图编辑器：现有编辑器仍负责局部编辑、遮罩、原图确认；画布只负责把输入图、提示词、配置和输出组织为线路，不替代编辑器的细粒度涂抹体验。
+5. 用户与额度：画布生成继续检查登录、账号状态、每日限制和积分余额；扣费、退款、取消、失败都写回现有信用流水和请求审计。
+6. 后台运营：管理员后台后续应看到画布项目数量、公开线路、异常生成链接、文件缺失、热门画布模板和复制次数。
+7. QA 与部署：每个新增画布模块必须同步 `scripts/smoke/*` 和 `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`，上线后记录静态脚本、API、权限和生产版本 smoke。
+
+### 2.3 规避“所有代码都在同一个文件”的硬规则
+
+画布功能天然会长得很快，必须把“反单文件膨胀”写成验收条件，而不是口头提醒。
+
+不可接受的做法：
+
+- 把新的画布渲染、事件、节点模板、历史、选择、导入导出、助手、生成流程继续塞进 `public/app.js`。
+- 把新的画布业务规则全部塞进 `public/canvas.js`，导致它变成第二个主应用文件。
+- 把服务端导入校验、助手上下文、生成计划、公开线路复制等大段逻辑直接写进 `server.js` 路由分支。
+- 为了省文件，把 CSS、DOM 模板、数据归一化、API 请求和 smoke 断言混到同一个模块。
+
+新增功能的拆分规则：
+
+- `public/app.js` 只允许保留全站路由、导航、弹窗和“把首页/画廊/提示词 payload 交给画布”的薄接线。
+- `public/canvas.js` 只做画布 orchestrator：加载项目、维护当前状态、调度渲染、把事件分发给专门模块。新增功能超过约 100 行、需要独立状态、或有独立 smoke 时，必须拆新文件。
+- 节点定义、节点尺寸、节点菜单和节点字段默认进 `public/canvas-nodes.js`；坐标、碰撞、连线路径、小地图布局默认进 `public/canvas-geometry.js` 或专门 geometry 模块。
+- 选择、多选、框选、批量移动、分组默认进 `public/canvas-selection.js`；撤销、重做、剪贴板默认进 `public/canvas-history.js`。
+- 导入导出浏览器交互默认进 `public/canvas-io.js`；后端 schema、归一化和安全校验默认进 `src/canvas-import-export.js`。
+- 画布助手浏览器控制器默认进 `public/canvas-assistant.js`；上下文裁剪、伪造节点过滤和建议生成默认进 `src/canvas-assistant.js`。
+- 新增服务端画布能力时，路由只能做鉴权、读 body、调用 service、返回 JSON。复杂逻辑优先拆到 `src/canvas-service.js`、`src/canvas-publish-service.js`、`src/canvas-duplicate-service.js` 等文件。
+- 每个新增 `public/canvas-*.js` 都要在 `public/index.html` 明确加载顺序，并在 `scripts/smoke/check-public-api.mjs` 验证引用、静态返回和模块注册。
+
+当前职责边界：
+
+| 文件 | 当前职责 | 后续边界 |
+| --- | --- | --- |
+| `public/canvas.js` | 画布 shell、状态、渲染调度、主事件接线、保存和生成接线 | 继续瘦身，优先拆出 render、keyboard |
+| `public/canvas-toolbar.js` | 工具栏按钮状态、模板切换按钮、背景 toggle、保存状态和历史按钮可用性 | 继续只读渲染工具栏状态，不承载画布数据保存 |
+| `public/canvas-inspector.js` | 右侧检查器、多选摘要、节点操作按钮、连接面板和字段模板 | 扩展素材/裁剪字段时继续保留纯渲染，不直接请求 API |
+| `public/canvas-store.js` | 画布 API 与创建 payload 归一 | 扩展列表缓存、目标选择器、自动保存冲突处理 |
+| `public/canvas-nodes.js` | 节点模板、尺寸、group 节点 helper | 扩展图片组、素材、模板节点，不写 DOM 事件 |
+| `public/canvas-geometry.js` | 坐标、尺寸、连线、小地图布局 helper | 扩展自动排版、碰撞检测、视口适配 |
+| `public/canvas-workflows.js` | 上游输入收集、生成摘要和冲突判断 | 扩展批量候选、线路摘要、生成计划 |
+| `public/canvas-minimap.js` | 小地图渲染和点击定位 | 保持只读轻渲染，不承载主画布状态 |
+| `public/canvas-selection.js` | 多选、框选、批量移动、分组 | 扩展锁定、折叠组、批量对齐 |
+| `public/canvas-history.js` | undo/redo、复制粘贴 | 扩展 patch 压缩和跨画布复制 |
+| `public/canvas-io.js` | JSON 文件选择、下载、导入上传 | 扩展 `.canvas` 互通和导入冲突 UI |
+| `public/canvas-assistant.js` | 右栏助手、请求和建议插入 | 扩展会话列表，不做服务端上下文规则 |
+| `src/canvas-service.js` | 画布权限、CRUD、导入导出、助手、复制清洗和生成执行 service | 后续公开线路、模板、发布规则优先在这里或更细 service 中扩展 |
+| `src/canvas-import-export.js` | 导入导出 schema、安全校验 | 扩展版本迁移和第三方格式转换 |
+| `src/canvas-assistant.js` | 服务端上下文收集和建议生成 | 接入真实模型时继续保持 JSON 输出和兜底 |
+
+近期工程债：
+
+- `public/canvas.js` 已经拆出 inspector 和 toolbar，下一轮继续优先拆 `public/canvas-render.js` 和 `public/canvas-keyboard.js`。
+- `server.js` 已把画布 CRUD、导入导出、助手、复制和生成执行抽到 `src/canvas-service.js`；下一轮公开线路复制、模板市场或素材库接口应继续扩 service，而不是回填到主路由。
+- `public/styles.css` 中的画布样式需要按 `.canvas-*` 命名空间继续聚合，后续可拆出构建前的 CSS 片段，但当前无构建体系下不要引入需要构建的新工具。
 
 ## 3. P0 修复：画廊图片可靠展示
 
@@ -474,18 +589,41 @@ POST   /api/canvases/:id/insert-gallery-work
 
 ### 4.6 前端文件拆分
 
-当前 `public/app.js` 已经较大，画布功能不应继续堆在主文件里。建议按静态模块拆分：
+当前已经按无构建静态脚本拆出一批画布模块，`public/index.html` 按以下顺序加载：
 
 ```text
 public/
-  canvas.js              # 画布状态、渲染、事件、快捷键
-  canvas-store.js        # API 调用、保存节流、导入导出
-  canvas-nodes.js        # 节点模板、节点尺寸、节点菜单
-  canvas-geometry.js     # 坐标换算、缩放、连线路径、小地图
-  canvas-workflows.js    # 从上游节点收集输入并生成
+  canvas-store.js        # API、创建/保存 payload、目标项目数据入口
+  canvas-nodes.js        # 节点模板、节点尺寸、节点类型 helper
+  canvas-geometry.js     # 坐标换算、缩放、连线路径、小地图布局 helper
+  canvas-workflows.js    # 上游节点收集、生成模式判断、输入冲突
+  canvas-minimap.js      # 小地图渲染、视口框和点击定位
+  canvas-selection.js    # 框选、多选、批量移动、批量删除、分组
+  canvas-history.js      # undo/redo、剪贴板、复制粘贴
+  canvas-io.js           # JSON 导出下载、文件选择、导入上传
+  canvas-assistant.js    # 右栏助手、建议展示、建议插入节点
+  canvas-toolbar.js      # 工具栏按钮状态、保存状态、模板按钮和背景 toggle
+  canvas-inspector.js    # 右侧检查器、多选摘要、连接面板和字段模板
+  canvas.js              # 画布主 orchestrator，只负责接线和调度
 ```
 
-如果暂时不引入构建工具，可在 `index.html` 中以普通 `<script>` 顺序加载。后续若项目迁移到 Vite，再合并为 ES Module。
+下一轮拆分目标：
+
+```text
+public/
+  canvas-render.js       # 节点、连线、选择框的 DOM 渲染字符串
+  canvas-keyboard.js     # 快捷键映射、平台差异、输入框焦点保护
+```
+
+拆分验收：
+
+- 新增画布功能不得直接修改 `public/app.js` 的核心渲染逻辑，除非只是新增入口按钮、payload 转换或路由接线。
+- `public/canvas.js` 每轮新增净代码超过约 100 行时，必须先判断能否拆到现有 `canvas-*.js`；如果没有合适模块，就新增专门模块。
+- `canvas.js` 目标是主调度层，不长期承载具体业务。当前文件已经偏大，公开线路复制、模板市场、图片裁剪、素材库接入之前必须先做一次瘦身。
+- 后端同理：`server.js` 只保留薄路由，复杂规则必须在 `src/` 下有独立模块和 smoke。
+- 本轮新增 `scripts/smoke/check-canvas-module-boundaries.mjs`，专门验证新增画布模块被 `index.html` 引用、加载顺序在 `canvas.js` 之前，并注册到 `window.ImageStudioCanvas`。
+
+如果暂时不引入构建工具，继续在 `index.html` 中以普通 `<script defer>` 顺序加载。后续若项目迁移到 Vite，再把这些文件升级为 ES Module；迁移前不要混用局部打包方式，避免线上静态缓存和加载顺序变复杂。
 
 前端状态建议：
 
@@ -585,18 +723,18 @@ P0 必须完成：
 
 P1 完善：
 
-- [ ] 小地图。
+- [x] 小地图。
 - [x] 点阵/网格/空白背景切换。
-- [ ] 撤销/重做。
-- [ ] 复制/粘贴。
-- [ ] 框选/多选。
-- [ ] JSON 导入导出。
+- [x] 撤销/重做。
+- [x] 复制/粘贴。
+- [x] 框选/多选。
+- [x] JSON 导入导出。
 - [x] 画布发布到广场。
 - [ ] 从广场线路复制为私有画布。
 
 P2 增强：
 
-- [ ] 画布助手读取选中节点和上游节点。
+- [x] 画布助手读取选中节点和上游节点。
 - [ ] 批量候选生成。
 - [ ] 画布模板市场。
 - [ ] 协作查看链接。
@@ -704,9 +842,12 @@ ORDER BY g.like_count DESC, COALESCE(g.published_at, g.created_at) DESC
 
 画廊顶部：
 
-- 大榜单横幅：Top 1-3。
+- 桌面端采用画廊侧栏：主区域继续展示画廊瀑布流，右侧栏展示榜单。
+- 移动端榜单进入底部抽屉或折叠侧栏，不挤占主图片流。
 - 榜单 Tabs：日榜 / 周榜 / 月榜 / 总榜 / 文生图 / 图生图。
-- 榜单网格：展示 24 条，支持“查看更多”到完整榜单页。
+- 榜单侧栏默认展示 Top 12，完整榜单页或弹层展示 24+ 条。
+- 榜单项样式：排名编号、48-64px 缩略图、标题/作者、紧凑点赞按钮。
+- 榜单点赞按钮：统一 heart icon + 数字，hover/active 状态与画廊卡一致，不使用突兀大胶囊或浏览器默认按钮边框。
 - 每张榜单卡点击进入 `/gallery/:id` 或 hash route `#gallery/:id`。
 
 详情页：
@@ -815,6 +956,17 @@ CREATE TABLE prompt_sources (
 - `ImgEdify/Awesome-GPT4o-Image-Prompts`
 - `YouMind-OpenLab/awesome-gpt-image-2`
 - `YouMind-OpenLab/awesome-nano-banana-pro-prompts`
+- `basketikun/infinite-canvas`
+
+`basketikun/infinite-canvas` 接入要求：
+
+- 新增默认 `prompt_sources` seed，例如 `ps_basketikun_infinite_canvas`。
+- 如果通用 `github-generic` parser 无法稳定提取其提示词库，需要新增 `infinite-canvas` 专用 parser。
+- 同步时优先读取上游提示词库/提示词源相关目录，而不是把整仓所有 Markdown 都当成提示词。
+- 写入 `prompts` 时必须保留 `sourceRepo = "basketikun/infinite-canvas"`、`remoteId`、`githubUrl`、`sourceCategory`、封面或示例图引用。
+- 同步结果进入画廊提示词分区、提示词搜索、标签筛选、提示词点赞榜和 `加入画布`。
+- 同步前做 hash/simhash 去重和 AI 重复审核；重复项进入候选，不自动覆盖已有优质提示词。
+- 公开展示需要保留来源署名和仓库链接，便于后续更新与归属追踪。
 
 ### 6.5 prompt_sync_runs
 
@@ -930,6 +1082,7 @@ CREATE TABLE assets (
 - [x] 迁移 `prompt_sync_runs`。
 - [x] `prompts` 表补 `category/visibility/preview/github_url/remote_id`。
 - [x] 实现五个远程来源 parser。
+- [ ] 接入 `basketikun/infinite-canvas` 提示词源，并让同步结果进入画廊、搜索、榜单和画布插入。
 - [x] 后台增加“提示词来源”页面。
 - [x] 前台提示词区支持无封面卡片和详情页。
 - [x] 提示词点赞、使用量、热度排序与前台排序切换。
@@ -953,12 +1106,12 @@ CREATE TABLE assets (
 
 ### Sprint D：画布增强
 
-- [ ] 小地图。
-- [ ] 撤销/重做。
-- [ ] 框选、多选、复制粘贴。
-- [ ] JSON 导入导出。
+- [x] 小地图。
+- [x] 撤销/重做。
+- [x] 框选、多选、复制粘贴。
+- [x] JSON 导入导出。
 - [ ] 图片裁剪和角度变换。
-- [ ] 画布助手。
+- [x] 画布助手。
 - [ ] 画布模板和公开画布。
 - [ ] 从广场公开线路复制为自己的私有画布。
 - [ ] 自动排版创作线路。
@@ -970,6 +1123,11 @@ CREATE TABLE assets (
 - 图片 GET 和 HEAD 都返回正确状态。
 - 文件缺失时前台不破版。
 - 公开作品详情页可直接打开。
+- 详情页点击创作路线条目时，主展示图切换到对应路线图片，并同步 active 样式。
+- 图生图详情点击输入图、结果图时，主展示图在原图和结果图之间切换；当前主图对应的复制、图生图、加入画布动作语义正确。
+- 画廊卡片标签区域只出现一个类型徽标，用户设置的公开标签必须展示，且与详情页标签一致。
+- 文生图开始生成后，工作区不闪屏、不反复重建 composer、不重置滚动位置。
+- 文生图结果卡常驻按钮最多 3 个，`更多` 按钮样式统一，次级动作进入更多菜单或紧凑图标区。
 
 排行榜：
 
@@ -977,11 +1135,14 @@ CREATE TABLE assets (
 - 日/周/月榜按周期内新增点赞统计。
 - 每个榜单至少可展示 24 条。
 - 点击榜单作品进入详情。
+- 桌面端榜单以画廊侧栏呈现，移动端以抽屉或折叠侧栏呈现。
+- 榜单点赞按钮与画廊点赞按钮视觉一致，使用紧凑 heart icon + 数字。
 
 提示词：
 
 - 提示词库数量不再只依赖用户公开作品。
 - 五个远程提示词来源可在后台同步。
+- `basketikun/infinite-canvas` 提示词源可同步，且同步结果进入画廊提示词分区、搜索、标签筛选、点赞榜和加入画布流程。
 - 提示词有分类、来源、标签、预览。
 - 没有封面的提示词也可搜索、展示、打开详情、复制和生图。
 
