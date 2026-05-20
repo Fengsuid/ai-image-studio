@@ -91,6 +91,8 @@ const state = {
   csrfToken: ""
 };
 
+const GALLERY_LEADERBOARD_LIMIT = 99;
+
 const i18n = {
   zh: {
     brand: "AI Image Studio",
@@ -5197,7 +5199,7 @@ async function loadGalleryLeaderboard() {
   try {
     const params = new URLSearchParams({
       range: state.galleryLeaderboardRange || "all",
-      limit: "24"
+      limit: String(GALLERY_LEADERBOARD_LIMIT)
     });
     if (state.galleryLeaderboardType && state.galleryLeaderboardType !== "all") {
       params.set("type", state.galleryLeaderboardType);

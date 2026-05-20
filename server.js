@@ -90,6 +90,7 @@ const rumEvents = [];
 let generationQueueRunning = 0;
 const GENERATION_QUEUE_CONCURRENCY = Math.max(1, Number.parseInt(process.env.GENERATION_QUEUE_CONCURRENCY || "1", 10) || 1);
 const GENERATION_QUEUE_ESTIMATE_SECONDS = Math.max(20, Number.parseInt(process.env.GENERATION_QUEUE_ESTIMATE_SECONDS || "90", 10) || 90);
+const GALLERY_LEADERBOARD_LIMIT_MAX = 99;
 
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
@@ -3963,7 +3964,7 @@ async function routeApi(req, res, url) {
     const range = ["day", "week", "month", "all"].includes(url.searchParams.get("range"))
       ? url.searchParams.get("range")
       : "week";
-    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 30, 100);
+    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 30, GALLERY_LEADERBOARD_LIMIT_MAX);
     const type = url.searchParams.get("type") || "";
     const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
     const rawGenerationItems = await store.listGenerationLeaderboard({

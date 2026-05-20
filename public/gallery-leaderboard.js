@@ -1,6 +1,8 @@
 (function initGalleryLeaderboard(global) {
   "use strict";
 
+  const MAX_LEADERBOARD_ITEMS = 99;
+
   function render({
     state,
     text,
@@ -12,7 +14,7 @@
     imageFallbackContainerAttrs
   }) {
     const rawItems = Array.isArray(state.galleryLeaderboard) ? state.galleryLeaderboard : [];
-    const items = rawItems.slice(0, 24);
+    const items = rawItems.slice(0, MAX_LEADERBOARD_ITEMS);
     const rangeTabs = [
       ["day", state.lang === "zh" ? "日榜" : "Day"],
       ["week", state.lang === "zh" ? "周榜" : "Week"],

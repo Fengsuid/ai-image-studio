@@ -404,13 +404,13 @@ a {
 .hero {
   max-width: 1200px;
   margin: 0 auto;
-  min-height: min(820px, calc(100vh - 74px));
-  padding: clamp(204px, 19vh, 244px) 32px 58px;
+  min-height: min(760px, calc(100vh - 74px));
+  padding: clamp(132px, 12vh, 164px) 32px 44px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: clamp(22px, 3vh, 34px);
+  gap: clamp(14px, 2vh, 22px);
   position: relative;
 }
 
@@ -422,11 +422,11 @@ a {
 .hero::before {
   content: "";
   position: absolute;
-  top: clamp(140px, 18vh, 214px);
+  top: clamp(104px, 12vh, 148px);
   left: 50%;
   z-index: 0;
   width: min(1180px, 96vw);
-  height: clamp(280px, 40vw, 540px);
+  height: clamp(260px, 36vw, 480px);
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.93) 0%, rgba(255, 255, 255, 0.72) 34%, rgba(255, 255, 255, 0.28) 62%, rgba(255, 255, 255, 0) 78%);
   filter: blur(10px);
@@ -1340,7 +1340,7 @@ a {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-bottom: clamp(8px, 1.8vh, 18px);
+  margin-bottom: clamp(0px, 0.8vh, 8px);
   opacity: 0.72;
   transform-origin: center;
   transition: opacity 0.3s ease;
@@ -1419,8 +1419,8 @@ a {
   margin: 0;
   color: var(--ink);
   letter-spacing: -0.095em;
-  font-size: clamp(86px, 15.4vw, 184px);
-  line-height: 0.82;
+  font-size: clamp(78px, 13.6vw, 162px);
+  line-height: 0.8;
   font-weight: 900;
   display: flex;
   flex-direction: column;
@@ -1439,7 +1439,7 @@ a {
 
 .hero h1 span {
   display: block;
-  margin-bottom: clamp(10px, 1.35vw, 20px);
+  margin-bottom: clamp(6px, 0.9vw, 14px);
   color: #0f172a;
   text-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
 }
@@ -1447,8 +1447,8 @@ a {
 .hero h1 em {
   display: block;
   font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  padding: 0 16px 8px;
-  font-size: clamp(40px, 5.9vw, 74px);
+  padding: 0 16px 4px;
+  font-size: clamp(38px, 5.1vw, 62px);
   font-style: italic;
   font-weight: 850;
   letter-spacing: -0.052em;
@@ -1465,10 +1465,10 @@ a {
   max-width: 620px;
   color: var(--text);
   opacity: 0.58;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.1em;
-  line-height: 1.75;
+  line-height: 1.6;
 }
 
 .hero .config-chip,
@@ -1530,6 +1530,11 @@ a {
   backdrop-filter: blur(18px);
 }
 
+.hero .composer {
+  padding: 12px;
+  border-radius: 26px;
+}
+
 .composer:focus-within {
   border-color: rgba(167, 139, 250, 0.34);
   box-shadow: 0 34px 84px -28px rgba(124, 58, 237, 0.38), 0 22px 72px rgba(15, 23, 42, 0.1);
@@ -1545,6 +1550,12 @@ a {
   padding: 12px 6px 2px;
   border-top: 1px solid #f1f5f9;
   flex-wrap: wrap;
+}
+
+.hero .composer-settings-row {
+  min-height: 42px;
+  margin-top: 6px;
+  padding: 9px 4px 0;
 }
 
 .model-chip {
@@ -1650,6 +1661,12 @@ a {
   min-width: 0;
 }
 
+.hero .prompt-box {
+  min-height: 42px;
+  max-height: 112px;
+  padding: 8px 8px;
+}
+
 .prompt-box::placeholder {
   color: #a5adba;
 }
@@ -1663,6 +1680,11 @@ a {
   border-radius: 20px;
   background: transparent;
   border: 0;
+}
+
+.hero .composer-bar {
+  min-height: 58px;
+  padding: 4px 4px 0;
 }
 
 .composer-spacer {
@@ -4338,7 +4360,7 @@ a {
 
 .leaderboard-view {
   min-height: 100vh;
-  padding: 104px clamp(16px, 4vw, 42px) 72px;
+  padding: 12px clamp(16px, 4vw, 42px) 72px;
   isolation: isolate;
 }
 
@@ -4346,17 +4368,20 @@ a {
   width: min(1320px, 100%);
   margin: 0 auto;
   display: grid;
-  gap: 18px;
+  gap: 0;
 }
 
 .leaderboard-page-head {
   margin: 0;
-  padding: 24px clamp(18px, 3vw, 34px);
+  padding: 22px clamp(18px, 3vw, 34px);
   border: 1px solid rgba(226, 232, 240, 0.82);
-  border-radius: 24px;
+  border-radius: 24px 24px 0 0;
   background: rgba(255, 255, 255, 0.84);
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(18px);
+  text-align: center;
+  display: grid;
+  justify-items: center;
 }
 
 .leaderboard-page-head h1 {
@@ -4376,10 +4401,25 @@ a {
   position: static;
   max-height: none;
   overflow: visible;
-  border-radius: 24px;
+  border-top: 0;
+  border-radius: 0 0 24px 24px;
   padding: clamp(14px, 2vw, 22px);
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+.leaderboard-page .gallery-leaderboard-head {
+  justify-content: center;
+  text-align: center;
+}
+
+.leaderboard-page .gallery-leaderboard-head > div {
+  display: grid;
+  justify-items: center;
+}
+
+.leaderboard-page .gallery-leaderboard-head i {
+  display: none;
 }
 
 .leaderboard-page .gallery-rank-tabs {
@@ -5947,23 +5987,24 @@ a {
   }
 
   .hero {
-    min-height: min(760px, calc(100vh - 96px));
-    padding: 170px 18px 44px;
+    min-height: min(700px, calc(100vh - 96px));
+    padding: 126px 18px 36px;
+    gap: 14px;
   }
 
   .hero::before {
-    top: 146px;
+    top: 112px;
     width: 112vw;
-    height: 330px;
+    height: 300px;
   }
 
   .hero h1 {
-    font-size: clamp(62px, 18vw, 116px);
+    font-size: clamp(58px, 16vw, 104px);
     width: min(100%, 720px);
   }
 
   .hero h1 em {
-    font-size: clamp(34px, 8.4vw, 54px);
+    font-size: clamp(32px, 7.6vw, 48px);
   }
 
   .library-hero h1 {

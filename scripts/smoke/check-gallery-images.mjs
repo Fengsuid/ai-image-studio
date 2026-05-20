@@ -85,11 +85,12 @@ async function checkPromptImages() {
 }
 
 async function checkLeaderboardImages() {
-  log("GET /api/gallery/leaderboard?range=all&limit=24");
-  const { status, body } = await fetchJson("/api/gallery/leaderboard?range=all&limit=24");
+  log("GET /api/gallery/leaderboard?range=all&limit=99");
+  const { status, body } = await fetchJson("/api/gallery/leaderboard?range=all&limit=99");
   assert(status === 200, `/api/gallery/leaderboard status=${status}`);
   const items = Array.isArray(body?.generations) ? body.generations : [];
   assert(items.length > 0, "/api/gallery/leaderboard returned zero entries");
+  assert(items.length <= 99, `/api/gallery/leaderboard returned more than 99 entries: ${items.length}`);
   const promptItems = items.filter((item) => item.kind === "prompt" || String(item.id || "").startsWith("prompt_"));
   assert(promptItems.length > 0, "prompt-database images are missing from gallery leaderboard");
   for (const item of items.slice(0, 12)) {
