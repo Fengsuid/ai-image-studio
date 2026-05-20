@@ -11,7 +11,8 @@
     imageFallbackImgAttrs,
     imageFallbackContainerAttrs
   }) {
-    const items = (state.galleryLeaderboard || []).filter((item) => item.images?.[0]).slice(0, 24);
+    const rawItems = Array.isArray(state.galleryLeaderboard) ? state.galleryLeaderboard : [];
+    const items = rawItems.slice(0, 24);
     const rangeTabs = [
       ["day", state.lang === "zh" ? "日榜" : "Day"],
       ["week", state.lang === "zh" ? "周榜" : "Week"],
@@ -51,10 +52,17 @@
             imageVariantUrl,
             imageFallbackImgAttrs,
             imageFallbackContainerAttrs
-          })).join("") : `<div class="gallery-rank-empty">${state.lang === "zh" ? "暂无榜单作品" : "No ranked works yet"}</div>`}
+          })).join("") : `<div class="gallery-rank-empty">${state.galleryLeaderboardLoading
+            ? (state.lang === "zh" ? "榜单加载中..." : "Loading leaderboard...")
+            : (state.lang === "zh" ? "当前榜单暂无作品，可切换总榜查看全部高赞作品" : "No ranked works in this range. Try All-time.")}</div>`}
         </div>
       </aside>
     `;
+  }
+
+  function rankImageUrl(item = {}) {
+    const images = Array.isArray(item.images) ? item.images : [];
+    return item.imageUrl || item.coverUrl || item.preview || item.image || images[0] || "";
   }
 
   function rankCard({
@@ -70,6 +78,7 @@
   }) {
     const isPromptItem = item.kind === "prompt";
     const rankTitle = item.title || truncate(item.prompt, 44);
+    const imageUrl = rankImageUrl(item);
     const openAttr = isPromptItem
       ? `data-open-prompt="${escapeHtml(item.promptId || String(item.id).replace(/^prompt_/, ""))}"`
       : `data-open-square="${escapeHtml(`square_${item.id}`)}"`;
@@ -83,7 +92,9 @@
       <article class="gallery-rank-card ${index < 3 ? `top-${index + 1}` : ""}">
         <span class="gallery-rank-index">#${index + 1}</span>
         <button type="button" class="gallery-rank-visual" ${openAttr} ${imageFallbackContainerAttrs()}>
-          <img src="${escapeHtml(imageVariantUrl(item.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(rankTitle)}">
+          ${imageUrl
+            ? `<img src="${escapeHtml(imageVariantUrl(imageUrl))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(rankTitle)}">`
+            : `<span class="gallery-rank-missing"><i class="ri-image-line"></i></span>`}
         </button>
         <div class="gallery-rank-copy">
           <p>${escapeHtml(rankTitle)}</p>

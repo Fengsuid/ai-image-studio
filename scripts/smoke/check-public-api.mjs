@@ -91,6 +91,8 @@ async function checkHomeResources() {
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
   assert(typeof home.body === "string" && home.body.includes("/styles.css"), "/ missing styles.css reference");
   assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-layout.js"), "/ missing canvas-layout.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-edges.js"), "/ missing canvas-edges.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-history.js"), "/ missing canvas-history.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-selection.js"), "/ missing canvas-selection.js reference");
@@ -109,6 +111,8 @@ async function checkHomeResources() {
 
   const styleMatch = home.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
   const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
+  const canvasLayoutMatch = home.body.match(/src="([^"]*\/canvas-layout\.js[^"]*)"/);
+  const canvasEdgesMatch = home.body.match(/src="([^"]*\/canvas-edges\.js[^"]*)"/);
   const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
   const canvasHistoryMatch = home.body.match(/src="([^"]*\/canvas-history\.js[^"]*)"/);
   const canvasSelectionMatch = home.body.match(/src="([^"]*\/canvas-selection\.js[^"]*)"/);
@@ -124,6 +128,8 @@ async function checkHomeResources() {
   const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
+  const canvasLayoutPath = canvasLayoutMatch?.[1] || "/canvas-layout.js";
+  const canvasEdgesPath = canvasEdgesMatch?.[1] || "/canvas-edges.js";
   const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
   const canvasHistoryPath = canvasHistoryMatch?.[1] || "/canvas-history.js";
   const canvasSelectionPath = canvasSelectionMatch?.[1] || "/canvas-selection.js";
@@ -171,6 +177,18 @@ async function checkHomeResources() {
   assert(app.body.includes("data-reference-row-input"), `${appPath} should let the reference row append more images`);
   assert(app.body.includes("handleEditorUpload(event.target.files"), `${appPath} should pass multiple editor upload files`);
   assert(app.body.includes("appendReferences: true"), `${appPath} should append bottom editor uploads as references`);
+
+  log(`GET ${canvasLayoutPath}`);
+  const canvasLayout = await fetchText(canvasLayoutPath, "application/javascript,*/*");
+  assert(canvasLayout.status === 200, `${canvasLayoutPath} status=${canvasLayout.status}`);
+  assert(canvasLayout.body.includes("root.layout"), `${canvasLayoutPath} should register canvas layout module`);
+  assert(canvasLayout.body.includes("fitNodesInBoard"), `${canvasLayoutPath} should support centering canvas nodes in the board`);
+
+  log(`GET ${canvasEdgesPath}`);
+  const canvasEdges = await fetchText(canvasEdgesPath, "application/javascript,*/*");
+  assert(canvasEdges.status === 200, `${canvasEdgesPath} status=${canvasEdges.status}`);
+  assert(canvasEdges.body.includes("root.edges"), `${canvasEdgesPath} should register canvas edges module`);
+  assert(canvasEdges.body.includes("edgeEndpoints"), `${canvasEdgesPath} should expose node edge endpoint geometry`);
 
   log(`GET ${minimapPath}`);
   const minimap = await fetchText(minimapPath, "application/javascript,*/*");

@@ -29,7 +29,8 @@
     drag: null,
     pointers: new Map(),
     history: null,
-    assistant: null
+    assistant: null,
+    needsInitialFit: false
   };
 
   function renderShell({ projectId = "", elements = {} } = {}) {
@@ -55,6 +56,13 @@
     const viewport = document.querySelector("#canvasViewport");
     if (!board || !viewport) return;
     board.dataset.background = state.background;
+    if (state.needsInitialFit && state.nodes.length) {
+      const fitted = root.layout?.fitNodesInBoard?.(board, state.nodes, { padding: 96, maxScale: 1 });
+      if (fitted) {
+        state.viewport = fitted;
+        state.needsInitialFit = false;
+      }
+    }
     viewport.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`;
     viewport.innerHTML = edgeTemplate() + selectionBoxTemplate() + renderNodes().map((node) => nodeTemplate(node)).join("");
     root.minimap?.render?.(board, {
@@ -91,6 +99,7 @@
     state.viewport = { x: 80, y: 80, scale: 1 };
     state.background = "dots";
     state.dirty = false;
+    state.needsInitialFit = Boolean(projectId);
     setSaveStatus("saved");
     resetHistory();
   }
@@ -169,6 +178,7 @@
         y: Number(data.viewport.y || 0),
         scale: Math.min(3, Math.max(0.25, Number(data.viewport.scale || 1)))
       };
+      state.needsInitialFit = false;
     }
     state.nodes = Array.isArray(data.nodes) ? data.nodes.map((node) => root.nodes.createNode(node)) : state.nodes;
     state.edges = Array.isArray(data.edges) ? data.edges : state.edges;
@@ -275,19 +285,11 @@
   }
 
   function edgeTemplate() {
-    const lines = state.edges.map((edge) => {
-      const source = state.nodes.find((node) => node.id === edge.sourceId);
-      const target = state.nodes.find((node) => node.id === edge.targetId);
-      if (!source || !target) return "";
-      const active = state.selectedNodeIds.includes(source.id) || state.selectedNodeIds.includes(target.id) ? " active" : "";
-      const x1 = Number(source.x || 0) + 220;
-      const y1 = Number(source.y || 0) + 66;
-      const x2 = Number(target.x || 0);
-      const y2 = Number(target.y || 0) + 66;
-      const mid = Math.max(60, Math.abs(x2 - x1) / 2);
-      return `<path class="canvas-edge${active}" data-edge-id="${edge.id}" d="M ${x1} ${y1} C ${x1 + mid} ${y1}, ${x2 - mid} ${y2}, ${x2} ${y2}" />`;
-    }).join("");
-    return `<svg class="canvas-edges" width="2400" height="1600" viewBox="-400 -300 2400 1600">${lines}</svg>`;
+    return root.edges?.render?.({
+      nodes: state.nodes,
+      edges: state.edges,
+      selectedNodeIds: state.selectedNodeIds
+    }) || "";
   }
 
   function renderInspector() {
@@ -1154,8 +1156,10 @@
   function fitAll() {
     const board = document.querySelector("#canvasBoard");
     if (!board || !state.nodes.length) return;
-    const rect = board.getBoundingClientRect();
-    state.viewport = root.geometry.fitBounds(root.nodes.bounds(state.nodes), { width: rect.width, height: rect.height });
+    const fitted = root.layout?.fitNodesInBoard?.(board, state.nodes, { padding: 80, maxScale: 1.4 });
+    if (!fitted) return;
+    state.viewport = fitted;
+    state.needsInitialFit = false;
     renderBoard();
   }
 

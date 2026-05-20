@@ -31,7 +31,7 @@ const state = {
   publishToSquare: false,
   publicGallery: [],
   galleryLeaderboard: [],
-  galleryLeaderboardRange: "week",
+  galleryLeaderboardRange: "all",
   galleryLeaderboardType: "all",
   galleryLeaderboardLoading: false,
   galleryLeaderboardLoadedKey: "",
@@ -3529,7 +3529,7 @@ function renderGalleryLeaderboard() {
 }
 
 function galleryLeaderboardRequestKey() {
-  return `${state.galleryLeaderboardRange || "week"}:${state.galleryLeaderboardType || "all"}`;
+  return `${state.galleryLeaderboardRange || "all"}:${state.galleryLeaderboardType || "all"}`;
 }
 
 function renderLeaderboardPage() {
@@ -3656,8 +3656,13 @@ function promptCardHtml(prompt) {
 function bindPromptCards(root) {
   $$("[data-open-square], [data-view-square]", root).forEach((node) => {
     const open = () => {
-      const prompt = getPromptById(node.dataset.openSquare || node.dataset.viewSquare);
-      if (prompt) openSquarePreview(prompt);
+      const id = node.dataset.openSquare || node.dataset.viewSquare;
+      const prompt = getPromptById(id);
+      if (prompt) {
+        openSquarePreview(prompt);
+        return;
+      }
+      openSquarePreviewById(id);
     };
     node.addEventListener("click", open);
     if (node.hasAttribute("data-open-square")) {
@@ -3671,7 +3676,8 @@ function bindPromptCards(root) {
   });
   $$("[data-open-prompt], [data-view-prompt]", root).forEach((node) => {
     const open = () => {
-      const prompt = getPromptById(node.dataset.openPrompt || node.dataset.viewPrompt);
+      const id = node.dataset.openPrompt || node.dataset.viewPrompt;
+      const prompt = getPromptById(id) || findPromptLikeItem(id);
       if (prompt) openPromptDetailModal(prompt);
     };
     node.addEventListener("click", open);
@@ -5190,7 +5196,7 @@ async function loadGalleryLeaderboard() {
   const requestKey = galleryLeaderboardRequestKey();
   try {
     const params = new URLSearchParams({
-      range: state.galleryLeaderboardRange || "week",
+      range: state.galleryLeaderboardRange || "all",
       limit: "24"
     });
     if (state.galleryLeaderboardType && state.galleryLeaderboardType !== "all") {

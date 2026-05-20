@@ -434,7 +434,8 @@ a {
 }
 
 .canvas-view {
-  max-width: 1180px;
+  width: min(1540px, calc(100vw - 32px));
+  max-width: none;
   margin: 0 auto;
   padding: 120px 24px 48px;
 }
@@ -628,7 +629,7 @@ a {
 .canvas-workspace-view {
   min-height: calc(100vh - 150px);
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(176px, 220px) minmax(520px, 1fr) minmax(240px, 300px);
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 8px;
   overflow: hidden;
@@ -708,6 +709,16 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.canvas-toolbar-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.canvas-toolbar [data-canvas-template-toggle] span,
+.canvas-toolbar-actions button span {
+  white-space: nowrap;
 }
 
 .canvas-bg-toggle {
@@ -1250,12 +1261,13 @@ a {
   }
 
   .canvas-toolbar {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   .canvas-toolbar-actions {
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .canvas-board {
@@ -4465,6 +4477,18 @@ a {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.gallery-rank-missing {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 20px;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(148, 163, 184, 0.28), transparent 30%),
+    linear-gradient(135deg, #f8fafc, #e2e8f0);
 }
 
 .gallery-rank-index {

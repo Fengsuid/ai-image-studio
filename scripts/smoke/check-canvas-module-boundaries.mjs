@@ -10,6 +10,8 @@ import path from "node:path";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const modules = [
+  { file: "canvas-layout.js", marker: "root.layout", exportName: "layout" },
+  { file: "canvas-edges.js", marker: "root.edges", exportName: "edges", deps: ["canvas-nodes.js", "canvas-geometry.js"] },
   { file: "canvas-toolbar.js", marker: "root.toolbar", exportName: "toolbar" },
   { file: "canvas-inspector.js", marker: "root.inspector", exportName: "inspector" }
 ];
@@ -26,6 +28,11 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox.window;
 
+for (const dep of ["canvas-nodes.js", "canvas-geometry.js"]) {
+  const code = fs.readFileSync(path.join(rootDir, "public", dep), "utf8");
+  vm.runInNewContext(code, sandbox, { filename: dep });
+}
+
 for (const module of modules) {
   const src = `/${module.file}`;
   const scriptIndex = indexHtml.indexOf(src);
@@ -41,5 +48,7 @@ for (const module of modules) {
 assert.equal(typeof sandbox.window.ImageStudioCanvas.toolbar.render, "function", "toolbar.render must be callable");
 assert.equal(typeof sandbox.window.ImageStudioCanvas.toolbar.renderHistoryControls, "function", "toolbar.renderHistoryControls must be callable");
 assert.equal(typeof sandbox.window.ImageStudioCanvas.inspector.render, "function", "inspector.render must be callable");
+assert.equal(typeof sandbox.window.ImageStudioCanvas.layout.fitNodesInBoard, "function", "layout.fitNodesInBoard must be callable");
+assert.equal(typeof sandbox.window.ImageStudioCanvas.edges.edgeEndpoints, "function", "edges.edgeEndpoints must be callable");
 
 console.log("[canvas-module-boundaries-smoke] OK: index references and ImageStudioCanvas registrations verified");
