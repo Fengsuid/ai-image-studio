@@ -119,6 +119,7 @@ async function loginOrRegister(account) {
     if (result.pendingApproval) {
       resetAuth();
       await createActiveSmokeUser(account);
+      await request("/api/auth/me");
       const login = await request("/api/auth/login", {
         method: "POST",
         body: { email: account.email, password: account.password }
@@ -130,6 +131,7 @@ async function loginOrRegister(account) {
     log(`register unavailable for ${account.email}: ${error.message}`);
     resetAuth();
     await createActiveSmokeUser(account);
+    await request("/api/auth/me");
     const login = await request("/api/auth/login", {
       method: "POST",
       body: { email: account.email, password: account.password }
