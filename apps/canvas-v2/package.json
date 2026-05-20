@@ -1,0 +1,14 @@
+{
+  "name": "@ai-image-studio/canvas-v2",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Canvas v2 frontend sub-application for ai-image-studio.",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs",
+    "build": "npm run check"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
