@@ -94,6 +94,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-history.js"), "/ missing canvas-history.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-selection.js"), "/ missing canvas-selection.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/canvas-io.js"), "/ missing canvas-io.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
@@ -103,12 +104,14 @@ async function checkHomeResources() {
   const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
   const canvasHistoryMatch = home.body.match(/src="([^"]*\/canvas-history\.js[^"]*)"/);
   const canvasSelectionMatch = home.body.match(/src="([^"]*\/canvas-selection\.js[^"]*)"/);
+  const canvasIoMatch = home.body.match(/src="([^"]*\/canvas-io\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const minimapPath = minimapMatch?.[1] || "/canvas-minimap.js";
   const canvasHistoryPath = canvasHistoryMatch?.[1] || "/canvas-history.js";
   const canvasSelectionPath = canvasSelectionMatch?.[1] || "/canvas-selection.js";
+  const canvasIoPath = canvasIoMatch?.[1] || "/canvas-io.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
@@ -156,6 +159,13 @@ async function checkHomeResources() {
   assert(canvasSelection.body.includes("root.selection"), `${canvasSelectionPath} should register canvas selection module`);
   assert(canvasSelection.body.includes("nodesInRect"), `${canvasSelectionPath} should support marquee selection`);
   assert(canvasSelection.body.includes("groupFromNodes"), `${canvasSelectionPath} should support grouping selected nodes`);
+
+  log(`GET ${canvasIoPath}`);
+  const canvasIo = await fetchText(canvasIoPath, "application/javascript,*/*");
+  assert(canvasIo.status === 200, `${canvasIoPath} status=${canvasIo.status}`);
+  assert(canvasIo.body.includes("root.io"), `${canvasIoPath} should register canvas IO module`);
+  assert(canvasIo.body.includes("exportCanvas"), `${canvasIoPath} should support canvas JSON export`);
+  assert(canvasIo.body.includes("importCanvas"), `${canvasIoPath} should support canvas JSON import`);
 
   log(`GET ${galleryModelPath}`);
   const galleryModel = await fetchText(galleryModelPath, "application/javascript,*/*");

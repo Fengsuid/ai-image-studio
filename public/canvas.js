@@ -387,6 +387,8 @@
     document.querySelector("[data-canvas-paste]")?.addEventListener("click", pasteSelection);
     document.querySelector("[data-canvas-group]")?.addEventListener("click", groupSelection);
     document.querySelector("[data-canvas-delete]")?.addEventListener("click", deleteSelectedNodes);
+    document.querySelector("[data-canvas-export]")?.addEventListener("click", exportCanvasJson);
+    document.querySelector("[data-canvas-import]")?.addEventListener("click", importCanvasJson);
     document.querySelectorAll("[data-canvas-background]").forEach((button) => {
       button.addEventListener("click", () => {
         const before = captureHistory("background");
@@ -931,6 +933,42 @@
     renderBoard();
   }
 
+  async function exportCanvasJson() {
+    if (!root.io?.exportCanvas) return;
+    try {
+      await saveCanvasNow();
+      await root.io.exportCanvas({
+        projectId: state.projectId,
+        title: state.projectTitle,
+        request: root.request
+      });
+      setSaveStatus("saved");
+    } catch (error) {
+      setSaveStatus("failed", error?.message || "导出失败");
+    }
+    renderBoard();
+  }
+
+  async function importCanvasJson() {
+    if (!root.io?.importCanvas) return;
+    try {
+      await saveCanvasNow();
+      const result = await root.io.importCanvas({
+        projectId: state.projectId,
+        request: root.request
+      });
+      if (result?.canvas) {
+        applyProject(result.canvas);
+        state.dirty = false;
+        setSaveStatus("saved");
+        removeDraft(draftKey(state.projectId));
+      }
+    } catch (error) {
+      setSaveStatus("failed", error?.message || "导入失败");
+    }
+    renderBoard();
+  }
+
   function canvasPayload() {
     const data = {
       background: state.background,
@@ -1029,6 +1067,14 @@
     document.querySelectorAll("[data-canvas-delete]").forEach((button) => {
       button.disabled = !selectedNodes().length;
       button.title = "Delete selected nodes";
+    });
+    document.querySelectorAll("[data-canvas-export]").forEach((button) => {
+      button.disabled = !state.projectId;
+      button.title = "Export canvas JSON";
+    });
+    document.querySelectorAll("[data-canvas-import]").forEach((button) => {
+      button.disabled = !state.projectId;
+      button.title = "Import canvas JSON";
     });
   }
 

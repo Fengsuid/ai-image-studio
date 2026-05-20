@@ -17,6 +17,8 @@
     "smoke:public": "node scripts/smoke/check-public-api.mjs",
     "smoke:auth-admin": "node scripts/smoke/check-auth-admin.mjs",
     "smoke:canvas-history": "node scripts/smoke/check-canvas-history.mjs",
+    "smoke:canvas-import-export-api": "node scripts/smoke/check-canvas-import-export-api.mjs",
+    "smoke:canvas-import-export": "node scripts/smoke/check-canvas-import-export.mjs",
     "smoke:canvas-selection": "node scripts/smoke/check-canvas-selection.mjs",
     "smoke:gallery-images": "node scripts/smoke/check-gallery-images.mjs",
     "smoke:prompt-review": "node scripts/smoke/check-prompt-review-service.mjs",
