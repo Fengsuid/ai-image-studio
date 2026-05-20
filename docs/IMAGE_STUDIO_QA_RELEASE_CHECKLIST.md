@@ -185,6 +185,18 @@ Record the outcome in the relevant development document or release note before m
 - Local full API smoke blocker: local MySQL rejected `root@localhost` without password, so production container smoke is the authoritative authenticated API check.
 - Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
 
+### 2026-05-20 Canvas Assistant Batch
+
+- Task covered: `AIS-RLS-030`.
+- Commits covered: `ce5d294`, `2eaae58`.
+- Local checks: `node --check src/canvas-assistant.js`, `node --check public/canvas-assistant.js`, `node --check public/canvas.js`, `node --check server.js`, `node --check scripts/smoke/check-public-api.mjs`, `node --check scripts/smoke/check-canvas-assistant.mjs`, `node --check scripts/smoke/check-canvas-assistant-api.mjs`, `npm run smoke:canvas-assistant`, `npm run smoke:canvas-selection`, `npm run smoke:canvas-history`, `git diff --check`.
+- Backend coverage: canvas assistant context collection and deterministic suggestion generation are split into `src/canvas-assistant.js`; the API route only authenticates, checks canvas read permission, and passes the saved canvas `dataJson` into the assistant module.
+- Frontend coverage: the right-panel controller, request payload, suggestion normalization, and suggestion-to-node conversion live in `public/canvas-assistant.js`; `public/canvas.js` only saves the canvas, provides selected context, and inserts text/prompt nodes.
+- Safety coverage: assistant requests ignore forged request nodes, omit `data:`/`blob:` image payloads, and stop before requesting if saving the current canvas fails.
+- Smoke coverage: `npm run smoke:canvas-assistant` verifies selected/upstream context, suggestion categories, embedded image omission, browser helper payloads, and save-failure behavior; `npm run smoke:canvas-assistant-api` verifies authenticated production API access, upstream node context, invalid JSON, and forged-node rejection.
+- Deployment checks: app container running, production version `20260520-canvas-assistant-v1`, public smoke passed, canvas assistant module/API smoke passed, canvas selection/history regressions passed, and container syntax checks passed.
+- Rollback target: latest pre-deploy server backup is recorded in the private deployment document.
+
 ## 5. Rollback
 
 - Identify the last known-good commit or deployment backup.

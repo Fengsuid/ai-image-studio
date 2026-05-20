@@ -890,6 +890,16 @@
 - 只读取当前用户有权限的节点内容。
 - 输出建议可一键变成 text/prompt 节点。
 
+完成记录：
+
+- `src/canvas-assistant.js` 独立承载画布上下文收集、上游节点裁剪、敏感 `data:`/`blob:` 图片引用省略和三类建议生成，避免把助手规则塞进 `server.js`。
+- 新增 `POST /api/canvases/:id/assistant`，先做登录和画布读取权限校验，再基于服务端保存的 `dataJson` 返回改写提示词、风格建议和生成计划。
+- `public/canvas-assistant.js` 独立承载右栏助手控制器、请求体构造和建议转节点逻辑；`public/canvas.js` 只负责保存当前画布、提供选择上下文和插入节点。
+- 前端刷新助手前会保存当前画布，保存失败时停止请求，避免助手读取旧的服务端上下文。
+- 新增 `npm run smoke:canvas-assistant` 覆盖模块上下文、建议生成、图片数据省略和浏览器侧插入 payload；`npm run smoke:canvas-assistant-api` 覆盖认证 API、权限、上游节点、建议类型和非法 JSON。
+- 线上版本 `20260520-canvas-assistant-v1` 已通过 public smoke、canvas assistant 模块 smoke、canvas assistant API smoke、canvas selection/history 回归 smoke 和容器内脚本语法检查。
+- `AIS-RLS-031` 及后续 backlog 任务按当前指令未启动，等待后续明确恢复。
+
 ### AIS-RLS-031：公开画布线路复制
 
 优先级：P1  
