@@ -3437,16 +3437,27 @@ a {
   gap: 10px;
 }
 
-.square-source-pair figure {
+.square-media-card {
   margin: 0;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   overflow: hidden;
   background: #f8fafc;
   min-height: 150px;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
-.square-source-pair figure.image-unavailable figcaption,
+.square-media-card.active,
+.square-media-card:hover,
+.square-media-card:focus-visible {
+  border-color: rgba(99, 102, 241, 0.75);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+  outline: none;
+}
+
+.square-media-card.image-unavailable span,
 .works-detail-source.image-unavailable h4 {
   position: relative;
   z-index: 2;
@@ -3477,7 +3488,8 @@ a {
   font-size: 26px;
 }
 
-.square-source-pair figcaption {
+.square-media-card span {
+  display: block;
   padding: 8px 10px;
   color: #64748b;
   font-size: 12px;

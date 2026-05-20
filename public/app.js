@@ -4403,11 +4403,12 @@ function openSquarePreview(prompt, options = {}) {
   const tags = normalizePublicTags(item.publicTags || []);
   const route = item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
+  const mediaController = window.ImageStudioGalleryDetailMedia?.create?.({ item, imageUrl, route, text });
   openModal(`
     <section class="modal square-preview-modal" data-square-id="${escapeHtml(item.id || prompt.generationId || "")}">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
       <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
-        <img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
+        <img class="square-preview-main" data-square-main-image src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
       </div>
       <aside class="square-preview-side">
         <div class="square-preview-head">
@@ -4417,7 +4418,7 @@ function openSquarePreview(prompt, options = {}) {
         </div>
         <div class="square-preview-section">
           <h3>${isImageToImage ? escapeHtml(text("currentPrompt")) : (state.lang === "zh" ? "原提示词" : "Prompt")}</h3>
-          <p>${escapeHtml(item.prompt)}</p>
+          <p data-square-main-prompt>${escapeHtml(item.prompt)}</p>
         </div>
         ${isImageToImage && sourcePrompt ? `
           <div class="square-preview-section source-prompt-section">
@@ -4442,16 +4443,16 @@ function openSquarePreview(prompt, options = {}) {
         ` : ""}
         ${isImageToImage ? `
           <div class="square-source-pair">
-            <figure ${imageFallbackContainerAttrs()}>
+            <button type="button" class="square-media-card" data-square-media="source" ${imageFallbackContainerAttrs()}>
               ${item.sourceImageUrl
                 ? `<img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${text("inputImage")}">`
                 : `<div class="source-private-placeholder"><i class="ri-eye-off-line"></i><span>${escapeHtml(state.lang === "zh" ? "原图未公开" : "Original not public")}</span></div>`}
-              <figcaption>${text("inputImage")}</figcaption>
-            </figure>
-            <figure ${imageFallbackContainerAttrs()}>
+              <span>${text("inputImage")}</span>
+            </button>
+            <button type="button" class="square-media-card active" data-square-media="result" ${imageFallbackContainerAttrs()}>
               <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${text("outputImage")}">
-              <figcaption>${text("outputImage")}</figcaption>
-            </figure>
+              <span>${text("outputImage")}</span>
+            </button>
           </div>
         ` : ""}
         ${route.length > 1 ? `
@@ -4491,7 +4492,7 @@ function openSquarePreview(prompt, options = {}) {
           <button type="button" data-square-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
           <button type="button" data-square-new-canvas><i class="ri-add-box-line"></i>${text("useImageNewCanvas")}</button>
           <button type="button" data-square-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
-          <a href="${escapeHtml(imageUrl)}" download="${escapeHtml(item.id || "image")}.png"><i class="ri-download-line"></i>${text("download")}</a>
+          <a href="${escapeHtml(imageUrl)}" download="${escapeHtml(item.id || "image")}.png" data-square-download><i class="ri-download-line"></i>${text("download")}</a>
           <button type="button" data-square-report><i class="ri-flag-line"></i>${state.lang === "zh" ? "举报" : "Report"}</button>
           ${canManage ? `<button type="button" data-square-manage><i class="ri-price-tag-3-line"></i>${text("editPublicTags")}</button>` : ""}
           ${canManage && isImageToImage && !item.publishOriginal ? `<button type="button" data-square-publish-original><i class="ri-image-add-line"></i>${text("publishWithOriginal")}</button>` : ""}
@@ -4507,11 +4508,29 @@ function openSquarePreview(prompt, options = {}) {
   }
 
   $(".square-preview-close", elements.modalLayer)?.addEventListener("click", closeModal);
+  const selectedMediaPayload = (title = text("outputImage")) => mediaController?.payload?.(title) || { ...item, imageUrl, images: [imageUrl] };
+  const applySelectedMedia = (media) => {
+    if (!media?.imageUrl) return;
+    const mainImage = $("[data-square-main-image]", elements.modalLayer);
+    const mainPrompt = $("[data-square-main-prompt]", elements.modalLayer);
+    const download = $("[data-square-download]", elements.modalLayer);
+    if (mainImage) {
+      mainImage.src = media.imageUrl;
+      mainImage.alt = truncate(media.prompt || item.prompt, 100);
+    }
+    if (mainPrompt) mainPrompt.textContent = media.prompt || item.prompt || "";
+    if (download) {
+      download.href = media.imageUrl;
+      download.download = media.downloadName || `${item.id || "image"}.png`;
+    }
+    $$("[data-square-media]", elements.modalLayer).forEach((node) => node.classList.toggle("active", node.dataset.squareMedia === media.type || node.dataset.squareMedia === media.key));
+    $$("[data-route-step]", elements.modalLayer).forEach((node) => node.classList.toggle("active", media.key === `route:${node.dataset.routeStep}`));
+  };
   $("[data-square-like]", elements.modalLayer)?.addEventListener("click", async () => {
     await toggleGalleryLike(item.id);
   });
   $("[data-square-text]", elements.modalLayer)?.addEventListener("click", () => {
-    state.draftPrompt = item.prompt;
+    state.draftPrompt = mediaController?.selected?.()?.prompt || item.prompt;
     closeModal();
     state.forceHero = true;
     setView("home");
@@ -4522,7 +4541,7 @@ function openSquarePreview(prompt, options = {}) {
     closeModal();
     // exec4 P0 §4：广场点击「图生图」时不再带原提示词，editor 的 prompt 框为空，
     // 用户需要的话仍然可以走 [复制提示词] 或 [提示词文生图] 两个入口。
-    openImageEditor(imageUrl, "");
+    openImageEditor(mediaController?.selected?.()?.imageUrl || imageUrl, "");
   });
   $("[data-square-duplicate-canvas]", elements.modalLayer)?.addEventListener("click", async (event) => {
     if (!state.user) {
@@ -4545,7 +4564,7 @@ function openSquarePreview(prompt, options = {}) {
     showToast(state.lang === "zh" ? "已复制为你的私有画布" : "Copied to your private canvas", "ri-node-tree");
   });
   $("[data-square-add-canvas]", elements.modalLayer)?.addEventListener("click", () => {
-    openCanvasTargetModal(canvasPayloadFromGeneration({ ...item, imageUrl }, text("outputImage")));
+    openCanvasTargetModal(canvasPayloadFromGeneration(selectedMediaPayload(text("outputImage")), mediaController?.selected?.()?.label || text("outputImage")));
   });
   $("[data-square-new-canvas]", elements.modalLayer)?.addEventListener("click", () => {
     if (!state.user) {
@@ -4555,10 +4574,10 @@ function openSquarePreview(prompt, options = {}) {
     }
     closeModal();
     navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } });
-    requestAnimationFrame(() => window.ImageStudioCanvas?.insertItem?.(canvasPayloadFromGeneration({ ...item, imageUrl }, text("outputImage"))));
+    requestAnimationFrame(() => window.ImageStudioCanvas?.insertItem?.(canvasPayloadFromGeneration(selectedMediaPayload(text("outputImage")), mediaController?.selected?.()?.label || text("outputImage"))));
   });
   $("[data-square-copy]", elements.modalLayer)?.addEventListener("click", async () => {
-    await copyText(item.prompt);
+    await copyText(mediaController?.selected?.()?.prompt || item.prompt);
     showToast(state.lang === "zh" ? "提示词已复制" : "Prompt copied", "ri-file-copy-line");
   });
   $("[data-square-report]", elements.modalLayer)?.addEventListener("click", async () => {
@@ -4596,12 +4615,16 @@ function openSquarePreview(prompt, options = {}) {
       renderLibrary();
     });
   });
+  $$("[data-square-media]", elements.modalLayer).forEach((button) => {
+    button.addEventListener("click", () => {
+      const type = button.dataset.squareMedia === "source" ? "source" : "result";
+      applySelectedMedia(mediaController?.select?.(type));
+    });
+  });
 
   // exec4 P0 §3：路线区交互。点击某一轮缩略图 → 替换主图 + 原提示词；点击 toggle 折叠/展开。
   const routeSection = $("[data-route-section]", elements.modalLayer);
   if (routeSection) {
-    const mainImage = $(".square-preview-main", elements.modalLayer);
-    const mainPrompt = $(".square-preview-section p", elements.modalLayer);
     const toggleBtn = $("[data-route-toggle]", routeSection);
     const toggleText = $("[data-route-toggle-text]", routeSection);
     const list = $("[data-route-list]", routeSection);
@@ -4632,10 +4655,7 @@ function openSquarePreview(prompt, options = {}) {
         const idx = Number.parseInt(stepNode.dataset.routeStep || "0", 10) || 0;
         const step = route[idx];
         if (!step) return;
-        if (mainImage && step.imageUrl) mainImage.src = step.imageUrl;
-        if (mainPrompt) mainPrompt.textContent = step.prompt || text("routeStepUntitled");
-        $$("[data-route-step]", routeSection).forEach((other) => other.classList.remove("active"));
-        stepNode.classList.add("active");
+        applySelectedMedia(mediaController?.select?.("route-step", idx));
       };
       stepNode.addEventListener("click", activate);
       stepNode.addEventListener("keydown", (event) => {
