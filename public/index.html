@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="ai-image-studio 提供文生图、图像编辑、画廊和公开作品广场。">
-    <meta property="og:title" content="ai-image-studio">
+    <meta name="description" content="AI Image Studio 将脑海中的画面，转化为触手可及的惊艳视觉。">
+    <meta property="og:title" content="AI Image Studio">
     <meta property="og:description" content="用提示词、参考图和多候选工作流生成并管理 AI 图片作品。">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <title>ai-image-studio</title>
+    <title>AI Image Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260520-user-credit-reward-v1">
+    <link rel="stylesheet" href="/styles.css?v=20260520-home-design-v1">
   </head>
   <body>
     <div id="app" class="app">
@@ -21,11 +21,11 @@
       <header class="topbar">
         <button id="brandBtn" class="brand-btn" type="button">
           <span class="brand-dot"><i class="ri-sparkling-2-fill"></i></span>
-          <span data-i18n="brand">ai-image-studio</span>
+          <span data-i18n="brand">AI Image Studio</span>
         </button>
         <nav class="top-actions" aria-label="主导航">
           <button id="promptLibraryBtn" class="nav-pill" type="button">
-            <span class="sparkle-icon" aria-hidden="true">✨</span>
+            <i class="ri-sparkling-2-fill sparkle-icon" aria-hidden="true"></i>
             <span data-i18n="promptLibrary">画廊</span>
           </button>
           <button id="imageEditorBtn" class="nav-pill" type="button">
@@ -34,7 +34,11 @@
           </button>
           <button id="canvasWorkspaceBtn" class="nav-pill" type="button">
             <i class="ri-node-tree"></i>
-            <span data-i18n="canvasWorkspace">画布工作台</span>
+            <span data-i18n="openCanvasWorkspace">打开画布工作台</span>
+          </button>
+          <button id="sessionDrawerToggle" class="nav-pill session-drawer-toggle hidden" type="button">
+            <i class="ri-chat-3-line"></i>
+            <span data-i18n="openChats">对话列表</span>
           </button>
           <button id="notificationBtn" class="nav-pill hidden notification-pill" type="button">
             <i class="ri-notification-3-line"></i>
@@ -68,11 +72,6 @@
         </nav>
       </header>
 
-      <button id="sessionDrawerToggle" class="session-drawer-toggle hidden" type="button">
-        <i class="ri-chat-3-line"></i>
-        <span data-i18n="openChats">对话列表</span>
-      </button>
-
       <aside class="chat-session-panel">
         <div class="chat-session-head">
           <div>
@@ -103,16 +102,12 @@
             </span>
           </div>
           <h1>
-            <span data-i18n="headPre">用想象力</span>
-            <em data-i18n="headItalic">创造</em>
-            <span data-i18n="headPost">世界</span>
+            <span data-i18n="headPre">Imagination is</span>
+            <em data-i18n="headItalic">all your need</em>
+            <span data-i18n="headPost"></span>
           </h1>
-          <p data-i18n="desc" class="hero-desc">用 GPT Image 将你的创意变为精美图片，只需描述你脑海中的画面。</p>
+          <p data-i18n="desc" class="hero-desc">将脑海中的画面，转化为触手可及的惊艳视觉。</p>
           <div id="heroComposerMount" class="composer-mount"></div>
-          <button id="openCanvasInlineBtn" class="hero-canvas-button" type="button">
-            <i class="ri-node-tree"></i>
-            <span data-i18n="openCanvasWorkspace">打开画布工作台</span>
-          </button>
           <p class="reviews"><i class="ri-image-circle-line"></i><span data-i18n="reviews">生成后会自动保存到你的图库</span></p>
         </section>
 
@@ -327,13 +322,25 @@
 
       <template id="composerTemplate">
         <form class="composer">
+          <div class="reference-row hidden"></div>
+          <div class="composer-bar">
+            <textarea class="prompt-box" rows="2" placeholder="输入提示词（Prompt），让想象落地..."></textarea>
+            <button class="send-button" type="submit">
+              <span data-i18n="create">生成</span>
+              <i class="ri-magic-line"></i>
+            </button>
+          </div>
           <div class="composer-settings-row">
+            <label class="add-reference-button" title="添加参考图" data-i18n-title="addReference">
+              <i class="ri-image-add-line"></i>
+              <input class="reference-input" type="file" accept="image/*" multiple>
+            </label>
             <span class="model-chip" aria-label="当前模型">
               <span class="model-label">GPT-IMAGE-2</span>
             </span>
             <button class="composer-options-button options-toggle" type="button">
               <i class="ri-equalizer-2-line"></i>
-              <span class="options-summary">尺寸 / 质量 / 格式</span>
+              <span class="options-summary">自动比例 · PNG</span>
               <i class="ri-arrow-down-s-line"></i>
             </button>
             <label class="square-toggle composer-public-toggle">
@@ -341,19 +348,6 @@
               <input class="public-input" type="checkbox">
               <span class="toggle-track" aria-hidden="true"></span>
             </label>
-          </div>
-          <div class="reference-row hidden"></div>
-          <div class="composer-bar">
-            <label class="add-reference-button" title="添加参考图" data-i18n-title="addReference">
-              <i class="ri-add-line"></i>
-              <input class="reference-input" type="file" accept="image/*" multiple>
-            </label>
-            <textarea class="prompt-box" rows="1" placeholder="描述你想创作的图片..."></textarea>
-            <div class="composer-spacer"></div>
-            <button class="send-button" type="submit">
-              <span data-i18n="create">生成</span>
-              <i class="ri-arrow-right-line"></i>
-            </button>
           </div>
           <div class="composer-feedback hidden" aria-live="polite"></div>
           <div class="advanced-options hidden">
@@ -437,6 +431,6 @@
     <script src="/canvas.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/reference-images.js?v=20260520-reference-upload-v1" defer></script>
-    <script src="/app.js?v=20260520-user-credit-reward-v1" defer></script>
+    <script src="/app.js?v=20260520-home-design-v1" defer></script>
   </body>
 </html>

@@ -87,7 +87,7 @@ const state = {
 
 const i18n = {
   zh: {
-    brand: "ai-image-studio",
+    brand: "AI Image Studio",
     promptLibrary: "画廊",
     imageEditor: "图片编辑",
     canvasWorkspace: "画布工作台",
@@ -133,10 +133,10 @@ const i18n = {
     myWorks: "我的作品",
     login: "登录",
     logout: "退出",
-    headPre: "用想象力",
-    headItalic: "创造",
-    headPost: "世界",
-    desc: "用 GPT Image 将你的创意变为精美图片，只需描述你脑海中的画面。",
+    headPre: "Imagination is",
+    headItalic: "all your need",
+    headPost: "",
+    desc: "将脑海中的画面，转化为触手可及的惊艳视觉。",
     reviews: "生成后会自动保存到你的图库",
     todayGeneratedPrefix: "今日已生成",
     todayGeneratedSuffix: "张图片",
@@ -144,7 +144,7 @@ const i18n = {
     recentSubtitle: "来自你的灵感",
     examplesLabel: "灵感示例",
     viewMore: "查看更多",
-    placeholder: "描述你想创作的图片...",
+    placeholder: "输入提示词（Prompt），让想象落地...",
     create: "生成",
     imageSessions: "文生图对话",
     openChats: "对话列表",
@@ -170,8 +170,8 @@ const i18n = {
     generateDisabledCredits: "积分不足",
     generateReadyHint: "准备好后点击生成",
     continuationContextLabel: "续图",
-    continuationOffLabel: "本次不续图",
-    closeContinuation: "本次不续图",
+    continuationOffLabel: "全新生成",
+    closeContinuation: "全新生成",
     more: "更多",
     editPrompt: "改提示词",
     imageToImageShort: "图生图",
@@ -374,7 +374,7 @@ const i18n = {
     editorCancel: "取消",
     editorRetry: "重试",
     editorRetryHint: "已保留你的提示词与图片，可直接点击重试",
-    continuationToggleLabel: "延续上一张图",
+    continuationToggleLabel: "续写上一张",
     continuationToggleHint: "下一次生成会基于上一张完成图编辑",
     continuationActiveToast: "已基于上一张图重新生成",
     continuationDisabledToast: "下次生成将从空白文生图开始",
@@ -417,7 +417,7 @@ const i18n = {
     ]
   },
   en: {
-    brand: "ai-image-studio",
+    brand: "AI Image Studio",
     promptLibrary: "Gallery",
     imageEditor: "Image Editor",
     canvasWorkspace: "Canvas",
@@ -463,10 +463,10 @@ const i18n = {
     myWorks: "My Works",
     login: "Login",
     logout: "Logout",
-    headPre: "Create with",
-    headItalic: "imagination",
+    headPre: "Imagination is",
+    headItalic: "all your need",
     headPost: "",
-    desc: "Transform your ideas into polished visuals with GPT Image. Just describe what you see in your mind.",
+    desc: "Turn the picture in your mind into striking visuals you can use.",
     reviews: "Generated images are saved to your gallery",
     todayGeneratedPrefix: "Today generated",
     todayGeneratedSuffix: "images",
@@ -474,7 +474,7 @@ const i18n = {
     recentSubtitle: "Your creative history",
     examplesLabel: "Inspiration",
     viewMore: "View more",
-    placeholder: "Describe the image you want to create...",
+    placeholder: "Enter a prompt and describe what you imagine...",
     create: "Create",
     imageSessions: "Text-to-image chats",
     openChats: "Chats",
@@ -500,8 +500,8 @@ const i18n = {
     generateDisabledCredits: "Not enough credits",
     generateReadyHint: "Ready to create",
     continuationContextLabel: "Continue",
-    continuationOffLabel: "Not continuing",
-    closeContinuation: "Do not continue this time",
+    continuationOffLabel: "New generation",
+    closeContinuation: "New generation",
     more: "More",
     editPrompt: "Edit prompt",
     imageToImageShort: "Image-to-image",
@@ -704,7 +704,7 @@ const i18n = {
     editorCancel: "Cancel",
     editorRetry: "Retry",
     editorRetryHint: "Your prompt and image are preserved; tap retry to send again",
-    continuationToggleLabel: "Continue from last image",
+    continuationToggleLabel: "Continue previous",
     continuationToggleHint: "Next generation will edit your previous output",
     continuationActiveToast: "Continued from your last image",
     continuationDisabledToast: "Next generation will start from a blank prompt",
@@ -2116,12 +2116,13 @@ function updateCustomSizeVisibility(form) {
 function composerOptionSummary() {
   const options = state.generationOptions || {};
   const size = options.sizeMode || options.size || "auto";
-  const quality = options.quality || "auto";
   const format = (options.outputFormat || "png").toUpperCase();
   const candidates = Number(options.candidateCount || 1);
   const suffix = candidates > 1 ? ` · ${candidates}x` : "";
-  if (state.lang === "zh") return `${size} · ${quality} · ${format}${suffix}`;
-  return `${size} · ${quality} · ${format}${suffix}`;
+  const sizeLabel = size === "auto"
+    ? (state.lang === "zh" ? "自动比例" : "Auto ratio")
+    : size;
+  return `${sizeLabel} · ${format}${suffix}`;
 }
 
 function getGenerateDisabledReason() {
