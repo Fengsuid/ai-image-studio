@@ -929,6 +929,14 @@ const elements = {
   notificationBtn: $("#notificationBtn"),
   notificationBadge: $("#notificationBadge"),
   contactBtn: $("#contactBtn"),
+  accountMenuWrap: $("#accountMenuWrap"),
+  accountMenuBtn: $("#accountMenuBtn"),
+  accountMenu: $("#accountMenu"),
+  accountAvatarText: $("#accountAvatarText"),
+  accountNameText: $("#accountNameText"),
+  accountEmailText: $("#accountEmailText"),
+  accountContactBtn: $("#accountContactBtn"),
+  accountContactText: $("#accountContactText"),
   langBtn: $("#langBtn"),
   creditsBtn: $("#creditsBtn"),
   creditsText: $("#creditsText"),
@@ -1317,16 +1325,23 @@ function updateNav() {
   const capabilities = state.settings?.providerCapabilities || {};
   const contactEmail = String(state.settings?.contactEmail ?? state.settings?.contactAdminEmail ?? "").trim();
   elements.loginBtn.classList.toggle("hidden", loggedIn);
-  elements.logoutBtn.classList.toggle("hidden", !loggedIn);
-  elements.creditsBtn.classList.toggle("hidden", !loggedIn);
-  elements.myWorksBtn.classList.toggle("hidden", !loggedIn);
+  elements.accountMenuWrap?.classList.toggle("hidden", !loggedIn);
+  elements.logoutBtn?.classList.toggle("hidden", !loggedIn);
+  elements.creditsBtn?.classList.toggle("hidden", !loggedIn);
+  elements.myWorksBtn?.classList.toggle("hidden", !loggedIn);
   elements.notificationBtn?.classList.toggle("hidden", !loggedIn);
   elements.imageEditorBtn.classList.toggle("hidden", capabilities.imageEdit === false);
-  elements.contactBtn.classList.toggle("hidden", !contactEmail);
-  const contactLabel = elements.contactBtn?.querySelector("[data-i18n='contact']");
-  if (contactLabel && contactEmail) contactLabel.textContent = contactEmail;
-  elements.adminBtn.classList.toggle("hidden", state.user?.role !== "admin");
+  elements.contactBtn.classList.toggle("hidden", !contactEmail || loggedIn);
+  elements.accountContactBtn?.classList.toggle("hidden", !contactEmail);
+  elements.adminBtn?.classList.toggle("hidden", state.user?.role !== "admin");
   elements.creditsText.textContent = state.user ? `${text("credits")} ${state.user.credits}` : "0";
+  if (elements.accountNameText) elements.accountNameText.textContent = state.user?.name || state.user?.email || text("user");
+  if (elements.accountEmailText) elements.accountEmailText.textContent = state.user?.email || "";
+  if (elements.accountContactText) elements.accountContactText.textContent = contactEmail || text("contact");
+  if (elements.accountAvatarText) {
+    const source = String(state.user?.name || state.user?.email || "T").trim();
+    elements.accountAvatarText.textContent = (source[0] || "T").toUpperCase();
+  }
 
   const hasApiKey = Boolean(state.settings?.hasApiKey);
   elements.apiStatus.textContent = hasApiKey
@@ -1343,6 +1358,11 @@ function updateNotificationBadge() {
   const count = state.unreadAnnouncements.length;
   elements.notificationBadge.classList.toggle("hidden", count <= 0);
   elements.notificationBadge.textContent = count > 99 ? "99+" : String(count);
+}
+
+function closeAccountMenu() {
+  elements.accountMenu?.classList.add("hidden");
+  elements.accountMenuBtn?.setAttribute("aria-expanded", "false");
 }
 
 function readStoredJson(key, fallback) {
@@ -6384,16 +6404,40 @@ function bindGlobalEvents() {
   window.ImageStudioCanvas?.bindShellEvents?.({ elements, navigate });
   elements.notificationBtn?.addEventListener("click", openNotificationsModal);
   elements.contactBtn.addEventListener("click", openContactModal);
+  elements.accountContactBtn?.addEventListener("click", () => {
+    closeAccountMenu();
+    openContactModal();
+  });
+  elements.accountMenuBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = elements.accountMenu?.classList.contains("hidden");
+    elements.accountMenu?.classList.toggle("hidden", !willOpen);
+    elements.accountMenuBtn?.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  });
+  document.addEventListener("click", (event) => {
+    if (!elements.accountMenuWrap || elements.accountMenuWrap.contains(event.target)) return;
+    closeAccountMenu();
+  });
   elements.langBtn.addEventListener("click", () => {
     state.lang = state.lang === "zh" ? "en" : "zh";
     localStorage.setItem("lang", state.lang);
     renderAll();
   });
   elements.loginBtn.addEventListener("click", () => openAuthModal("login"));
-  elements.logoutBtn.addEventListener("click", logout);
-  elements.creditsBtn.addEventListener("click", openCreditsModal);
-  elements.myWorksBtn.addEventListener("click", () => openMyWorksModal());
+  elements.logoutBtn.addEventListener("click", () => {
+    closeAccountMenu();
+    logout();
+  });
+  elements.creditsBtn.addEventListener("click", () => {
+    closeAccountMenu();
+    openCreditsModal();
+  });
+  elements.myWorksBtn.addEventListener("click", () => {
+    closeAccountMenu();
+    openMyWorksModal();
+  });
   elements.adminBtn.addEventListener("click", () => {
+    closeAccountMenu();
     window.location.href = "/admin";
   });
   elements.librarySearchForm.addEventListener("submit", (event) => {

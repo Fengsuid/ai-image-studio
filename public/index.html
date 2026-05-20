@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260520-home-design-v3">
+    <link rel="stylesheet" href="/styles.css?v=20260520-home-design-v5">
   </head>
   <body>
     <div id="app" class="app">
@@ -45,34 +45,48 @@
             <span data-i18n="notifications">通知</span>
             <b id="notificationBadge" class="notification-badge hidden">0</b>
           </button>
-          <button id="contactBtn" class="nav-pill" type="button">
+          <button id="contactBtn" class="icon-pill contact-pill" type="button" title="联系管理员">
             <i class="ri-customer-service-2-line"></i>
-            <span data-i18n="contact">联系管理员</span>
           </button>
-          <a class="nav-pill github-pill" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer">
+          <a class="icon-pill github-pill" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
             <i class="ri-github-fill"></i>
-            <span>GitHub</span>
           </a>
           <button id="langBtn" class="icon-pill" type="button" title="Language">中/EN</button>
-          <button id="creditsBtn" class="nav-pill hidden" type="button">
-            <i class="ri-coin-line"></i>
-            <span id="creditsText">0</span>
-          </button>
-          <button id="myWorksBtn" class="nav-pill hidden" type="button">
-            <i class="ri-gallery-view-2"></i>
-            <span data-i18n="myWorks">我的作品</span>
-          </button>
-          <button id="adminBtn" class="nav-pill hidden" type="button">
-            <i class="ri-settings-3-line"></i>
-            <span data-i18n="admin">后台</span>
-          </button>
           <button id="loginBtn" class="dark-pill" type="button">
             <i class="ri-login-circle-line"></i>
             <span data-i18n="login">登录</span>
           </button>
-          <button id="logoutBtn" class="nav-pill hidden" type="button">
-            <i class="ri-logout-circle-r-line"></i>
-          </button>
+          <div id="accountMenuWrap" class="account-menu-wrap hidden">
+            <button id="accountMenuBtn" class="account-avatar" type="button" aria-haspopup="menu" aria-expanded="false" title="账号">
+              <span id="accountAvatarText">T</span>
+            </button>
+            <div id="accountMenu" class="account-menu hidden" role="menu">
+              <div class="account-menu-head">
+                <span id="accountNameText">AI Image Studio</span>
+                <small id="accountEmailText">user@example.com</small>
+              </div>
+              <button id="creditsBtn" class="account-menu-item" type="button" role="menuitem">
+                <i class="ri-coin-line"></i>
+                <span id="creditsText">0</span>
+              </button>
+              <button id="myWorksBtn" class="account-menu-item" type="button" role="menuitem">
+                <i class="ri-gallery-view-2"></i>
+                <span data-i18n="myWorks">我的作品</span>
+              </button>
+              <button id="adminBtn" class="account-menu-item hidden" type="button" role="menuitem">
+                <i class="ri-settings-3-line"></i>
+                <span data-i18n="admin">后台</span>
+              </button>
+              <button id="accountContactBtn" class="account-menu-item" type="button" role="menuitem">
+                <i class="ri-customer-service-2-line"></i>
+                <span id="accountContactText">联系管理员</span>
+              </button>
+              <button id="logoutBtn" class="account-menu-item danger" type="button" role="menuitem">
+                <i class="ri-logout-circle-r-line"></i>
+                <span data-i18n="logout">退出</span>
+              </button>
+            </div>
+          </div>
         </nav>
       </header>
 
@@ -437,6 +451,6 @@
     <script src="/canvas.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/gallery-normalize.js?v=20260520-canvas-assistant-v2" defer></script>
     <script src="/reference-images.js?v=20260520-reference-upload-v1" defer></script>
-    <script src="/app.js?v=20260520-home-design-v3" defer></script>
+    <script src="/app.js?v=20260520-home-design-v5" defer></script>
   </body>
 </html>
