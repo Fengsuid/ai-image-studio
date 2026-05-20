@@ -1,6 +1,7 @@
-# ai-image-studio Rellis 任务拆分
+# ai-image-studio Rellis / Trellis 任务拆分
 
-状态：待导入 Rellis / Trellis 看板。  
+状态：已同步真实 Trellis 看板目录 `D:\生图广场\.trelis\tasks`（2026-05-20）。
+Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md)。
 来源文档：
 
 - `IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
@@ -36,21 +37,29 @@
 
 ## 3. 里程碑建议
 
-### 当前完成状态（2026-05-19）
+### 当前完成状态（2026-05-20）
 
 已完成、提交并通过本轮线上 smoke：
 
 - 画廊可靠性与榜单基础：`AIS-RLS-001` 到 `AIS-RLS-007`。
 - 提示词分类、远程来源、无封面详情、点赞与排序：`AIS-RLS-008` 到 `AIS-RLS-013`。
+- 大模型提示词重复审核：`AIS-RLS-014`。
 - 画布 MVP 主链路：`AIS-RLS-015` 到 `AIS-RLS-025`。
+- 画布增强第一批：`AIS-RLS-026` 小地图、`AIS-RLS-027` 撤销重做复制粘贴、`AIS-RLS-028` 框选多选分组、`AIS-RLS-029` JSON 导入导出、`AIS-RLS-030` 画布助手。
+- 画布发布与复用：`AIS-RLS-031` 公开画布线路复制、`AIS-RLS-032` 画布模板市场。
+- 后台运营主链路：`AIS-RLS-033` 管理员首页重构、`AIS-RLS-034` 用户管理与积分奖励、`AIS-RLS-036` 广场内容审核与撤回管理、`AIS-RLS-037` 公告与弹窗通知完善。
 - 标签管理与合并：`AIS-RLS-035`。
 - 开发与上线 QA 清单：`AIS-RLS-038`。
 
 尚未完成，保持 Backlog：
 
-- `AIS-RLS-014` 大模型提示词重复审核接口。
-- `AIS-RLS-026` 到 `AIS-RLS-034`。
-- `AIS-RLS-036`、`AIS-RLS-037`。
+- `AIS-RLS-039` 画布模块边界与反单文件治理。
+- `AIS-RLS-040` 文生图生成中闪屏修复。
+- `AIS-RLS-041` 画廊榜单侧栏化与点赞按钮优化。
+- `AIS-RLS-042` 文生图结果按钮收口。
+- `AIS-RLS-043` 接入 infinite-canvas 提示词源到画廊。
+- `AIS-RLS-044` 画廊详情主图联动修复。
+- `AIS-RLS-045` 画廊卡片标签去重与用户标签展示。
 
 本轮部署覆盖提交：
 
@@ -129,6 +138,7 @@
 - `AIS-RLS-030`
 - `AIS-RLS-031`
 - `AIS-RLS-032`
+- `AIS-RLS-039`
 
 ### Milestone 5：后台管理与运营能力
 
@@ -143,13 +153,26 @@
 - `AIS-RLS-037`
 - `AIS-RLS-038`
 
+### Milestone 6：新增体验回归与外部提示词源
+
+目标：修复用户最新反馈的核心体验问题，并把 `basketikun/infinite-canvas` 的提示词源纳入画廊和画布工作流。
+
+包含任务：
+
+- `AIS-RLS-040`
+- `AIS-RLS-041`
+- `AIS-RLS-042`
+- `AIS-RLS-043`
+- `AIS-RLS-044`
+- `AIS-RLS-045`
+
 ## 4. 任务卡
 
 ### AIS-RLS-001：画廊图片前端兜底
 
-优先级：P0  
-标签：`frontend`, `gallery`, `qa`  
-依赖：无  
+优先级：P0
+标签：`frontend`, `gallery`, `qa`
+依赖：无
 建议状态：Ready
 
 目标：
@@ -176,9 +199,9 @@
 
 ### AIS-RLS-002：后台图片文件巡检
 
-优先级：P0  
-标签：`backend`, `database`, `admin`, `gallery`  
-依赖：`AIS-RLS-001`  
+优先级：P0
+标签：`backend`, `database`, `admin`, `gallery`
+依赖：`AIS-RLS-001`
 建议状态：Ready
 
 目标：
@@ -200,9 +223,9 @@
 
 ### AIS-RLS-003：画廊详情可分享路由
 
-优先级：P0  
-标签：`frontend`, `backend`, `gallery`  
-依赖：无  
+优先级：P0
+标签：`frontend`, `backend`, `gallery`
+依赖：无
 建议状态：Ready
 
 目标：
@@ -223,9 +246,9 @@
 
 ### AIS-RLS-004：排行榜 SQL 口径修正
 
-优先级：P0  
-标签：`backend`, `database`, `ranking`, `gallery`  
-依赖：无  
+优先级：P0
+标签：`backend`, `database`, `ranking`, `gallery`
+依赖：无
 建议状态：Ready
 
 目标：
@@ -251,9 +274,9 @@
 
 ### AIS-RLS-005：排行榜前端布局重构
 
-优先级：P0  
-标签：`frontend`, `ranking`, `gallery`  
-依赖：`AIS-RLS-004`  
+优先级：P0
+标签：`frontend`, `ranking`, `gallery`
+依赖：`AIS-RLS-004`
 建议状态：Ready
 
 目标：
@@ -275,9 +298,9 @@
 
 ### AIS-RLS-006：图生图详情展示输入图
 
-优先级：P0  
-标签：`frontend`, `gallery`  
-依赖：`AIS-RLS-003`  
+优先级：P0
+标签：`frontend`, `gallery`
+依赖：`AIS-RLS-003`
 建议状态：Ready
 
 目标：
@@ -298,9 +321,9 @@
 
 ### AIS-RLS-007：公开作品作者署名与管理入口
 
-优先级：P0  
-标签：`frontend`, `backend`, `gallery`  
-依赖：`AIS-RLS-003`  
+优先级：P0
+标签：`frontend`, `backend`, `gallery`
+依赖：`AIS-RLS-003`
 建议状态：Ready
 
 目标：
@@ -321,9 +344,9 @@
 
 ### AIS-RLS-008：提示词分类表迁移
 
-优先级：P0  
-标签：`database`, `prompt`  
-依赖：无  
+优先级：P0
+标签：`database`, `prompt`
+依赖：无
 建议状态：Ready
 
 目标：
@@ -344,9 +367,9 @@
 
 ### AIS-RLS-009：prompts 表字段升级
 
-优先级：P0  
-标签：`database`, `backend`, `prompt`  
-依赖：`AIS-RLS-008`  
+优先级：P0
+标签：`database`, `backend`, `prompt`
+依赖：`AIS-RLS-008`
 建议状态：Ready
 
 目标：
@@ -367,9 +390,9 @@
 
 ### AIS-RLS-010：远程提示词来源表与同步记录
 
-优先级：P0  
-标签：`database`, `backend`, `prompt`, `admin`  
-依赖：`AIS-RLS-009`  
+优先级：P0
+标签：`database`, `backend`, `prompt`, `admin`
+依赖：`AIS-RLS-009`
 建议状态：Ready
 
 目标：
@@ -390,9 +413,9 @@
 
 ### AIS-RLS-011：接入五个远程提示词仓库
 
-优先级：P0  
-标签：`backend`, `prompt`  
-依赖：`AIS-RLS-010`  
+优先级：P0
+标签：`backend`, `prompt`
+依赖：`AIS-RLS-010`
 建议状态：Ready
 
 目标：
@@ -413,9 +436,9 @@
 
 ### AIS-RLS-012：提示词无封面卡片与详情页
 
-优先级：P0  
-标签：`frontend`, `prompt`  
-依赖：`AIS-RLS-009`  
+优先级：P0
+标签：`frontend`, `prompt`
+依赖：`AIS-RLS-009`
 建议状态：Ready
 
 目标：
@@ -436,9 +459,9 @@
 
 ### AIS-RLS-013：提示词点赞与热度排序
 
-优先级：P1  
-标签：`frontend`, `backend`, `database`, `prompt`  
-依赖：`AIS-RLS-009`  
+优先级：P1
+标签：`frontend`, `backend`, `database`, `prompt`
+依赖：`AIS-RLS-009`
 建议状态：Done
 
 目标：
@@ -467,9 +490,9 @@
 
 ### AIS-RLS-014：大模型提示词重复审核接口
 
-优先级：P1  
-标签：`backend`, `admin`, `prompt`  
-依赖：`AIS-RLS-010`  
+优先级：P1
+标签：`backend`, `admin`, `prompt`
+依赖：`AIS-RLS-010`
 建议状态：Done
 
 目标：
@@ -490,9 +513,9 @@
 
 ### AIS-RLS-015：主页和导航新增画布入口
 
-优先级：P0  
-标签：`frontend`, `canvas`  
-依赖：无  
+优先级：P0
+标签：`frontend`, `canvas`
+依赖：无
 建议状态：Ready
 
 目标：
@@ -513,9 +536,9 @@
 
 ### AIS-RLS-016：画布路由和视图骨架
 
-优先级：P0  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-015`  
+优先级：P0
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-015`
 建议状态：Ready
 
 目标：
@@ -536,9 +559,9 @@
 
 ### AIS-RLS-017：canvas_projects 数据表与基础 API
 
-优先级：P0  
-标签：`backend`, `database`, `canvas`  
-依赖：无  
+优先级：P0
+标签：`backend`, `database`, `canvas`
+依赖：无
 建议状态：Ready
 
 目标：
@@ -559,9 +582,9 @@
 
 ### AIS-RLS-018：画布前端文件拆分
 
-优先级：P0  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-016`  
+优先级：P0
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-016`
 建议状态：Ready
 
 目标：
@@ -584,9 +607,9 @@
 
 ### AIS-RLS-019：画布基础交互
 
-优先级：P0  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-016`, `AIS-RLS-018`  
+优先级：P0
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-016`, `AIS-RLS-018`
 建议状态：Ready
 
 目标：
@@ -610,9 +633,9 @@
 
 ### AIS-RLS-020：画布节点系统 MVP
 
-优先级：P0  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-019`  
+优先级：P0
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-019`
 建议状态：Ready
 
 目标：
@@ -634,9 +657,9 @@
 
 ### AIS-RLS-021：画布连线与上游输入收集
 
-优先级：P0  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-020`  
+优先级：P0
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-020`
 建议状态：Ready
 
 目标：
@@ -658,9 +681,9 @@
 
 ### AIS-RLS-022：从首页/画廊/提示词/作品加入画布
 
-优先级：P0  
-标签：`frontend`, `backend`, `canvas`, `gallery`, `prompt`  
-依赖：`AIS-RLS-017`, `AIS-RLS-020`  
+优先级：P0
+标签：`frontend`, `backend`, `canvas`, `gallery`, `prompt`
+依赖：`AIS-RLS-017`, `AIS-RLS-020`
 建议状态：Ready
 
 目标：
@@ -683,9 +706,9 @@
 
 ### AIS-RLS-023：画布生成接口
 
-优先级：P0  
-标签：`backend`, `canvas`, `gallery`  
-依赖：`AIS-RLS-017`, `AIS-RLS-021`  
+优先级：P0
+标签：`backend`, `canvas`, `gallery`
+依赖：`AIS-RLS-017`, `AIS-RLS-021`
 建议状态：Ready
 
 目标：
@@ -707,9 +730,9 @@
 
 ### AIS-RLS-024：画布自动保存与草稿恢复
 
-优先级：P0  
-标签：`frontend`, `backend`, `canvas`  
-依赖：`AIS-RLS-017`, `AIS-RLS-019`  
+优先级：P0
+标签：`frontend`, `backend`, `canvas`
+依赖：`AIS-RLS-017`, `AIS-RLS-019`
 建议状态：Ready
 
 目标：
@@ -731,9 +754,9 @@
 
 ### AIS-RLS-025：画布生成结果发布到广场
 
-优先级：P0  
-标签：`frontend`, `backend`, `canvas`, `gallery`  
-依赖：`AIS-RLS-023`, `AIS-RLS-006`, `AIS-RLS-007`  
+优先级：P0
+标签：`frontend`, `backend`, `canvas`, `gallery`
+依赖：`AIS-RLS-023`, `AIS-RLS-006`, `AIS-RLS-007`
 建议状态：Ready
 
 目标：
@@ -755,9 +778,9 @@
 
 ### AIS-RLS-026：小地图
 
-优先级：P1  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-019`  
+优先级：P1
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-019`
 建议状态：Done
 
 目标：
@@ -777,9 +800,9 @@
 
 ### AIS-RLS-027：撤销、重做、复制粘贴
 
-优先级：P1  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-020`, `AIS-RLS-021`  
+优先级：P1
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-020`, `AIS-RLS-021`
 建议状态：Done
 
 目标：
@@ -806,10 +829,10 @@
 
 ### AIS-RLS-028：框选、多选、分组
 
-优先级：P1  
-标签：`frontend`, `canvas`  
-依赖：`AIS-RLS-020`  
-建议状态：Backlog
+优先级：P1
+标签：`frontend`, `canvas`
+依赖：`AIS-RLS-020`
+建议状态：Done
 
 目标：
 
@@ -837,10 +860,10 @@
 
 ### AIS-RLS-029：JSON 导入导出
 
-优先级：P1  
-标签：`frontend`, `backend`, `canvas`  
-依赖：`AIS-RLS-017`, `AIS-RLS-020`  
-建议状态：Backlog
+优先级：P1
+标签：`frontend`, `backend`, `canvas`
+依赖：`AIS-RLS-017`, `AIS-RLS-020`
+建议状态：Done
 
 目标：
 
@@ -870,10 +893,10 @@
 
 ### AIS-RLS-030：画布助手
 
-优先级：P2  
-标签：`frontend`, `backend`, `canvas`  
-依赖：`AIS-RLS-021`, `AIS-RLS-023`  
-建议状态：Backlog
+优先级：P2
+标签：`frontend`, `backend`, `canvas`
+依赖：`AIS-RLS-021`, `AIS-RLS-023`
+建议状态：Done
 
 目标：
 
@@ -902,10 +925,10 @@
 
 ### AIS-RLS-031：公开画布线路复制
 
-优先级：P1  
-标签：`frontend`, `backend`, `canvas`, `gallery`  
-依赖：`AIS-RLS-025`  
-建议状态：Backlog
+优先级：P1
+标签：`frontend`, `backend`, `canvas`, `gallery`
+依赖：`AIS-RLS-025`
+建议状态：Done
 
 目标：
 
@@ -925,10 +948,10 @@
 
 ### AIS-RLS-032：画布模板市场
 
-优先级：P2  
-标签：`frontend`, `backend`, `canvas`  
-依赖：`AIS-RLS-031`  
-建议状态：Backlog
+优先级：P2
+标签：`frontend`, `backend`, `canvas`
+依赖：`AIS-RLS-031`
+建议状态：Done
 
 目标：
 
@@ -945,12 +968,187 @@
 - 模板不会误暴露私有画布。
 - 从模板创建后用户可独立编辑。
 
+### AIS-RLS-039：画布模块边界与反单文件治理
+
+优先级：P1
+标签：`frontend`, `backend`, `canvas`, `qa`
+依赖：`AIS-RLS-026`, `AIS-RLS-027`, `AIS-RLS-028`, `AIS-RLS-029`, `AIS-RLS-030`
+建议状态：Backlog
+
+目标：
+
+- 在继续做公开线路复制、模板市场、素材库和裁剪变换前，先把画布代码边界固定下来，避免把所有画布代码重新堆到 `public/canvas.js` 或 `server.js`。
+
+交付物：
+
+- 从 `public/canvas.js` 拆出 `public/canvas-render.js`、`public/canvas-inspector.js`、`public/canvas-keyboard.js`、`public/canvas-toolbar.js` 中至少两个模块。
+- 新增或更新 public smoke，验证新增脚本在 `index.html` 中被引用、可访问、并注册到 `window.ImageStudioCanvas`。
+- 服务端新增 `src/canvas-service.js` 或等价模块，把后续公开线路复制/模板市场/发布规则的复杂逻辑从 `server.js` 中抽离。
+- 更新 `docs/IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md` 的职责边界表和 QA 清单。
+
+验收：
+
+- `public/app.js` 不新增画布实现代码，只保留入口、payload 和路由薄接线。
+- `public/canvas.js` 只做状态和调度，新增功能不在该文件中一次性堆超过约 100 行。
+- `server.js` 中新增画布路由只做鉴权、读 body、调用 service、返回 JSON。
+- `node --check` 覆盖所有新增模块，相关 canvas smoke 通过。
+
+### AIS-RLS-040：文生图生成中闪屏修复
+
+优先级：P0
+标签：`frontend`, `qa`
+依赖：无
+建议状态：Backlog
+
+目标：
+
+- 修复文生图开始生成后工作区一闪一闪的问题，让生成状态、历史列表和 composer 保持稳定。
+
+交付物：
+
+- 排查生成开始、轮询、历史刷新、路由切换、composer 渲染和滚动重置之间的重复触发。
+- 生成中只更新状态条、计时器和当前输出占位卡，不重复重建整个 `chatView`。
+- 给 `setView()`、`renderComposers()`、`renderHistory()` 或相关状态更新增加幂等保护。
+- 新增 smoke 或轻量浏览器检查，覆盖点击生成后不会反复切换 view class、不会重建 composer mount。
+
+验收：
+
+- 点击文生图生成后 10 秒内页面不闪动、不跳回首页、不重置滚动。
+- 生成中状态条、耗时和取消/失败提示仍正常更新。
+- 控制台没有因为重复渲染导致的事件绑定或 DOM 空引用错误。
+
+### AIS-RLS-041：画廊榜单侧栏化与点赞按钮优化
+
+优先级：P1
+标签：`frontend`, `gallery`, `ranking`
+依赖：`AIS-RLS-004`, `AIS-RLS-005`
+建议状态：Backlog
+
+目标：
+
+- 把榜单从普通内容块升级为画廊侧栏/抽屉，并统一榜单图片点赞按钮的视觉。
+
+交付物：
+
+- 桌面端画廊布局增加榜单侧栏，主区域继续展示图片流。
+- 移动端榜单使用底部抽屉、折叠侧栏或顶部 tabs，不挤压图片卡。
+- 榜单支持日榜、周榜、月榜、总榜、文生图、图生图切换。
+- 榜单项使用紧凑结构：排名、缩略图、标题/作者、heart icon + 点赞数。
+- 榜单点赞按钮复用画廊点赞状态，不出现大胶囊或浏览器默认按钮边框。
+
+验收：
+
+- 桌面端榜单像画廊导航侧栏，不再像堆在页面里的普通卡片区。
+- 移动端榜单不会造成横向溢出或遮挡主图片。
+- 在榜单内点赞/取消点赞后，榜单项、画廊卡和详情弹窗状态同步。
+
+### AIS-RLS-042：文生图结果按钮收口
+
+优先级：P0
+标签：`frontend`, `gallery`, `canvas`
+依赖：`AIS-RLS-015`, `AIS-RLS-022`
+建议状态：Backlog
+
+目标：
+
+- 收口文生图结果卡的操作按钮，避免 `再次生成 / 保存 / 加入画布 / 改提示词 / 更多` 同时平铺造成拥挤。
+
+交付物：
+
+- 结果卡常驻最多 3 个操作，建议为 `再次生成`、`下载/保存`、`更多`。
+- `加入画布`、`改提示词`、`图生图`、`复制提示词` 收进更多菜单或 icon-only 次级操作区。
+- `更多` 使用项目统一按钮样式和 icon，不显示原生浏览器黑色描边。
+- 桌面和移动端按钮尺寸、间距、换行规则统一。
+
+验收：
+
+- 截图中的按钮拥挤问题消失，结果卡操作区不超过一行或有明确折叠。
+- `加入画布` 和 `改提示词` 功能仍可达，但不抢占主操作。
+- 移动端不出现按钮文字溢出、重叠或默认控件边框。
+
+### AIS-RLS-043：接入 infinite-canvas 提示词源到画廊
+
+优先级：P1
+标签：`backend`, `database`, `admin`, `prompt`, `gallery`, `canvas`
+依赖：`AIS-RLS-010`, `AIS-RLS-011`, `AIS-RLS-014`
+建议状态：Backlog
+
+目标：
+
+- 把 `https://github.com/basketikun/infinite-canvas` 的提示词库作为远程提示词源接入本项目，让其提示词进入画廊、搜索、标签、榜单和加入画布流程。
+
+交付物：
+
+- 在 `PROMPT_SOURCE_SEED` 或后台默认来源中新增 `basketikun/infinite-canvas`。
+- 评估现有 `github-generic` parser 是否能稳定提取；如果不够，新增 `infinite-canvas` 专用 parser。
+- 同步时保留 `sourceRepo = basketikun/infinite-canvas`、`remoteId`、`githubUrl`、`sourceCategory`、封面/示例图和标签。
+- 同步后执行 hash/simhash 去重和 AI 重复审核，不自动覆盖已有优质提示词。
+- 画廊提示词分区、提示词搜索、标签筛选、提示词榜单、提示词详情和 `加入画布` 能展示这些新来源。
+- 后台提示词来源页显示同步结果、成功/失败数量、错误日志和最近更新时间。
+
+验收：
+
+- 后台可看到 `basketikun/infinite-canvas` 来源，并能手动触发同步。
+- 同步后 `/api/prompts?includeHidden=1` 中可看到 `sourceRepo = basketikun/infinite-canvas` 的提示词。
+- 画廊前台可搜索、打开详情、点赞、复制、使用和加入画布。
+- 重复提示词进入候选审核，不造成画廊大面积重复卡片。
+
+### AIS-RLS-044：画廊详情主图联动修复
+
+优先级：P0
+标签：`frontend`, `gallery`, `canvas`, `qa`
+依赖：`AIS-RLS-003`, `AIS-RLS-006`, `AIS-RLS-025`
+建议状态：Backlog
+
+目标：
+
+- 修复画廊详情中点击创作路线、输入图、结果图后左侧主展示图不变化的问题。
+
+交付物：
+
+- 新增或收口详情页的 `selectedMedia` 状态，统一表示 `result`、`source`、`route-step` 三类媒体。
+- 点击创作路线条目时更新主图、active 样式、当前标题/提示词和后续操作上下文。
+- 图生图详情的 `输入图` / `结果图` 缩略卡改为可点击按钮，点击后主图在原图和结果图之间切换。
+- `复制提示词`、`图生图`、`加入画布` 等动作读取当前 `selectedMedia`，避免用户看着输入图却把结果图加入画布。
+- 补充桌面和移动端手动验收记录，确认切换不重开详情、不重置滚动位置。
+
+验收：
+
+- 打开多轮作品详情后，点击不同创作路线条目，左侧大图与右侧 active 项同步变化。
+- 打开图生图作品详情后，点击 `输入图` 显示原图，点击 `结果图` 显示结果图。
+- 切换主图后点赞状态、作者信息、标签和关闭按钮不闪烁、不丢失。
+
+### AIS-RLS-045：画廊卡片标签去重与用户标签展示
+
+优先级：P0
+标签：`frontend`, `gallery`, `prompt`, `qa`
+依赖：`AIS-RLS-007`, `AIS-RLS-024`, `AIS-RLS-035`
+建议状态：Backlog
+
+目标：
+
+- 修复画廊卡片未打开详情时重复显示 `图生图` / `文生图`，且不显示用户设置标签的问题。
+
+交付物：
+
+- 建立统一 gallery tag view model：`kindBadge`、`adminBadge`、`publicTags` 分离。
+- `文生图` / `图生图` 只作为类型徽标显示一次；从 `publicTags` 中过滤类型别名和重复项。
+- 卡片标签区域优先展示用户设置的公开标签，并与详情页标签来源保持一致。
+- Admin 徽标保持独立，不混入用户标签，也不占用 `publicTags` 展示数量。
+- 为旧数据补兼容：如果历史记录把类型词写进 `public_tags_json`，前端渲染先过滤，后续可由数据迁移清理。
+
+验收：
+
+- 画廊卡片不会同时出现两个 `图生图` 或两个 `文生图`。
+- 用户设置的标签在卡片上可见，且打开详情后标签一致。
+- 没有用户标签的作品最多只显示一个类型徽标，不用类型词冒充用户标签。
+
 ### AIS-RLS-033：管理员首页重构
 
-优先级：P1  
-标签：`frontend`, `admin`  
-依赖：无  
-建议状态：Backlog
+优先级：P1
+标签：`frontend`, `admin`
+依赖：无
+建议状态：Done
 
 目标：
 
@@ -969,10 +1167,10 @@
 
 ### AIS-RLS-034：用户管理与积分奖励
 
-优先级：P1  
-标签：`backend`, `database`, `admin`  
-依赖：无  
-建议状态：Backlog
+优先级：P1
+标签：`backend`, `database`, `admin`
+依赖：无
+建议状态：Done
 
 目标：
 
@@ -992,10 +1190,10 @@
 
 ### AIS-RLS-035：标签管理与合并
 
-优先级：P0  
-标签：`backend`, `database`, `admin`, `prompt`, `gallery`  
-依赖：`AIS-RLS-008`  
-建议状态：Ready
+优先级：P0
+标签：`backend`, `database`, `admin`, `prompt`, `gallery`
+依赖：`AIS-RLS-008`
+建议状态：Done
 
 目标：
 
@@ -1016,10 +1214,10 @@
 
 ### AIS-RLS-036：广场内容审核与撤回管理
 
-优先级：P1  
-标签：`backend`, `admin`, `gallery`  
-依赖：`AIS-RLS-007`  
-建议状态：Backlog
+优先级：P1
+标签：`backend`, `admin`, `gallery`
+依赖：`AIS-RLS-007`
+建议状态：Done
 
 目标：
 
@@ -1040,10 +1238,10 @@
 
 ### AIS-RLS-037：公告与弹窗通知完善
 
-优先级：P1  
-标签：`frontend`, `backend`, `admin`  
-依赖：`AIS-RLS-034`, `AIS-RLS-036`  
-建议状态：Backlog
+优先级：P1
+标签：`frontend`, `backend`, `admin`
+依赖：`AIS-RLS-034`, `AIS-RLS-036`
+建议状态：Done
 
 目标：
 
@@ -1063,9 +1261,9 @@
 
 ### AIS-RLS-038：开发与上线 QA 清单
 
-优先级：P0  
-标签：`qa`, `ops`  
-依赖：所有 P0 实现任务  
+优先级：P0
+标签：`qa`, `ops`
+依赖：所有 P0 实现任务
 建议状态：Ready
 
 目标：
@@ -1090,13 +1288,17 @@
 
 第一批：
 
-1. `AIS-RLS-001`
-2. `AIS-RLS-003`
-3. `AIS-RLS-004`
-4. `AIS-RLS-005`
-5. `AIS-RLS-008`
-6. `AIS-RLS-009`
-7. `AIS-RLS-012`
+1. `AIS-RLS-040`
+2. `AIS-RLS-042`
+3. `AIS-RLS-044`
+4. `AIS-RLS-045`
+5. `AIS-RLS-001`
+6. `AIS-RLS-003`
+7. `AIS-RLS-004`
+8. `AIS-RLS-005`
+9. `AIS-RLS-008`
+10. `AIS-RLS-009`
+11. `AIS-RLS-012`
 
 第二批：
 
@@ -1121,10 +1323,13 @@
 
 - `AIS-RLS-035`
 - `AIS-RLS-038`
+- `AIS-RLS-039`
+- `AIS-RLS-041`
+- `AIS-RLS-043`
 
-## 6. 每张 Rellis 卡片建议模板
+## 6. 每张 Rellis / Trellis 卡片建议模板
 
-复制到 Rellis 时可使用：
+复制到 Rellis / Trellis 时可使用：
 
 ```text
 标题：
