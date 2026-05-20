@@ -14,6 +14,11 @@ const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const testEmail = `codex-rls034-${runId}@example.test`;
 const testName = `codex-rls034-${runId}`;
 const generationIds = [`g034a_${runId}`, `g034b_${runId}`, `g034c_${runId}`];
+const fixturePrompts = [
+  `ultraviolet crystal lighthouse above a quiet sea ${runId}`,
+  `isometric brass robot cooking noodles in a market ${runId}`,
+  `botanical postage stamp with glass lemons ${runId}`
+];
 const failures = [];
 let createdUserId = "";
 
@@ -132,9 +137,9 @@ async function insertGenerationFixtures(userId) {
     for (const [index, id] of generationIds.entries()) {
       await connection.execute(
         `INSERT INTO generations
-          (id, user_id, prompt, model, size, quality, background, output_format, filename, is_public, created_at)
+         (id, user_id, prompt, model, size, quality, background, output_format, filename, is_public, created_at)
          VALUES (?, ?, ?, 'smoke-model', '1024x1024', 'auto', 'auto', 'png', ?, 0, ?)`,
-        [id, userId, `rls034 first-public smoke prompt ${runId} ${index}`, `${id}.png`, now]
+        [id, userId, fixturePrompts[index] || `rls034 smoke fixture ${runId} ${index}`, `${id}.png`, now]
       );
     }
   } finally {
