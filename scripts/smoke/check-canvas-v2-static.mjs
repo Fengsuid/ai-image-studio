@@ -16,6 +16,7 @@ assert.equal(packageJson.scripts["canvas:v2:check"], "npm run check --prefix app
 assert.equal(packageJson.scripts["canvas:v2:build"], "npm run build --prefix apps/canvas-v2", "root canvas:v2:build script missing");
 assert.equal(packageJson.scripts["smoke:canvas-v2"], "node scripts/smoke/check-canvas-v2.mjs", "root smoke:canvas-v2 script missing");
 assert.equal(packageJson.scripts["smoke:canvas-v2:static"], "node scripts/smoke/check-canvas-v2-static.mjs", "root smoke:canvas-v2:static script missing");
+assert.equal(packageJson.scripts["smoke:canvas-v2:editor"], "node scripts/smoke/check-canvas-v2-editor.mjs", "root smoke:canvas-v2:editor script missing");
 assert.equal(canvasPackage.scripts.check, "node scripts/check-syntax.mjs", "canvas-v2 check script missing");
 assert.equal(canvasPackage.scripts.typecheck, "npm run check", "canvas-v2 typecheck script missing");
 assert(canvasPackage.scripts.build.includes("node scripts/build.mjs"), "canvas-v2 build script missing");
@@ -45,6 +46,7 @@ assert(appModule.includes("listCanvasProjects"), "app module must list canvas pr
 assert(appModule.includes("createCanvasProject"), "app module must create canvas projects");
 assert(appModule.includes("updateCanvasProject"), "app module must save canvas projects");
 assert(appModule.includes("deleteCanvasProject"), "app module must delete canvas projects");
+assert(appModule.includes("installEditorController"), "app module must install Canvas v2 editor interactions");
 
 const apiImport = appModule.match(/\bfrom\s*["'](\.\.\/adapters\/ai-image-studio-api\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
 assert(apiImport, "app module must import hashed API adapter");
@@ -64,9 +66,21 @@ const shellModule = fs.readFileSync(publicPath(resolveAssetPath(appModulePath, s
 assert(shellModule.includes("data-canvas-action"), "shell module must render CRUD action controls");
 assert(shellModule.includes("data-canvas-title-input"), "shell module must render title editing input");
 assert(shellModule.includes("data-canvas-save-status"), "shell module must render save status");
+assert(shellModule.includes("renderEditor"), "shell module must render the Canvas v2 editor");
+const editorImport = shellModule.match(/\bfrom\s*["'](\.\.\/editor\/view\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
+assert(editorImport, "shell module must import hashed editor renderer");
+const editorModule = fs.readFileSync(publicPath(resolveAssetPath(resolveAssetPath(appModulePath, shellImport), editorImport)), "utf8");
+assert(editorModule.includes("data-canvas-editor"), "editor renderer must expose editor root");
+assert(editorModule.includes("data-canvas-stage"), "editor renderer must expose stage");
+assert(editorModule.includes("data-canvas-minimap"), "editor renderer must expose minimap");
+assert(editorModule.includes("data-canvas-port"), "editor renderer must expose node ports");
+assert(editorModule.includes("data-canvas-node-resize"), "editor renderer must expose resize handles");
 assert(css.includes(".canvas-v2-shell"), "canvas-v2 CSS must style the shell");
 assert(css.includes(".canvas-v2-project-list"), "canvas-v2 CSS must style project list");
-assert(css.includes(".canvas-v2-node-list"), "canvas-v2 CSS must style node list");
+assert(css.includes(".canvas-v2-editor-stage"), "canvas-v2 CSS must style editor stage");
+assert(css.includes(".canvas-v2-node"), "canvas-v2 CSS must style editor nodes");
+assert(css.includes(".canvas-v2-edge"), "canvas-v2 CSS must style editor edges");
+assert(css.includes(".canvas-v2-minimap"), "canvas-v2 CSS must style minimap");
 
 console.log("[canvas-v2-static-smoke] OK: scripts, route wiring, and build output verified");
 

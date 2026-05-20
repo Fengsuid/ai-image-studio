@@ -1,4 +1,5 @@
 import { createEmptyCanvasDocument } from "../adapters/canvas-schema.47a1d0062c00.js";
+import { renderEditor } from "../editor/view.f3fed19e94fa.js";
 
 export function createShellState() {
   return {
@@ -16,6 +17,12 @@ export function createShellState() {
     saveStatus: "idle",
     saveError: "",
     exportSummary: "",
+    selectedNodeIds: [],
+    selectedEdgeIds: [],
+    clipboard: { nodes: [], edges: [] },
+    connectionSourceId: "",
+    editorTool: "pan",
+    selectionRect: null,
   };
 }
 
@@ -91,12 +98,6 @@ function renderProjectPanel(state) {
 
 function renderCanvasPanel(state) {
   const hasProject = Boolean(state.currentProjectId);
-  const nodes = state.document.nodes.map((node) => `
-    <li>
-      <strong>${escapeHtml(node.type)}</strong>
-      <span>${escapeHtml(node.content || node.prompt || node.id)}</span>
-    </li>
-  `).join("");
 
   return `
     <div class="canvas-v2-board-head">
@@ -110,16 +111,7 @@ function renderCanvasPanel(state) {
         <button type="button" data-canvas-action="delete-project" ${hasProject ? "" : "disabled"}>删除</button>
       </div>
     </div>
-    <div class="canvas-v2-board-stage" data-canvas-board>
-      <h2>${hasProject ? "基础保存恢复" : "空画布"}</h2>
-      <p>Schema: ${escapeHtml(state.document.schema)} · Source: ${escapeHtml(state.document.meta.source)}</p>
-      <p>Viewport: ${state.document.viewport.x}, ${state.document.viewport.y}, zoom ${state.document.viewport.zoom}</p>
-      <div class="canvas-v2-actions">
-        <button type="button" data-canvas-action="add-text-node" ${hasProject ? "" : "disabled"}>添加 Text 节点</button>
-        <button type="button" data-canvas-action="add-output-node" ${hasProject ? "" : "disabled"}>添加 Output 节点</button>
-      </div>
-      <ul class="canvas-v2-node-list" data-canvas-node-list>${nodes || "<li>还没有节点。</li>"}</ul>
-    </div>
+    ${renderEditor(state, { hasProject })}
   `;
 }
 
@@ -131,6 +123,8 @@ function renderStatusPanel(state) {
     <p>CSRF：${state.csrfReady ? "已初始化" : "等待初始化"}</p>
     <p>保存：<span data-canvas-save-status>${saveStatusCopy(state)}</span></p>
     <p>节点：${state.document.nodes.length} · 连线：${state.document.edges.length}</p>
+    <p>选中：${state.selectedNodeIds.length} 节点 · ${state.selectedEdgeIds.length} 连线</p>
+    <p>工具：${escapeHtml(state.editorTool)}</p>
     ${state.projectLoading ? "<p>正在读取画布...</p>" : ""}
     ${state.exportSummary ? `<p>导出：${escapeHtml(state.exportSummary)}</p>` : ""}
     ${state.errorMessage ? `<p class="canvas-v2-error">${escapeHtml(state.errorMessage)}</p>` : ""}

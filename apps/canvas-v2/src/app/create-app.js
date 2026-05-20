@@ -13,10 +13,9 @@ import {
 import {
   canvasPayloadFromDocument,
   createEmptyCanvasDocument,
-  createOutputNode,
-  createTextNode,
   normalizeCanvasDocument,
 } from "../adapters/canvas-schema.js";
+import { installEditorController } from "../editor/dom-controller.js";
 
 const SAVE_DEBOUNCE_MS = 700;
 
@@ -35,10 +34,15 @@ export function createCanvasV2App(root) {
 
   const scheduleSave = () => {
     window.clearTimeout(saveTimer);
-    setState({ dirty: true, saveStatus: "unsaved", saveError: "" });
     saveTimer = window.setTimeout(() => {
       void saveCurrentCanvas();
     }, SAVE_DEBOUNCE_MS);
+  };
+
+  const commitDocument = () => {
+    window.clearTimeout(saveTimer);
+    setState({ dirty: true, saveStatus: "unsaved", saveError: "" });
+    scheduleSave();
   };
 
   async function loadProject(canvasId) {
@@ -55,6 +59,10 @@ export function createCanvasV2App(root) {
         dirty: false,
         saveStatus: "saved",
         saveError: "",
+        selectedNodeIds: [],
+        selectedEdgeIds: [],
+        connectionSourceId: "",
+        selectionRect: null,
       });
       updateRoute(canvas.id);
     } catch (error) {
@@ -98,6 +106,10 @@ export function createCanvasV2App(root) {
         document: documentFromCanvas(canvas),
         dirty: false,
         saveStatus: "saved",
+        selectedNodeIds: [],
+        selectedEdgeIds: [],
+        connectionSourceId: "",
+        selectionRect: null,
       });
       updateRoute(canvas.id);
     } catch (error) {
@@ -141,6 +153,10 @@ export function createCanvasV2App(root) {
         document: createEmptyCanvasDocument("Untitled canvas"),
         dirty: false,
         saveStatus: "idle",
+        selectedNodeIds: [],
+        selectedEdgeIds: [],
+        connectionSourceId: "",
+        selectionRect: null,
       });
       updateRoute("");
       if (projects[0]?.id) await loadProject(projects[0].id);
@@ -159,11 +175,25 @@ export function createCanvasV2App(root) {
     }
   }
 
-  function mutateDocument(updater) {
+  function mutateDocument(updater, { commit = true } = {}) {
     const nextDocument = normalizeCanvasDocument(updater(state.document), state.document.title);
-    state = { ...state, document: nextDocument };
-    scheduleSave();
+    state = {
+      ...state,
+      document: nextDocument,
+      dirty: true,
+      saveStatus: "unsaved",
+      saveError: "",
+    };
+    render();
+    if (commit) scheduleSave();
   }
+
+  installEditorController(root, {
+    getState: () => state,
+    setState,
+    mutateDocument,
+    commitDocument,
+  });
 
   root.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
@@ -176,8 +206,6 @@ export function createCanvasV2App(root) {
     if (action === "save-now") void saveCurrentCanvas();
     if (action === "delete-project") void deleteCurrentProject();
     if (action === "export-project") void exportCurrentProject();
-    if (action === "add-text-node") mutateDocument((document) => ({ ...document, nodes: [...document.nodes, createTextNode()] }));
-    if (action === "add-output-node") mutateDocument((document) => ({ ...document, nodes: [...document.nodes, createOutputNode()] }));
   });
 
   root.addEventListener("input", (event) => {

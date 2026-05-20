@@ -1,4 +1,4 @@
-import { createCanvasV2App } from "./app/create-app.098ed6a91f6b.js";
+import { createCanvasV2App } from "./app/create-app.ddf5b6ad8bc2.js";
 
 const root = document.querySelector("[data-canvas-v2-root]");
 
