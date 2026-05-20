@@ -1,4 +1,4 @@
-import { createEmptyCanvasDocument } from "../../adapters/canvas-schema.fab1d3a97d42.js";
+import { createEmptyCanvasDocument } from "../../adapters/canvas-schema.47a1d0062c00.js";
 
 export function createImportedDocument(title) {
   return createEmptyCanvasDocument(title);

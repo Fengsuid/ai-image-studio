@@ -1,4 +1,4 @@
-import { createShellState, renderShell } from "./shell.js";
+import { createShellState, renderShell } from "./shell.068f210fde53.js";
 import {
   ApiError,
   createCanvasProject,
@@ -9,14 +9,14 @@ import {
   getHealth,
   listCanvasProjects,
   updateCanvasProject,
-} from "../adapters/ai-image-studio-api.js";
+} from "../adapters/ai-image-studio-api.69d8b6c7226d.js";
 import {
   canvasPayloadFromDocument,
   createEmptyCanvasDocument,
   createOutputNode,
   createTextNode,
   normalizeCanvasDocument,
-} from "../adapters/canvas-schema.js";
+} from "../adapters/canvas-schema.47a1d0062c00.js";
 
 const SAVE_DEBOUNCE_MS = 700;
 

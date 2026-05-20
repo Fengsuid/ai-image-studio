@@ -1,4 +1,4 @@
-import { createEmptyCanvasDocument } from "../adapters/canvas-schema.js";
+import { createEmptyCanvasDocument } from "../adapters/canvas-schema.47a1d0062c00.js";
 
 export function createShellState() {
   return {

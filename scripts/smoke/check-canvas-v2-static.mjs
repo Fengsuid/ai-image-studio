@@ -39,16 +39,34 @@ const appImport = js.match(/\bfrom\s*["'](\.\/app\/create-app\.[a-f0-9]{12}\.js)
 assert(appImport, "main bundle must import hashed app shell");
 const appModulePath = resolveAssetPath(jsPath, appImport);
 const appModule = fs.readFileSync(publicPath(appModulePath), "utf8");
-assert(appModule.includes("/api/health"), "app module must call /api/health");
-assert(appModule.includes("/api/auth/me"), "app module must call /api/auth/me for auth and csrf");
+assert(appModule.includes("getHealth"), "app module must initialize health through the API adapter");
+assert(appModule.includes("getCurrentAuth"), "app module must initialize auth and csrf through the API adapter");
+assert(appModule.includes("listCanvasProjects"), "app module must list canvas projects through the API adapter");
+assert(appModule.includes("createCanvasProject"), "app module must create canvas projects");
+assert(appModule.includes("updateCanvasProject"), "app module must save canvas projects");
+assert(appModule.includes("deleteCanvasProject"), "app module must delete canvas projects");
 
 const apiImport = appModule.match(/\bfrom\s*["'](\.\.\/adapters\/ai-image-studio-api\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
 assert(apiImport, "app module must import hashed API adapter");
 const apiModulePath = resolveAssetPath(appModulePath, apiImport);
 const apiModule = fs.readFileSync(publicPath(apiModulePath), "utf8");
+assert(apiModule.includes("/api/health"), "api adapter must expose /api/health");
+assert(apiModule.includes("/api/auth/me"), "api adapter must expose /api/auth/me");
+assert(apiModule.includes("/api/canvases?scope="), "api adapter must list canvas projects through /api/canvases");
 assert(apiModule.includes('credentials: "same-origin"'), "api adapter must use same-origin credentials");
 assert(apiModule.includes("X-CSRF-Token"), "api adapter must attach CSRF token on writes");
+assert(apiModule.includes("POST"), "api adapter must expose POST writes");
+assert(apiModule.includes("PATCH"), "api adapter must expose PATCH writes");
+assert(apiModule.includes("DELETE"), "api adapter must expose DELETE writes");
+const shellImport = appModule.match(/\bfrom\s*["'](\.\/shell\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
+assert(shellImport, "app module must import hashed shell renderer");
+const shellModule = fs.readFileSync(publicPath(resolveAssetPath(appModulePath, shellImport)), "utf8");
+assert(shellModule.includes("data-canvas-action"), "shell module must render CRUD action controls");
+assert(shellModule.includes("data-canvas-title-input"), "shell module must render title editing input");
+assert(shellModule.includes("data-canvas-save-status"), "shell module must render save status");
 assert(css.includes(".canvas-v2-shell"), "canvas-v2 CSS must style the shell");
+assert(css.includes(".canvas-v2-project-list"), "canvas-v2 CSS must style project list");
+assert(css.includes(".canvas-v2-node-list"), "canvas-v2 CSS must style node list");
 
 console.log("[canvas-v2-static-smoke] OK: scripts, route wiring, and build output verified");
 

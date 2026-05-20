@@ -51,6 +51,45 @@ export async function apiFetch(path, options = {}) {
   return payload;
 }
 
+export async function getHealth() {
+  return apiFetch("/api/health");
+}
+
+export async function getCurrentAuth() {
+  return apiFetch("/api/auth/me");
+}
+
+export async function listCanvasProjects({ limit = 50, scope = "mine" } = {}) {
+  return apiFetch(`/api/canvases?scope=${encodeURIComponent(scope)}&limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function createCanvasProject(payload) {
+  return apiFetch("/api/canvases", jsonRequest("POST", payload));
+}
+
+export async function getCanvasProject(canvasId) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}`);
+}
+
+export async function updateCanvasProject(canvasId, payload) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}`, jsonRequest("PATCH", payload));
+}
+
+export async function deleteCanvasProject(canvasId) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}`, jsonRequest("DELETE", {}));
+}
+
+export async function exportCanvasProject(canvasId) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/export`);
+}
+
+function jsonRequest(method, payload) {
+  return {
+    method,
+    body: JSON.stringify(payload ?? {}),
+  };
+}
+
 async function parseJsonResponse(response) {
   const text = await response.text();
   if (!text) return null;
