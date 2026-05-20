@@ -32,13 +32,14 @@ loadEnvFile(path.join(ROOT_DIR, ".env"));
 const store = require("./src/mysql-store");
 const promptReview = require("./src/prompt-review-service");
 const { createCanvasService } = require("./src/canvas-service");
+const promptSourceSync = require("./src/prompt-source-sync");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260520-result-actions-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260520-infinite-canvas-prompts-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = Math.max(
@@ -1925,161 +1926,14 @@ function cleanPromptSourceInput(body = {}, existing = {}) {
   return payload;
 }
 
-function githubRepoParts(repoUrl = "") {
-  const match = String(repoUrl || "").match(/github\.com\/([^/\s]+)\/([^/\s#?]+)/i);
-  if (!match) return null;
-  return { owner: match[1], repo: match[2].replace(/\.git$/i, "") };
-}
-
-function promptCategoryFromPath(pathname = "") {
-  const lower = String(pathname || "").toLowerCase();
-  if (/portrait|character|avatar|people/.test(lower)) return "subject";
-  if (/poster|banner|ui|logo|packaging|ad|product/.test(lower)) return "use_case";
-  if (/light|photo|camera|shot|lens/.test(lower)) return "camera";
-  if (/color|palette/.test(lower)) return "color";
-  if (/mood|emotion/.test(lower)) return "mood";
-  if (/technique|effect|composition/.test(lower)) return "technique";
-  return "style";
-}
-
-function normalizeRemotePromptItem(item = {}, fallback = {}) {
-  const prompt = String(item.prompt || item.text || item.content || item.description || item.positive || "").trim();
-  if (prompt.length < 8) return null;
-  const title = String(item.title || item.name || fallback.title || prompt.slice(0, 80)).trim().slice(0, 200);
-  const tags = sanitizePromptTags(item.tags || item.labels || fallback.tags || []);
-  const image = sanitizeUrlField(item.image || item.cover || item.preview || item.imageUrl || "", 500);
-  const remoteId = String(item.id || item.slug || item.remoteId || fallback.remoteId || "").trim()
-    || crypto.createHash("sha1").update(`${fallback.sourceRepo || ""}\n${fallback.path || ""}\n${prompt}`).digest("hex");
-  return {
-    title,
-    prompt,
-    image,
-    preview: image,
-    tags,
-    category: item.category || fallback.category || "general",
-    sourceCategory: item.sourceCategory || fallback.sourceCategory || "",
-    remoteId,
-    promptType: item.promptType || "text-to-image",
-    language: item.language || (/[\u4e00-\u9fff]/.test(prompt) ? "zh" : "en"),
-    modelHint: item.modelHint || ""
-  };
-}
-
-function collectJsonPromptItems(value, fallback = {}, output = []) {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => collectJsonPromptItems(item, { ...fallback, remoteId: `${fallback.remoteId || fallback.path || "item"}:${index}` }, output));
-    return output;
-  }
-  if (!value || typeof value !== "object") return output;
-  const item = normalizeRemotePromptItem(value, fallback);
-  if (item) output.push(item);
-  for (const key of ["items", "prompts", "data", "examples", "cases"]) {
-    if (value[key]) collectJsonPromptItems(value[key], fallback, output);
-  }
-  return output;
-}
-
-function parseMarkdownPromptItems(text, fallback = {}) {
-  const items = [];
-  let heading = fallback.title || "";
-  const lines = String(text || "").split(/\r?\n/);
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index].trim();
-    const headingMatch = line.match(/^#{1,4}\s+(.+)/);
-    if (headingMatch) {
-      heading = headingMatch[1].trim();
-      continue;
-    }
-    const promptMatch = line.match(/^(?:[-*]\s*)?(?:prompt|提示词|正向提示词)\s*[:：]\s*(.+)$/i);
-    if (promptMatch) {
-      const prompt = promptMatch[1].trim();
-      const item = normalizeRemotePromptItem({ title: heading, prompt }, { ...fallback, remoteId: `${fallback.path}:${index}` });
-      if (item) items.push(item);
-      continue;
-    }
-    if (/^```/.test(line)) {
-      const block = [];
-      index += 1;
-      while (index < lines.length && !/^```/.test(lines[index].trim())) {
-        block.push(lines[index]);
-        index += 1;
-      }
-      const prompt = block.join("\n").trim();
-      const item = normalizeRemotePromptItem({ title: heading, prompt }, { ...fallback, remoteId: `${fallback.path}:code:${index}` });
-      if (item) items.push(item);
-    }
-  }
-  return items;
-}
-
-async function fetchGithubText(url, label) {
-  const response = await fetchWithTimeout(label, url, {
-    headers: {
-      "Accept": "application/vnd.github+json, text/plain;q=0.9",
-      "User-Agent": "ai-image-studio-prompt-sync"
-    }
-  }, 30000);
-  if (!response.ok) throw httpError(`${label} HTTP ${response.status}`, response.status >= 500 ? 502 : 400);
-  return response.text();
-}
-
-async function syncGithubGenericPromptSource(source) {
-  const repo = githubRepoParts(source.repoUrl);
-  if (!repo) throw httpError("Invalid GitHub repo URL", 400);
-  const branch = source.branch || "main";
-  const sourceRepo = `${repo.owner}/${repo.repo}`;
-  const treeUrl = `https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
-  const tree = JSON.parse(await fetchGithubText(treeUrl, `prompt source tree ${sourceRepo}`));
-  const files = (tree.tree || [])
-    .filter((item) => item.type === "blob" && /\.(json|md|markdown|txt)$/i.test(item.path || ""))
-    .filter((item) => !/(node_modules|\.github|LICENSE|package-lock)/i.test(item.path || ""))
-    .slice(0, 120);
-  let fetched = 0;
-  let upserted = 0;
-  let skipped = 0;
-  const errors = [];
-  for (const file of files) {
-    try {
-      const rawUrl = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${encodeURIComponent(branch)}/${file.path.split("/").map(encodeURIComponent).join("/")}`;
-      const text = await fetchGithubText(rawUrl, `prompt source file ${file.path}`);
-      const fallback = {
-        sourceRepo,
-        path: file.path,
-        title: file.path.split("/").pop().replace(/\.(json|md|markdown|txt)$/i, ""),
-        category: promptCategoryFromPath(file.path),
-        sourceCategory: file.path.split("/").slice(0, -1).join("/")
-      };
-      const parsed = /\.json$/i.test(file.path)
-        ? collectJsonPromptItems(JSON.parse(text), fallback)
-        : parseMarkdownPromptItems(text, fallback);
-      fetched += parsed.length;
-      for (const item of parsed.slice(0, 200)) {
-        const prompt = await store.upsertRemotePrompt({
-          ...item,
-          source: source.name,
-          sourceUrl: source.repoUrl,
-          githubUrl: rawUrl,
-          sourceRepo,
-          syncedAt: new Date().toISOString(),
-          status: "active"
-        });
-        await store.scanPromptDuplicateCandidatesForPrompt(prompt.id, { limit: 2000, hammingThreshold: 6 });
-        upserted += 1;
-      }
-    } catch (error) {
-      skipped += 1;
-      errors.push(`${file.path}: ${error.message || error}`);
-      if (errors.length >= 20) break;
-    }
-  }
-  return { fetched, upserted, skipped, errors };
-}
-
 async function runPromptSourceSync(source) {
-  if (source.parser && source.parser !== "github-generic") {
-    throw httpError(`Unsupported parser '${source.parser}'`, 400);
-  }
-  return syncGithubGenericPromptSource(source);
+  return promptSourceSync.runPromptSourceSync(source, {
+    store,
+    fetchWithTimeout,
+    httpError,
+    sanitizePromptTags,
+    sanitizeUrlField
+  });
 }
 
 function tagSummary(tags = []) {
@@ -2829,6 +2683,9 @@ async function routeApi(req, res, url) {
     }
     try {
       const result = await runPromptSourceSync(source);
+      const aiReviewed = result.upserted
+        ? await reviewPendingPromptDuplicates({ limit: Math.min(24, result.upserted) })
+        : 0;
       const finishedAt = new Date();
       const status = result.errors.length ? "partial" : "success";
       const run = await store.createPromptSyncRun({
@@ -2846,9 +2703,10 @@ async function routeApi(req, res, url) {
         status,
         fetched: result.fetched,
         upserted: result.upserted,
+        aiReviewed,
         errors: result.errors.length
       });
-      return sendJson(res, 200, { run, source: await store.getPromptSourceById(source.id), result });
+      return sendJson(res, 200, { run, source: await store.getPromptSourceById(source.id), result, aiReviewed });
     } catch (error) {
       const finishedAt = new Date();
       const run = await store.createPromptSyncRun({

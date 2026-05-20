@@ -4491,7 +4491,8 @@ const PROMPT_SOURCE_SEED = [
   { id: "ps_zerolu_gpt_image", name: "ZeroLu Awesome GPT Image", repoUrl: "https://github.com/ZeroLu/awesome-gpt-image", parser: "github-generic", sortOrder: 20 },
   { id: "ps_imgedify_gpt4o", name: "ImgEdify GPT-4o Image Prompts", repoUrl: "https://github.com/ImgEdify/Awesome-GPT4o-Image-Prompts", parser: "github-generic", sortOrder: 30 },
   { id: "ps_youmind_gpt_image_2", name: "YouMind GPT Image 2", repoUrl: "https://github.com/YouMind-OpenLab/awesome-gpt-image-2", parser: "github-generic", sortOrder: 40 },
-  { id: "ps_youmind_nano_banana_pro", name: "YouMind Nano Banana Pro", repoUrl: "https://github.com/YouMind-OpenLab/awesome-nano-banana-pro-prompts", parser: "github-generic", sortOrder: 50 }
+  { id: "ps_youmind_nano_banana_pro", name: "YouMind Nano Banana Pro", repoUrl: "https://github.com/YouMind-OpenLab/awesome-nano-banana-pro-prompts", parser: "github-generic", sortOrder: 50 },
+  { id: "ps_basketikun_infinite_canvas", name: "Infinite Canvas Prompt Library", repoUrl: "https://github.com/basketikun/infinite-canvas", parser: "infinite-canvas", sortOrder: 60 }
 ];
 
 function systemTagMeta(index) {

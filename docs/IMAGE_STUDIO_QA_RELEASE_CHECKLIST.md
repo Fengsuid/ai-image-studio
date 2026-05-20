@@ -23,6 +23,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `node --check public/gallery-leaderboard.js`
   - `node --check public/generation-result-actions.js`
   - `node --check public/gallery-normalize.js`
+  - `node --check src/prompt-source-sync.js`
   - `node --check src/canvas-service.js`
   - `node --check src/canvas-import-export.js`
   - `node --check src/canvas-assistant.js`
@@ -44,6 +45,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `npm run smoke:generation-flicker`
   - `npm run smoke:gallery-leaderboard-sidebar`
   - `npm run smoke:generation-result-actions`
+  - `npm run smoke:infinite-canvas-prompt-source`
   - `npm run smoke:prompt-review`
 - Start a local server with a disposable data directory and run public smoke:
   - `PORT=3100 DATA_DIR=data-smoke node server.js`
