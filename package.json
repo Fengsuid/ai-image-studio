@@ -19,6 +19,7 @@
     "smoke:canvas-history": "node scripts/smoke/check-canvas-history.mjs",
     "smoke:canvas-assistant": "node scripts/smoke/check-canvas-assistant.mjs",
     "smoke:canvas-assistant-api": "node scripts/smoke/check-canvas-assistant-api.mjs",
+    "smoke:canvas-gallery-link": "node scripts/smoke/check-canvas-gallery-link.mjs",
     "smoke:canvas-import-export-api": "node scripts/smoke/check-canvas-import-export-api.mjs",
     "smoke:canvas-import-export": "node scripts/smoke/check-canvas-import-export.mjs",
     "smoke:canvas-selection": "node scripts/smoke/check-canvas-selection.mjs",

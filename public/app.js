@@ -4241,6 +4241,8 @@ function openSquarePreview(prompt, options = {}) {
   const canManage = owned || isAdmin;
   const isImageToImage = isImageToImageItem(item) || Boolean(item.sourceImageUrl || item.sourceImageId || item.sourcePrompt);
   const isCanvasRoute = isCanvasRouteItem(item);
+  const originalCanvas = item.canvasProject && item.canvasProject.id ? item.canvasProject : null;
+  const canDuplicateCanvasRoute = Boolean(originalCanvas?.canDuplicate ?? originalCanvas);
   const tags = normalizePublicTags(item.publicTags || []);
   const route = item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
@@ -4328,6 +4330,7 @@ function openSquarePreview(prompt, options = {}) {
           </button>
           <button type="button" data-square-text><i class="ri-sparkling-2-line"></i>${text("textToImageAction")}</button>
           <button type="button" data-square-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>
+          ${canDuplicateCanvasRoute ? `<button type="button" data-square-duplicate-canvas="${escapeHtml(originalCanvas.id)}"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "用此线路新建画布" : "New canvas from this route")}</button>` : ""}
           <button type="button" data-square-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
           <button type="button" data-square-new-canvas><i class="ri-add-box-line"></i>${text("useImageNewCanvas")}</button>
           <button type="button" data-square-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
@@ -4363,6 +4366,26 @@ function openSquarePreview(prompt, options = {}) {
     // exec4 P0 §4：广场点击「图生图」时不再带原提示词，editor 的 prompt 框为空，
     // 用户需要的话仍然可以走 [复制提示词] 或 [提示词文生图] 两个入口。
     openImageEditor(imageUrl, "");
+  });
+  $("[data-square-duplicate-canvas]", elements.modalLayer)?.addEventListener("click", async (event) => {
+    if (!state.user) {
+      closeModal();
+      openAuthModal("login");
+      return;
+    }
+    const projectId = event.currentTarget?.dataset.squareDuplicateCanvas || "";
+    if (!projectId) return;
+    const result = await api(`/api/canvases/${encodeURIComponent(projectId)}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify({
+        title: state.lang === "zh" ? `复制 - ${item.prompt.slice(0, 28)}` : `Copy - ${item.prompt.slice(0, 28)}`
+      })
+    });
+    const newCanvasId = result.canvas?.id || "";
+    if (!newCanvasId) return;
+    closeModal();
+    navigate("canvas", { scrollTop: true, route: { canvasProjectId: newCanvasId } });
+    showToast(state.lang === "zh" ? "已复制为你的私有画布" : "Copied to your private canvas", "ri-node-tree");
   });
   $("[data-square-add-canvas]", elements.modalLayer)?.addEventListener("click", () => {
     openCanvasTargetModal(canvasPayloadFromGeneration({ ...item, imageUrl }, text("outputImage")));

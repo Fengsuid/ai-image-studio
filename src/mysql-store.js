@@ -244,7 +244,7 @@ function mapGeneration(row) {
       publicTags = [];
     }
   }
-  return {
+  const generation = {
     id: row.id,
     userId: row.user_id,
     userName: row.user_name || "",
@@ -284,6 +284,17 @@ function mapGeneration(row) {
     durationMs: row.duration_ms === null || row.duration_ms === undefined ? null : Number(row.duration_ms),
     createdAt: toIso(row.created_at)
   };
+  if (row.canvas_project_id) {
+    generation.canvasProject = {
+      id: row.canvas_project_id,
+      userId: row.canvas_project_user_id || "",
+      title: row.canvas_project_title || "Untitled canvas",
+      visibility: row.canvas_project_visibility || "private",
+      outputNodeId: row.canvas_output_node_id || "",
+      configNodeId: row.canvas_config_node_id || ""
+    };
+  }
+  return generation;
 }
 
 function mapGalleryFileCheck(row) {
@@ -2676,6 +2687,51 @@ async function getGenerationById(id) {
   return mapGeneration(rows[0]);
 }
 
+async function getCanvasProjectForGeneration(generationId) {
+  const [rows] = await getPool().execute(
+    `SELECT c.id AS canvas_project_id,
+            c.user_id AS canvas_project_user_id,
+            c.title AS canvas_project_title,
+            c.visibility AS canvas_project_visibility,
+            l.output_node_id AS canvas_output_node_id,
+            l.config_node_id AS canvas_config_node_id,
+            l.created_at AS canvas_link_created_at
+       FROM canvas_generation_links l
+       INNER JOIN canvas_projects c ON c.id = l.canvas_id AND c.status = 'active'
+      WHERE l.generation_id = ?
+      ORDER BY l.created_at DESC, l.id DESC
+      LIMIT 1`,
+    [String(generationId || "")]
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.canvas_project_id,
+    userId: row.canvas_project_user_id || "",
+    title: row.canvas_project_title || "Untitled canvas",
+    visibility: row.canvas_project_visibility || "private",
+    outputNodeId: row.canvas_output_node_id || "",
+    configNodeId: row.canvas_config_node_id || ""
+  };
+}
+
+async function getPublicGenerationForCanvas(canvasId) {
+  const [rows] = await getPool().execute(
+    `SELECT g.*, u.name AS user_name, u.email AS user_email
+       FROM canvas_generation_links l
+       INNER JOIN generations g ON g.id = l.generation_id
+       LEFT JOIN users u ON u.id = g.user_id
+      WHERE l.canvas_id = ?
+        AND g.is_public = 1
+        AND g.archived = 0
+        AND g.moderation_status IN ('visible', 'restored')
+      ORDER BY COALESCE(g.published_at, g.created_at) DESC, l.created_at DESC
+      LIMIT 1`,
+    [String(canvasId || "")]
+  );
+  return mapGeneration(rows[0]);
+}
+
 async function updateGenerationPublic(id, patch) {
   const existing = await getGenerationById(id);
   const columns = [];
@@ -4739,6 +4795,8 @@ module.exports = {
   listGenerationLikeAnomalies,
   listReportedGenerations,
   getGenerationById,
+  getCanvasProjectForGeneration,
+  getPublicGenerationForCanvas,
   updateGenerationPublic,
   countTodayGenerations,
   listCanvasProjectsForUser,

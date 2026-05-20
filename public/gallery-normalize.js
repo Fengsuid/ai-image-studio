@@ -47,6 +47,7 @@
       originGalleryId: generation.originGalleryId || fallback.originGalleryId || "",
       publishOriginal: Boolean(generation.publishOriginal ?? fallback.publishOriginal),
       conversation: generation.conversation || fallback.conversation || [],
+      canvasProject: generation.canvasProject || fallback.canvasProject || null,
       publicTags: generation.publicTags || fallback.publicTags || [],
       userId: generation.userId || fallback.userId || currentUser.id || "",
       userName: generation.userName || fallback.userName || currentUser.name || "",

@@ -699,6 +699,106 @@ function canManageCanvas(user, canvas) {
   return user.role === "admin" || canvas.userId === user.id;
 }
 
+const CANVAS_PRIVATE_KEYS = new Set([
+  "userId",
+  "userName",
+  "userEmail",
+  "author",
+  "authorId",
+  "authorName",
+  "authorEmail",
+  "owner",
+  "ownerId",
+  "ownerName",
+  "ownerEmail",
+  "createdBy",
+  "createdById",
+  "createdByName",
+  "createdByEmail",
+  "updatedBy",
+  "updatedById",
+  "updatedByName",
+  "updatedByEmail"
+]);
+const CANVAS_IMAGE_REFERENCE_KEYS = new Set([
+  "imageData",
+  "imageUrl",
+  "sourceImage",
+  "sourceImageData",
+  "sourceImageUrl",
+  "coverUrl"
+]);
+const CANVAS_GENERATION_REFERENCE_KEYS = new Set([
+  "generationId",
+  "sourceImageId",
+  "originGalleryId"
+]);
+
+function canvasImageReference(value = "") {
+  const text = String(value || "").trim();
+  const match = text.match(/^\/api\/images\/([^/]+)\/(file|source-file)(?:[?#].*)?$/);
+  return match ? { id: match[1], kind: match[2] } : { id: "", kind: "" };
+}
+
+function isCanvasReferenceAlwaysPublic(value = "") {
+  const text = String(value || "").trim();
+  return !text
+    || /^https?:\/\//i.test(text)
+    || /^\/api\/prompt-images\//i.test(text)
+    || /^\/prompt-thumbs\//i.test(text);
+}
+
+async function canCopyCanvasGenerationReference(value = "", { source = false } = {}) {
+  const text = String(value || "").trim();
+  if (!text) return true;
+  const reference = canvasImageReference(text);
+  const id = reference.id || (/^gen_/i.test(text) ? text : "");
+  if (!id) return isCanvasReferenceAlwaysPublic(text);
+  const generation = await store.getGenerationById(id);
+  if (!isPubliclyVisibleGeneration(generation)) return false;
+  return source || reference.kind === "source-file" ? Boolean(generation.publishOriginal) : true;
+}
+
+async function scrubCanvasCopyValue(value, key = "") {
+  if (Array.isArray(value)) {
+    const items = [];
+    for (const item of value) items.push(await scrubCanvasCopyValue(item, ""));
+    return items;
+  }
+  if (!value || typeof value !== "object") {
+    if (CANVAS_IMAGE_REFERENCE_KEYS.has(key)) {
+      return (await canCopyCanvasGenerationReference(value, { source: key.toLowerCase().startsWith("source") })) ? String(value || "") : "";
+    }
+    if (CANVAS_GENERATION_REFERENCE_KEYS.has(key)) {
+      return (await canCopyCanvasGenerationReference(value, { source: key === "sourceImageId" })) ? String(value || "") : "";
+    }
+    return value;
+  }
+  const clean = {};
+  for (const [entryKey, entryValue] of Object.entries(value)) {
+    if (CANVAS_PRIVATE_KEYS.has(entryKey)) continue;
+    clean[entryKey] = await scrubCanvasCopyValue(entryValue, entryKey);
+  }
+  return clean;
+}
+
+async function createCanvasDuplicatePayload(source, { title = "" } = {}, { copyMetadata = true } = {}) {
+  const exported = canvasImportExport.createCanvasExport(source);
+  const dataJson = await scrubCanvasCopyValue(exported.canvas.dataJson || {}, "dataJson");
+  const coverUrl = (await canCopyCanvasGenerationReference(source.coverUrl)) ? source.coverUrl : "";
+  const fallbackTitle = copyMetadata ? source.title : "Canvas route copy";
+  const copyTitle = String(title || fallbackTitle || "Untitled canvas").trim().slice(0, 160) || "Untitled canvas";
+  return {
+    title: copyTitle,
+    description: copyMetadata ? String(source.description || "").trim().slice(0, 1000) : "",
+    coverUrl,
+    visibility: "private",
+    dataJson,
+    nodeCount: Array.isArray(dataJson.nodes) ? dataJson.nodes.length : 0,
+    edgeCount: Array.isArray(dataJson.edges) ? dataJson.edges.length : 0
+  };
+}
+
 function canvasGenerationPlan(body = {}) {
   const nodes = Array.isArray(body.nodes) ? body.nodes : [];
   const edges = Array.isArray(body.edges) ? body.edges : [];
@@ -1967,6 +2067,29 @@ function generationResponse(generation) {
     sourceImageUrl: sourceImageUrlForGeneration(generation),
     ...sourceImageAuditFields(generation)
   };
+}
+
+async function generationResponseForViewer(generation, current) {
+  const response = generationResponse(generation);
+  const canvasProject = await store.getCanvasProjectForGeneration(generation.id);
+  if (!canvasProject || !current?.user) return response;
+  const canOpenOriginal = canReadCanvas(current.user, canvasProject);
+  if (canOpenOriginal) {
+    response.canvasProject = {
+      ...canvasProject,
+      canDuplicate: true,
+      canOpenOriginal: true
+    };
+  } else if (isPubliclyVisibleGeneration(generation)) {
+    response.canvasProject = {
+      id: canvasProject.id,
+      outputNodeId: canvasProject.outputNodeId || "",
+      configNodeId: canvasProject.configNodeId || "",
+      canDuplicate: true,
+      canOpenOriginal: false
+    };
+  }
+  return response;
 }
 
 function promptLeaderboardResponse(prompt) {
@@ -3496,6 +3619,38 @@ async function routeApi(req, res, url) {
     });
   }
 
+  const canvasDuplicateMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)\/duplicate$/);
+  if (canvasDuplicateMatch && req.method === "POST") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const source = await store.getCanvasProjectById(canvasDuplicateMatch[1]);
+    const canReadSource = canReadCanvas(current.user, source);
+    if (!canReadSource) {
+      const publicRouteGeneration = source ? await store.getPublicGenerationForCanvas(source.id) : null;
+      if (!isPubliclyVisibleGeneration(publicRouteGeneration)) {
+        throw httpError("Canvas not found", 404);
+      }
+    }
+    if (!source) {
+      throw httpError("Canvas not found", 404);
+    }
+    const body = await readJsonBody(req);
+    const payload = await createCanvasDuplicatePayload(source, body, { copyMetadata: canReadSource });
+    const canvas = await store.createCanvasProject({
+      ...payload,
+      id: randomId("can_"),
+      userId: current.user.id
+    });
+    return sendJson(res, 201, {
+      canvas,
+      duplicated: {
+        sourceCanvasId: source.id,
+        nodeCount: payload.nodeCount,
+        edgeCount: payload.edgeCount
+      }
+    });
+  }
+
   const canvasMatch = url.pathname.match(/^\/api\/canvases\/([^/]+)$/);
   if (canvasMatch && req.method === "GET") {
     const current = await getCurrentUser(req);
@@ -3846,12 +4001,9 @@ async function routeApi(req, res, url) {
     const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
     const rawGenerations = await store.listPublicGenerations(limit, { includeBroken, currentUserId: current?.user?.id || "", sort });
     const visibleGenerations = includeBroken ? rawGenerations : await filterGenerationsWithImageFiles(rawGenerations);
-    const generations = visibleGenerations.map((generation) => ({
-      ...generation,
-      imageUrl: `/api/images/${generation.id}/file`,
-      sourceImageUrl: sourceImageUrlForGeneration(generation),
-      ...sourceImageAuditFields(generation)
-    }));
+    const generations = await Promise.all(
+      visibleGenerations.map((generation) => generationResponseForViewer(generation, current))
+    );
     return sendJson(res, 200, { generations });
   }
 
@@ -3993,7 +4145,7 @@ async function routeApi(req, res, url) {
     if (!generation || (!includeHidden && (!isPubliclyVisibleGeneration(generation) || imageMissing))) {
       throw httpError("Gallery image not found", 404);
     }
-    return sendJson(res, 200, { generation: generationResponse(generation) });
+    return sendJson(res, 200, { generation: await generationResponseForViewer(generation, current) });
   }
 
   if (req.method === "POST" && url.pathname === "/api/gallery/prompt-audit") {
