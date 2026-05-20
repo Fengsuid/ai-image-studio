@@ -472,6 +472,7 @@ function publicSettings(settings, activeProvider = null) {
     checkinCredit: CHECKIN_CREDIT,
     maxImagesPerRequest: Number(settings.maxImagesPerRequest || 1),
     maxReferenceImages: normalizeMaxReferenceImages(settings.maxReferenceImages),
+    publicWithdrawalWindowHours: PUBLIC_WITHDRAWAL_WINDOW_HOURS,
     providerCapabilities: capabilities,
     provider: activeProvider?.providerType || "openai-compatible",
     activeProvider: activeProvider ? {
@@ -900,6 +901,179 @@ async function writeAdminAudit(current, req, action, targetType, targetId, detai
     ipAddress: getClientIp(req),
     userAgent: getUserAgent(req)
   }).catch((error) => console.error("[admin-audit]", error));
+}
+
+function generationNoticeName(generation) {
+  const prompt = String(generation?.prompt || "").replace(/\s+/g, " ").trim();
+  if (!prompt) return String(generation?.id || "公开作品");
+  return prompt.length > 36 ? `${prompt.slice(0, 36)}...` : prompt;
+}
+
+async function sendUserNotification({
+  userIds = [],
+  title = "系统通知",
+  body = "",
+  level = "info",
+  displayMode = "feed",
+  isImportant = false,
+  requiresAck = false,
+  createdBy = null,
+  metadata = {}
+} = {}) {
+  const targetUserIds = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
+    .map((id) => String(id || "").trim())
+    .filter(Boolean))];
+  if (!targetUserIds.length) return null;
+  try {
+    return await store.createAnnouncement({
+      id: randomId("ntf_"),
+      title: String(title || "系统通知").trim().slice(0, 160) || "系统通知",
+      body: String(body || title || "系统通知").trim().slice(0, 12000) || "系统通知",
+      level: choose(String(level || "info"), ["info", "success", "warning", "danger", "maintenance", "feature"], "info"),
+      displayMode: choose(String(displayMode || "feed"), ["modal", "banner", "feed"], "feed"),
+      audience: "specific-users",
+      status: "published",
+      isImportant,
+      requiresAck,
+      createdBy,
+      metadata: metadata && typeof metadata === "object" ? metadata : {},
+      targetUserIds
+    });
+  } catch (error) {
+    console.error("[notification]", error);
+    return null;
+  }
+}
+
+async function notifyReportSubmitted({ generation, reporterUserId, report }) {
+  if (!report || report.alreadyPending) return;
+  const name = generationNoticeName(generation);
+  const metadata = {
+    type: "generation_report_submitted",
+    generationId: generation.id,
+    reportId: report.id,
+    reason: report.reason || ""
+  };
+  if (generation.userId && generation.userId !== reporterUserId) {
+    await sendUserNotification({
+      userIds: [generation.userId],
+      title: "公开作品收到举报",
+      body: `你的公开作品「${name}」收到举报，已进入人工审核。审核期间作品会保持当前可见状态，处理结果会通过通知告知。`,
+      level: "warning",
+      metadata
+    });
+  }
+  if (reporterUserId) {
+    await sendUserNotification({
+      userIds: [reporterUserId],
+      title: "举报已提交",
+      body: `你对公开作品「${name}」的举报已提交，管理员处理后会通过通知告知结果。`,
+      level: "info",
+      metadata
+    });
+  }
+}
+
+async function notifyModerationOutcome({ generation, action, reason = "", reports = [], actorUserId = null }) {
+  const name = generationNoticeName(generation);
+  const reasonText = reason ? `处理原因：${reason}` : "管理员已完成审核。";
+  const reporterIds = [...new Set(reports.map((report) => report.reporterUserId).filter(Boolean))];
+  const metadata = {
+    type: "generation_moderation",
+    generationId: generation.id,
+    action,
+    reason
+  };
+  if (action === "hide") {
+    await sendUserNotification({
+      userIds: [generation.userId],
+      title: "公开作品已隐藏",
+      body: `你的公开作品「${name}」已被管理员隐藏，前台广场不再展示。${reasonText}`,
+      level: "danger",
+      isImportant: true,
+      createdBy: actorUserId,
+      metadata
+    });
+    await sendUserNotification({
+      userIds: reporterIds,
+      title: "举报已处理",
+      body: `你举报的公开作品「${name}」已被管理员隐藏。感谢反馈。`,
+      level: "success",
+      createdBy: actorUserId,
+      metadata
+    });
+  } else if (action === "reject") {
+    await sendUserNotification({
+      userIds: [generation.userId],
+      title: "举报审核已结束",
+      body: `你的公开作品「${name}」的举报审核已结束，管理员未隐藏该作品。${reasonText}`,
+      level: "success",
+      createdBy: actorUserId,
+      metadata
+    });
+    await sendUserNotification({
+      userIds: reporterIds,
+      title: "举报已审核",
+      body: `你提交的公开作品「${name}」举报已审核，管理员未隐藏该作品。${reasonText}`,
+      level: "info",
+      createdBy: actorUserId,
+      metadata
+    });
+  } else if (action === "restore") {
+    await sendUserNotification({
+      userIds: [generation.userId],
+      title: "公开作品已恢复",
+      body: `你的公开作品「${name}」已由管理员恢复展示。${reasonText}`,
+      level: "success",
+      createdBy: actorUserId,
+      metadata
+    });
+    await sendUserNotification({
+      userIds: reporterIds,
+      title: "举报已审核",
+      body: `你提交的公开作品「${name}」举报已审核，管理员恢复了该作品。${reasonText}`,
+      level: "info",
+      createdBy: actorUserId,
+      metadata
+    });
+  }
+}
+
+async function notifyWithdrawalRequest({ generation, direct = false }) {
+  const name = generationNoticeName(generation);
+  await sendUserNotification({
+    userIds: [generation.userId],
+    title: direct ? "公开作品已撤回" : "撤回申请已提交",
+    body: direct
+      ? `你的公开作品「${name}」已在 ${PUBLIC_WITHDRAWAL_WINDOW_HOURS} 小时窗口内撤回，前台广场不再展示。`
+      : `你的公开作品「${name}」已超过 ${PUBLIC_WITHDRAWAL_WINDOW_HOURS} 小时撤回窗口，撤回申请已提交给管理员审核。`,
+    level: direct ? "success" : "warning",
+    metadata: {
+      type: "generation_withdrawal",
+      generationId: generation.id,
+      direct
+    }
+  });
+}
+
+async function notifyWithdrawalDecision({ generation, decision, reason = "", actorUserId = null }) {
+  const name = generationNoticeName(generation);
+  const approved = decision === "approved";
+  await sendUserNotification({
+    userIds: [generation.userId],
+    title: approved ? "撤回申请已批准" : "撤回申请被拒绝",
+    body: approved
+      ? `你的公开作品「${name}」撤回申请已批准，前台广场不再展示。`
+      : `你的公开作品「${name}」撤回申请被拒绝，作品会继续保持公开。${reason ? `原因：${reason}` : ""}`,
+    level: approved ? "success" : "warning",
+    createdBy: actorUserId,
+    metadata: {
+      type: "generation_withdrawal_decision",
+      generationId: generation.id,
+      decision,
+      reason
+    }
+  });
 }
 
 function ensureAuthenticated(current) {
@@ -3551,7 +3725,14 @@ async function routeApi(req, res, url) {
       ? { withdrawalStatus: "approved", isPublic: false, publishOriginal: false }
       : { withdrawalStatus: "rejected" };
     const updated = await store.updateGenerationPublic(generation.id, patch);
-    await writeAdminAudit(current, req, `withdrawal_${decision}`, "generation", generation.id, { reason: body.reason || "" });
+    const reason = String(body.reason || "").trim().slice(0, 255);
+    await notifyWithdrawalDecision({
+      generation: updated,
+      decision,
+      reason,
+      actorUserId: current.user.id
+    });
+    await writeAdminAudit(current, req, `withdrawal_${decision}`, "generation", generation.id, { reason });
     return sendJson(res, 200, { generation: updated });
   }
 
@@ -3565,6 +3746,7 @@ async function routeApi(req, res, url) {
     const body = await readJsonBody(req);
     const action = String(body.action || "").trim();
     const reason = String(body.reason || "").trim().slice(0, 255);
+    const pendingReports = await store.listGenerationReports({ generationId: generation.id, status: "pending", limit: 500 });
     const patch = {};
     if (action === "hide") {
       patch.moderationStatus = "hidden";
@@ -3584,6 +3766,13 @@ async function routeApi(req, res, url) {
     await store.markGenerationReportsHandled(generation.id, {
       status: action === "restore" || action === "reject" ? "rejected" : "resolved",
       handledBy: current.user.id
+    });
+    await notifyModerationOutcome({
+      generation: updated,
+      action,
+      reason: reason || patch.moderationReason || "",
+      reports: pendingReports,
+      actorUserId: current.user.id
     });
     await writeAdminAudit(current, req, `moderation_${action}`, "generation", generation.id, {
       reason,
@@ -4881,6 +5070,11 @@ async function routeApi(req, res, url) {
       description
     });
     const updated = await store.getGenerationById(generation.id);
+    await notifyReportSubmitted({
+      generation: updated,
+      reporterUserId: current.user.id,
+      report
+    });
     await writeAdminAudit(current, req, "report_generation", "generation", generation.id, {
       reason,
       description,
@@ -4908,13 +5102,18 @@ async function routeApi(req, res, url) {
         withdrawalRequestedAt: new Date(),
         withdrawalReason: body.reason || "direct withdrawal"
       });
+      await notifyWithdrawalRequest({ generation: updated, direct: true });
       return sendJson(res, 200, { generation: updated, direct: true });
+    }
+    if (generation.withdrawalStatus === "requested") {
+      return sendJson(res, 200, { generation, direct: false, pending: true });
     }
     const updated = await store.updateGenerationPublic(generation.id, {
       withdrawalStatus: "requested",
       withdrawalRequestedAt: new Date(),
       withdrawalReason: body.reason || ""
     });
+    await notifyWithdrawalRequest({ generation: updated, direct: false });
     return sendJson(res, 202, { generation: updated, direct: false });
   }
 

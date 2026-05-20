@@ -622,7 +622,7 @@ function renderSquareReview() {
             <strong>${escapeHtml(item.userName || item.userId || "匿名")}</strong>
             <p>${escapeHtml(item.prompt || "")}</p>
             <small>${fmtDate(item.createdAt)} · ${escapeHtml(item.moderationStatus || "visible")} · 举报 ${fmtNumber(item.reportCount || 0)}</small>
-            ${item.moderationReason ? `<small>${escapeHtml(item.moderationReason)}</small>` : ""}
+            ${item.latestReportReason || item.moderationReason ? `<small>${escapeHtml(item.latestReportReason || item.moderationReason)}</small>` : ""}
           </div>
           <div class="admin-card-actions">
             <button type="button" data-detail="work:${escapeHtml(item.id)}">详情</button>
@@ -1097,7 +1097,7 @@ function renderWithdrawals() {
                 <td>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</td>
                 <td><span class="admin-badge" data-status="${escapeHtml(item.moderationStatus || "visible")}">${escapeHtml(item.moderationStatus || "visible")}</span></td>
                 <td>${fmtNumber(item.reportCount || 0)}</td>
-                <td>${escapeHtml(item.moderationReason || "-")}</td>
+                <td>${escapeHtml(item.latestReportReason || item.moderationReason || "-")}</td>
                 <td>
                   ${item.moderationStatus === "hidden"
                     ? `<button type="button" data-moderation="restore:${escapeHtml(item.id)}">恢复</button>`
@@ -2074,6 +2074,7 @@ function bindActions() {
   document.querySelectorAll("[data-withdrawal-decision]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [decision, id] = button.dataset.withdrawalDecision.split(":");
+      const reason = prompt("处理原因", decision === "rejected" ? "withdrawal rejected" : "") || "";
       if (!(await confirmAction({
         title: `${decision === "approved" ? "批准" : "拒绝"}撤回申请`,
         message: `${decision === "approved" ? "批准" : "拒绝"}该撤回申请？`,
@@ -2082,9 +2083,9 @@ function bindActions() {
       }))) return;
       await api(`/api/admin/withdrawals/${encodeURIComponent(id)}`, {
         method: "PATCH",
-        body: JSON.stringify({ decision })
+        body: JSON.stringify({ decision, reason })
       });
-      recordAudit(`withdrawal_${decision}`, id, "");
+      recordAudit(`withdrawal_${decision}`, id, reason);
       await refreshAndRender();
     });
   });

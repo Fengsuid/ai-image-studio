@@ -2116,7 +2116,8 @@ async function createGenerationReport({ generationId, reporterUserId = "", reaso
     [generationId, reporterUserId || null]
   );
   if (existing.length) {
-    return getGenerationReportById(existing[0].id);
+    const report = await getGenerationReportById(existing[0].id);
+    return report ? { ...report, alreadyPending: true } : report;
   }
   const [result] = await getPool().execute(
     `INSERT INTO generation_reports (generation_id, reporter_user_id, reason, description)
@@ -2136,7 +2137,8 @@ async function createGenerationReport({ generationId, reporterUserId = "", reaso
       WHERE id = ?`,
     [String(reason || "user_report").slice(0, 255), generationId]
   );
-  return getGenerationReportById(result.insertId);
+  const report = await getGenerationReportById(result.insertId);
+  return report ? { ...report, created: true } : report;
 }
 
 async function getGenerationReportById(id) {

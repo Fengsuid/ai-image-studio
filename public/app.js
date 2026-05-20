@@ -3080,10 +3080,7 @@ async function unpublishGeneration(item) {
     openAuthModal("login");
     return false;
   }
-  const withinWindow = !item.publishedAt || Date.now() - new Date(item.publishedAt).getTime() <= 12 * 60 * 60 * 1000;
-  const message = withinWindow
-    ? (state.lang === "zh" ? "确认撤回公开？12 小时内撤回会取消未入账奖励。" : "Unpublish this work? Pending reward will be cancelled.")
-    : (state.lang === "zh" ? "已超过 12 小时，将提交撤回申请。" : "More than 12 hours passed. This will submit a withdrawal request.");
+  const { withinWindow, message } = withdrawalPromptForItem(item);
   if (!confirm(message)) return false;
   try {
     const response = state.user?.role === "admin"
@@ -5571,13 +5568,26 @@ function firstPublicRewardToast(item, fallbackKey = "publishDone") {
     : `${text("firstPublicRewardLocked")} (+${amount})`;
 }
 
+function publicWithdrawalWindowHours() {
+  return Math.max(1, Number(state.settings?.publicWithdrawalWindowHours || 12));
+}
+
+function withdrawalPromptForItem(item) {
+  const hours = publicWithdrawalWindowHours();
+  const withinWindow = !item.publishedAt || Date.now() - new Date(item.publishedAt).getTime() <= hours * 60 * 60 * 1000;
+  const hourText = state.lang === "zh" ? `${hours} 小时` : `${hours} hour${hours === 1 ? "" : "s"}`;
+  return {
+    withinWindow,
+    message: withinWindow
+      ? (state.lang === "zh" ? `确认撤回公开？${hourText}内撤回会取消未入账奖励。` : `Unpublish this work? Pending reward will be cancelled within ${hourText}.`)
+      : (state.lang === "zh" ? `已超过 ${hourText}，将提交撤回申请。` : `More than ${hourText} passed. This will submit a withdrawal request.`)
+  };
+}
+
 async function requestWorkWithdrawal(id) {
   const item = state.history.find((entry) => String(entry.id) === String(id));
   if (!item) return;
-  const withinWindow = !item.publishedAt || Date.now() - new Date(item.publishedAt).getTime() <= 12 * 60 * 60 * 1000;
-  const message = withinWindow
-    ? (state.lang === "zh" ? "确认撤回公开？12 小时内撤回会取消未入账奖励。" : "Unpublish this work? Pending reward will be cancelled.")
-    : (state.lang === "zh" ? "已超过 12 小时，将提交撤回申请。" : "More than 12 hours passed. This will submit a withdrawal request.");
+  const { withinWindow, message } = withdrawalPromptForItem(item);
   if (!confirm(message)) return;
   try {
     await api(`/api/images/${encodeURIComponent(id)}/withdrawal`, {
