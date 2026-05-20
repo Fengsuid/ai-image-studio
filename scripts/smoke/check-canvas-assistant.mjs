@@ -68,4 +68,19 @@ const textPayload = browserAssistant.createInsertPayload(response.suggestions.fi
 assert.equal(textPayload.kind, "text");
 assert.match(textPayload.body, /Style direction|Generation plan/);
 
+let requestedAfterFailedSave = false;
+const controller = browserAssistant.createController({
+  container: { dataset: {}, addEventListener() {}, innerHTML: "" },
+  request: async () => {
+    requestedAfterFailedSave = true;
+    return {};
+  },
+  saveCanvas: async () => false,
+  getContext: () => ({ projectId: "can_failed_save", selectedNodeId: "node_output", selectedNodeIds: ["node_output"] }),
+  insertSuggestion: () => null
+});
+await controller.ask();
+assert.equal(requestedAfterFailedSave, false, "assistant should not request stale context after save failure");
+assert.match(controller.state().error, /Save failed/);
+
 console.log("[canvas-assistant-smoke] OK");

@@ -156,6 +156,7 @@ function canvasPayload() {
 
 async function main() {
   log("base =", base);
+  await request("/api/auth/me");
   await request(`/api/canvases/can_missing_${runId}/assistant`, {
     method: "POST",
     expected: 401,
