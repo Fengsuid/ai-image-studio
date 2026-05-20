@@ -100,6 +100,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/canvas-inspector.js"), "/ missing canvas-inspector.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-leaderboard.js"), "/ missing gallery-leaderboard.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/generation-result-actions.js"), "/ missing generation-result-actions.js reference");
   assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
@@ -115,6 +116,7 @@ async function checkHomeResources() {
   const canvasInspectorMatch = home.body.match(/src="([^"]*\/canvas-inspector\.js[^"]*)"/);
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const galleryLeaderboardMatch = home.body.match(/src="([^"]*\/gallery-leaderboard\.js[^"]*)"/);
+  const generationResultActionsMatch = home.body.match(/src="([^"]*\/generation-result-actions\.js[^"]*)"/);
   const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
@@ -127,6 +129,7 @@ async function checkHomeResources() {
   const canvasInspectorPath = canvasInspectorMatch?.[1] || "/canvas-inspector.js";
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const galleryLeaderboardPath = galleryLeaderboardMatch?.[1] || "/gallery-leaderboard.js";
+  const generationResultActionsPath = generationResultActionsMatch?.[1] || "/generation-result-actions.js";
   const referenceImagesPath = referenceImagesMatch?.[1] || "/reference-images.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
@@ -222,6 +225,12 @@ async function checkHomeResources() {
   assert(galleryLeaderboard.status === 200, `${galleryLeaderboardPath} status=${galleryLeaderboard.status}`);
   assert(galleryLeaderboard.body.includes("ImageStudioGalleryLeaderboard"), `${galleryLeaderboardPath} should register leaderboard helpers`);
   assert(galleryLeaderboard.body.includes("rank-like"), `${galleryLeaderboardPath} should render compact like controls`);
+
+  log(`GET ${generationResultActionsPath}`);
+  const generationResultActions = await fetchText(generationResultActionsPath, "application/javascript,*/*");
+  assert(generationResultActions.status === 200, `${generationResultActionsPath} status=${generationResultActions.status}`);
+  assert(generationResultActions.body.includes("ImageStudioGenerationResultActions"), `${generationResultActionsPath} should register result action helpers`);
+  assert(generationResultActions.body.includes("message-more-menu"), `${generationResultActionsPath} should collapse secondary result actions`);
 
   log(`GET ${referenceImagesPath}`);
   const referenceImages = await fetchText(referenceImagesPath, "application/javascript,*/*");

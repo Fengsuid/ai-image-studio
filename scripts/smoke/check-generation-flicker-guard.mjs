@@ -8,6 +8,7 @@ import path from "node:path";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
+const resultActions = fs.readFileSync(path.join(rootDir, "public/generation-result-actions.js"), "utf8");
 
 function functionBody(name) {
   const start = app.indexOf(`function ${name}`);
@@ -44,6 +45,6 @@ assert(!renderComposersBody.includes("innerHTML"), "renderComposers must not reb
 
 const cardUpdater = functionBody("updateGeneratingHistoryCard");
 assert(cardUpdater.includes("[data-generation-progress]"), "card updater must target the progress span");
-assert(app.includes("data-generation-progress"), "renderHistory must expose a stable progress span");
+assert((app + resultActions).includes("data-generation-progress"), "renderHistory must expose a stable progress span");
 
 console.log("[generation-flicker-guard] OK: generation polling patches cards, preserves view classes, and reuses composer mounts");

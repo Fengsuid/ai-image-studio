@@ -2749,7 +2749,6 @@ function renderHistory() {
         ? `<div class="paint-drip"><span></span><span></span><span></span><span></span><span></span></div>`
         : `<i class="ri-image-line"></i>`;
     const error = item.status === "error" ? `<div class="error-box">${escapeHtml(item.error || "Error")}</div>` : "";
-    const canPublishOriginal = Boolean(item.sourceImageData || item.sourceImageUrl);
     const tagRow = item.publicTags?.length ? `
       <div class="public-tag-row">
         ${item.publicTags.map((tag) => {
@@ -2778,39 +2777,13 @@ function renderHistory() {
         `).join("")}
       </div>
     ` : "";
-    const moreActions = item.status === "done" && item.images[0] ? `
-      <details class="message-more">
-        <summary><i class="ri-more-2-line"></i>${text("more")}</summary>
-        <div class="message-more-menu">
-          <button type="button" data-edit-image="${escapeHtml(item.id)}"><i class="ri-image-edit-line"></i>${text("imageToImageShort")}</button>
-          <button type="button" data-publish-image="${escapeHtml(item.id)}">
-            <i class="${item.isPublic ? "ri-price-tag-3-line" : "ri-gallery-upload-line"}"></i>
-            ${item.isPublic ? text("editPublicTags") : text("publishImage")}
-          </button>
-          ${canPublishOriginal && !item.publishOriginal ? `<button type="button" data-publish-original="${escapeHtml(item.id)}"><i class="ri-image-add-line"></i>${text("publishWithOriginal")}</button>` : ""}
-          ${item.sourceImageUrl && item.publishOriginal ? `<a href="${escapeHtml(item.sourceImageUrl)}" target="_blank" rel="noreferrer"><i class="ri-image-line"></i>${text("sourceImage")}</a>` : ""}
-        </div>
-      </details>
-    ` : "";
-    const actions = item.status === "done" ? `
-      <div class="message-actions result-action-bar">
-        <button type="button" data-retry="${escapeHtml(item.prompt)}"><i class="ri-refresh-line"></i>${text("retry")}</button>
-        <a href="${item.images[0]}" download="${item.id}.png"><i class="ri-download-line"></i>${text("download")}</a>
-        <button type="button" data-add-generation-canvas="${escapeHtml(item.id)}"><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
-        <button type="button" data-edit="${escapeHtml(item.prompt)}"><i class="ri-edit-line"></i>${text("editPrompt")}</button>
-        ${moreActions}
-      </div>
-    ` : item.status === "error" ? `
-      <div class="message-actions">
-        <button type="button" data-retry="${escapeHtml(item.prompt)}"><i class="ri-refresh-line"></i>${text("retry")}</button>
-        <button type="button" data-edit="${escapeHtml(item.prompt)}"><i class="ri-edit-line"></i>${text("editPrompt")}</button>
-      </div>
-    ` : item.status === "generating" ? `
-      <div class="message-actions generating-actions">
-        <span data-generation-progress>${generatingActionText(item)}</span>
-        <button type="button" data-generate-cancel="${escapeHtml(item.requestId || state.currentGenerationRequestId || "")}"><i class="ri-stop-circle-line"></i>${text("editorCancel")}</button>
-      </div>
-    ` : "";
+    const actions = window.ImageStudioGenerationResultActions?.render?.({
+      item,
+      state,
+      text,
+      escapeHtml,
+      generatingActionText
+    }) || "";
     return `
       ${separator}
       <article class="message-card fade-up" data-history-id="${escapeHtml(item.id)}">
@@ -2850,6 +2823,14 @@ function renderHistory() {
     button.addEventListener("click", () => {
       const item = state.history.find((entry) => String(entry.id) === button.dataset.editImage);
       if (item?.images?.[0]) openImageEditor(item.images[0], item.prompt);
+    });
+  });
+  $$("[data-copy-history-prompt]", elements.historyList).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const item = state.history.find((entry) => String(entry.id) === button.dataset.copyHistoryPrompt);
+      if (!item) return;
+      await copyText(item.prompt || "");
+      showToast(state.lang === "zh" ? "提示词已复制" : "Prompt copied", "ri-file-copy-line");
     });
   });
   $$("[data-candidate]", elements.historyList).forEach((button) => {
