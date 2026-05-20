@@ -93,6 +93,7 @@ async function createActiveSmokeUser({ email, password, name }) {
   let connection;
   try {
     connection = await mysql.createConnection(mysqlConfig());
+    await connection.execute("DELETE FROM users WHERE email = ?", [email]);
     await connection.execute(
       `INSERT INTO users
         (id, name, email, password_salt, password_iterations, password_hash, role, status, credits, created_at, updated_at)
