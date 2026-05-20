@@ -1,5 +1,5 @@
-import { createShellState, renderShell } from "./shell.js";
-import { apiFetch } from "../adapters/ai-image-studio-api.js";
+import { createShellState, renderShell } from "./shell.8497ebe3f34c.js";
+import { apiFetch } from "../adapters/ai-image-studio-api.d0a45d04e521.js";
 
 export function createCanvasV2App(root) {
   const state = createShellState();

@@ -14,7 +14,12 @@
   ],
   "scripts": {
     "start": "node server.js",
+    "canvas:v2:install": "npm install --prefix apps/canvas-v2",
+    "canvas:v2:check": "npm run check --prefix apps/canvas-v2",
+    "canvas:v2:build": "npm run build --prefix apps/canvas-v2",
     "smoke:public": "node scripts/smoke/check-public-api.mjs",
+    "smoke:canvas-v2": "node scripts/smoke/check-canvas-v2.mjs",
+    "smoke:canvas-v2:static": "node scripts/smoke/check-canvas-v2-static.mjs",
     "smoke:auth-admin": "node scripts/smoke/check-auth-admin.mjs",
     "smoke:user-credits-reward": "node scripts/smoke/check-user-credits-reward.mjs",
     "smoke:moderation-withdrawal": "node scripts/smoke/check-moderation-withdrawal.mjs",

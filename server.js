@@ -4723,7 +4723,15 @@ async function routeApi(req, res, url) {
 
 async function serveStatic(req, res, url) {
   const pathname = decodeURIComponent(url.pathname);
-  const requestedPath = pathname === "/" ? "/index.html" : pathname === "/admin" ? "/admin.html" : pathname;
+  const isCanvasV2Path = pathname === "/canvas-v2" || pathname.startsWith("/canvas-v2/");
+  const isCanvasV2AssetPath = pathname.startsWith("/canvas-v2/assets/");
+  const requestedPath = pathname === "/"
+    ? "/index.html"
+    : pathname === "/admin"
+      ? "/admin.html"
+      : isCanvasV2Path && !isCanvasV2AssetPath
+        ? "/canvas-v2/index.html"
+        : pathname;
   const absolutePath = path.normalize(path.join(PUBLIC_DIR, requestedPath));
   if (absolutePath !== PUBLIC_DIR && !absolutePath.startsWith(PUBLIC_DIR + path.sep)) {
     return sendError(res, 403, "Forbidden");
@@ -4740,6 +4748,18 @@ async function serveStatic(req, res, url) {
     }));
     res.end(bytes);
   } catch {
+    if (isCanvasV2Path) {
+      if (isCanvasV2AssetPath) {
+        return sendError(res, 404, "Static asset not found");
+      }
+      const html = await fs.readFile(path.join(PUBLIC_DIR, "canvas-v2", "index.html"), "utf8");
+      res.writeHead(200, withSecurityHeaders({
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store"
+      }));
+      res.end(html);
+      return;
+    }
     if (
       pathname.startsWith("/prompt-thumbs/") ||
       /\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i.test(pathname)

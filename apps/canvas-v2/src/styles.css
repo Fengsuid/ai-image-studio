@@ -1,0 +1,96 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #f4efe4;
+  color: #241d16;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 214, 132, 0.72), transparent 28rem),
+    radial-gradient(circle at 90% 0%, rgba(136, 188, 172, 0.48), transparent 26rem),
+    linear-gradient(135deg, #fff8ec 0%, #eadfca 48%, #dce6df 100%);
+}
+
+.canvas-v2-shell {
+  width: min(1440px, calc(100vw - 32px));
+  min-height: calc(100vh - 32px);
+  margin: 16px auto;
+  padding: clamp(20px, 4vw, 48px);
+  border: 1px solid rgba(76, 56, 34, 0.16);
+  border-radius: 34px;
+  background: rgba(255, 252, 245, 0.82);
+  box-shadow: 0 30px 90px rgba(74, 56, 34, 0.16);
+  backdrop-filter: blur(22px);
+}
+
+.canvas-v2-eyebrow {
+  margin: 0 0 12px;
+  color: #736149;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.canvas-v2-shell h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 7rem);
+  line-height: 0.9;
+}
+
+.canvas-v2-summary {
+  max-width: 760px;
+  margin: 18px 0 34px;
+  color: #5d5041;
+  font-size: clamp(1rem, 1.8vw, 1.24rem);
+}
+
+.canvas-v2-workspace {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(420px, 1fr) minmax(210px, 280px);
+  gap: 16px;
+  min-height: 520px;
+}
+
+.canvas-v2-panel,
+.canvas-v2-board {
+  border: 1px solid rgba(76, 56, 34, 0.14);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 18px;
+}
+
+.canvas-v2-board {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background:
+    linear-gradient(rgba(54, 43, 30, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(54, 43, 30, 0.05) 1px, transparent 1px),
+    rgba(255, 255, 255, 0.5);
+  background-size: 28px 28px;
+}
+
+.canvas-v2-error {
+  color: #9f2d20;
+}
+
+@media (max-width: 900px) {
+  .canvas-v2-shell {
+    width: min(100vw - 18px, 720px);
+    margin: 9px auto;
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .canvas-v2-workspace {
+    grid-template-columns: 1fr;
+  }
+}

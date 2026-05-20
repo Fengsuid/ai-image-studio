@@ -7,7 +7,8 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "check": "node scripts/check-syntax.mjs",
-    "build": "npm run check"
+    "typecheck": "npm run check",
+    "build": "npm run check && node scripts/build.mjs"
   },
   "dependencies": {},
   "devDependencies": {}
