@@ -16,7 +16,10 @@ const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
 const syncModule = fs.readFileSync(path.join(rootDir, "src/prompt-source-sync.js"), "utf8");
 const require = createRequire(import.meta.url);
-const { parseAwesomeGptImage2PromptsBackup } = require(path.join(rootDir, "src/prompt-source-sync.js"));
+const {
+  parseAwesomeGptImage2PromptsBackup,
+  parseAwesomeGptImage2PromptsJson
+} = require(path.join(rootDir, "src/prompt-source-sync.js"));
 
 assert(html.includes('id="leaderboardView"'), "leaderboard must have an independent page view");
 assert(html.includes("/editor-image-import.js"), "editor paste/drop import module must be loaded separately");
@@ -33,6 +36,11 @@ assert(styles.includes(".leaderboard-page .gallery-leaderboard"), "leaderboard p
 assert(html.includes("/prompt-cover-fallback.js"), "prompt fallback cover renderer must be loaded separately");
 assert(app.includes("ImageStudioPromptCoverFallback"), "prompt cards must use fallback covers when no image exists");
 assert(styles.includes(".prompt-cover-fallback"), "prompt fallback covers must have visible styles");
+assert(styles.includes(".prompt-cover-fallback-image"), "prompt fallback covers must render as image-like covers");
+assert(app.includes("promptCoverFallbackSrc"), "broken prompt images must have a generated fallback image source");
+assert(app.includes("data-fallback-src"), "prompt image tags must carry fallback image sources");
+assert(app.includes("document.addEventListener(\"error\"") && app.includes("markImageUnavailable(target)"), "image errors must switch to fallback covers");
+assert(fs.readFileSync(path.join(rootDir, "public/prompt-cover-fallback.js"), "utf8").includes("data:image/svg+xml"), "prompt fallback module must generate SVG image data URLs");
 
 assert(app.includes("deleteImageSession"), "conversation delete handler must exist");
 assert(app.includes("ImageStudioRenderStamp"), "conversation/history renders must use stable render stamps");
@@ -55,6 +63,8 @@ assert(app.includes("openUserConversationsModal"), "user management must expose 
 assert(store.includes("ps_davidwuw_gpt_image2_prompts"), "new davidwuw prompt source seed must exist");
 assert(syncModule.includes("parseAwesomeGptImage2PromptsBackup"), "new prompt source parser must exist");
 assert(syncModule.includes("prompts_backup.md"), "new parser must read prompts_backup.md");
+assert(syncModule.includes("prompts.json"), "new parser must read prompts.json for prompt cover images");
+assert(syncModule.includes("parseAwesomeGptImage2PromptsJson"), "new parser must preserve prompts.json images");
 const parsedSample = parseAwesomeGptImage2PromptsBackup(`
 ## UI与界面 (154 条)
 
@@ -77,6 +87,23 @@ Vertical 9:16 isometric cutaway infographic.
 assert.equal(parsedSample.length, 1, "new prompt source parser must parse prompts_backup.md sections");
 assert.equal(parsedSample[0].title, "信息图可视化设计", "parser must preserve prompt title");
 assert.equal(parsedSample[0].sourceCategory, "UI与界面", "parser must preserve prompt category");
+const parsedJsonSample = parseAwesomeGptImage2PromptsJson([{
+  id: 101,
+  title_en: "信息图可视化设计",
+  title_cn: "UI与界面",
+  category: "ui",
+  category_cn: "UI与界面",
+  prompt: "Vertical 9:16 isometric cutaway infographic.",
+  author: "freestylefly",
+  image: "images/101.jpg"
+}], { repo: "davidwuw0811-boop/awesome-gpt-image2-prompts", category: "gpt-image-2-prompts", key: "awesome-gpt-image2-prompts" });
+assert.equal(parsedJsonSample.length, 1, "prompts.json parser must parse records");
+assert(parsedJsonSample[0].image.includes("raw.githubusercontent.com/davidwuw0811-boop/awesome-gpt-image2-prompts/main/images/101.jpg"), "prompts.json parser must convert image paths to raw GitHub URLs");
+assert.equal(parsedJsonSample[0].preview, parsedJsonSample[0].image, "prompts.json parser must use the same cover for preview");
+assert.equal(parsedJsonSample[0].sourceCategory, "UI与界面", "prompts.json parser must preserve Chinese categories");
+assert(app.includes("ensureGalleryLeaderboardLoaded"), "leaderboard route must actively load leaderboard data");
+assert(styles.includes("min-height: 50px") && styles.includes("min-height: 68px"), "chat prompt input must be shorter vertically");
+assert(!styles.includes("width: min(760px, var(--chat-main-width)"), "chat prompt input must not be narrowed horizontally");
 
 const sessionListSource = fs.readFileSync(path.join(rootDir, "public/image-session-list.js"), "utf8");
 const sandbox = { window: {} };

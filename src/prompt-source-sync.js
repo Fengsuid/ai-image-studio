@@ -171,6 +171,22 @@ function titleFromMarkdownHeading(value) {
     .trim();
 }
 
+function promptFingerprint(value = "") {
+  return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function shortPromptHash(value = "", length = 12) {
+  return crypto.createHash("sha1").update(String(value || "")).digest("hex").slice(0, length);
+}
+
+function awesomeGptImage2LegacyRemoteId(source, sourceNumber, title, prompt = "", seen = null) {
+  const base = `${source.key || source.name}:${sourceNumber}:${title}`;
+  if (!seen) return base;
+  const count = seen.get(base) || 0;
+  seen.set(base, count + 1);
+  return count === 0 ? base : `${base}:${shortPromptHash(prompt, 10)}`;
+}
+
 function parseGptImage2Readme(readme, recordsPayload, source) {
   const records = Array.isArray(recordsPayload)
     ? recordsPayload
@@ -273,9 +289,11 @@ function parseYouMindReadme(readme, source) {
   return items;
 }
 
-function parseAwesomeGptImage2PromptsBackup(markdown, source) {
+function parseAwesomeGptImage2PromptsBackup(markdown, source, options = {}) {
   const items = [];
   let currentCategory = "";
+  const imageByPrompt = options instanceof Map ? options : options.imageByPrompt || new Map();
+  const seenRemoteIds = new Map();
   const sections = String(markdown || "").split(/\n(?=###\s+#\d+\s+)/);
   for (const section of sections) {
     const titleMatch = section.match(/^###\s+#(\d+)\s+(.+)$/m);
@@ -286,19 +304,66 @@ function parseAwesomeGptImage2PromptsBackup(markdown, source) {
     currentCategory = String(categoryMatch?.[1] || currentCategory || source.category || "general").trim();
     const author = String(section.match(/\*\*作者\*\*[:：]\s*([^\n]+)/)?.[1] || "").trim();
     const title = titleFromMarkdownHeading(titleMatch[2]);
+    const prompt = String(promptMatch[1] || "").trim();
+    const promptKey = promptFingerprint(prompt);
+    const image = imageByPrompt.get(promptKey) || "";
     items.push({
       title,
-      prompt: String(promptMatch[1] || "").trim(),
-      image: "",
+      prompt,
+      image,
       tags: depsSafeTags([source.category, "awesome-gpt-image2-prompts", currentCategory, author]),
       category: promptCategoryFromPath(`${currentCategory}/${title}`),
       sourceCategory: currentCategory,
-      remoteId: `${source.key || source.name}:${titleMatch[1]}:${title}`,
+      remoteId: awesomeGptImage2LegacyRemoteId(source, titleMatch[1], title, prompt, seenRemoteIds),
       author,
       githubUrl: repoBlobUrl(source.repo, "prompts_backup.md")
     });
   }
   return items;
+}
+
+function parseAwesomeGptImage2PromptsJson(payload, source, branch = "main", backupByPrompt = new Map()) {
+  const records = typeof payload === "string" ? JSON.parse(payload) : payload;
+  const list = Array.isArray(records)
+    ? records
+    : Array.isArray(records?.prompts) ? records.prompts
+      : Array.isArray(records?.items) ? records.items
+        : [];
+  const seenRemoteIds = new Map();
+  return list.map((record) => {
+    const prompt = String(record?.prompt || record?.text || record?.content || "").trim();
+    if (!prompt) return null;
+    const promptKey = promptFingerprint(prompt);
+    const backup = backupByPrompt.get(promptKey) || {};
+    const sourceCategory = String(record.category_cn || backup.sourceCategory || record.category || source.category || "general").trim();
+    const title = String(record.title_cn || record.title_en || record.title || backup.title || prompt.slice(0, 80)).trim();
+    const image = absoluteRepoImage(source.repo, record.image || record.cover || record.preview || "", branch);
+    const baseRemoteId = backup.remoteId || `${source.key || source.name}:json:${record.id || shortPromptHash(prompt, 14)}`;
+    const seenCount = seenRemoteIds.get(baseRemoteId) || 0;
+    seenRemoteIds.set(baseRemoteId, seenCount + 1);
+    const remoteId = seenCount === 0
+      ? baseRemoteId
+      : `${baseRemoteId}:json:${record.id || shortPromptHash(`${prompt}\n${image}`, 10)}`;
+    return {
+      title,
+      prompt,
+      image,
+      preview: image,
+      tags: depsSafeTags([
+        source.category,
+        "awesome-gpt-image2-prompts",
+        sourceCategory,
+        record.author,
+        record.source
+      ]),
+      category: promptCategoryFromPath(`${sourceCategory}/${record.category || ""}/${title}`),
+      sourceCategory,
+      remoteId,
+      author: String(record.author || backup.author || "").trim(),
+      githubUrl: repoBlobUrl(source.repo, "prompts.json", branch),
+      promptType: record.needs_ref ? "image-to-image" : "text-to-image"
+    };
+  }).filter(Boolean);
 }
 
 function depsSafeTags(values) {
@@ -425,8 +490,20 @@ async function syncAwesomeGptImage2PromptSource(source, deps) {
     repo: sourceRepo,
     name: source.name
   };
-  const raw = await fetchGithubText(rawUrl(sourceRepo, "prompts_backup.md", branch), `${source.name} prompts_backup`, deps);
-  const normalized = parseAwesomeGptImage2PromptsBackup(raw, sourceInfo)
+  const [backupRaw, jsonRaw] = await Promise.all([
+    fetchGithubText(rawUrl(sourceRepo, "prompts_backup.md", branch), `${source.name} prompts_backup`, deps),
+    fetchGithubText(rawUrl(sourceRepo, "prompts.json", branch), `${source.name} prompts_json`, deps)
+  ]);
+  const backupItems = parseAwesomeGptImage2PromptsBackup(backupRaw, sourceInfo);
+  const backupByPrompt = new Map();
+  for (const item of backupItems) {
+    const key = promptFingerprint(item.prompt);
+    if (key && !backupByPrompt.has(key)) backupByPrompt.set(key, item);
+  }
+  const jsonItems = parseAwesomeGptImage2PromptsJson(jsonRaw, sourceInfo, branch, backupByPrompt);
+  const jsonPromptKeys = new Set(jsonItems.map((item) => promptFingerprint(item.prompt)).filter(Boolean));
+  const backupOnlyItems = backupItems.filter((item) => !jsonPromptKeys.has(promptFingerprint(item.prompt)));
+  const normalized = [...jsonItems, ...backupOnlyItems]
     .map((item) => normalizeRemotePromptItem(item, {
       sourceRepo,
       sourceCategory: item.sourceCategory || sourceInfo.category,
@@ -465,5 +542,7 @@ module.exports = {
   normalizeRemotePromptItem,
   parseMarkdownPromptItems,
   parseAwesomeGptImage2PromptsBackup,
+  parseAwesomeGptImage2PromptsJson,
+  promptFingerprint,
   INFINITE_CANVAS_SOURCE_REPO
 };

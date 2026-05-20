@@ -1497,7 +1497,7 @@ a {
 
 .chat-view .sticky-composer {
   left: calc(50% + ((var(--chat-rail-width) + var(--chat-gap)) / 2));
-  width: min(760px, var(--chat-main-width), calc(100vw - var(--chat-rail-width) - var(--chat-gap) - 72px));
+  width: min(var(--chat-main-width), calc(100vw - var(--chat-rail-width) - var(--chat-gap) - 72px));
 }
 
 .app.chat-panel-collapsed .chat-view .sticky-composer {
@@ -1624,8 +1624,8 @@ a {
 
 .prompt-box {
   width: 100%;
-  min-height: 76px;
-  max-height: 180px;
+  min-height: 50px;
+  max-height: 132px;
   resize: none;
   border: 0;
   outline: 0;
@@ -1645,7 +1645,7 @@ a {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  min-height: 96px;
+  min-height: 68px;
   padding: 6px 6px 0;
   border-radius: 20px;
   background: transparent;
@@ -2177,6 +2177,21 @@ a {
   color: rgba(255, 255, 255, 0.72);
   font-size: 12px;
   line-height: 1.5;
+}
+
+.prompt-cover-fallback-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.square-preview-main.prompt-cover-fallback-image {
+  width: min(74vh, 680px);
+  height: min(74vh, 680px);
+  max-width: 100%;
+  max-height: calc(100vh - 92px);
+  object-fit: cover;
 }
 
 .card-art em {

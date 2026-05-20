@@ -1168,12 +1168,25 @@ function imageFallbackContainerAttrs(label = text("imageUnavailable")) {
   return `data-image-fallback="${escapeHtml(label)}"`;
 }
 
-function imageFallbackImgAttrs() {
-  return 'data-fallback-image="1"';
+function imageFallbackImgAttrs(fallbackSrc = "") {
+  const fallbackAttr = fallbackSrc ? ` data-fallback-src="${escapeHtml(fallbackSrc)}"` : "";
+  return `data-fallback-image="1"${fallbackAttr}`;
 }
 
 function markImageUnavailable(image) {
   if (!image || image.dataset.imageFailed === "1") return;
+  const fallbackSrc = image.dataset.fallbackSrc || "";
+  if (fallbackSrc && image.getAttribute("src") !== fallbackSrc) {
+    image.dataset.imageFailed = "1";
+    image.removeAttribute("srcset");
+    image.setAttribute("src", fallbackSrc);
+    image.classList.add("prompt-cover-fallback-image");
+    image.removeAttribute("data-fallback-src");
+    image.removeAttribute("aria-hidden");
+    const frame = image.closest("[data-image-fallback]");
+    frame?.classList.remove("image-unavailable");
+    return;
+  }
   image.dataset.imageFailed = "1";
   image.removeAttribute("src");
   image.removeAttribute("srcset");
@@ -1196,6 +1209,10 @@ function formatDate(value) {
 function truncate(value, length = 120) {
   const textValue = String(value || "");
   return textValue.length > length ? `${textValue.slice(0, length)}...` : textValue;
+}
+
+function promptCoverFallbackSrc(prompt = {}) {
+  return window.ImageStudioPromptCoverFallback?.dataUrl?.(prompt, { truncate }) || "";
 }
 
 function normalizePublicTags(value) {
@@ -1628,7 +1645,10 @@ function setView(view) {
     elements.sessionDrawerToggle?.classList.toggle("hidden", view !== "home");
   }
   if (view === "library") renderLibrary();
-  if (view === "leaderboard") renderLeaderboardPage();
+  if (view === "leaderboard") {
+    renderLeaderboardPage();
+    ensureGalleryLeaderboardLoaded();
+  }
   if (view === "editor") renderEditor();
   if (view === "canvas") renderCanvasShell();
   updateNav();
@@ -3569,8 +3589,9 @@ function promptCardHtml(prompt) {
     <span class="tag-chip" style="--tag-hue:${info.hue}">${escapeHtml(info.label)}</span>
   `;
   }).join("");
+  const fallbackSrc = promptCoverFallbackSrc(prompt);
   const art = coverUrl
-    ? `<img src="${escapeHtml(imageVariantUrl(coverUrl))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
+    ? `<img src="${escapeHtml(imageVariantUrl(coverUrl))}" ${imageFallbackImgAttrs(fallbackSrc)} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
     : window.ImageStudioPromptCoverFallback?.render?.(prompt, { escapeHtml, truncate }) || `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const canvasBadge = isCanvasRouteItem(prompt)
     ? `<b class="canvas-route-badge"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "画布线路" : "Canvas route")}</b>`
@@ -4806,6 +4827,7 @@ function openSquarePreview(prompt, options = {}) {
 function openPromptDetailModal(prompt) {
   if (!prompt) return;
   const imageUrl = promptImageDisplayUrl(prompt);
+  const fallbackSrc = promptCoverFallbackSrc(prompt);
   const tags = Array.isArray(prompt.tags) ? prompt.tags : (prompt.tag ? [prompt.tag] : []);
   const isAdmin = state.user?.role === "admin";
   const author = prompt.author || (state.lang === "zh" ? "公开来源" : "Public source");
@@ -4817,8 +4839,8 @@ function openPromptDetailModal(prompt) {
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
       <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
         ${imageUrl
-          ? `<img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">`
-          : `<div class="square-preview-main prompt-no-cover-detail"><i class="ri-quill-pen-line"></i><span>${escapeHtml(prompt.title || text("promptLibrary"))}</span></div>`}
+          ? `<img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs(fallbackSrc)} alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">`
+          : window.ImageStudioPromptCoverFallback?.render?.(prompt, { escapeHtml, truncate }) || `<div class="square-preview-main prompt-no-cover-detail"><i class="ri-quill-pen-line"></i><span>${escapeHtml(prompt.title || text("promptLibrary"))}</span></div>`}
       </div>
       <aside class="square-preview-side">
         <div class="square-preview-head">
@@ -5175,6 +5197,13 @@ async function loadGalleryLeaderboard() {
   } finally {
     state.galleryLeaderboardLoading = false;
   }
+}
+
+async function ensureGalleryLeaderboardLoaded() {
+  if (state.galleryLeaderboardLoading || state.galleryLeaderboard.length) return;
+  renderLeaderboardPage();
+  await loadGalleryLeaderboard();
+  if (state.view === "leaderboard") renderLeaderboardPage();
 }
 
 async function loadAnnouncements() {
@@ -6649,6 +6678,12 @@ function bindGlobalEvents() {
   elements.editorMaskCanvas.addEventListener("pointerdown", editorPointerDown);
   elements.editorMaskCanvas.addEventListener("pointermove", editorPointerMove);
   window.addEventListener("pointerup", editorPointerUp);
+  document.addEventListener("error", (event) => {
+    const target = event.target;
+    if (target instanceof HTMLImageElement && target.matches("[data-fallback-image]")) {
+      markImageUnavailable(target);
+    }
+  }, true);
   elements.editorPromptForm.addEventListener("submit", submitImageEdit);
   // 编辑器状态条按钮（重试 / 关闭失败提示 / 取消）走事件委托，
   // 因为 #editorStatusBar 由 ensureEditorStatusBar() 动态插入。
