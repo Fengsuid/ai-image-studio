@@ -730,6 +730,10 @@ async function runMigrations() {
       CONSTRAINT fk_canvas_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  const [canvasTemplateColumns] = await db.execute("SHOW COLUMNS FROM canvas_projects LIKE 'is_template'");
+  if (!canvasTemplateColumns.length) {
+    await db.query("ALTER TABLE canvas_projects ADD COLUMN is_template TINYINT(1) NOT NULL DEFAULT 0 AFTER visibility");
+  }
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS canvas_generation_links (
