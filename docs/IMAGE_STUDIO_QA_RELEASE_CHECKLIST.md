@@ -22,6 +22,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `node --check public/canvas-inspector.js`
   - `node --check public/gallery-leaderboard.js`
   - `node --check public/gallery-detail-media.js`
+  - `node --check public/gallery-tag-view-model.js`
   - `node --check public/generation-result-actions.js`
   - `node --check public/gallery-normalize.js`
   - `node --check src/prompt-source-sync.js`
@@ -48,6 +49,7 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `npm run smoke:generation-result-actions`
   - `npm run smoke:infinite-canvas-prompt-source`
   - `npm run smoke:gallery-detail-media`
+  - `npm run smoke:gallery-card-tags`
   - `npm run smoke:prompt-review`
 - Start a local server with a disposable data directory and run public smoke:
   - `PORT=3100 DATA_DIR=data-smoke node server.js`

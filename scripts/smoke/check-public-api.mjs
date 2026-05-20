@@ -101,6 +101,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-leaderboard.js"), "/ missing gallery-leaderboard.js reference");
   assert(typeof home.body === "string" && home.body.includes("/gallery-detail-media.js"), "/ missing gallery-detail-media.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/gallery-tag-view-model.js"), "/ missing gallery-tag-view-model.js reference");
   assert(typeof home.body === "string" && home.body.includes("/generation-result-actions.js"), "/ missing generation-result-actions.js reference");
   assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
@@ -118,6 +119,7 @@ async function checkHomeResources() {
   const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
   const galleryLeaderboardMatch = home.body.match(/src="([^"]*\/gallery-leaderboard\.js[^"]*)"/);
   const galleryDetailMediaMatch = home.body.match(/src="([^"]*\/gallery-detail-media\.js[^"]*)"/);
+  const galleryTagViewModelMatch = home.body.match(/src="([^"]*\/gallery-tag-view-model\.js[^"]*)"/);
   const generationResultActionsMatch = home.body.match(/src="([^"]*\/generation-result-actions\.js[^"]*)"/);
   const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
@@ -132,6 +134,7 @@ async function checkHomeResources() {
   const galleryModelPath = galleryModelMatch?.[1] || "/gallery-normalize.js";
   const galleryLeaderboardPath = galleryLeaderboardMatch?.[1] || "/gallery-leaderboard.js";
   const galleryDetailMediaPath = galleryDetailMediaMatch?.[1] || "/gallery-detail-media.js";
+  const galleryTagViewModelPath = galleryTagViewModelMatch?.[1] || "/gallery-tag-view-model.js";
   const generationResultActionsPath = generationResultActionsMatch?.[1] || "/generation-result-actions.js";
   const referenceImagesPath = referenceImagesMatch?.[1] || "/reference-images.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
@@ -234,6 +237,12 @@ async function checkHomeResources() {
   assert(galleryDetailMedia.status === 200, `${galleryDetailMediaPath} status=${galleryDetailMedia.status}`);
   assert(galleryDetailMedia.body.includes("ImageStudioGalleryDetailMedia"), `${galleryDetailMediaPath} should register detail selected media helpers`);
   assert(galleryDetailMedia.body.includes("selectedMediaType"), `${galleryDetailMediaPath} should preserve selected media context`);
+
+  log(`GET ${galleryTagViewModelPath}`);
+  const galleryTagViewModel = await fetchText(galleryTagViewModelPath, "application/javascript,*/*");
+  assert(galleryTagViewModel.status === 200, `${galleryTagViewModelPath} status=${galleryTagViewModel.status}`);
+  assert(galleryTagViewModel.body.includes("ImageStudioGalleryTagViewModel"), `${galleryTagViewModelPath} should register gallery tag view model helpers`);
+  assert(galleryTagViewModel.body.includes("cleanPublicTags"), `${galleryTagViewModelPath} should filter public tags`);
 
   log(`GET ${generationResultActionsPath}`);
   const generationResultActions = await fetchText(generationResultActionsPath, "application/javascript,*/*");

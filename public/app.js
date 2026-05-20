@@ -1222,6 +1222,23 @@ function publicTagsForKind(kind, tags = []) {
   return [normalizedKind, ...normalizePublicTags(tags).filter((tag) => !systemTags.has(tag.toLowerCase()))];
 }
 
+function galleryTagViewModelForItem(item = {}, tags = item.publicTags || []) {
+  const kind = publicKindTagForItem(item);
+  return window.ImageStudioGalleryTagViewModel?.create?.({
+    kind,
+    publicTags: tags,
+    adminBadge: null
+  }) || {
+    kindBadge: {
+      slug: kind,
+      textKey: kind === "image-to-image" ? "imageToImage" : "textToImage",
+      className: kind === "image-to-image" ? "image" : "text"
+    },
+    adminBadge: null,
+    publicTags: normalizePublicTags(tags).filter((tag) => !["text-to-image", "image-to-image", "square"].includes(tag.toLowerCase()))
+  };
+}
+
 function generationEntryFromApi(generation = {}, fallback = {}) {
   return window.ImageStudioGalleryModel?.generationEntryFromApi?.(generation, fallback, { currentUser: state.user }) || fallback;
 }
@@ -3434,7 +3451,10 @@ function promptCardHtml(prompt) {
   const promptText = prompt.prompt;
   const title = prompt.title;
   const coverUrl = promptImageDisplayUrl(prompt);
-  const tagsHtml = (prompt.tags || [prompt.tag].filter(Boolean)).slice(0, 3).map((tag) => {
+  const tagView = prompt.kind === "square"
+    ? galleryTagViewModelForItem(prompt, prompt.publicTags || prompt.tags || [])
+    : { publicTags: prompt.tags || [prompt.tag].filter(Boolean) };
+  const tagsHtml = tagView.publicTags.slice(0, 3).map((tag) => {
     const info = tagInfo(tag);
     return `
     <span class="tag-chip" style="--tag-hue:${info.hue}">${escapeHtml(info.label)}</span>
@@ -3447,7 +3467,7 @@ function promptCardHtml(prompt) {
     ? `<b class="canvas-route-badge"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "画布线路" : "Canvas route")}</b>`
     : "";
   const sourceBadge = prompt.kind === "square"
-    ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${isImageToImageItem(prompt) ? text("imageToImage") : text("textToImage")}</b>${canvasBadge}`
+    ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${text(tagView.kindBadge?.textKey || (isImageToImageItem(prompt) ? "imageToImage" : "textToImage"))}</b>${canvasBadge}`
     : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.sourceRepo || prompt.source || prompt.author || "@open")}</em>`;
   const hasImage = Boolean(coverUrl);
   const openAttr = prompt.kind === "square"
@@ -4287,32 +4307,35 @@ function publicGalleryPromptItems() {
       seen.add(key);
       return true;
     })
-    .map((item) => ({
-      id: `square_${item.id}`,
-      generationId: item.id,
-      kind: "square",
-      tag: "square",
-      tags: ["square", isImageToImageItem(item) ? "image-to-image" : "text-to-image", ...normalizePublicTags(item.publicTags || [])],
-      title: truncate(item.prompt, 38),
-      prompt: item.prompt,
-      image: item.images[0],
-      images: item.images,
-      source: "generation-square",
-      author: displayUserName(item),
-      userId: item.userId || "",
-      userName: item.userName || "",
-      colors: "linear-gradient(135deg,#0f172a,#94a3b8)",
-      conversation: item.conversation || [],
-      sourceImageUrl: item.sourceImageUrl || "",
-      sourceImageId: item.sourceImageId || "",
-      sourcePrompt: item.sourcePrompt || "",
-      originGalleryId: item.originGalleryId || "",
-      likeCount: Number(item.likeCount || 0),
-      likedByCurrentUser: Boolean(item.likedByCurrentUser),
-      publicTags: item.publicTags || [],
-      isPublic: true,
-      time: item.time
-    }));
+    .map((item) => {
+      const tagView = galleryTagViewModelForItem(item, item.publicTags || []);
+      return {
+        id: `square_${item.id}`,
+        generationId: item.id,
+        kind: "square",
+        tag: tagView.kindBadge.slug,
+        tags: [tagView.kindBadge.slug, ...tagView.publicTags],
+        title: truncate(item.prompt, 38),
+        prompt: item.prompt,
+        image: item.images[0],
+        images: item.images,
+        source: "generation-square",
+        author: displayUserName(item),
+        userId: item.userId || "",
+        userName: item.userName || "",
+        colors: "linear-gradient(135deg,#0f172a,#94a3b8)",
+        conversation: item.conversation || [],
+        sourceImageUrl: item.sourceImageUrl || "",
+        sourceImageId: item.sourceImageId || "",
+        sourcePrompt: item.sourcePrompt || "",
+        originGalleryId: item.originGalleryId || "",
+        likeCount: Number(item.likeCount || 0),
+        likedByCurrentUser: Boolean(item.likedByCurrentUser),
+        publicTags: tagView.publicTags,
+        isPublic: true,
+        time: item.time
+      };
+    });
 }
 
 function getLibrarySource() {
@@ -4400,7 +4423,8 @@ function openSquarePreview(prompt, options = {}) {
   const isCanvasRoute = isCanvasRouteItem(item);
   const originalCanvas = item.canvasProject && item.canvasProject.id ? item.canvasProject : null;
   const canDuplicateCanvasRoute = Boolean(originalCanvas?.canDuplicate ?? originalCanvas);
-  const tags = normalizePublicTags(item.publicTags || []);
+  const tagView = galleryTagViewModelForItem(item, item.publicTags || []);
+  const tags = tagView.publicTags;
   const route = item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
   const mediaController = window.ImageStudioGalleryDetailMedia?.create?.({ item, imageUrl, route, text });
