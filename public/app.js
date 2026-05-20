@@ -34,6 +34,7 @@ const state = {
   galleryLeaderboardRange: "week",
   galleryLeaderboardType: "all",
   galleryLeaderboardLoading: false,
+  galleryLeaderboardLoadedKey: "",
   announcements: [],
   unreadAnnouncements: [],
   notificationFilter: "all",
@@ -3527,6 +3528,10 @@ function renderGalleryLeaderboard() {
   }) || "";
 }
 
+function galleryLeaderboardRequestKey() {
+  return `${state.galleryLeaderboardRange || "week"}:${state.galleryLeaderboardType || "all"}`;
+}
+
 function renderLeaderboardPage() {
   if (!elements.leaderboardPage) return;
   elements.leaderboardPage.innerHTML = `
@@ -5022,8 +5027,8 @@ async function loadPromptLibrary() {
   try {
     const sort = ["hot", "new", "used", "liked"].includes(state.librarySort) ? state.librarySort : "hot";
     const data = await api(state.user?.role === "admin"
-      ? `/api/prompts?includeHidden=1&sort=${encodeURIComponent(sort)}`
-      : `/api/prompts?sort=${encodeURIComponent(sort)}`);
+      ? `/api/prompts?includeHidden=1&sort=${encodeURIComponent(sort)}&limit=2000`
+      : `/api/prompts?sort=${encodeURIComponent(sort)}&limit=2000`);
     items = Array.isArray(data?.prompts) ? data.prompts : [];
   } catch (error) {
     lastError = error;
@@ -5182,6 +5187,7 @@ async function loadPublicGallery() {
 
 async function loadGalleryLeaderboard() {
   state.galleryLeaderboardLoading = true;
+  const requestKey = galleryLeaderboardRequestKey();
   try {
     const params = new URLSearchParams({
       range: state.galleryLeaderboardRange || "week",
@@ -5192,15 +5198,17 @@ async function loadGalleryLeaderboard() {
     }
     const data = await api(`/api/gallery/leaderboard?${params.toString()}`);
     state.galleryLeaderboard = (data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" }));
+    state.galleryLeaderboardLoadedKey = requestKey;
   } catch {
     state.galleryLeaderboard = [];
+    state.galleryLeaderboardLoadedKey = "";
   } finally {
     state.galleryLeaderboardLoading = false;
   }
 }
 
 async function ensureGalleryLeaderboardLoaded() {
-  if (state.galleryLeaderboardLoading || state.galleryLeaderboard.length) return;
+  if (state.galleryLeaderboardLoading || (state.galleryLeaderboard.length && state.galleryLeaderboardLoadedKey === galleryLeaderboardRequestKey())) return;
   renderLeaderboardPage();
   await loadGalleryLeaderboard();
   if (state.view === "leaderboard") renderLeaderboardPage();

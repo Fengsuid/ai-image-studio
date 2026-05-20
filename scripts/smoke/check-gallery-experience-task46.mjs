@@ -102,6 +102,8 @@ assert(parsedJsonSample[0].image.includes("raw.githubusercontent.com/davidwuw081
 assert.equal(parsedJsonSample[0].preview, parsedJsonSample[0].image, "prompts.json parser must use the same cover for preview");
 assert.equal(parsedJsonSample[0].sourceCategory, "UI与界面", "prompts.json parser must preserve Chinese categories");
 assert(app.includes("ensureGalleryLeaderboardLoaded"), "leaderboard route must actively load leaderboard data");
+assert(app.includes("galleryLeaderboardLoadedKey"), "leaderboard route must track loaded range/type state");
+assert(app.includes("&limit=2000"), "prompt library must request the full prompt database instead of the 500 item default");
 assert(styles.includes("min-height: 50px") && styles.includes("min-height: 68px"), "chat prompt input must be shorter vertically");
 assert(!styles.includes("width: min(760px, var(--chat-main-width)"), "chat prompt input must not be narrowed horizontally");
 
