@@ -1105,7 +1105,9 @@ function readCookie(name) {
 }
 
 function text(key) {
-  return i18n[state.lang][key] || i18n.zh[key] || key;
+  if (Object.hasOwn(i18n[state.lang] || {}, key)) return i18n[state.lang][key];
+  if (Object.hasOwn(i18n.zh, key)) return i18n.zh[key];
+  return key;
 }
 
 window.ImageStudioText = text;
