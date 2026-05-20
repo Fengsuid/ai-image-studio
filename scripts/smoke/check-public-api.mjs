@@ -128,6 +128,9 @@ async function checkHomeResources() {
   const style = await fetchText(stylePath, "text/css,*/*");
   assert(style.status === 200, `${stylePath} status=${style.status}`);
   assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
+  assert(style.body.includes("admin-overview-hero"), `${stylePath} should style admin dashboard overview hero`);
+  assert(style.body.includes("admin-quick-links"), `${stylePath} should style admin dashboard quick links`);
+  assert(style.body.includes("admin-issue-list"), `${stylePath} should style admin dashboard issue list`);
 
   log(`GET ${appPath}`);
   const app = await fetchText(appPath, "application/javascript,*/*");
@@ -222,6 +225,9 @@ async function checkAdminResources() {
   assert(script.body.includes("/api/admin/reports"), `${scriptPath} should load moderation reports`);
   assert(script.body.includes("/api/admin/prompt-duplicates"), `${scriptPath} should load prompt duplicate candidates`);
   assert(script.body.includes("/api/admin/rum"), `${scriptPath} should load RUM metrics`);
+  assert(script.body.includes("dashboardContext"), `${scriptPath} should build admin dashboard health context`);
+  assert(script.body.includes("快捷入口"), `${scriptPath} should render admin dashboard quick actions`);
+  assert(script.body.includes("最近异常"), `${scriptPath} should render admin dashboard recent issues`);
   assert(script.body.includes("growthConfig"), `${scriptPath} should expose growth configuration`);
   assert(script.body.includes("providerCapabilityConfig"), `${scriptPath} should expose provider capability configuration`);
   assert(script.body.includes("contactEmail"), `${scriptPath} should expose contact email settings`);

@@ -6301,6 +6301,11 @@ button.tag-chip.active {
   border-color: rgba(16, 185, 129, 0.35);
 }
 
+.admin-status-pill[data-tone="warn"] {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
 .admin-status-pill[data-tone="danger"] {
   color: #b42318;
   border-color: rgba(180, 35, 24, 0.35);
@@ -7434,6 +7439,214 @@ button.tag-chip.active {
   gap: 16px;
 }
 
+.admin-overview-hero,
+.admin-overview-split {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-overview-hero {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.95fr);
+  align-items: stretch;
+}
+
+.admin-overview-hero-copy,
+.admin-overview-hero-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+}
+
+.admin-overview-hero-copy {
+  padding: 20px;
+}
+
+.admin-overview-hero-panel {
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.admin-kicker {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-overview-hero-copy h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.admin-overview-hero-copy p {
+  margin: 10px 0 0;
+  color: #475467;
+  line-height: 1.6;
+}
+
+.admin-overview-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.admin-overview-hero-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-overview-hero-row strong {
+  font-size: 14px;
+  color: #182230;
+}
+
+.admin-overview-hero-row span,
+.admin-panel-head span,
+.admin-issue small,
+.admin-quick-link span {
+  color: #667085;
+  font-size: 12px;
+}
+
+.admin-dashboard-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-stat {
+  border-color: #e2e8f0;
+}
+
+.admin-stat[data-tone="teal"] i {
+  background: #ecfdf3;
+  color: #047857;
+}
+
+.admin-stat[data-tone="blue"] i {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.admin-stat[data-tone="violet"] i {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.admin-stat[data-tone="amber"] i {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.admin-stat[data-tone="rose"] i {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.admin-stat[data-tone="slate"] i {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.admin-overview-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-quick-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-quick-link {
+  display: grid;
+  gap: 6px;
+  min-height: 106px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+}
+
+.admin-quick-link i,
+.admin-issue > i {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.admin-quick-link strong {
+  color: #182230;
+  font-size: 14px;
+}
+
+.admin-issue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-issue {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-issue strong,
+.admin-issue p {
+  margin: 0;
+}
+
+.admin-issue p {
+  margin-top: 4px;
+  color: #344054;
+  line-height: 1.5;
+}
+
+.admin-issue[data-tone="danger"] > i {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.admin-issue[data-tone="warn"] > i {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.admin-issue button {
+  min-height: 34px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  padding: 0 12px;
+  font-weight: 650;
+}
+
 .admin-notice {
   margin-bottom: 14px;
   border-radius: 8px;
@@ -7934,6 +8147,15 @@ button.tag-chip.active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-overview-hero,
+  .admin-overview-split {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-form-grid,
   .admin-inline-form {
     grid-template-columns: 1fr;
@@ -7952,6 +8174,15 @@ button.tag-chip.active {
 
   .admin-nav,
   .admin-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-grid,
+  .admin-quick-links {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-issue {
     grid-template-columns: 1fr;
   }
 

@@ -53,7 +53,7 @@ const navItems = [
 ];
 
 const pageDescriptions = {
-  overview: "运营态势、系统风险和近期生成请求。",
+  overview: "系统健康、关键指标和最近异常。",
   providers: "多 API 地址、模型能力、健康检查和路由策略入口。",
   "generation-requests": "生成任务状态、耗时、错误和请求详情。",
   "square-review": "公开作品、举报下架和恢复到画廊。",
@@ -310,9 +310,116 @@ function metrics() {
   };
 }
 
-function statCard(label, value, hint, icon) {
+function dashboardContext() {
+  const brokenFiles = adminState.galleryFileChecks.filter((item) => item.status === "broken");
+  const syncFailures = (adminState.promptSyncRuns || []).filter((run) => {
+    const status = String(run.status || "").toLowerCase();
+    return ["failed", "error", "warning"].includes(status);
+  });
+  const providerIssues = (adminState.providers || []).filter((provider) => String(provider.healthStatus || "").toLowerCase() === "error");
+  const reportQueue = adminState.reports.length;
+  const withdrawalQueue = adminState.withdrawals.filter((item) => String(item.withdrawalStatus || "") === "requested").length;
+  const rumSummary = adminState.rum?.summary || {};
+  const issues = [];
+  const pushIssue = (issue) => issues.push(issue);
+  const latestReport = [...adminState.reports].sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0))[0];
+  const latestBrokenFile = [...brokenFiles].sort((left, right) => new Date(right.checkedAt || 0) - new Date(left.checkedAt || 0))[0];
+  const latestSyncFailure = [...syncFailures].sort((left, right) => new Date(right.startedAt || 0) - new Date(left.startedAt || 0))[0];
+
+  if (latestBrokenFile) {
+    pushIssue({
+      tone: "danger",
+      icon: "ri-folder-warning-line",
+      title: "文件异常",
+      detail: `${latestBrokenFile.generationId || "-"} · ${latestBrokenFile.filename || latestBrokenFile.relativePath || "未知文件"}`,
+      meta: latestBrokenFile.errorMessage || latestBrokenFile.status || "broken",
+      time: latestBrokenFile.checkedAt,
+      jump: "gallery-files"
+    });
+  }
+  if (latestSyncFailure) {
+    pushIssue({
+      tone: "warn",
+      icon: "ri-sync-warning-line",
+      title: "提示词同步失败",
+      detail: `${latestSyncFailure.sourceName || latestSyncFailure.sourceId || "-"} · ${latestSyncFailure.errorLog || latestSyncFailure.message || latestSyncFailure.status || "failed"}`,
+      meta: `${fmtNumber(latestSyncFailure.successCount || 0)} 成功 / ${fmtNumber(latestSyncFailure.failureCount || 0)} 失败`,
+      time: latestSyncFailure.startedAt,
+      jump: "prompt-cms"
+    });
+  }
+  providerIssues.slice(0, 2).forEach((provider) => {
+    pushIssue({
+      tone: "danger",
+      icon: "ri-plug-line",
+      title: "供应商健康异常",
+      detail: `${provider.name || provider.id || "-"} · ${provider.lastError || provider.healthStatus || "error"}`,
+      meta: provider.baseUrl || provider.providerType || "",
+      time: provider.updatedAt || provider.createdAt,
+      jump: "providers"
+    });
+  });
+  if (reportQueue > 0) {
+    pushIssue({
+      tone: "warn",
+      icon: "ri-alarm-warning-line",
+      title: "举报待处理",
+      detail: `${fmtNumber(reportQueue)} 条公开作品举报正在队列中`,
+      meta: latestReport ? `${latestReport.id || "-"} · ${latestReport.userName || latestReport.userEmail || "匿名"}` : "等待人工审核",
+      time: latestReport?.createdAt || null,
+      jump: "square-review"
+    });
+  }
+  if (withdrawalQueue > 0) {
+    pushIssue({
+      tone: "warn",
+      icon: "ri-inbox-unarchive-line",
+      title: "撤回申请待处理",
+      detail: `${fmtNumber(withdrawalQueue)} 条公开撤回申请未处理`,
+      meta: "需要在举报与撤回页处理",
+      time: adminState.withdrawals.find((item) => String(item.withdrawalStatus || "") === "requested")?.withdrawalRequestedAt || null,
+      jump: "reports-withdrawals"
+    });
+  }
+  if (Number(rumSummary.imageFailures || 0) > 0) {
+    pushIssue({
+      tone: "warn",
+      icon: "ri-image-warning-line",
+      title: "图片失败事件",
+      detail: `${fmtNumber(rumSummary.imageFailures)} 次图片加载或生成失败`,
+      meta: `RUM 事件 ${fmtNumber(rumSummary.total || 0)}`,
+      time: rumSummary.updatedAt || null,
+      jump: "rum-performance"
+    });
+  }
+
+  const criticalCount = brokenFiles.length + syncFailures.length + providerIssues.length;
+  const cautionCount = reportQueue + withdrawalQueue + Number(rumSummary.imageFailures || 0);
+  const tone = criticalCount > 0 ? "danger" : cautionCount > 0 ? "warn" : "ok";
+  const label = criticalCount > 0 ? "需要关注" : cautionCount > 0 ? "有待处理项" : "运行正常";
+  const detail = criticalCount > 0
+    ? `${fmtNumber(brokenFiles.length)} 个文件异常 · ${fmtNumber(syncFailures.length)} 个同步失败 · ${fmtNumber(providerIssues.length)} 个供应商异常`
+    : cautionCount > 0
+      ? `${fmtNumber(reportQueue)} 条举报 · ${fmtNumber(withdrawalQueue)} 条撤回 · ${fmtNumber(rumSummary.imageFailures || 0)} 次图片失败`
+      : "当前没有明显阻断项";
+
+  return {
+    tone,
+    label,
+    detail,
+    reportQueue,
+    brokenFiles,
+    syncFailures,
+    providerIssues,
+    withdrawalQueue,
+    rumSummary,
+    issues: issues.slice(0, 6)
+  };
+}
+
+function statCard(label, value, hint, icon, tone = "blue") {
   return `
-    <article class="admin-stat">
+    <article class="admin-stat" data-tone="${tone}">
       <i class="${icon}"></i>
       <span>${label}</span>
       <strong>${value}</strong>
@@ -323,16 +430,83 @@ function statCard(label, value, hint, icon) {
 
 function renderOverview() {
   const m = metrics();
+  const dashboard = dashboardContext();
+  const actions = [
+    ["users-credits", "ri-user-settings-line", "用户管理", "账号、积分、状态"],
+    ["square-review", "ri-gallery-view-2", "广场审核", "公开作品与举报处理"],
+    ["tag-library", "ri-price-tag-3-line", "标签管理", "标签、分类和合并"],
+    ["prompt-cms", "ri-quill-pen-line", "提示词来源", "远程来源和同步记录"],
+    ["system-settings", "ri-sliders-line", "系统设置", "注册、积分和开关"]
+  ];
   return `
-    <section class="admin-stats-grid">
-      ${statCard("今日生成", fmtNumber(m.todayGenerated), "按请求创建时间统计", "ri-image-ai-line")}
-      ${statCard("成功率", `${m.successRate}%`, `${fmtNumber(m.total)} 条请求`, "ri-checkbox-circle-line")}
-      ${statCard("失败率", `${m.failedRate}%`, "失败请求占比", "ri-close-circle-line")}
-      ${statCard("平均耗时", fmtDuration(m.avgDuration), "仅统计有 durationMs 的请求", "ri-timer-line")}
-      ${statCard("新用户", fmtNumber(m.newUsers), "今日注册", "ri-user-add-line")}
-      ${statCard("公开作品", fmtNumber(m.publicWorks), "当前公开列表", "ri-gallery-view-2")}
-      ${statCard("待审核", fmtNumber(m.pendingReview), "公开作品待运营复核", "ri-eye-line")}
-      ${statCard("系统标签", fmtNumber(adminState.tagSummary?.systemCount || adminState.tags.filter((t) => t.source === "system").length), "标签库覆盖", "ri-price-tag-3-line")}
+    <section class="admin-overview-hero">
+      <div class="admin-overview-hero-copy">
+        <p class="admin-kicker">运营控制台</p>
+        <h2>${dashboard.label}</h2>
+        <p>${dashboard.detail}</p>
+        <div class="admin-overview-meta">
+          <span class="admin-status-pill" data-tone="${dashboard.tone}">${dashboard.label}</span>
+          <span>${fmtDate(dashboard.rumSummary.updatedAt)} · RUM ${fmtNumber(dashboard.rumSummary.total || 0)}</span>
+        </div>
+      </div>
+      <div class="admin-overview-hero-panel">
+        <div class="admin-overview-hero-row">
+          <strong>${fmtNumber(dashboard.issues.length)} 个最近异常</strong>
+          <span>${fmtNumber(dashboard.providerIssues.length)} 个供应商异常</span>
+        </div>
+        <div class="admin-overview-hero-row">
+          <strong>${fmtNumber(dashboard.reportQueue)} 条举报队列</strong>
+          <span>${fmtNumber(dashboard.brokenFiles.length)} 个文件异常</span>
+        </div>
+        <div class="admin-overview-hero-row">
+          <strong>${fmtNumber(dashboard.syncFailures.length)} 个同步失败</strong>
+          <span>${fmtNumber(dashboard.withdrawalQueue)} 条撤回待处理</span>
+        </div>
+      </div>
+    </section>
+    <section class="admin-stats-grid admin-dashboard-grid">
+      ${statCard("用户", fmtNumber(m.newUsers), "今日新增 / 总用户 " + fmtNumber(adminState.users.length), "ri-user-add-line", "teal")}
+      ${statCard("生成量", fmtNumber(m.todayGenerated), "今日生成 / 总请求 " + fmtNumber(m.total), "ri-image-ai-line", "blue")}
+      ${statCard("公开作品", fmtNumber(m.publicWorks), "当前公开广场内容", "ri-gallery-view-2", "violet")}
+      ${statCard("举报", fmtNumber(dashboard.reportQueue), "待处理举报队列", "ri-alarm-warning-line", "amber")}
+      ${statCard("提示词同步", fmtNumber(dashboard.syncFailures.length), "异常同步任务", "ri-sync-warning-line", "rose")}
+      ${statCard("文件异常", fmtNumber(dashboard.brokenFiles.length), "巡检命中异常文件", "ri-folder-warning-line", "slate")}
+    </section>
+    <section class="admin-overview-split">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <h2>快捷入口</h2>
+          <span>常用运营路径</span>
+        </div>
+        <div class="admin-quick-links">
+          ${actions.map(([jump, icon, label, hint]) => `
+            <button type="button" class="admin-quick-link" data-jump="${jump}">
+              <i class="${icon}"></i>
+              <strong>${label}</strong>
+              <span>${hint}</span>
+            </button>
+          `).join("")}
+        </div>
+      </section>
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <h2>最近异常</h2>
+          <span>${fmtNumber(dashboard.issues.length)} 项</span>
+        </div>
+        <div class="admin-issue-list">
+          ${dashboard.issues.map((issue) => `
+            <article class="admin-issue" data-tone="${issue.tone}">
+              <i class="${issue.icon}"></i>
+              <div>
+                <strong>${escapeHtml(issue.title)}</strong>
+                <p>${escapeHtml(issue.detail)}</p>
+                <small>${escapeHtml(issue.meta || "")}${issue.time ? ` · ${fmtDate(issue.time)}` : ""}</small>
+              </div>
+              <button type="button" data-jump="${issue.jump}">查看</button>
+            </article>
+          `).join("") || `<div class="admin-empty-state">暂无异常</div>`}
+        </div>
+      </section>
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head">
