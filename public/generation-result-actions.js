@@ -1,9 +1,10 @@
 (function initGenerationResultActions(global) {
   "use strict";
 
-  function renderDone({ item, text, escapeHtml }) {
+  function renderDone({ item, text, escapeHtml, state = {} }) {
     if (!item || !item.images?.[0]) return "";
     const canPublishOriginal = Boolean(item.sourceImageData || item.sourceImageUrl);
+    const canShowCanvasEntry = String(state.settings?.canvasEntryMode || "v2").trim().toLowerCase() !== "hidden";
     const publishLabel = item.isPublic ? text("editPublicTags") : text("publishImage");
     const publishIcon = item.isPublic ? "ri-price-tag-3-line" : "ri-gallery-upload-line";
     return `
@@ -13,7 +14,7 @@
         <details class="message-more">
           <summary><i class="ri-more-2-line"></i><span>${text("more")}</span></summary>
           <div class="message-more-menu">
-            <button type="button" data-add-generation-canvas="${escapeHtml(item.id)}"><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
+            ${canShowCanvasEntry ? `<button type="button" data-add-generation-canvas="${escapeHtml(item.id)}"><i class="ri-node-tree"></i>${text("addToCanvas")}</button>` : ""}
             <button type="button" data-edit="${escapeHtml(item.prompt)}"><i class="ri-edit-line"></i>${text("editPrompt")}</button>
             <button type="button" data-edit-image="${escapeHtml(item.id)}"><i class="ri-image-edit-line"></i>${text("imageToImageShort")}</button>
             <button type="button" data-copy-history-prompt="${escapeHtml(item.id)}"><i class="ri-file-copy-line"></i>${text("copy")}</button>

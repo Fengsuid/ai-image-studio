@@ -1381,6 +1381,7 @@ function updateNav() {
   const loggedIn = Boolean(state.user);
   const capabilities = state.settings?.providerCapabilities || {};
   const contactEmail = String(state.settings?.contactEmail ?? state.settings?.contactAdminEmail ?? "").trim();
+  const hideCanvasEntry = isCanvasEntryHidden();
   elements.loginBtn.classList.toggle("hidden", loggedIn);
   elements.accountMenuWrap?.classList.toggle("hidden", !loggedIn);
   elements.logoutBtn?.classList.toggle("hidden", !loggedIn);
@@ -1388,6 +1389,9 @@ function updateNav() {
   elements.myWorksBtn?.classList.toggle("hidden", !loggedIn);
   elements.notificationBtn?.classList.toggle("hidden", !loggedIn);
   elements.imageEditorBtn.classList.toggle("hidden", capabilities.imageEdit === false);
+  elements.canvasWorkspaceBtn?.classList.toggle("hidden", hideCanvasEntry);
+  elements.openCanvasInlineBtn?.classList.toggle("hidden", hideCanvasEntry);
+  elements.canvasCreateBtn?.classList.toggle("hidden", hideCanvasEntry);
   elements.contactBtn.classList.toggle("hidden", !contactEmail || loggedIn);
   elements.accountContactBtn?.classList.toggle("hidden", !contactEmail);
   elements.adminBtn?.classList.toggle("hidden", state.user?.role !== "admin");
@@ -1820,9 +1824,61 @@ function renderCanvasShell() {
   });
 }
 
-function openCanvasTargetModal(payload = {}) {
+function canvasEntryMode() {
+  const mode = String(state.settings?.canvasEntryMode || "v2").trim().toLowerCase();
+  return ["v2", "legacy", "hidden"].includes(mode) ? mode : "v2";
+}
+
+function isCanvasEntryHidden() {
+  return canvasEntryMode() === "hidden";
+}
+
+function canvasV2ProjectUrl(projectId = "") {
+  return projectId ? `/canvas-v2/projects/${encodeURIComponent(projectId)}` : "/canvas-v2";
+}
+
+function openCanvasWorkspace() {
+  const mode = canvasEntryMode();
+  if (mode === "hidden") {
+    showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
+    return;
+  }
+  if (!state.user) {
+    state.pendingAuthView = mode === "v2" ? "canvas-v2" : "canvas";
+    openAuthModal("login");
+    return;
+  }
+  if (mode === "v2") {
+    window.location.assign(canvasV2ProjectUrl());
+    return;
+  }
+  navigate("canvas", { scrollTop: true });
+}
+
+function openCanvasProject(projectId = "") {
+  const mode = canvasEntryMode();
+  if (mode === "hidden") {
+    showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
+    return;
+  }
+  if (mode === "v2") {
+    window.location.assign(canvasV2ProjectUrl(projectId));
+    return;
+  }
+  navigate("canvas", { scrollTop: true, route: { canvasProjectId: projectId || "" } });
+}
+
+async function openCanvasTargetModal(payload = {}) {
+  if (isCanvasEntryHidden()) {
+    showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
+    return;
+  }
   if (!state.user) {
     openAuthModal("login");
+    return;
+  }
+  if (canvasEntryMode() === "v2") {
+    await openNewCanvasWithPayload(payload);
     return;
   }
   const hasCurrentCanvas = state.view === "canvas" && Boolean(state.canvasProjectId);
@@ -1855,6 +1911,166 @@ function openCanvasTargetModal(payload = {}) {
       });
     });
   });
+}
+
+async function openNewCanvasWithPayload(payload = {}) {
+  const mode = canvasEntryMode();
+  if (mode === "hidden") {
+    showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
+    return;
+  }
+  if (!state.user) {
+    openAuthModal("login");
+    return;
+  }
+  if (mode !== "v2") {
+    closeModal();
+    navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } });
+    requestAnimationFrame(() => window.ImageStudioCanvas?.insertItem?.(payload));
+    return;
+  }
+  try {
+    showToast(state.lang === "zh" ? "正在写入 Canvas v2" : "Creating Canvas v2 project", "ri-node-tree");
+    const canvas = await createCanvasV2ProjectFromPayload(payload);
+    closeModal();
+    if (canvas?.id) window.location.assign(canvasV2ProjectUrl(canvas.id));
+  } catch (error) {
+    showToast(error.message || String(error), "ri-error-warning-line");
+  }
+}
+
+async function createCanvasV2ProjectFromPayload(payload = {}) {
+  const document = canvasV2DocumentFromPayload(payload);
+  const result = await api("/api/canvases", {
+    method: "POST",
+    body: JSON.stringify({
+      title: document.title,
+      visibility: "private",
+      dataJson: document,
+      nodeCount: document.nodes.length,
+      edgeCount: document.edges.length
+    })
+  });
+  return result.canvas;
+}
+
+function canvasV2DocumentFromPayload(payload = {}) {
+  const suffix = Date.now().toString(36);
+  const title = canvasV2Title(payload);
+  const prompt = String(payload.prompt || payload.body || "").trim();
+  const imageUrl = persistableCanvasImageUrl(payload.imageUrl || payload.image || payload.images?.[0] || "");
+  const nodes = [];
+  const edges = [];
+  const connect = (source, target) => edges.push({
+    id: `edge_${source}_${target}_${suffix}`,
+    source,
+    target,
+    sourceHandle: "output",
+    targetHandle: "input"
+  });
+
+  if (payload.kind === "prompt" || (!imageUrl && prompt)) {
+    nodes.push({
+      id: `prompt_entry_${suffix}`,
+      type: "prompt",
+      x: 80,
+      y: 100,
+      width: 340,
+      height: 180,
+      prompt,
+      content: prompt,
+      promptId: payload.promptId || "",
+      source: payload.source || ""
+    });
+    connect(`prompt_entry_${suffix}`, `config_entry_${suffix}`);
+  } else if (imageUrl) {
+    nodes.push({
+      id: `image_entry_${suffix}`,
+      type: "image",
+      x: 80,
+      y: 100,
+      width: 280,
+      height: 210,
+      imageUrl,
+      generationId: payload.generationId || "",
+      prompt,
+      content: payload.title || prompt || "Canvas image"
+    });
+    connect(`image_entry_${suffix}`, `config_entry_${suffix}`);
+    if (prompt) {
+      nodes.push({
+        id: `prompt_entry_${suffix}`,
+        type: "prompt",
+        x: 80,
+        y: 350,
+        width: 340,
+        height: 180,
+        prompt,
+        content: prompt
+      });
+      connect(`prompt_entry_${suffix}`, `config_entry_${suffix}`);
+    }
+  } else {
+    nodes.push({
+      id: `text_entry_${suffix}`,
+      type: "text",
+      x: 80,
+      y: 100,
+      width: 300,
+      height: 150,
+      content: payload.title || "Canvas entry"
+    });
+  }
+
+  nodes.push({
+    id: `config_entry_${suffix}`,
+    type: "config",
+    x: 500,
+    y: 160,
+    width: 260,
+    height: 180,
+    model: "default",
+    size: "1024x1024",
+    quality: "auto",
+    candidateCount: 1
+  });
+  nodes.push({
+    id: `output_entry_${suffix}`,
+    type: "output",
+    x: 860,
+    y: 170,
+    width: 320,
+    height: 210,
+    content: state.lang === "zh" ? "点击生成按钮创建结果" : "Click generate to create an output"
+  });
+  connect(`config_entry_${suffix}`, `output_entry_${suffix}`);
+
+  return {
+    schema: "ai-image-studio.canvas.v1",
+    version: 1,
+    title,
+    viewport: { x: 40, y: 40, zoom: 1 },
+    nodes,
+    edges,
+    meta: {
+      source: "canvas-v2-entry",
+      entryKind: payload.kind || "",
+      updatedBy: "client"
+    }
+  };
+}
+
+function canvasV2Title(payload = {}) {
+  const base = payload.title || payload.prompt || payload.body || (state.lang === "zh" ? "画布条目" : "Canvas entry");
+  const label = truncate(String(base || "").replace(/\s+/g, " "), 42);
+  return state.lang === "zh" ? `Canvas v2 - ${label}` : `Canvas v2 - ${label}`;
+}
+
+function persistableCanvasImageUrl(value = "") {
+  const url = String(value || "").trim();
+  if (!url || url.startsWith("data:") || url.startsWith("blob:")) return "";
+  if (url.startsWith("/") || /^https?:\/\//i.test(url)) return url;
+  return "";
 }
 
 function canvasPayloadFromGeneration(item = {}, title = "Image") {
@@ -4567,7 +4783,8 @@ function openSquarePreview(prompt, options = {}) {
   const isImageToImage = isImageToImageItem(item) || Boolean(item.sourceImageUrl || item.sourceImageId || item.sourcePrompt);
   const isCanvasRoute = isCanvasRouteItem(item);
   const originalCanvas = item.canvasProject && item.canvasProject.id ? item.canvasProject : null;
-  const canDuplicateCanvasRoute = Boolean(originalCanvas?.canDuplicate ?? originalCanvas);
+  const canShowCanvasEntry = !isCanvasEntryHidden();
+  const canDuplicateCanvasRoute = canShowCanvasEntry && Boolean(originalCanvas?.canDuplicate ?? originalCanvas);
   const tagView = galleryTagViewModelForItem(item, item.publicTags || []);
   const tags = tagView.publicTags;
   const route = item.conversation || [];
@@ -4658,8 +4875,8 @@ function openSquarePreview(prompt, options = {}) {
           <button type="button" data-square-text><i class="ri-sparkling-2-line"></i>${text("textToImageAction")}</button>
           <button type="button" data-square-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>
           ${canDuplicateCanvasRoute ? `<button type="button" data-square-duplicate-canvas="${escapeHtml(originalCanvas.id)}"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "用此线路新建画布" : "New canvas from this route")}</button>` : ""}
-          <button type="button" data-square-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
-          <button type="button" data-square-new-canvas><i class="ri-add-box-line"></i>${text("useImageNewCanvas")}</button>
+          ${canShowCanvasEntry ? `<button type="button" data-square-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>` : ""}
+          ${canShowCanvasEntry ? `<button type="button" data-square-new-canvas><i class="ri-add-box-line"></i>${text("useImageNewCanvas")}</button>` : ""}
           <button type="button" data-square-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
           <a href="${escapeHtml(imageUrl)}" download="${escapeHtml(item.id || "image")}.png" data-square-download><i class="ri-download-line"></i>${text("download")}</a>
           <button type="button" data-square-report><i class="ri-flag-line"></i>${state.lang === "zh" ? "举报" : "Report"}</button>
@@ -4729,21 +4946,14 @@ function openSquarePreview(prompt, options = {}) {
     const newCanvasId = result.canvas?.id || "";
     if (!newCanvasId) return;
     closeModal();
-    navigate("canvas", { scrollTop: true, route: { canvasProjectId: newCanvasId } });
+    openCanvasProject(newCanvasId);
     showToast(state.lang === "zh" ? "已复制为你的私有画布" : "Copied to your private canvas", "ri-node-tree");
   });
   $("[data-square-add-canvas]", elements.modalLayer)?.addEventListener("click", () => {
     openCanvasTargetModal(canvasPayloadFromGeneration(selectedMediaPayload(text("outputImage")), mediaController?.selected?.()?.label || text("outputImage")));
   });
   $("[data-square-new-canvas]", elements.modalLayer)?.addEventListener("click", () => {
-    if (!state.user) {
-      closeModal();
-      openAuthModal("login");
-      return;
-    }
-    closeModal();
-    navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } });
-    requestAnimationFrame(() => window.ImageStudioCanvas?.insertItem?.(canvasPayloadFromGeneration(selectedMediaPayload(text("outputImage")), mediaController?.selected?.()?.label || text("outputImage"))));
+    void openNewCanvasWithPayload(canvasPayloadFromGeneration(selectedMediaPayload(text("outputImage")), mediaController?.selected?.()?.label || text("outputImage")));
   });
   $("[data-square-copy]", elements.modalLayer)?.addEventListener("click", async () => {
     await copyText(mediaController?.selected?.()?.prompt || item.prompt);
@@ -4892,7 +5102,7 @@ function openPromptDetailModal(prompt) {
             <i class="${prompt.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(prompt.likeCount || 0)}
           </button>
           ${imageUrl ? `<button type="button" data-prompt-edit><i class="ri-image-edit-line"></i>${text("imageToImageAction")}</button>` : ""}
-          <button type="button" data-prompt-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
+          ${isCanvasEntryHidden() ? "" : `<button type="button" data-prompt-add-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>`}
           <button type="button" data-prompt-copy><i class="ri-file-copy-line"></i>${text("copy")}</button>
           ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noreferrer"><i class="ri-external-link-line"></i>${text("download")}</a>` : ""}
           ${isAdmin ? `<button type="button" data-prompt-admin-edit><i class="ri-pencil-line"></i>${text("promptEdit")}</button>` : ""}
@@ -5879,7 +6089,7 @@ function openWorkDetail(id, options = {}) {
           <a href="${escapeHtml(item.images[0])}" download="${escapeHtml(item.id)}.png"><i class="ri-download-line"></i>${text("download")}</a>
           <button type="button" data-work-detail-editor><i class="ri-magic-line"></i>${text("openEditor")}</button>
           <button type="button" data-work-detail-continue><i class="ri-refresh-line"></i>${text("worksContinue")}</button>
-          <button type="button" data-work-detail-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>
+          ${isCanvasEntryHidden() ? "" : `<button type="button" data-work-detail-canvas><i class="ri-node-tree"></i>${text("addToCanvas")}</button>`}
         </div>
         <dl class="works-detail-meta">
           <dt>ID</dt><dd>${escapeHtml(String(item.id))}</dd>
@@ -6047,7 +6257,8 @@ async function submitAuth(event) {
     state.pendingAuthView = "";
     state.forceHero = pendingView ? false : true;
     renderAll();
-    if (pendingView) navigate(pendingView, { scrollTop: true });
+    if (pendingView === "canvas-v2") window.location.assign(canvasV2ProjectUrl());
+    else if (pendingView) navigate(pendingView, { scrollTop: true });
     setTimeout(maybeOpenUnreadAnnouncementModal, 300);
     window.scrollTo({ top: 0, behavior: "auto" });
     restartHeroVideo();
@@ -6581,7 +6792,7 @@ function bindGlobalEvents() {
   });
   elements.promptLibraryBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
   elements.leaderboardBtn?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
-  elements.canvasWorkspaceBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
+  elements.canvasWorkspaceBtn?.addEventListener("click", openCanvasWorkspace);
   elements.sessionDrawerToggle?.addEventListener("click", () => {
     if (state.view === "home" && !shouldShowHero()) {
       elements.app.classList.toggle("chat-panel-collapsed");
@@ -6608,7 +6819,7 @@ function bindGlobalEvents() {
   });
   elements.imageEditorBtn.addEventListener("click", () => openImageEditor());
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
-  elements.openCanvasInlineBtn?.addEventListener("click", () => navigate("canvas", { scrollTop: true }));
+  elements.openCanvasInlineBtn?.addEventListener("click", openCanvasWorkspace);
   elements.canvasBackHomeBtn?.addEventListener("click", () => navigate("home", { scrollTop: true }));
   window.ImageStudioCanvas?.bindShellEvents?.({ elements, navigate });
   elements.notificationBtn?.addEventListener("click", openNotificationsModal);

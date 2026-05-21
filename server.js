@@ -482,6 +482,14 @@ function contactAdminEmail(settings = {}) {
   return email || DEFAULT_CONTACT_ADMIN_EMAIL;
 }
 
+function canvasEntryMode() {
+  return choose(
+    String(process.env.CANVAS_ENTRY_MODE || process.env.CANVAS_V2_ENTRY_MODE || "v2").trim().toLowerCase(),
+    ["v2", "legacy", "hidden"],
+    "v2"
+  );
+}
+
 function rumSummary() {
   const recent = rumEvents.slice(-500);
   const metric = (name) => recent.filter((item) => item.name === name).map((item) => Number(item.value || 0));
@@ -511,6 +519,7 @@ function publicSettings(settings, activeProvider = null) {
     contactEmail: contactAdminEmail(settings),
     contactAdminEmail: contactAdminEmail(settings),
     checkinCredit: CHECKIN_CREDIT,
+    canvasEntryMode: canvasEntryMode(),
     maxImagesPerRequest: Number(settings.maxImagesPerRequest || 1),
     maxReferenceImages: normalizeMaxReferenceImages(settings.maxReferenceImages),
     publicWithdrawalWindowHours: PUBLIC_WITHDRAWAL_WINDOW_HOURS,
