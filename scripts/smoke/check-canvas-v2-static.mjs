@@ -11,6 +11,8 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"
 const canvasPackage = JSON.parse(fs.readFileSync(path.join(rootDir, "apps/canvas-v2/package.json"), "utf8"));
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/canvas-v2/index.html"), "utf8");
+const dockerfile = fs.readFileSync(path.join(rootDir, "Dockerfile"), "utf8");
+const dockerignore = fs.readFileSync(path.join(rootDir, ".dockerignore"), "utf8");
 
 assert.equal(packageJson.scripts["canvas:v2:check"], "npm run check --prefix apps/canvas-v2", "root canvas:v2:check script missing");
 assert.equal(packageJson.scripts["canvas:v2:build"], "npm run build --prefix apps/canvas-v2", "root canvas:v2:build script missing");
@@ -27,6 +29,13 @@ assert(server.includes('pathname === "/canvas-v2" || pathname.startsWith("/canva
 assert(server.includes('pathname.startsWith("/canvas-v2/assets/")'), "server must keep canvas-v2 assets on the static path");
 assert(server.includes('"/canvas-v2/index.html"'), "server must serve canvas-v2 index for SPA routes");
 assert(server.includes('path.join(PUBLIC_DIR, "canvas-v2", "index.html")'), "server fallback must read canvas-v2 index");
+
+assert(dockerfile.includes("AS canvas-v2-build"), "Dockerfile must include an isolated Canvas v2 build stage");
+assert(dockerfile.includes("npm run build --prefix apps/canvas-v2"), "Dockerfile must build Canvas v2 from source");
+assert(dockerfile.includes("COPY --from=canvas-v2-build /app/public/canvas-v2 ./public/canvas-v2"), "Dockerfile must publish built Canvas v2 assets into public/canvas-v2");
+assert(!dockerfile.includes("apps/canvas-v2/node_modules"), "Dockerfile must not copy apps/canvas-v2/node_modules");
+assert(dockerignore.includes("apps/canvas-v2/node_modules"), ".dockerignore must exclude Canvas v2 node_modules");
+assert(dockerignore.includes("docs/REMOTE_DEVELOPMENT_PRIVATE.md"), ".dockerignore must exclude private deployment notes");
 
 const jsPath = indexHtml.match(/src="([^"]*\/canvas-v2\/assets\/main\.[^"]+\.js)"/)?.[1] || "";
 const cssPath = indexHtml.match(/href="([^"]*\/canvas-v2\/assets\/styles\.[^"]+\.css)"/)?.[1] || "";

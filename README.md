@@ -35,6 +35,7 @@ The npm package metadata uses `1.0.0` for semantic-version compatibility, while 
 - Prompt library and imported prompt templates.
 - User authentication, credits, check-in rewards, first-publication rewards, and withdrawal window rules.
 - Admin console for users, providers, settings, announcements, audit logs, public images, reports, prompt audits, and duplicate prompt scans.
+- Canvas v2 workspace for saved visual projects, nodes, edges, generation output routing, and JSON export.
 - MySQL-backed persistence with local static assets served by the Node.js server.
 
 ## 功能
@@ -45,12 +46,14 @@ The npm package metadata uses `1.0.0` for semantic-version compatibility, while 
 - 提示词库与外部提示词模板导入。
 - 用户登录、积分、签到奖励、首次公开奖励与公开撤回窗口。
 - 后台管理：用户、供应商、系统设置、通知、审计日志、公开图片、举报、提示词审核与重复提示词扫描。
+- Canvas v2 工作台：保存可视化项目、节点、连线、生成输出路由与 JSON 导出。
 - 基于 MySQL 的持久化存储，Node.js 服务直接提供静态前端与 API。
 
 ## Project Structure
 
 ```text
 public/             Frontend pages, styles, and browser scripts
+apps/canvas-v2/     Isolated Canvas v2 source app; builds into public/canvas-v2
 src/                MySQL persistence layer
 scripts/            Import, migration, and smoke-test scripts
 docs/               Product, admin, execution, and deployment design notes
@@ -100,6 +103,7 @@ Then open:
 
 - Frontend: `http://localhost:3000/`
 - Admin: `http://localhost:3000/admin`
+- Canvas v2: `http://localhost:3000/canvas-v2`
 
 ## 快速启动
 
@@ -123,6 +127,21 @@ npm run smoke:data
 ```
 
 Some smoke checks require a running server and matching admin/database environment variables.
+
+## Canvas v2
+
+Canvas v2 is built from `apps/canvas-v2/src` into `public/canvas-v2`:
+
+```bash
+npm run canvas:v2:check
+npm run canvas:v2:build
+npm run smoke:canvas-v2:static
+npm run smoke:canvas-v2:entry
+```
+
+The Canvas v2 source boundary records `basketikun/infinite-canvas` as an AGPL-3.0 upstream reference. Browser code must use the existing ai-image-studio APIs for login, CSRF, persistence, credits, provider routing, generation, and storage; it must not keep provider API keys or call OpenAI-compatible endpoints directly.
+
+Set `CANVAS_ENTRY_MODE=legacy` to route primary Canvas entries back to the existing `#/canvas` workspace, or `CANVAS_ENTRY_MODE=hidden` to suppress public Canvas entry points during rollback.
 
 ## Deployment Notes
 

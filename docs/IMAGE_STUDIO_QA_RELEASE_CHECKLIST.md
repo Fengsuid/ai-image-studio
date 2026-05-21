@@ -61,6 +61,14 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `npm run smoke:canvas-import-export-api -- http://localhost:3100`
   - `npm run smoke:canvas-assistant-api -- http://localhost:3100`
   - `npm run smoke:data`
+- Canvas v2 release gate:
+  - `npm run canvas:v2:check`
+  - `npm run canvas:v2:build`
+  - `npm run smoke:canvas-v2:static`
+  - `npm run smoke:canvas-v2:editor`
+  - `npm run smoke:canvas-v2:generation`
+  - `npm run smoke:canvas-v2:entry`
+  - `npm run smoke:canvas-v2 -- http://localhost:3100`
 
 ## 2. Online Smoke
 
@@ -73,6 +81,13 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `ADMIN_EMAIL=<admin> ADMIN_PASSWORD=<password> npm run smoke:auth-admin -- https://<host>`
   - `npm run smoke:canvas-import-export-api -- https://<host>`
   - `npm run smoke:canvas-assistant-api -- https://<host>`
+- Run Canvas v2 smoke against the deployed container or production origin:
+  - `npm run smoke:canvas-v2 -- https://<host>`
+  - `npm run smoke:canvas-v2:generation`
+  - `npm run smoke:canvas-v2:entry`
+  - `GET /canvas-v2`
+  - `GET /canvas-v2/projects/<id>`
+  - `GET /canvas-v2/assets/<hashed-asset>`
 - Run targeted prompt regression where applicable:
   - `node scripts/smoke/check-prompt-like.mjs https://<host> <promptId>`
 - Check logs for:
@@ -104,6 +119,16 @@ For every completed P0 task, record:
 - rollback target
 
 Record the outcome in the relevant development document or release note before marking the task done. Documentation-only updates that do not deploy to production do not need a release record entry; they are tracked in the unified master plan and Rellis tasks file instead.
+
+### Canvas v2 Phase 1 Release Notes
+
+- Architecture: Canvas v2 is an isolated browser sub-application under `apps/canvas-v2/src`, built into `public/canvas-v2` and served by the Node server as an SPA. It uses the existing `/api/auth`, `/api/canvases`, `/api/canvases/:id/export`, and `/api/canvases/:id/generate` routes for login, persistence, export, CSRF, credits, provider routing, and generated image storage.
+- Compliance: the Canvas v2 sub-application records `basketikun/infinite-canvas` as the AGPL-3.0 upstream reference in `apps/canvas-v2/UPSTREAM.md`; local Canvas v2 code is marked `AGPL-3.0-or-later` and must not import upstream backend, database, API-key, or direct provider-call paths into the browser bundle.
+- Entry switch and rollback: public Canvas entries default to Canvas v2. Set `CANVAS_ENTRY_MODE=legacy` to route primary entries back to the existing `#/canvas` workspace, or `CANVAS_ENTRY_MODE=hidden` to hide new Canvas entry points while keeping API routes deployed.
+- Build hygiene: production builds run `npm run canvas:v2:build` and publish only `public/canvas-v2`; `apps/canvas-v2/node_modules`, runtime data, archives, `.env` files, private docs, and local screenshots are excluded from Docker context and Git release artifacts.
+- QA coverage: `npm run smoke:canvas-v2` covers `/canvas-v2`, nested SPA refresh, hashed JS/CSS assets, missing asset 404s, `/api/settings.canvasEntryMode`, unauthenticated API boundaries, authenticated CRUD, save/restore, export schema, owner isolation, and a backend generation-route validation probe that does not call a provider.
+- Online validation: after deployment verify `/api/version`, `/canvas-v2`, `/canvas-v2/projects/<id>`, Canvas v2 static assets, `npm run smoke:public -- <origin>`, `npm run smoke:canvas-v2 -- <origin>`, `npm run smoke:canvas-v2:generation`, `npm run smoke:canvas-v2:entry`, gallery-to-canvas smoke, and the retired domain 410 response.
+- Rollback point: record the pushed Git commit and deployment package version for every Canvas v2 release. Prefer code rollback or `CANVAS_ENTRY_MODE=legacy` for UI regressions; database rollback is only needed for destructive schema/data changes.
 
 ### 2026-05-19 Canvas And QA Batch
 

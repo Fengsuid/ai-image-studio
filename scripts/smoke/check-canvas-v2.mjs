@@ -217,6 +217,25 @@ function canvasV2Document(title) {
   };
 }
 
+function canvasV2GenerationProbeDocument(title) {
+  return {
+    schema: "ai-image-studio.canvas.v1",
+    version: 1,
+    title,
+    viewport: { x: 0, y: 0, zoom: 1 },
+    nodes: [
+      { id: "prompt_probe", type: "prompt", x: 80, y: 80, width: 280, height: 140, prompt: "no" },
+      { id: "config_probe", type: "config", x: 420, y: 80, width: 260, height: 160, model: "smoke-model", size: "1024x1024", quality: "medium", candidateCount: 4 },
+      { id: "output_probe", type: "output", x: 760, y: 110, width: 300, height: 180 },
+    ],
+    edges: [
+      { id: "edge_prompt_config_probe", source: "prompt_probe", target: "config_probe" },
+      { id: "edge_config_output_probe", source: "config_probe", target: "output_probe" },
+    ],
+    meta: { source: "canvas-v2-smoke-generation-probe" },
+  };
+}
+
 function assetPathFrom(html, pattern, fallback) {
   return html.match(pattern)?.[1] || fallback;
 }
@@ -282,6 +301,11 @@ async function checkCanvasV2Shell() {
     assert(apiModule.body.includes("/api/canvases?scope="), "Canvas v2 API adapter should list projects through /api/canvases");
     assert(apiModule.body.includes("credentials: \"same-origin\""), "Canvas v2 API adapter should use same-origin credentials");
     assert(apiModule.body.includes("X-CSRF-Token"), "Canvas v2 API adapter should attach CSRF tokens for writes");
+    assert(apiModule.body.includes("/generate"), "Canvas v2 API adapter should expose backend canvas generation");
+    assert(apiModule.body.includes("outputNodeId"), "Canvas v2 API adapter should send output node selectors");
+    assert(apiModule.body.includes("configNodeId"), "Canvas v2 API adapter should send config node selectors");
+    assert(!apiModule.body.includes("openai.com"), "Canvas v2 API adapter must not call providers directly");
+    assert(!apiModule.body.includes("apiKey"), "Canvas v2 API adapter must not handle provider API keys");
   }
 
   const missingAsset = await fetchText("/canvas-v2/assets/missing.js", "application/javascript,*/*");
@@ -300,6 +324,11 @@ async function checkApiBoundaries() {
   const health = await fetchJson("/api/health");
   assert(health.status === 200, `/api/health status=${health.status}`);
   assert(health.body?.ok === true, "/api/health ok flag missing");
+
+  const settings = await fetchJson("/api/settings");
+  assert(settings.status === 200, `/api/settings status=${settings.status}`);
+  assert(["v2", "legacy", "hidden"].includes(settings.body?.canvasEntryMode), `/api/settings canvasEntryMode invalid: ${settings.body?.canvasEntryMode}`);
+  assert(settings.body?.canvasEntryMode === "v2", `/api/settings canvasEntryMode default should be v2, got ${settings.body?.canvasEntryMode}`);
 
   const auth = await fetchJson("/api/auth/me");
   assert(auth.status === 200, `/api/auth/me status=${auth.status}`);
@@ -369,6 +398,30 @@ async function checkAuthenticatedCrud() {
     assert(exported.format === "ai-image-studio.canvas.v1", "export schema mismatch");
     assert(exported.canvas?.dataJson?.meta?.source === "canvas-v2", "export should preserve canvas-v2 source");
 
+    const generationProbe = canvasV2GenerationProbeDocument(`${title} Generation Probe`);
+    await requestJson(ownerSession, `/api/canvases/${encodeURIComponent(canvasId)}`, {
+      method: "PATCH",
+      body: {
+        title: generationProbe.title,
+        visibility: "private",
+        dataJson: generationProbe,
+        nodeCount: generationProbe.nodes.length,
+        edgeCount: generationProbe.edges.length,
+      },
+    });
+    const generated = await requestJson(ownerSession, `/api/canvases/${encodeURIComponent(canvasId)}/generate`, {
+      method: "POST",
+      expected: 400,
+      body: {
+        outputNodeId: "output_probe",
+        configNodeId: "config_probe",
+        nodes: [{ id: "forged_frontend_prompt", type: "prompt", prompt: "This forged graph must be ignored" }],
+        prompt: "This request body prompt must be ignored",
+        providerApiKey: "must-not-be-sent",
+      },
+    });
+    assert(generated.error === "Prompt is too short", "generation API should validate the saved Canvas v2 graph before provider calls");
+
     const otherSession = createSession();
     await ensureSmokeLogin(otherSession, otherUser);
     await requestJson(otherSession, `/api/canvases/${encodeURIComponent(canvasId)}`, { expected: 404 });
@@ -392,7 +445,7 @@ async function main() {
     console.error(`[canvas-v2-smoke] FAILED: ${failures.length} assertion(s) failed`);
     process.exit(1);
   }
-  console.log("[canvas-v2-smoke] OK: canvas v2 shell, assets, API boundaries, and CRUD verified");
+  console.log("[canvas-v2-smoke] OK: canvas v2 shell, assets, entry switch, API boundaries, CRUD, export, and generation route verified");
 }
 
 main().catch((error) => {
