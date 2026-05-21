@@ -1183,6 +1183,14 @@ function imageFallbackImgAttrs(fallbackSrc = "") {
 
 function markImageUnavailable(image) {
   if (!image || image.dataset.imageFailed === "1") return;
+  if (image.dataset.removeOnImageError === "1") {
+    image.dataset.imageFailed = "1";
+    const card = image.closest(".prompt-card");
+    if (card) {
+      card.remove();
+      return;
+    }
+  }
   const fallbackSrc = image.dataset.fallbackSrc || "";
   if (fallbackSrc && image.getAttribute("src") !== fallbackSrc) {
     image.dataset.imageFailed = "1";
@@ -3819,8 +3827,9 @@ function promptCardHtml(prompt) {
   }).join("");
   const fallbackSrc = promptCoverFallbackSrc(prompt);
   const cardImageUrl = promptCardImageUrl(prompt, coverUrl);
+  const removeBrokenPromptImage = prompt.kind !== "square" ? ' data-remove-on-image-error="1"' : "";
   const art = coverUrl
-    ? `<img src="${escapeHtml(cardImageUrl)}" ${imageFallbackImgAttrs(fallbackSrc)} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
+    ? `<img src="${escapeHtml(cardImageUrl)}" ${imageFallbackImgAttrs(fallbackSrc)}${removeBrokenPromptImage} loading="lazy" decoding="async" fetchpriority="low" alt="${escapeHtml(title)}">`
     : window.ImageStudioPromptCoverFallback?.render?.(prompt, { escapeHtml, truncate }) || `<i class="${prompt.icon || "ri-image-line"}"></i>`;
   const canvasBadge = isCanvasRouteItem(prompt)
     ? `<b class="canvas-route-badge"><i class="ri-node-tree"></i>${escapeHtml(state.lang === "zh" ? "画布线路" : "Canvas route")}</b>`

@@ -44,6 +44,8 @@ assert(fs.readFileSync(path.join(rootDir, "public/prompt-cover-fallback.js"), "u
 assert(app.includes("function promptCardImageUrl"), "prompt cards must centralize card image URL selection");
 assert(app.includes('return prompt.kind === "square" ? imageVariantUrl(coverUrl) : coverUrl;'), "prompt-library cards must use the same image URL as details");
 assert(app.includes('src="${escapeHtml(cardImageUrl)}"'), "prompt card markup must render the normalized card image URL");
+assert(app.includes('data-remove-on-image-error="1"'), "prompt-library cards with broken source images must not render synthetic fallback covers");
+assert(app.includes('image.closest(".prompt-card")') && app.includes("card.remove()"), "broken prompt-library image cards must be removed from the gallery grid");
 
 assert(app.includes("deleteImageSession"), "conversation delete handler must exist");
 assert(app.includes("ImageStudioRenderStamp"), "conversation/history renders must use stable render stamps");
