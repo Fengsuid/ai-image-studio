@@ -90,7 +90,15 @@ const gptImage2Items = parseGptImage2Readme(`
 \`\`\`
 A hyper-realistic miniature diorama product advertisement.
 \`\`\`
-`, [{ title: "E-commerce Main Image", image_dir: "poster_case151" }], { key: "gpt-image-2", category: "gpt-image-2-prompts", repo: "EvoLinkAI/awesome-gpt-image-2-API-and-Prompts" });
+`, [{ title: "E-commerce Main Image", image_path: "images/poster_case151/output.jpg" }], { key: "gpt-image-2", category: "gpt-image-2-prompts", repo: "EvoLinkAI/awesome-gpt-image-2-API-and-Prompts" });
 assert.equal(gptImage2Items[0].image, "https://raw.githubusercontent.com/EvoLinkAI/awesome-gpt-image-2-API-and-Prompts/main/images/poster_case151/output.jpg", "EvoLinkAI parser must preserve generated output images");
+const gptImage2LegacyDirItems = parseGptImage2Readme(`
+### Case 158: [Die-Cut Sticker Illustration](https://x.com/example/status/2)
+**Prompt:**
+\`\`\`
+Transform the uploaded image into a premium die-cut sticker illustration.
+\`\`\`
+`, [{ title: "Die-Cut Sticker Illustration", image_dir: "images/ui_case158" }], { key: "gpt-image-2", category: "gpt-image-2-prompts", repo: "EvoLinkAI/awesome-gpt-image-2-API-and-Prompts" });
+assert.equal(gptImage2LegacyDirItems[0].image, "https://raw.githubusercontent.com/EvoLinkAI/awesome-gpt-image-2-API-and-Prompts/main/images/ui_case158/output.jpg", "EvoLinkAI parser must not duplicate images/ for image_dir values");
 
 console.log("[infinite-canvas-prompt-source-smoke] OK: source seed and parser boundaries are in place");

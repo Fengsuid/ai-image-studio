@@ -220,6 +220,15 @@ function awesomeGptImage2LegacyRemoteId(source, sourceNumber, title, prompt = ""
   return count === 0 ? base : `${base}:${shortPromptHash(prompt, 10)}`;
 }
 
+function gptImage2RecordImagePath(record = {}) {
+  const directPath = String(record.image_path || record.image || record.output_image || record.outputImage || "").trim();
+  if (directPath) return directPath.replace(/^\/+/, "");
+  const folder = String(record.image_dir || record.folder_name || record.folderName || "").trim().replace(/^\/+|\/+$/g, "");
+  if (!folder) return "";
+  if (/\.(?:avif|webp|png|jpe?g|gif)$/i.test(folder)) return folder;
+  return `${/^images\//i.test(folder) ? folder : `images/${folder}`}/output.jpg`;
+}
+
 function parseGptImage2Readme(readme, recordsPayload, source) {
   const records = Array.isArray(recordsPayload)
     ? recordsPayload
@@ -228,9 +237,13 @@ function parseGptImage2Readme(readme, recordsPayload, source) {
   const recordByImageDir = new Map();
   for (const record of records) {
     const title = String(record.title || "").trim();
-    const imageDir = String(record.image_dir || "").trim();
+    const suggestedTitle = String(record.suggested_title || record.suggestedTitle || "").trim();
+    const imageDir = String(record.image_dir || record.folder_name || record.folderName || "").trim();
+    const imagePath = gptImage2RecordImagePath(record);
     if (title) recordByTitle.set(title.toLowerCase(), record);
+    if (suggestedTitle) recordByTitle.set(suggestedTitle.toLowerCase(), record);
     if (imageDir) recordByImageDir.set(imageDir.toLowerCase(), record);
+    if (imagePath) recordByImageDir.set(imagePath.toLowerCase(), record);
   }
   const items = [];
   const pattern = /###\s+Case\s+\d+:\s+\[([^\]]+)]\(([^)]+)\)[\s\S]*?\*\*Prompt:\*\*\s*\r?\n\s*```[^\n]*\r?\n([\s\S]*?)\r?\n```/gi;
@@ -239,16 +252,19 @@ function parseGptImage2Readme(readme, recordsPayload, source) {
     const title = titleFromMarkdownHeading(match[1]);
     const link = String(match[2] || "").trim();
     const prompt = String(match[3] || "").trim();
-    const record = recordByTitle.get(title.toLowerCase()) || [...recordByImageDir.values()].find((item) => link.includes(String(item.image_dir || "")));
-    const imageDir = String(record?.image_dir || "").trim();
+    const record = recordByTitle.get(title.toLowerCase()) || [...recordByImageDir.values()].find((item) => {
+      const imagePath = gptImage2RecordImagePath(item);
+      return imagePath && link.includes(imagePath);
+    });
+    const imagePath = gptImage2RecordImagePath(record);
     items.push({
       title,
       prompt,
-      image: imageDir ? absoluteRepoImage(source.repo, `images/${imageDir}/output.jpg`) : firstMarkdownImage(match[0], source.repo),
+      image: imagePath ? absoluteRepoImage(source.repo, imagePath) : firstMarkdownImage(match[0], source.repo),
       tags: sourceTags(source),
       category: promptCategoryFromPath(`${source.category}/${record?.category || ""}/${title}`),
       sourceCategory: record?.category || source.category,
-      remoteId: `${source.key}:${record?.tweet_url || imageDir || title}`,
+      remoteId: `${source.key}:${record?.tweet_url || imagePath || title}`,
       githubUrl: link || repoBlobUrl(source.repo, "README.md")
     });
   }
