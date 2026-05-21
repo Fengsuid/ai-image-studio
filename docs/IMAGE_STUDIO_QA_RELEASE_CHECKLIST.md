@@ -130,6 +130,19 @@ Record the outcome in the relevant development document or release note before m
 - Online validation: after deployment verify `/api/version`, `/canvas-v2`, `/canvas-v2/projects/<id>`, Canvas v2 static assets, `npm run smoke:public -- <origin>`, `npm run smoke:canvas-v2 -- <origin>`, `npm run smoke:canvas-v2:generation`, `npm run smoke:canvas-v2:entry`, gallery-to-canvas smoke, and the retired domain 410 response.
 - Rollback point: record the pushed Git commit and deployment package version for every Canvas v2 release. Prefer code rollback or `CANVAS_ENTRY_MODE=legacy` for UI regressions; database rollback is only needed for destructive schema/data changes.
 
+### 2026-05-21 Canvas v2 Phase 1 Release
+
+- Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
+- Commits covered: `198acd5`, `27b4b59`, `af2334a`, `13cd6b7`, `757cb7f`, `4664d1f`, `5ed82b1`, `0f9554b`.
+- Local checks: `node --check` for touched server/public/smoke files, package JSON parse, `npm run canvas:v2:check`, `npm run canvas:v2:build`, `npm run smoke:canvas-v2:static`, `npm run smoke:canvas-v2:editor`, `npm run smoke:canvas-v2:generation`, `npm run smoke:canvas-v2:entry`, `npm run smoke:generation-result-actions`, `npm run smoke:gallery-leaderboard-sidebar`, `npm run smoke:gallery-detail-media`, `git diff --check`, and changed-diff privacy scan.
+- Smoke coverage: Canvas v2 unified smoke now covers SPA shell, nested refresh, hashed static assets, missing asset 404, public `canvasEntryMode`, unauthenticated API boundaries, authenticated CRUD, save/restore, export schema, owner isolation, and generation-route validation without provider calls.
+- Build coverage: Docker build runs an isolated Canvas v2 build stage, publishes generated `public/canvas-v2` assets, keeps Canvas v2 source for container smoke scripts, and does not carry `apps/canvas-v2/node_modules` in the production image.
+- Deployment version: `/api/version` reports `20260521-canvas-v2-release-v1` on Node `v20.20.2`.
+- Deployment checks: container `smoke:public`, `smoke:canvas-v2`, `smoke:canvas-v2:generation`, `smoke:canvas-v2:entry`, and `smoke:canvas-gallery-link` passed.
+- Route checks: `/canvas-v2` returned `200`, `/canvas-v2/projects/release.v1` returned `200`, Canvas v2 hashed JS/CSS assets returned `200`, missing Canvas v2 asset returned `404`, and the retired domain returned `410`.
+- Follow-up fix: `0f9554b` aligned home `styles.css` and `app.js` cache-bust markers after production `smoke:public` caught a mismatch.
+- Rollback target: for Canvas entry regressions set `CANVAS_ENTRY_MODE=legacy`; for code rollback use the last deployed Canvas v2 generation baseline before the entry-switch/release batch, `757cb7f`.
+
 ### 2026-05-19 Canvas And QA Batch
 
 - Tasks covered: `AIS-RLS-023`, `AIS-RLS-024`, `AIS-RLS-025`, `AIS-RLS-035`, `AIS-RLS-038`.
