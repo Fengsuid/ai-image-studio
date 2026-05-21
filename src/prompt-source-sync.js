@@ -159,9 +159,42 @@ function absoluteRepoImage(repo, imagePath, branch = "main") {
   return rawUrl(repo, cleaned, branch);
 }
 
+function isDecorativeImageUrl(value = "") {
+  const text = String(value || "").toLowerCase();
+  return !text
+    || text.includes("img.shields.io/")
+    || text.includes("shields.io/badge")
+    || text.includes("awesome.re/badge")
+    || (text.includes("github.com/") && text.includes("/actions/workflows/"))
+    || /badge\.svg(?:[?#]|$)/.test(text);
+}
+
+function cleanMarkdownImageUrl(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/^<|>$/g, "")
+    .replace(/\s+["'][^"']*["']$/g, "")
+    .trim();
+}
+
+function firstContentImage(block, repo, branch) {
+  const text = String(block || "");
+  const htmlPattern = /<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
+  let match;
+  while ((match = htmlPattern.exec(text))) {
+    const image = cleanMarkdownImageUrl(match[1]);
+    if (!isDecorativeImageUrl(image)) return absoluteRepoImage(repo, image, branch);
+  }
+  const markdownPattern = /!\[[^\]]*]\(([^)]+)\)/g;
+  while ((match = markdownPattern.exec(text))) {
+    const image = cleanMarkdownImageUrl(match[1]);
+    if (!isDecorativeImageUrl(image)) return absoluteRepoImage(repo, image, branch);
+  }
+  return "";
+}
+
 function firstMarkdownImage(block, repo, branch) {
-  const match = String(block || "").match(/!\[[^\]]*]\(([^)]+)\)/);
-  return match ? absoluteRepoImage(repo, match[1], branch) : "";
+  return firstContentImage(block, repo, branch);
 }
 
 function titleFromMarkdownHeading(value) {
@@ -541,8 +574,13 @@ module.exports = {
   githubRepoParts,
   normalizeRemotePromptItem,
   parseMarkdownPromptItems,
+  parseGptImage2Readme,
+  parseAwesomeGptImageReadme,
+  parseAwesomeGpt4oReadme,
+  parseYouMindReadme,
   parseAwesomeGptImage2PromptsBackup,
   parseAwesomeGptImage2PromptsJson,
+  firstContentImage,
   promptFingerprint,
   INFINITE_CANVAS_SOURCE_REPO
 };
