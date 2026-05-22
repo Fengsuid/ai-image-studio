@@ -8,6 +8,11 @@
     padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 
+  .leaderboard-view {
+    overflow-x: hidden;
+    padding: 10px max(10px, env(safe-area-inset-left)) calc(42px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
+  }
+
   .library-hero {
     padding: 28px var(--mobile-page-pad) 22px;
     gap: 12px;
@@ -184,23 +189,55 @@
 
   .leaderboard-page {
     width: 100%;
+    gap: 0;
   }
 
   .leaderboard-page-head {
-    padding: 22px var(--mobile-page-pad);
-    border-radius: 20px 20px 0 0;
+    order: 0;
+    padding: 18px var(--mobile-page-pad) 16px;
+    border-radius: 22px 22px 0 0;
+    background:
+      radial-gradient(circle at 12% 16%, rgba(96, 165, 250, 0.18), transparent 30%),
+      radial-gradient(circle at 90% 8%, rgba(236, 72, 153, 0.14), transparent 28%),
+      rgba(255, 255, 255, 0.9);
+  }
+
+  .leaderboard-page-head .library-badge {
+    min-height: 32px;
+    font-size: 12px;
+  }
+
+  .leaderboard-page-head h1 {
+    margin: 8px 0 4px;
+    font-size: clamp(26px, 8vw, 34px);
+    line-height: 1.08;
+  }
+
+  .leaderboard-page-head p {
+    max-width: 18rem;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .leaderboard-page .gallery-leaderboard {
-    border-radius: 0 0 20px 20px;
-    padding: 12px;
+    order: 1;
+    border-radius: 0 0 22px 22px;
+    padding: 10px;
+    overflow: visible;
+  }
+
+  .leaderboard-page .gallery-leaderboard-head {
+    display: none;
   }
 
   .leaderboard-page .gallery-rank-tabs,
   .gallery-rank-tabs {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr;
     overflow-x: auto;
-    gap: 8px;
+    gap: 9px;
+    margin: 0 -2px 12px;
+    padding: 0 2px 2px;
     scrollbar-width: none;
   }
 
@@ -209,20 +246,83 @@
     display: none;
   }
 
+  .leaderboard-page .gallery-rank-tabs div,
+  .gallery-rank-tabs div {
+    width: max-content;
+    min-width: 100%;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 18px;
+    scroll-snap-align: start;
+  }
+
+  .leaderboard-page .gallery-rank-tabs button,
+  .gallery-rank-tabs button {
+    flex: 1 0 auto;
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
   .leaderboard-page .gallery-leaderboard-list {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .leaderboard-page .gallery-rank-card,
   .gallery-rank-card {
-    grid-template-columns: 32px 58px minmax(0, 1fr) auto;
-    min-height: 82px;
-    gap: 9px;
-    padding: 9px;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 36px 66px minmax(0, 1fr) 46px;
+    min-height: 92px;
+    gap: 8px;
+    padding: 10px 8px;
+    border-radius: 18px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .gallery-rank-index {
+    font-size: 18px;
+  }
+
+  .leaderboard-page .gallery-rank-visual,
+  .gallery-rank-visual {
+    border-radius: 14px;
+  }
+
+  .leaderboard-page .gallery-rank-copy p,
+  .gallery-rank-card p {
+    font-size: 15px;
+    line-height: 1.32;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .leaderboard-page .gallery-rank-copy small,
+  .gallery-rank-copy small {
+    margin-top: 4px;
+    font-size: 13px;
   }
 
   .gallery-rank-card .rank-like {
-    min-height: 40px;
+    width: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    justify-content: center;
+    gap: 2px;
+    padding: 0;
+    font-size: 11px;
+  }
+
+  .gallery-rank-actions {
+    min-width: 0;
+    justify-self: end;
+  }
+
+  .gallery-rank-card .rank-like i {
+    font-size: 15px;
   }
 
   .square-preview-modal {
