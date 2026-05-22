@@ -44,14 +44,14 @@ function getPool() {
 }
 
 async function addColumnIfMissing(db, table, column, definition) {
-  const [columns] = await db.execute(`SHOW COLUMNS FROM ${quoteIdentifier(table)} LIKE ?`, [column]);
+  const [columns] = await db.query(`SHOW COLUMNS FROM ${quoteIdentifier(table)} LIKE ${mysql.escape(column)}`);
   if (!columns.length) {
     await db.query(`ALTER TABLE ${quoteIdentifier(table)} ADD COLUMN ${quoteIdentifier(column)} ${definition}`);
   }
 }
 
 async function addIndexIfMissing(db, table, index, definition) {
-  const [indexes] = await db.execute(`SHOW INDEX FROM ${quoteIdentifier(table)} WHERE Key_name = ?`, [index]);
+  const [indexes] = await db.query(`SHOW INDEX FROM ${quoteIdentifier(table)} WHERE Key_name = ${mysql.escape(index)}`);
   if (!indexes.length) {
     await db.query(`ALTER TABLE ${quoteIdentifier(table)} ADD INDEX ${quoteIdentifier(index)} ${definition}`);
   }
