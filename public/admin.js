@@ -1369,7 +1369,14 @@ function providerDrawer(provider = {}) {
   const caps = {
     textToImage: true,
     imageEdit: true,
+    imageToImage: true,
     multiCandidate: false,
+    asyncTasks: false,
+    responses: true,
+    revisedPrompt: true,
+    sizes: [],
+    qualities: [],
+    formats: [],
     transparentBackground: false,
     sourceTransparency: false,
     privacyDownload: false,
@@ -1381,6 +1388,7 @@ function providerDrawer(provider = {}) {
     weight: 1,
     ...(provider.routing || {})
   };
+  const mapping = provider.mapping || {};
   openDrawer(isNew ? "新增 Provider" : "编辑 Provider", `
     <form id="drawerProviderForm" class="admin-form-grid single">
       <label>名称<input name="name" value="${escapeHtml(provider.name || "")}" required></label>
@@ -1397,6 +1405,7 @@ function providerDrawer(provider = {}) {
       <label>排序<input name="sortOrder" type="number" value="${escapeHtml(provider.sortOrder || 0)}"></label>
       <label>能力 JSON<textarea name="capabilities" rows="8">${escapeHtml(JSON.stringify(caps, null, 2))}</textarea></label>
       <label>路由 JSON<textarea name="routing" rows="5">${escapeHtml(JSON.stringify(routing, null, 2))}</textarea></label>
+      <label>Provider Mapping JSON<textarea name="mapping" rows="12" placeholder='{"mode":"openai-compatible","submit":{"method":"POST","path":"/v1/images/generations"}}'>${escapeHtml(JSON.stringify(mapping, null, 2))}</textarea></label>
       <button type="submit">${isNew ? "创建 Provider" : "保存 Provider"}</button>
       ${isNew || provider.id === "prv_default" ? "" : `<button type="button" class="danger" data-delete-provider>删除 Provider</button>`}
     </form>
@@ -1406,9 +1415,11 @@ function providerDrawer(provider = {}) {
     const form = new FormData(event.currentTarget);
     let capabilities;
     let routing;
+    let mapping;
     try {
       capabilities = JSON.parse(form.get("capabilities") || "{}");
       routing = JSON.parse(form.get("routing") || "{}");
+      mapping = JSON.parse(form.get("mapping") || "{}");
     } catch {
       setStatus("Provider JSON 格式错误", "danger");
       return;
@@ -1425,7 +1436,8 @@ function providerDrawer(provider = {}) {
       status: form.get("status"),
       sortOrder: form.get("sortOrder"),
       capabilities,
-      routing
+      routing,
+      mapping
     };
     if (isNew || apiKey) payload.apiKey = apiKey;
     await api(isNew ? "/api/admin/providers" : `/api/admin/providers/${encodeURIComponent(provider.id)}`, {

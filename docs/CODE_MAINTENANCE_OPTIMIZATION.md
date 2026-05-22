@@ -180,6 +180,15 @@ src/
 3. 相关功能域的专项 smoke 通过
 4. 部署到生产前在容器内完整回归
 
+执行记录（2026-05-22，provider 能力与映射补强）：
+- 新增 `src/provider-mapping.js`，实现安全 JSON path 子集、模板渲染、openai-compatible / async-task 的 submit + poll。
+- `provider_configs` 已补 `provider_mapping_json` 持久化，后台 provider 表单已支持配置和校验 mapping JSON。
+- `server.js` 已支持 provider capability 驱动的路由筛选、provider mapping submit/poll、以及 provider 返回 URL 的 SSRF 校验。
+- `public/app.js` 已根据 provider capabilities 禁用不支持的尺寸、质量和输出格式。
+- 新增 `npm run smoke:provider-capabilities` 与 `npm run smoke:provider-async-mock`；两项静态 smoke 已通过。
+- `npm run smoke:generation-queue-recovery` 与 `npm run smoke:generation-trace` 也已通过。
+- `npm run smoke:public` 当前受本地 MySQL 凭据影响，服务启动报 `Access denied for user 'root'@'localhost' (using password: NO)`，属于环境问题，不是本次代码改动引入的回归。
+
 ---
 
 ## 九、长期建议

@@ -125,6 +125,7 @@ function mapProviderConfig(row = {}, { includeSecret = false } = {}) {
     endpointEdits: row.endpoint_edits || "",
     capabilities: parseProviderJson(row.capabilities_json, {}),
     routing: parseProviderJson(row.routing_json, {}),
+    mapping: parseProviderJson(row.provider_mapping_json, {}),
     status: row.status || "active",
     healthStatus: row.health_status || "unknown",
     lastCheckedAt: toIso(row.last_checked_at),
@@ -579,6 +580,7 @@ async function runMigrations() {
       endpoint_edits TEXT NULL,
       capabilities_json LONGTEXT NULL,
       routing_json LONGTEXT NULL,
+      provider_mapping_json LONGTEXT NULL,
       status VARCHAR(24) NOT NULL DEFAULT 'active',
       health_status VARCHAR(24) NOT NULL DEFAULT 'unknown',
       last_checked_at DATETIME(3) NULL,
@@ -601,6 +603,10 @@ async function runMigrations() {
   const [providerEndpointEditsColumns] = await db.execute("SHOW COLUMNS FROM provider_configs LIKE 'endpoint_edits'");
   if (!providerEndpointEditsColumns.length) {
     await db.query("ALTER TABLE provider_configs ADD COLUMN endpoint_edits TEXT NULL AFTER endpoint_responses");
+  }
+  const [providerMappingColumns] = await db.execute("SHOW COLUMNS FROM provider_configs LIKE 'provider_mapping_json'");
+  if (!providerMappingColumns.length) {
+    await db.query("ALTER TABLE provider_configs ADD COLUMN provider_mapping_json LONGTEXT NULL AFTER routing_json");
   }
 
   await db.query(`
@@ -1590,6 +1596,7 @@ function providerDbPayload(input = {}, existing = {}) {
     : existing.apiKey || "";
   const capabilities = input.capabilities && typeof input.capabilities === "object" ? input.capabilities : existing.capabilities || {};
   const routing = input.routing && typeof input.routing === "object" ? input.routing : existing.routing || {};
+  const mapping = input.mapping && typeof input.mapping === "object" ? input.mapping : existing.mapping || {};
   return {
     name: String(input.name || existing.name || "Provider").trim().slice(0, 120),
     providerType: String(input.providerType || existing.providerType || "openai-compatible").trim().slice(0, 40),
@@ -1602,6 +1609,7 @@ function providerDbPayload(input = {}, existing = {}) {
     endpointEdits: String(input.endpointEdits || existing.endpointEdits || "").trim(),
     capabilities,
     routing,
+    mapping,
     status: ["active", "disabled"].includes(input.status) ? input.status : existing.status || "active",
     sortOrder: Number.parseInt(input.sortOrder, 10) || Number(existing.sortOrder || 0)
   };
@@ -1612,8 +1620,8 @@ async function createProviderConfig(input) {
   const payload = providerDbPayload(input);
   await getPool().execute(
     `INSERT INTO provider_configs
-      (id, name, provider_type, base_url, api_key_encrypted, api_key_mask, default_model, endpoint_images, endpoint_responses, endpoint_edits, capabilities_json, routing_json, status, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, name, provider_type, base_url, api_key_encrypted, api_key_mask, default_model, endpoint_images, endpoint_responses, endpoint_edits, capabilities_json, routing_json, provider_mapping_json, status, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.id,
       payload.name,
@@ -1627,6 +1635,7 @@ async function createProviderConfig(input) {
       payload.endpointEdits,
       JSON.stringify(payload.capabilities),
       JSON.stringify(payload.routing),
+      JSON.stringify(payload.mapping),
       payload.status,
       payload.sortOrder,
       now,
@@ -1643,7 +1652,7 @@ async function updateProviderConfig(id, input) {
   await getPool().execute(
     `UPDATE provider_configs
        SET name = ?, provider_type = ?, base_url = ?, api_key_encrypted = ?, api_key_mask = ?, default_model = ?,
-           endpoint_images = ?, endpoint_responses = ?, endpoint_edits = ?, capabilities_json = ?, routing_json = ?,
+           endpoint_images = ?, endpoint_responses = ?, endpoint_edits = ?, capabilities_json = ?, routing_json = ?, provider_mapping_json = ?,
            status = ?, sort_order = ?, updated_at = ?
      WHERE id = ?`,
     [
@@ -1658,6 +1667,7 @@ async function updateProviderConfig(id, input) {
       payload.endpointEdits,
       JSON.stringify(payload.capabilities),
       JSON.stringify(payload.routing),
+      JSON.stringify(payload.mapping),
       payload.status,
       payload.sortOrder,
       new Date(),

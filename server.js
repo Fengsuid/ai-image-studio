@@ -41,6 +41,10 @@ const {
 } = require("./src/generation-queue-recovery");
 const { createGenerationQueueRunner } = require("./src/generation-queue-runner");
 const { errorSummary, safeJsonSummary } = require("./src/generation-trace-service");
+const {
+  normalizeProviderMapping,
+  runProviderMappingRequest
+} = require("./src/provider-mapping");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
@@ -95,6 +99,11 @@ const canvasService = createCanvasService({
 const generationWindows = new Map();
 const rumEvents = [];
 const GENERATION_RUNNER_ID = `${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
+const PROVIDER_MAPPING_TRACE_STAGES = [
+  "provider_mapping_submit",
+  "provider_task_submitted",
+  "provider_polled"
+];
 const GENERATION_QUEUE_CONCURRENCY = Math.max(1, Number.parseInt(process.env.GENERATION_QUEUE_CONCURRENCY || "1", 10) || 1);
 const GENERATION_QUEUE_ESTIMATE_SECONDS = Math.max(20, Number.parseInt(process.env.GENERATION_QUEUE_ESTIMATE_SECONDS || "90", 10) || 90);
 const GENERATION_QUEUE_STALE_RUNNING_MS = Math.max(
@@ -195,6 +204,7 @@ function providerTraceSummary(route = {}, payload = {}, endpoint = "") {
       providerType: provider.providerType || "openai-compatible"
     },
     endpoint,
+    mappingMode: route.settings?.providerMapping?.mode || "",
     model: payload.model || "",
     request: payload
   });
@@ -443,7 +453,15 @@ function providerCapabilities(settings = {}) {
   const defaults = {
     textToImage: true,
     imageEdit: true,
+    imageToImage: true,
     multiCandidate: true,
+    asyncTasks: false,
+    batch: false,
+    responses: true,
+    revisedPrompt: true,
+    sizes: [],
+    qualities: [],
+    formats: [],
     transparentBackground: !/dall-e-2|legacy/.test(model),
     maxImagesPerRequest: Number(configured.maxImagesPerRequest || settings.maxImagesPerRequest || 1),
     sourceTransparency: true,
@@ -465,6 +483,7 @@ function routeSettingsForProvider(settings = {}, provider = null) {
     endpointImages: provider.endpointImages || "",
     endpointResponses: provider.endpointResponses || "",
     endpointEdits: provider.endpointEdits || "",
+    providerMapping: provider.mapping || {},
     providerCapabilityConfig: capabilities,
     maxImagesPerRequest: Number(capabilities.maxImagesPerRequest || settings.maxImagesPerRequest || 1),
     activeProviderId: provider.id,
@@ -477,18 +496,26 @@ function providerCapabilityValue(capabilities = {}, key, fallback = true) {
   return capabilities[key] !== false;
 }
 
+function providerCapabilityListIncludes(capabilities = {}, key, value) {
+  if (!Array.isArray(capabilities[key]) || !capabilities[key].length) return true;
+  return capabilities[key].map((item) => String(item)).includes(String(value));
+}
+
 function canProviderHandle(provider, settings, request = {}) {
   const routed = routeSettingsForProvider(settings, provider);
   const capabilities = providerCapabilities(routed);
   if (provider && provider.status !== "active") return false;
   if (!getOpenAIApiKey(routed) || !getOpenAIBaseUrl(routed)) return false;
-  if (request.mode === "image-edit" && !providerCapabilityValue(capabilities, "imageEdit")) return false;
+  if (request.mode === "image-edit" && !providerCapabilityValue(capabilities, "imageEdit", providerCapabilityValue(capabilities, "imageToImage"))) return false;
   if (request.mode === "text-to-image" && !providerCapabilityValue(capabilities, "textToImage")) return false;
   if (request.transparentBackground && !providerCapabilityValue(capabilities, "transparentBackground")) return false;
   const candidateCount = Math.max(1, Number(request.candidateCount || 1));
   if (candidateCount > 1 && !providerCapabilityValue(capabilities, "multiCandidate")) return false;
   const maxImages = Number(capabilities.maxImagesPerRequest || routed.maxImagesPerRequest || 1);
   if (candidateCount > maxImages) return false;
+  if (request.size && !providerCapabilityListIncludes(capabilities, "sizes", request.size)) return false;
+  if (request.quality && !providerCapabilityListIncludes(capabilities, "qualities", request.quality)) return false;
+  if ((request.outputFormat || request.output_format) && !providerCapabilityListIncludes(capabilities, "formats", request.outputFormat || request.output_format)) return false;
   return true;
 }
 
@@ -509,7 +536,8 @@ async function resolveProviderRoutes(settings = {}, request = {}) {
       provider: {
         id: provider.id,
         name: provider.name,
-        providerType: provider.providerType
+        providerType: provider.providerType,
+        mapping: provider.mapping || {}
       },
       settings: routeSettingsForProvider(settings, provider)
     }));
@@ -738,6 +766,12 @@ function normalizeMaxReferenceImages(value) {
 function cleanProviderInput(body = {}, existing = null) {
   const capabilities = body.capabilities && typeof body.capabilities === "object" ? body.capabilities : existing?.capabilities || {};
   const routing = body.routing && typeof body.routing === "object" ? body.routing : existing?.routing || {};
+  let mapping = body.mapping && typeof body.mapping === "object" ? body.mapping : existing?.mapping || {};
+  try {
+    mapping = normalizeProviderMapping(mapping);
+  } catch (error) {
+    throw httpError(error.message || "Provider mapping is invalid", error.status || 400);
+  }
   const baseUrl = String(body.baseUrl ?? existing?.baseUrl ?? "").trim().replace(/\/+$/, "");
   if (!baseUrl) throw httpError("Provider baseUrl is required", 400);
   let parsed;
@@ -764,6 +798,7 @@ function cleanProviderInput(body = {}, existing = null) {
     endpointEdits: String(body.endpointEdits ?? existing?.endpointEdits ?? "").trim(),
     capabilities,
     routing,
+    mapping,
     status: ["active", "disabled"].includes(body.status) ? body.status : existing?.status || "active",
     sortOrder: Number.parseInt(body.sortOrder, 10) || Number(existing?.sortOrder || 0)
   };
@@ -1293,14 +1328,20 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
   const routes = await resolveProviderRoutes(settings, {
     mode: "text-to-image",
     candidateCount: Number(payload.n || 1),
-    transparentBackground: payload.background === "transparent"
+    transparentBackground: payload.background === "transparent",
+    size: payload.size,
+    quality: payload.quality,
+    outputFormat: payload.output_format
   });
   let lastError = null;
   for (const route of routes) {
     try {
       const apiKey = getOpenAIApiKey(route.settings);
       const routedPayload = { ...payload, model: route.settings.model || payload.model || DEFAULT_MODEL };
-      const endpoint = getOpenAIImageEndpoint(route.settings);
+      const mapping = route.settings.providerMapping && Object.keys(route.settings.providerMapping).length
+        ? normalizeProviderMapping(route.settings.providerMapping)
+        : null;
+      const endpoint = mapping ? `provider-mapping:${mapping.mode}` : getOpenAIImageEndpoint(route.settings);
       const providerParams = providerTraceSummary(route, routedPayload, endpoint);
       if (trace?.requestId) {
         await store.updateGenerationRequest(trace.requestId, { providerParams }).catch((error) => console.error(error));
@@ -1312,6 +1353,41 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
           userId: trace.userId,
           data: { provider: providerParams.provider, endpoint: providerParams.endpoint, model: providerParams.model }
         });
+      }
+      if (mapping) {
+        const data = await runProviderMappingRequest({
+          apiKey,
+          baseUrl: getOpenAIBaseUrl(route.settings),
+          fetchFn: (label, url, init) => fetchWithTimeout(label, url, init, OPENAI_FETCH_TIMEOUT_MS),
+          mapping,
+          payload: routedPayload,
+          signal,
+          onTrace: async (stage, data) => {
+            if (!trace?.requestId) return;
+            if (data?.providerTaskId) {
+              const patch = { providerTaskId: data.providerTaskId };
+              if (stage === "provider_task_submitted") patch.queueStatus = "polling";
+              await store.updateGenerationRequest(trace.requestId, patch).catch((error) => console.error(error));
+            }
+            await traceGeneration(trace.requestId, stage, {
+              userId: trace.userId,
+              data
+            });
+          }
+        });
+        if (trace?.requestId) {
+          const providerResponse = generationProviderResponseSummary(data, { status: data.providerStatus || 200 });
+          await store.updateGenerationRequest(trace.requestId, {
+            providerResponse,
+            revisedPrompt: providerResponse.revisedPrompt || ""
+          }).catch((error) => console.error(error));
+          await traceGeneration(trace.requestId, "provider_response", {
+            userId: trace.userId,
+            data: providerResponse
+          });
+        }
+        await markProviderHealth(route.provider, { healthStatus: "ok", lastError: "" });
+        return data;
       }
       const response = await fetchWithTimeout("OpenAI image request", endpoint, {
         method: "POST",
@@ -1765,6 +1841,7 @@ async function imageItemToBuffer(item, request) {
     };
   }
   if (item.url) {
+    if (!isSafeRemoteImageUrl(item.url)) throw httpError("Image URL is not allowed", 400);
     const response = await fetchWithTimeout(
       "Image URL download",
       item.url,
@@ -3435,8 +3512,43 @@ async function routeApi(req, res, url) {
     ensureAdmin(current);
     const provider = await store.getProviderConfigById(providerTestMatch[1], { includeSecret: true });
     if (!provider) throw httpError("Provider not found", 404);
+    const body = await readJsonBody(req).catch(() => ({}));
     const started = Date.now();
     try {
+      if (provider.mapping && Object.keys(provider.mapping).length) {
+        const mapping = normalizeProviderMapping(provider.mapping);
+        const result = await runProviderMappingRequest({
+          apiKey: provider.apiKey,
+          baseUrl: provider.baseUrl,
+          fetchFn: (label, endpoint, init) => fetchWithTimeout(label, endpoint, init, 20_000),
+          mapping,
+          payload: {
+            model: provider.defaultModel || DEFAULT_MODEL,
+            prompt: String(body.prompt || "provider diagnostic test image").slice(0, 500),
+            n: 1,
+            size: String(body.size || "1024x1024"),
+            quality: String(body.quality || "auto"),
+            background: String(body.background || "auto"),
+            output_format: String(body.outputFormat || "png")
+          }
+        });
+        const imageItems = extractImageItems(result);
+        for (const item of imageItems) {
+          if (item.url && !isSafeRemoteImageUrl(item.url)) throw httpError("Provider returned an unsafe image URL", 400);
+        }
+        const updated = await store.updateProviderHealth(provider.id, {
+          healthStatus: imageItems.length ? "ok" : "error",
+          lastError: imageItems.length ? "" : "mapping test returned no image"
+        });
+        return sendJson(res, 200, {
+          provider: updated,
+          ok: imageItems.length > 0,
+          mappingMode: mapping.mode,
+          imageCount: imageItems.length,
+          providerTaskId: result.providerTaskId || "",
+          durationMs: Date.now() - started
+        });
+      }
       const response = await fetchWithTimeout("Provider test", provider.baseUrl, {
         method: "GET",
         headers: provider.apiKey ? { Authorization: `Bearer ${provider.apiKey}` } : {}

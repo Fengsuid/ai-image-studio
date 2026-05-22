@@ -2494,6 +2494,21 @@ function composerOptionSummary() {
   return `${sizeLabel} · ${format}${suffix}`;
 }
 
+function capabilityValues(key) {
+  const values = state.settings?.providerCapabilities?.[key];
+  return Array.isArray(values) ? values.map((value) => String(value)) : [];
+}
+
+function firstAllowedCapabilityValue(key, fallback) {
+  const values = capabilityValues(key);
+  return values.length ? values[0] : fallback;
+}
+
+function isCapabilityValueAllowed(key, value) {
+  const values = capabilityValues(key);
+  return !values.length || values.includes(String(value));
+}
+
 function getGenerateDisabledReason() {
   if (state.generating) return text("generateDisabledGenerating");
   if (!state.settings?.hasApiKey) return text("generateDisabledApiKey");
@@ -2522,6 +2537,32 @@ function syncComposers(sourceForm) {
       $(".public-input", form).checked = state.publishToSquare;
     }
     updateCustomSizeVisibility(form);
+    const sizeInput = $(".size-input", form);
+    if (sizeInput) {
+      const allowedSizes = capabilityValues("sizes");
+      [...sizeInput.options].forEach((option) => {
+        option.disabled = allowedSizes.length > 0 && !allowedSizes.includes(option.value);
+      });
+      const requestedSize = state.generationOptions.sizeMode === "custom" ? state.generationOptions.size : sizeInput.value;
+      if (!isCapabilityValueAllowed("sizes", requestedSize)) {
+        const nextSize = firstAllowedCapabilityValue("sizes", "auto");
+        state.generationOptions.size = nextSize;
+        state.generationOptions.sizeMode = nextSize;
+        sizeInput.value = [...sizeInput.options].some((option) => option.value === nextSize) ? nextSize : "auto";
+      }
+    }
+    const qualityInput = $(".quality-input", form);
+    if (qualityInput) {
+      const allowedQualities = capabilityValues("qualities");
+      [...qualityInput.options].forEach((option) => {
+        option.disabled = allowedQualities.length > 0 && !allowedQualities.includes(option.value);
+      });
+      if (!isCapabilityValueAllowed("qualities", qualityInput.value)) {
+        const nextQuality = firstAllowedCapabilityValue("qualities", "auto");
+        state.generationOptions.quality = nextQuality;
+        qualityInput.value = [...qualityInput.options].some((option) => option.value === nextQuality) ? nextQuality : "auto";
+      }
+    }
     const candidateInput = $(".candidate-count-input", form);
     if (candidateInput) {
       const caps = state.settings?.providerCapabilities || {};
@@ -2537,9 +2578,16 @@ function syncComposers(sourceForm) {
       if (!transparent && state.generationOptions.background === "transparent") {
         state.generationOptions.background = "opaque";
       }
+      const allowedFormats = capabilityValues("formats");
       [...formatInput.options].forEach((option) => {
         if (option.value === "png") option.disabled = false;
+        option.disabled = allowedFormats.length > 0 && !allowedFormats.includes(option.value);
       });
+      if (!isCapabilityValueAllowed("formats", formatInput.value)) {
+        const nextFormat = firstAllowedCapabilityValue("formats", "png");
+        state.generationOptions.outputFormat = nextFormat;
+        formatInput.value = [...formatInput.options].some((option) => option.value === nextFormat) ? nextFormat : "png";
+      }
       const transparentOption = $(".background-input option[value='transparent']", form);
       if (transparentOption) transparentOption.disabled = !transparent;
       const backgroundInput = $(".background-input", form);
