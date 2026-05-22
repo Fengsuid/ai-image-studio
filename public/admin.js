@@ -1212,17 +1212,61 @@ function closeDrawer() {
   $("#adminDrawer").innerHTML = "";
 }
 
-function requestDrawer(item) {
+function jsonBlock(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  try {
+    return escapeHtml(JSON.stringify(value, null, 2));
+  } catch {
+    return escapeHtml(String(value));
+  }
+}
+
+async function requestDrawer(itemOrId) {
+  const id = typeof itemOrId === "string" ? itemOrId : itemOrId?.id;
+  const fallback = typeof itemOrId === "object" ? itemOrId : adminState.generations.find((item) => item.id === id);
+  const response = id ? await api(`/api/admin/generations/${encodeURIComponent(id)}`).catch(() => null) : null;
+  const item = response?.request || fallback;
+  const trace = response?.trace || [];
+  if (!item) return;
   openDrawer("生成请求详情", `
     <dl class="admin-detail-list">
       <dt>ID</dt><dd>${escapeHtml(item.id)}</dd>
       <dt>状态</dt><dd>${escapeHtml(item.status)}</dd>
+      <dt>队列</dt><dd>${escapeHtml(item.queueStatus || "-")} · attempts ${escapeHtml(item.attemptCount ?? 0)}/${escapeHtml(item.maxAttempts ?? 1)}</dd>
       <dt>用户</dt><dd>${escapeHtml(item.userName || item.userEmail || item.userId || "-")}</dd>
       <dt>耗时</dt><dd>${fmtDuration(item.durationMs)}</dd>
       <dt>模型</dt><dd>${escapeHtml(item.model || "-")}</dd>
+      <dt>错误阶段</dt><dd>${escapeHtml(item.errorStage || item.failureStage || "-")}</dd>
+      <dt>错误码</dt><dd>${escapeHtml(item.errorCode || "-")}</dd>
       <dt>错误</dt><dd>${escapeHtml(item.errorMessage || "-")}</dd>
+      <dt>Revised prompt</dt><dd>${escapeHtml(item.revisedPrompt || "-")}</dd>
       <dt>提示词</dt><dd>${escapeHtml(item.prompt || "-")}</dd>
     </dl>
+    <h3>请求参数</h3>
+    <pre class="admin-code-block">${jsonBlock(item.requestedParams)}</pre>
+    <h3>规范化参数</h3>
+    <pre class="admin-code-block">${jsonBlock(item.normalizedParams)}</pre>
+    <h3>Provider 参数</h3>
+    <pre class="admin-code-block">${jsonBlock(item.providerParams)}</pre>
+    <h3>Provider 响应摘要</h3>
+    <pre class="admin-code-block">${jsonBlock(item.providerResponse)}</pre>
+    <h3>Trace 时间线</h3>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>时间</th><th>阶段</th><th>级别</th><th>消息</th><th>数据</th></tr></thead>
+        <tbody>
+          ${trace.map((entry) => `
+            <tr>
+              <td>${fmtDate(entry.createdAt)}</td>
+              <td>${escapeHtml(entry.stage || "-")}</td>
+              <td><span class="admin-badge" data-status="${escapeHtml(entry.level || "info")}">${escapeHtml(entry.level || "info")}</span></td>
+              <td>${escapeHtml(entry.message || "-")}</td>
+              <td><pre class="admin-code-block compact">${jsonBlock(entry.data)}</pre></td>
+            </tr>
+          `).join("") || `<tr><td colspan="5">暂无 trace 记录</td></tr>`}
+        </tbody>
+      </table>
+    </div>
   `);
 }
 
@@ -1914,7 +1958,7 @@ function bindActions() {
   document.querySelectorAll("[data-detail]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [type, id] = button.dataset.detail.split(":");
-      if (type === "request") requestDrawer(adminState.generations.find((item) => item.id === id));
+      if (type === "request") await requestDrawer(id);
       if (type === "work") workDrawer(adminState.publicImages.find((item) => item.id === id));
       if (type === "user") await userDrawer(adminState.users.find((item) => item.id === id));
       if (type === "prompt") promptDrawer(adminState.prompts.find((item) => String(item.id) === id));

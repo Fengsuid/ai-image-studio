@@ -38,6 +38,7 @@
     "smoke:canvas-selection": "node scripts/smoke/check-canvas-selection.mjs",
     "smoke:generation-flicker": "node scripts/smoke/check-generation-flicker-guard.mjs",
     "smoke:generation-queue-recovery": "node scripts/smoke/check-generation-queue-recovery.mjs",
+    "smoke:generation-trace": "node scripts/smoke/check-generation-trace.mjs",
     "smoke:gallery-images": "node scripts/smoke/check-gallery-images.mjs",
     "smoke:gallery-leaderboard-sidebar": "node scripts/smoke/check-gallery-leaderboard-sidebar.mjs",
     "smoke:generation-result-actions": "node scripts/smoke/check-generation-result-actions.mjs",

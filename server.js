@@ -39,6 +39,7 @@ const {
   queuePayloadForImageEdit,
   queuePayloadForTextGeneration
 } = require("./src/generation-queue-recovery");
+const { errorSummary, safeJsonSummary } = require("./src/generation-trace-service");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
@@ -152,6 +153,63 @@ function httpError(message, status = 400, details) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+async function traceGeneration(requestId, stage, { userId = "", generationId = "", level = "info", message = "", data = null } = {}) {
+  if (!requestId) return null;
+  return store.appendGenerationTrace({
+    requestId,
+    generationId,
+    userId,
+    stage,
+    level,
+    message,
+    data
+  }).catch((error) => {
+    console.error("[generation-trace]", error);
+    return null;
+  });
+}
+
+function providerTraceSummary(route = {}, payload = {}, endpoint = "") {
+  const provider = route.provider || {};
+  return safeJsonSummary({
+    provider: {
+      id: provider.id || "legacy",
+      name: provider.name || "Legacy settings",
+      providerType: provider.providerType || "openai-compatible"
+    },
+    endpoint,
+    model: payload.model || "",
+    request: payload
+  });
+}
+
+function generationProviderResponseSummary(data = {}, response = null) {
+  return safeJsonSummary({
+    status: response?.status || null,
+    usage: data?.usage || null,
+    itemCount: extractImageItems(data).length,
+    revisedPrompt: firstRevisedPrompt(data),
+    raw: data
+  });
+}
+
+function firstRevisedPrompt(openaiResult = {}) {
+  const direct = Array.isArray(openaiResult.data) ? openaiResult.data : [];
+  for (const item of direct) {
+    if (item?.revised_prompt) return String(item.revised_prompt).slice(0, 4000);
+    if (item?.revisedPrompt) return String(item.revisedPrompt).slice(0, 4000);
+  }
+  const outputs = Array.isArray(openaiResult.output) ? openaiResult.output : [];
+  for (const output of outputs) {
+    if (output?.revised_prompt) return String(output.revised_prompt).slice(0, 4000);
+    const content = Array.isArray(output?.content) ? output.content : [];
+    for (const part of content) {
+      if (part?.revised_prompt) return String(part.revised_prompt).slice(0, 4000);
+    }
+  }
+  return "";
 }
 
 function randomId(prefix = "") {
@@ -1216,7 +1274,7 @@ async function fetchWithTimeout(label, url, init = {}, timeoutMs = OPENAI_FETCH_
   }
 }
 
-async function callOpenAIImages(settings, payload, { signal } = {}) {
+async function callOpenAIImages(settings, payload, { signal, trace = null } = {}) {
   const routes = await resolveProviderRoutes(settings, {
     mode: "text-to-image",
     candidateCount: Number(payload.n || 1),
@@ -1227,7 +1285,20 @@ async function callOpenAIImages(settings, payload, { signal } = {}) {
     try {
       const apiKey = getOpenAIApiKey(route.settings);
       const routedPayload = { ...payload, model: route.settings.model || payload.model || DEFAULT_MODEL };
-      const response = await fetchWithTimeout("OpenAI image request", getOpenAIImageEndpoint(route.settings), {
+      const endpoint = getOpenAIImageEndpoint(route.settings);
+      const providerParams = providerTraceSummary(route, routedPayload, endpoint);
+      if (trace?.requestId) {
+        await store.updateGenerationRequest(trace.requestId, { providerParams }).catch((error) => console.error(error));
+        await traceGeneration(trace.requestId, "provider_selected", {
+          userId: trace.userId,
+          data: providerParams
+        });
+        await traceGeneration(trace.requestId, "provider_submitted", {
+          userId: trace.userId,
+          data: { provider: providerParams.provider, endpoint: providerParams.endpoint, model: providerParams.model }
+        });
+      }
+      const response = await fetchWithTimeout("OpenAI image request", endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -1249,11 +1320,32 @@ async function callOpenAIImages(settings, payload, { signal } = {}) {
         const message = data?.error?.message || "OpenAI image request failed";
         throw httpError(message, response.status, data);
       }
+      if (trace?.requestId) {
+        const providerResponse = generationProviderResponseSummary(data, response);
+        await store.updateGenerationRequest(trace.requestId, {
+          providerResponse,
+          revisedPrompt: providerResponse.revisedPrompt || ""
+        }).catch((error) => console.error(error));
+        await traceGeneration(trace.requestId, "provider_response", {
+          userId: trace.userId,
+          data: providerResponse
+        });
+      }
       await markProviderHealth(route.provider, { healthStatus: "ok", lastError: "" });
       return data;
     } catch (error) {
       if (error?.name === "AbortError") throw error;
       lastError = withProviderFailure(error, route.provider);
+      if (trace?.requestId) {
+        await traceGeneration(trace.requestId, "provider_failed", {
+          userId: trace.userId,
+          level: "warn",
+          data: {
+            provider: route.provider,
+            error: errorSummary(error)
+          }
+        });
+      }
       await markProviderHealth(route.provider, {
         healthStatus: "error",
         lastError: String(error.message || error).slice(0, 2000)
@@ -1492,7 +1584,7 @@ async function imageSourceToBlob(source) {
   throw httpError("Editable image must be PNG/JPEG/WebP image data or a safe HTTPS image URL.", 400);
 }
 
-async function callOpenAIImageEdits(settings, payload, { signal } = {}) {
+async function callOpenAIImageEdits(settings, payload, { signal, trace = null } = {}) {
   const routes = await resolveProviderRoutes(settings, { mode: "image-edit", candidateCount: Number(payload.n || 1) });
   const imageSources = [
     payload.imageData,
@@ -1508,6 +1600,28 @@ async function callOpenAIImageEdits(settings, payload, { signal } = {}) {
   for (const route of routes) {
     try {
       const apiKey = getOpenAIApiKey(route.settings);
+      const endpoint = getOpenAIEditEndpoint(route.settings);
+      const providerPayload = {
+        model: route.settings.model || payload.model || DEFAULT_MODEL,
+        prompt: payload.prompt,
+        n: payload.n || 1,
+        size: payload.size || "auto",
+        response_format: "url",
+        imageCount: imageBlobs.length,
+        hasMask: Boolean(maskBlob)
+      };
+      const providerParams = providerTraceSummary(route, providerPayload, endpoint);
+      if (trace?.requestId) {
+        await store.updateGenerationRequest(trace.requestId, { providerParams }).catch((error) => console.error(error));
+        await traceGeneration(trace.requestId, "provider_selected", {
+          userId: trace.userId,
+          data: providerParams
+        });
+        await traceGeneration(trace.requestId, "provider_submitted", {
+          userId: trace.userId,
+          data: { provider: providerParams.provider, endpoint: providerParams.endpoint, model: providerParams.model }
+        });
+      }
       const form = new FormData();
       form.set("model", route.settings.model || payload.model || DEFAULT_MODEL);
       form.set("prompt", payload.prompt);
@@ -1523,7 +1637,7 @@ async function callOpenAIImageEdits(settings, payload, { signal } = {}) {
         form.set("mask", maskBlob, "mask.png");
       }
 
-      const response = await fetchWithTimeout("OpenAI image edits", getOpenAIEditEndpoint(route.settings), {
+      const response = await fetchWithTimeout("OpenAI image edits", endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`
@@ -1544,11 +1658,32 @@ async function callOpenAIImageEdits(settings, payload, { signal } = {}) {
         const message = data?.error?.message || "OpenAI image edit request failed";
         throw httpError(message, response.status, data);
       }
+      if (trace?.requestId) {
+        const providerResponse = generationProviderResponseSummary(data, response);
+        await store.updateGenerationRequest(trace.requestId, {
+          providerResponse,
+          revisedPrompt: providerResponse.revisedPrompt || ""
+        }).catch((error) => console.error(error));
+        await traceGeneration(trace.requestId, "provider_response", {
+          userId: trace.userId,
+          data: providerResponse
+        });
+      }
       await markProviderHealth(route.provider, { healthStatus: "ok", lastError: "" });
       return data;
     } catch (error) {
       if (error?.name === "AbortError") throw error;
       lastError = withProviderFailure(error, route.provider);
+      if (trace?.requestId) {
+        await traceGeneration(trace.requestId, "provider_failed", {
+          userId: trace.userId,
+          level: "warn",
+          data: {
+            provider: route.provider,
+            error: errorSummary(error)
+          }
+        });
+      }
       await markProviderHealth(route.provider, {
         healthStatus: "error",
         lastError: String(error.message || error).slice(0, 2000)
@@ -2485,9 +2620,25 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
   if (!saved.length) {
     throw httpError("OpenAI did not return a savable image", 502);
   }
+  await traceGeneration(auditId, "image_validated", {
+    userId: user.id,
+    message: `${saved.length} image(s) validated`,
+    data: { count: saved.length, filenames: saved.map((generation) => generation.filename) }
+  });
   await store.insertGenerations(saved);
+  await traceGeneration(auditId, "generation_saved", {
+    userId: user.id,
+    message: `${saved.length} generation row(s) saved`,
+    data: { generationIds: saved.map((generation) => generation.id), durationMs }
+  });
   if (request.isPublic && saved[0]) {
     saved[0] = await claimFirstPublicRewardForGeneration(saved[0]);
+    await traceGeneration(auditId, "gallery_published", {
+      userId: user.id,
+      generationId: saved[0].id,
+      message: "first generated image published to gallery",
+      data: { isPublic: true, publicTags: saved[0].publicTags || [] }
+    });
   }
   await store.updateGenerationRequest(auditId, {
     status: "succeeded",
@@ -2496,6 +2647,12 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
     lockedAt: null,
     firstGenerationId: saved[0]?.id || "",
     generationIds: saved.map((generation) => generation.id),
+    providerResponse: {
+      imageCount: saved.length,
+      revisedPrompts: saved.map((generation) => generation.revisedPrompt).filter(Boolean),
+      usage: openaiResult?.usage || null
+    },
+    revisedPrompt: saved.map((generation) => generation.revisedPrompt).filter(Boolean)[0] || "",
     durationMs
   });
   const missing = Math.max(0, Number(expectedCount || saved.length) - saved.length);
@@ -2511,6 +2668,14 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
       lockedBy: GENERATION_RUNNER_ID,
       lockedAt: new Date()
     });
+    await traceGeneration(auditId, "provider_selected", {
+      userId: user.id,
+      data: { model: openaiRequest.model, mode: "text-to-image" }
+    });
+    await traceGeneration(auditId, "params_normalized", {
+      userId: user.id,
+      data: { request, providerParams: openaiRequest }
+    });
     if (totalCost > 0) {
       reservedCredits = await store.reserveCredits(user.id, totalCost, {
         source: "generation_charge",
@@ -2518,16 +2683,32 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
         note: `${request.n} image(s)`
       });
       if (!reservedCredits) {
+        await traceGeneration(auditId, "failed", {
+          userId: user.id,
+          level: "warn",
+          message: "not enough credits",
+          data: { stage: "credit_reserved", totalCost }
+        });
         await store.updateGenerationRequest(auditId, {
           status: "failed",
           errorMessage: "Not enough credits",
           failureStage: "credit_reserved",
+          errorCode: "not_enough_credits",
+          errorStage: "credit_reserved",
           durationMs: Date.now() - requestStartedAt
         });
         return;
       }
+      await traceGeneration(auditId, "credit_reserved", {
+        userId: user.id,
+        data: { totalCost, costPerImage }
+      });
     }
-    const openaiResult = await callOpenAIImages(settings, openaiRequest);
+    await traceGeneration(auditId, "provider_submitted", {
+      userId: user.id,
+      data: { endpoint: "images/generations", providerParams: openaiRequest }
+    });
+    const openaiResult = await callOpenAIImages(settings, openaiRequest, { trace: { requestId: auditId, userId: user.id } });
     const { saved, missing } = await finalizeSuccessfulGenerations({
       auditId,
       user,
@@ -2543,7 +2724,15 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
         referenceId: auditId,
         note: "unused candidate refund"
       }).catch((error) => console.error(error));
+      await traceGeneration(auditId, "credit_refunded", {
+        userId: user.id,
+        data: { amount: costPerImage * missing, reason: "unused candidate refund" }
+      });
     }
+    await traceGeneration(auditId, "credit_charged", {
+      userId: user.id,
+      data: { totalCost, saved: saved.length }
+    });
     return saved;
   } catch (error) {
     if (reservedCredits) await store.addCredits(user.id, totalCost, {
@@ -2551,10 +2740,24 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
       referenceId: auditId,
       note: "generation failed"
     }).catch((refundError) => console.error(refundError));
+    if (reservedCredits) {
+      await traceGeneration(auditId, "credit_refunded", {
+        userId: user.id,
+        data: { amount: totalCost, reason: "generation failed" }
+      });
+    }
+    await traceGeneration(auditId, "failed", {
+      userId: user.id,
+      level: "error",
+      message: String(error.message || error).slice(0, 512),
+      data: errorSummary(error)
+    });
     await store.updateGenerationRequest(auditId, {
       status: "failed",
       errorMessage: String(error.message || error).slice(0, 2000),
       failureStage: "provider_generation",
+      errorCode: String(error.code || error.status || "generation_failed").slice(0, 96),
+      errorStage: "provider_generation",
       durationMs: Date.now() - requestStartedAt
     }).catch((auditError) => console.error(auditError));
   }
@@ -2569,6 +2772,14 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
       lockedBy: GENERATION_RUNNER_ID,
       lockedAt: new Date()
     });
+    await traceGeneration(auditId, "provider_selected", {
+      userId: user.id,
+      data: { model: payload.model, mode: "image-to-image" }
+    });
+    await traceGeneration(auditId, "params_normalized", {
+      userId: user.id,
+      data: { request, providerParams: { ...payload, imageData: "[image-data]", referenceImages: "[reference-images]", maskData: payload.maskData ? "[edit-mask]" : "" } }
+    });
     if (totalCost > 0) {
       reservedCredits = await store.reserveCredits(user.id, totalCost, {
         source: "generation_charge",
@@ -2576,16 +2787,32 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
         note: request.n > 1 ? `image edit ${request.n} image(s)` : "image edit"
       });
       if (!reservedCredits) {
+        await traceGeneration(auditId, "failed", {
+          userId: user.id,
+          level: "warn",
+          message: "not enough credits",
+          data: { stage: "credit_reserved", totalCost }
+        });
         await store.updateGenerationRequest(auditId, {
           status: "failed",
           errorMessage: "Not enough credits",
           failureStage: "credit_reserved",
+          errorCode: "not_enough_credits",
+          errorStage: "credit_reserved",
           durationMs: Date.now() - requestStartedAt
         });
         return;
       }
+      await traceGeneration(auditId, "credit_reserved", {
+        userId: user.id,
+        data: { totalCost, costPerImage }
+      });
     }
-    const openaiResult = await callOpenAIImageEdits(settings, payload);
+    await traceGeneration(auditId, "provider_submitted", {
+      userId: user.id,
+      data: { endpoint: "images/edits", providerParams: { ...payload, imageData: "[image-data]", referenceImages: "[reference-images]", maskData: payload.maskData ? "[edit-mask]" : "" } }
+    });
+    const openaiResult = await callOpenAIImageEdits(settings, payload, { trace: { requestId: auditId, userId: user.id } });
     const { missing } = await finalizeSuccessfulGenerations({
       auditId,
       user,
@@ -2601,17 +2828,39 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
         referenceId: auditId,
         note: "unused image edit candidate refund"
       }).catch((error) => console.error(error));
+      await traceGeneration(auditId, "credit_refunded", {
+        userId: user.id,
+        data: { amount: costPerImage * missing, reason: "unused image edit candidate refund" }
+      });
     }
+    await traceGeneration(auditId, "credit_charged", {
+      userId: user.id,
+      data: { totalCost }
+    });
   } catch (error) {
     if (reservedCredits) await store.addCredits(user.id, totalCost, {
       source: "generation_error_refund",
       referenceId: auditId,
       note: "image edit failed"
     }).catch((refundError) => console.error(refundError));
+    if (reservedCredits) {
+      await traceGeneration(auditId, "credit_refunded", {
+        userId: user.id,
+        data: { amount: totalCost, reason: "image edit failed" }
+      });
+    }
+    await traceGeneration(auditId, "failed", {
+      userId: user.id,
+      level: "error",
+      message: String(error.message || error).slice(0, 512),
+      data: errorSummary(error)
+    });
     await store.updateGenerationRequest(auditId, {
       status: "failed",
       errorMessage: String(error.message || error).slice(0, 2000),
       failureStage: "provider_edit",
+      errorCode: String(error.code || error.status || "image_edit_failed").slice(0, 96),
+      errorStage: "provider_edit",
       durationMs: Date.now() - requestStartedAt
     }).catch((auditError) => console.error(auditError));
   }
@@ -3867,6 +4116,22 @@ async function routeApi(req, res, url) {
     return sendJson(res, 200, { records });
   }
 
+  const adminGenerationMatch = url.pathname.match(/^\/api\/admin\/generations\/([^/]+)$/);
+  if (adminGenerationMatch && req.method === "GET") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    ensureAdmin(current);
+    const diagnostic = await store.getGenerationRequestDiagnostic(adminGenerationMatch[1]);
+    if (!diagnostic) throw httpError("Generation request not found", 404);
+    return sendJson(res, 200, {
+      request: {
+        ...diagnostic.request,
+        imageUrl: diagnostic.request.firstGenerationId ? `/api/images/${diagnostic.request.firstGenerationId}/file` : ""
+      },
+      trace: diagnostic.trace
+    });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/admin/public-images") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
@@ -4295,7 +4560,7 @@ async function routeApi(req, res, url) {
     return sendGenerationRequestStatus(req, res, requestStatusMatch[1]);
   }
 
-  if (requestStatusMatch && req.method === "POST") {
+    if (requestStatusMatch && req.method === "POST") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
     const request = await store.getGenerationRequestById(requestStatusMatch[1]);
@@ -4309,7 +4574,15 @@ async function routeApi(req, res, url) {
     if (queued) {
       await store.updateGenerationRequest(request.id, {
         status: "cancelled",
-        errorMessage: "client cancelled"
+        errorMessage: "client cancelled",
+        errorCode: "client_cancelled",
+        errorStage: "queue"
+      });
+      await traceGeneration(request.id, "failed", {
+        userId: current.user.id,
+        level: "warn",
+        message: "client cancelled queued request",
+        data: { stage: "queue" }
       });
     }
     return sendGenerationRequestStatus(req, res, request.id);
@@ -4375,6 +4648,19 @@ async function routeApi(req, res, url) {
     const auditId = randomId("req_");
     const requestStartedAt = Date.now();
     const isAsyncGeneration = body.async === true;
+    const requestedParams = safeJsonSummary({
+      prompt: body.prompt,
+      title: body.title,
+      n: body.n,
+      size: body.size,
+      quality: body.quality,
+      background: body.background,
+      outputFormat: body.outputFormat,
+      isPublic: body.isPublic,
+      publicTags: body.publicTags
+    });
+    const normalizedParams = safeJsonSummary(request);
+    const providerParams = safeJsonSummary(openaiRequest);
     await store.insertGenerationRequest({
       id: auditId,
       userId: user.id,
@@ -4386,6 +4672,9 @@ async function routeApi(req, res, url) {
       queueStatus: "queued",
       maxAttempts: isAsyncGeneration ? 2 : 1,
       jobType: isAsyncGeneration ? "text-generation" : null,
+      requestedParams,
+      normalizedParams,
+      providerParams,
       queuePayloadJson: isAsyncGeneration ? queuePayloadForTextGeneration({
         userId: user.id,
         request,
@@ -4394,6 +4683,10 @@ async function routeApi(req, res, url) {
         costPerImage,
         requestStartedAt
       }) : null
+    });
+    await traceGeneration(auditId, "request_received", {
+      userId: user.id,
+      data: { mode: "text-to-image", async: isAsyncGeneration, requestedParams }
     });
 
     if (isAsyncGeneration) {
@@ -4434,39 +4727,63 @@ async function routeApi(req, res, url) {
         await store.updateGenerationRequest(auditId, {
           status: "failed",
           errorMessage: "Not enough credits",
+          errorCode: "not_enough_credits",
+          errorStage: "credit_reserved",
           durationMs: Date.now() - requestStartedAt
+        });
+        await traceGeneration(auditId, "failed", {
+          userId: user.id,
+          level: "warn",
+          message: "not enough credits",
+          data: { stage: "credit_reserved", totalCost }
         });
         throw httpError("Not enough credits", 402);
       }
+      await traceGeneration(auditId, "credit_reserved", {
+        userId: user.id,
+        data: { totalCost, costPerImage }
+      });
     }
 
     const aborter = attachRequestAbortController(req);
     try {
+      await traceGeneration(auditId, "provider_selected", {
+        userId: user.id,
+        data: { model: openaiRequest.model, mode: "text-to-image" }
+      });
+      await traceGeneration(auditId, "params_normalized", {
+        userId: user.id,
+        data: { normalizedParams, providerParams }
+      });
+      await traceGeneration(auditId, "provider_submitted", {
+        userId: user.id,
+        data: { endpoint: "images/generations", providerParams }
+      });
       const openaiResult = await callOpenAIImages(settings, openaiRequest, { signal: aborter.signal });
-      const durationMs = Date.now() - requestStartedAt;
-      const saved = (await saveGeneratedImages(user, request, openaiResult))
-        .map((generation) => ({ ...generation, durationMs }));
-      if (!saved.length) {
-        throw httpError("OpenAI did not return a savable image", 502);
-      }
-      await store.insertGenerations(saved);
-      if (request.isPublic && saved[0]) {
-        saved[0] = await claimFirstPublicRewardForGeneration(saved[0]);
-      }
-      await store.updateGenerationRequest(auditId, {
-          status: "succeeded",
-        firstGenerationId: saved[0]?.id || "",
-        generationIds: saved.map((generation) => generation.id),
-        durationMs
+      const { saved, missing } = await finalizeSuccessfulGenerations({
+        auditId,
+        user,
+        request,
+        openaiResult,
+        requestStartedAt,
+        expectedCount: request.n
       });
       reservedCredits = false;
-      if (costPerImage > 0 && saved.length < n) {
-        await store.addCredits(user.id, costPerImage * (n - saved.length), {
+      if (costPerImage > 0 && missing > 0) {
+        await store.addCredits(user.id, costPerImage * missing, {
           source: "generation_refund",
           referenceId: auditId,
           note: "unused candidate refund"
         }).catch((error) => console.error(error));
+        await traceGeneration(auditId, "credit_refunded", {
+          userId: user.id,
+          data: { amount: costPerImage * missing, reason: "unused candidate refund" }
+        });
       }
+      await traceGeneration(auditId, "credit_charged", {
+        userId: user.id,
+        data: { totalCost, saved: saved.length }
+      });
 
       return sendJson(res, 200, {
         generations: saved,
@@ -4481,9 +4798,21 @@ async function routeApi(req, res, url) {
         referenceId: auditId,
         note: cancelled ? "client aborted" : "generation failed"
       }).catch((refundError) => console.error(refundError));
+      if (reservedCredits) {
+        await traceGeneration(auditId, "credit_refunded", {
+          userId: user.id,
+          data: { amount: totalCost, reason: cancelled ? "client aborted" : "generation failed" }
+        });
+      }
+      await traceGeneration(auditId, "failed", {
+        userId: user.id,
+        level: cancelled ? "warn" : "error",
+        message: cancelled ? "client aborted" : String(error.message || error).slice(0, 512),
+        data: errorSummary(error)
+      });
       await store.updateGenerationRequest(auditId, cancelled
-        ? { status: "cancelled", errorMessage: "client aborted", durationMs }
-        : { status: "failed", errorMessage: String(error.message || error).slice(0, 2000), durationMs }
+        ? { status: "cancelled", errorMessage: "client aborted", errorCode: "client_aborted", errorStage: "provider_generation", durationMs }
+        : { status: "failed", errorMessage: String(error.message || error).slice(0, 2000), errorCode: String(error.code || error.status || "generation_failed").slice(0, 96), errorStage: "provider_generation", durationMs }
       ).catch((auditError) => console.error(auditError));
       if (cancelled) {
         // 连接已断，无法/无需写入响应；调用方上层 try/catch 的 status>=500 抑制也不会触发。
@@ -4570,6 +4899,23 @@ async function routeApi(req, res, url) {
       maskData
     };
     const isAsyncGeneration = body.async === true;
+    const requestedParams = safeJsonSummary({
+      prompt: body.prompt,
+      n: body.n,
+      size: body.size,
+      isPublic: body.isPublic,
+      publishOriginal: body.publishOriginal,
+      publicTags: body.publicTags,
+      hasMask: Boolean(maskData),
+      referenceImageCount: referenceImages.length
+    });
+    const normalizedParams = safeJsonSummary(request);
+    const providerParams = safeJsonSummary({
+      ...payload,
+      imageData: "[image-data]",
+      referenceImages: "[reference-images]",
+      maskData: payload.maskData ? "[edit-mask]" : ""
+    });
     await store.insertGenerationRequest({
       id: auditId,
       userId: user.id,
@@ -4581,6 +4927,9 @@ async function routeApi(req, res, url) {
       queueStatus: "queued",
       maxAttempts: isAsyncGeneration ? 2 : 1,
       jobType: isAsyncGeneration ? "image-edit" : null,
+      requestedParams,
+      normalizedParams,
+      providerParams,
       queuePayloadJson: isAsyncGeneration ? queuePayloadForImageEdit({
         userId: user.id,
         request,
@@ -4589,6 +4938,10 @@ async function routeApi(req, res, url) {
         costPerImage,
         requestStartedAt
       }) : null
+    });
+    await traceGeneration(auditId, "request_received", {
+      userId: user.id,
+      data: { mode: "image-to-image", async: isAsyncGeneration, requestedParams }
     });
 
     if (isAsyncGeneration) {
@@ -4629,39 +4982,63 @@ async function routeApi(req, res, url) {
         await store.updateGenerationRequest(auditId, {
           status: "failed",
           errorMessage: "Not enough credits",
+          errorCode: "not_enough_credits",
+          errorStage: "credit_reserved",
           durationMs: Date.now() - requestStartedAt
+        });
+        await traceGeneration(auditId, "failed", {
+          userId: user.id,
+          level: "warn",
+          message: "not enough credits",
+          data: { stage: "credit_reserved", totalCost }
         });
         throw httpError("Not enough credits", 402);
       }
+      await traceGeneration(auditId, "credit_reserved", {
+        userId: user.id,
+        data: { totalCost, costPerImage }
+      });
     }
 
     const aborter = attachRequestAbortController(req);
     try {
+      await traceGeneration(auditId, "provider_selected", {
+        userId: user.id,
+        data: { model: payload.model, mode: "image-to-image" }
+      });
+      await traceGeneration(auditId, "params_normalized", {
+        userId: user.id,
+        data: { normalizedParams, providerParams }
+      });
+      await traceGeneration(auditId, "provider_submitted", {
+        userId: user.id,
+        data: { endpoint: "images/edits", providerParams }
+      });
       const openaiResult = await callOpenAIImageEdits(settings, payload, { signal: aborter.signal });
-      const durationMs = Date.now() - requestStartedAt;
-      const saved = (await saveGeneratedImages(user, request, openaiResult))
-        .map((generation) => ({ ...generation, durationMs }));
-      if (!saved.length) {
-        throw httpError("OpenAI did not return a savable edited image", 502);
-      }
-      await store.insertGenerations(saved);
-      if (request.isPublic && saved[0]) {
-        saved[0] = await claimFirstPublicRewardForGeneration(saved[0]);
-      }
-      await store.updateGenerationRequest(auditId, {
-        status: "succeeded",
-        firstGenerationId: saved[0]?.id || "",
-        generationIds: saved.map((generation) => generation.id),
-        durationMs
+      const { saved, missing } = await finalizeSuccessfulGenerations({
+        auditId,
+        user,
+        request,
+        openaiResult,
+        requestStartedAt,
+        expectedCount: request.n
       });
       reservedCredits = false;
-      if (costPerImage > 0 && saved.length < request.n) {
-        await store.addCredits(user.id, costPerImage * (request.n - saved.length), {
+      if (costPerImage > 0 && missing > 0) {
+        await store.addCredits(user.id, costPerImage * missing, {
           source: "generation_refund",
           referenceId: auditId,
           note: "unused image edit candidate refund"
         }).catch((error) => console.error(error));
+        await traceGeneration(auditId, "credit_refunded", {
+          userId: user.id,
+          data: { amount: costPerImage * missing, reason: "unused image edit candidate refund" }
+        });
       }
+      await traceGeneration(auditId, "credit_charged", {
+        userId: user.id,
+        data: { totalCost, saved: saved.length }
+      });
 
       return sendJson(res, 200, {
         generations: saved,
@@ -4676,9 +5053,21 @@ async function routeApi(req, res, url) {
         referenceId: auditId,
         note: cancelled ? "client aborted" : "image edit failed"
       }).catch((refundError) => console.error(refundError));
+      if (reservedCredits) {
+        await traceGeneration(auditId, "credit_refunded", {
+          userId: user.id,
+          data: { amount: totalCost, reason: cancelled ? "client aborted" : "image edit failed" }
+        });
+      }
+      await traceGeneration(auditId, "failed", {
+        userId: user.id,
+        level: cancelled ? "warn" : "error",
+        message: cancelled ? "client aborted" : String(error.message || error).slice(0, 512),
+        data: errorSummary(error)
+      });
       await store.updateGenerationRequest(auditId, cancelled
-        ? { status: "cancelled", errorMessage: "client aborted", durationMs }
-        : { status: "failed", errorMessage: String(error.message || error).slice(0, 2000), durationMs }
+        ? { status: "cancelled", errorMessage: "client aborted", errorCode: "client_aborted", errorStage: "provider_edit", durationMs }
+        : { status: "failed", errorMessage: String(error.message || error).slice(0, 2000), errorCode: String(error.code || error.status || "image_edit_failed").slice(0, 96), errorStage: "provider_edit", durationMs }
       ).catch((auditError) => console.error(auditError));
       if (cancelled) {
         if (!res.writableEnded) {

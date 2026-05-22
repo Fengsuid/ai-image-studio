@@ -5,6 +5,7 @@ try {
   throw new Error("Missing dependency mysql2. Run: npm.cmd install");
 }
 const crypto = require("crypto");
+const { normalizeTraceLevel, safeJsonSummary } = require("./generation-trace-service");
 
 let pool;
 let defaultModel = "GPT-IMAGE-2";
@@ -390,11 +391,33 @@ function mapGenerationRequest(row) {
     failureStage: row.failure_stage || "",
     jobType: row.job_type || "",
     queuePayloadJson: row.queue_payload_json || "",
+    requestedParams: parseJsonObject(row.requested_params_json, null),
+    normalizedParams: parseJsonObject(row.normalized_params_json, null),
+    providerParams: parseJsonObject(row.provider_params_json, null),
+    providerResponse: parseJsonObject(row.provider_response_json, null),
+    revisedPrompt: row.revised_prompt || "",
+    errorCode: row.error_code || "",
+    errorStage: row.error_stage || "",
     model: row.model || "",
     filename: row.filename || "",
     durationMs: row.duration_ms === null || row.duration_ms === undefined ? null : Number(row.duration_ms),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at)
+  };
+}
+
+function mapGenerationTrace(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    requestId: row.request_id || "",
+    generationId: row.generation_id || "",
+    userId: row.user_id || "",
+    stage: row.stage || "",
+    level: row.level || "info",
+    message: row.message || "",
+    data: parseJsonObject(row.data_json, null),
+    createdAt: toIso(row.created_at)
   };
 }
 
@@ -1002,8 +1025,32 @@ async function runMigrations() {
   await addColumnIfMissing(db, "generation_requests", "failure_stage", "VARCHAR(64) NULL AFTER latency_ms");
   await addColumnIfMissing(db, "generation_requests", "job_type", "VARCHAR(32) NULL AFTER failure_stage");
   await addColumnIfMissing(db, "generation_requests", "queue_payload_json", "LONGTEXT NULL AFTER job_type");
+  await addColumnIfMissing(db, "generation_requests", "requested_params_json", "LONGTEXT NULL AFTER queue_payload_json");
+  await addColumnIfMissing(db, "generation_requests", "normalized_params_json", "LONGTEXT NULL AFTER requested_params_json");
+  await addColumnIfMissing(db, "generation_requests", "provider_params_json", "LONGTEXT NULL AFTER normalized_params_json");
+  await addColumnIfMissing(db, "generation_requests", "provider_response_json", "LONGTEXT NULL AFTER provider_params_json");
+  await addColumnIfMissing(db, "generation_requests", "revised_prompt", "TEXT NULL AFTER provider_response_json");
+  await addColumnIfMissing(db, "generation_requests", "error_code", "VARCHAR(96) NULL AFTER revised_prompt");
+  await addColumnIfMissing(db, "generation_requests", "error_stage", "VARCHAR(64) NULL AFTER error_code");
   await db.query("UPDATE generation_requests SET queue_status = CASE WHEN status = 'succeeded' OR status = 'success' THEN 'succeeded' WHEN status = 'running' THEN 'running' WHEN status = 'failed' THEN 'failed' WHEN status = 'cancelled' THEN 'cancelled' WHEN status = 'expired' THEN 'expired' ELSE queue_status END WHERE queue_status = 'queued'");
   await addIndexIfMissing(db, "generation_requests", "idx_generation_requests_queue_status", "(queue_status, updated_at)");
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS generation_trace (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      request_id VARCHAR(64) NOT NULL,
+      generation_id VARCHAR(32) NULL,
+      user_id VARCHAR(32) NULL,
+      stage VARCHAR(64) NOT NULL,
+      level VARCHAR(16) NOT NULL DEFAULT 'info',
+      message VARCHAR(512) NOT NULL DEFAULT '',
+      data_json LONGTEXT NULL,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      INDEX idx_generation_trace_request (request_id, created_at),
+      INDEX idx_generation_trace_generation (generation_id, created_at),
+      INDEX idx_generation_trace_user_created (user_id, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 
   await db.execute(
     `INSERT IGNORE INTO app_settings
@@ -2685,8 +2732,10 @@ async function insertGenerationRequest(request) {
     `INSERT INTO generation_requests
       (id, user_id, prompt, ip_address, user_agent, is_public, status, queue_status, attempt_count, max_attempts,
        locked_by, locked_at, started_at, finished_at, provider_task_id, next_poll_at, retry_after_at, latency_ms,
-       failure_stage, job_type, queue_payload_json, error_message, first_generation_id, generation_ids, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       failure_stage, job_type, queue_payload_json, requested_params_json, normalized_params_json, provider_params_json,
+       provider_response_json, revised_prompt, error_code, error_stage, error_message, first_generation_id, generation_ids,
+       created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       request.id,
       request.userId,
@@ -2709,6 +2758,13 @@ async function insertGenerationRequest(request) {
       request.failureStage || null,
       request.jobType || null,
       request.queuePayloadJson || (request.queuePayload ? JSON.stringify(request.queuePayload) : null),
+      request.requestedParams ? JSON.stringify(safeJsonSummary(request.requestedParams)) : null,
+      request.normalizedParams ? JSON.stringify(safeJsonSummary(request.normalizedParams)) : null,
+      request.providerParams ? JSON.stringify(safeJsonSummary(request.providerParams)) : null,
+      request.providerResponse ? JSON.stringify(safeJsonSummary(request.providerResponse)) : null,
+      request.revisedPrompt || null,
+      request.errorCode || null,
+      request.errorStage || null,
       request.errorMessage || null,
       request.firstGenerationId || null,
       request.generationIds ? JSON.stringify(request.generationIds) : null,
@@ -2763,6 +2819,9 @@ async function updateGenerationRequest(id, patch) {
     failureStage: "failure_stage",
     jobType: "job_type",
     queuePayloadJson: "queue_payload_json",
+    revisedPrompt: "revised_prompt",
+    errorCode: "error_code",
+    errorStage: "error_stage",
     errorMessage: "error_message",
     firstGenerationId: "first_generation_id",
     durationMs: "duration_ms"
@@ -2777,6 +2836,17 @@ async function updateGenerationRequest(id, patch) {
   if (Object.hasOwn(patch, "generationIds")) {
     columns.push("generation_ids = ?");
     values.push(JSON.stringify(patch.generationIds || []));
+  }
+  for (const [key, column] of [
+    ["requestedParams", "requested_params_json"],
+    ["normalizedParams", "normalized_params_json"],
+    ["providerParams", "provider_params_json"],
+    ["providerResponse", "provider_response_json"]
+  ]) {
+    if (Object.hasOwn(patch, key)) {
+      columns.push(`${column} = ?`);
+      values.push(patch[key] === null || patch[key] === undefined ? null : JSON.stringify(safeJsonSummary(patch[key])));
+    }
   }
   if (!columns.length) return;
   columns.push("updated_at = ?");
@@ -2837,6 +2907,50 @@ async function listRecoverableGenerationRequests(limit = 100) {
       LIMIT ${normalizedLimit}`
   );
   return rows.map(mapGenerationRequest);
+}
+
+async function appendGenerationTrace(entry) {
+  if (!entry?.requestId || !entry?.stage) return null;
+  const [result] = await getPool().execute(
+    `INSERT INTO generation_trace
+      (request_id, generation_id, user_id, stage, level, message, data_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      entry.requestId,
+      entry.generationId || null,
+      entry.userId || null,
+      String(entry.stage).slice(0, 64),
+      normalizeTraceLevel(entry.level),
+      String(entry.message || "").slice(0, 512),
+      entry.data === null || entry.data === undefined ? null : JSON.stringify(safeJsonSummary(entry.data)),
+      entry.createdAt ? new Date(entry.createdAt) : new Date()
+    ]
+  );
+  return {
+    id: result.insertId,
+    ...entry,
+    level: normalizeTraceLevel(entry.level),
+    data: safeJsonSummary(entry.data)
+  };
+}
+
+async function listGenerationTraceForRequest(requestId, limit = 200) {
+  const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+  const [rows] = await getPool().execute(
+    `SELECT * FROM generation_trace
+      WHERE request_id = ?
+      ORDER BY created_at ASC, id ASC
+      LIMIT ${normalizedLimit}`,
+    [requestId]
+  );
+  return rows.map(mapGenerationTrace);
+}
+
+async function getGenerationRequestDiagnostic(id) {
+  const request = await getGenerationRequestById(id);
+  if (!request) return null;
+  const trace = await listGenerationTraceForRequest(id, 300);
+  return { request, trace };
 }
 
 async function listGenerationsForUser(user, limit = 60, { includeArchived = false } = {}) {
@@ -5166,8 +5280,11 @@ module.exports = {
   insertGenerations,
   insertGenerationRequest,
   updateGenerationRequest,
+  appendGenerationTrace,
   listGenerationRequests,
   getGenerationRequestById,
+  getGenerationRequestDiagnostic,
+  listGenerationTraceForRequest,
   listActiveGenerationRequestsForUser,
   listRecoverableGenerationRequests,
   listGenerationsForUser,
