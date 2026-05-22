@@ -163,6 +163,13 @@ src/
 - [ ] `server.js` 路由拆分 — 纯机械提取，不改逻辑
 - [ ] `mysql-store.js` 按域拆分 — 纯机械提取，不改接口签名
 
+执行记录（2026-05-22，增量拆分）：
+- 已先完成一个低风险 `server.js` 增量拆分：将内存队列调度、并发控制、排队快照和 queued 取消逻辑抽到 `src/generation-queue-runner.js`。
+- `server.js` 保留 DB-backed queue recovery、任务 payload 恢复和生成业务编排；队列 runner 通过 `onBeforeRun` hook 回写 `generation_requests` 锁定与 attempt 状态。
+- `scripts/smoke/check-generation-queue-recovery.mjs` 已增加对独立 runner 模块、`onBeforeRun` 和 queued cancellation 的静态守护。
+- 为修复服务器构建对 `registry.npmmirror.com` 的依赖，`package-lock.json` 的 `resolved` tarball 已切到 `registry.npmjs.org`，避免部署时因镜像源 502 阻断。
+- 后续如果继续做路由拆分，优先抽 `src/routes/admin.js` 或 `src/routes/images.js`，每次只迁移一个端点族并立即跑对应 smoke。
+
 ### Phase 3（较高风险，需完整测试）
 - [ ] `public/app.js` 模块化拆分 — 前端无构建工具，需确保 script 加载顺序正确
 - [ ] `public/admin.js` 拆分
