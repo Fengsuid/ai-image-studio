@@ -1,3 +1,5 @@
+const { buildAgentPlan, summarizeAgentPlan } = require("../agent-planner");
+
 const SESSION_STATUSES = new Set(["active", "archived"]);
 const MESSAGE_ROLES = new Set(["user", "assistant", "system", "tool", "agent"]);
 const STEP_STATUSES = new Set(["pending", "running", "succeeded", "failed", "cancelled", "skipped"]);
@@ -60,6 +62,25 @@ function cleanAgentMessageInput(body = {}) {
     content,
     attachments: Array.isArray(body.attachments) ? body.attachments.slice(0, 20) : [],
     steps: cleanAgentSteps(body.steps)
+  };
+}
+
+function cleanAgentPlanRequest(body = {}) {
+  return {
+    message: cleanText(body.message || body.content || body.prompt, { max: 2000 }),
+    variantCount: Math.max(2, Math.min(4, Number.parseInt(body.variantCount || body.count || "4", 10) || 4)),
+    size: cleanText(body.size, { max: 32 }),
+    quality: cleanText(body.quality, { max: 32 })
+  };
+}
+
+function cleanAgentPlanConfirmation(body = {}) {
+  return {
+    plan: body.plan && typeof body.plan === "object" ? body.plan : {},
+    selectedVariantIds: Array.isArray(body.selectedVariantIds)
+      ? body.selectedVariantIds.map((item) => cleanText(item, { max: 64 })).filter(Boolean).slice(0, 4)
+      : [],
+    note: cleanText(body.note, { max: 1000 })
   };
 }
 
@@ -137,6 +158,77 @@ function createAgentSessionRoute({
       const deleted = await store.deleteAgentSessionForUser(sessionMatch[1], current.user.id);
       if (!deleted) throw httpError("Agent session not found", 404);
       sendJson(res, 200, { ok: true });
+      return true;
+    }
+
+    const planMatch = url.pathname.match(/^\/api\/agent-sessions\/([^/]+)\/plan$/);
+    if (planMatch && req.method === "POST") {
+      const current = await getCurrentUser(req);
+      ensureAuthenticated(current);
+      const body = await readJsonBody(req);
+
+      if (body?.action === "confirm") {
+        const confirmation = cleanAgentPlanConfirmation(body);
+        const session = assertReadableAgentSession(
+          await store.createAgentMessageForUser(planMatch[1], current.user.id, {
+            id: randomId("ams_"),
+            role: "assistant",
+            content: "已确认计划。下一步批量生成会在你再次确认生成时才扣积分并进入队列。",
+            attachments: [],
+            steps: [{
+              id: randomId("ast_"),
+              kind: "plan_confirmed",
+              status: "succeeded",
+              input: {
+                selectedVariantIds: confirmation.selectedVariantIds,
+                note: confirmation.note
+              },
+              output: {
+                plan: confirmation.plan,
+                confirmationRequired: false,
+                willCreateGenerations: false,
+                nextAction: "batch_generation_available_in_next_task"
+              }
+            }]
+          }),
+          current.user.id,
+          httpError
+        );
+        sendJson(res, 200, { session, confirmed: true, willCreateGenerations: false });
+        return true;
+      }
+
+      const request = cleanAgentPlanRequest(body);
+      const plan = buildAgentPlan(request.message, request);
+      const userSession = assertReadableAgentSession(
+        await store.createAgentMessageForUser(planMatch[1], current.user.id, {
+          id: randomId("ams_"),
+          role: "user",
+          content: request.message,
+          attachments: [],
+          steps: []
+        }),
+        current.user.id,
+        httpError
+      );
+      const session = assertReadableAgentSession(
+        await store.createAgentMessageForUser(planMatch[1], current.user.id, {
+          id: randomId("ams_"),
+          role: "assistant",
+          content: summarizeAgentPlan(plan),
+          attachments: [{ kind: "agent_plan", format: plan.format }],
+          steps: [{
+            id: randomId("ast_"),
+            kind: "plan",
+            status: "succeeded",
+            input: request,
+            output: plan
+          }]
+        }),
+        current.user.id,
+        httpError
+      );
+      sendJson(res, 200, { session, previousSession: userSession, plan });
       return true;
     }
 

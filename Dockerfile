@@ -10,6 +10,13 @@ COPY apps/canvas-v2/scripts ./apps/canvas-v2/scripts
 COPY apps/canvas-v2/src ./apps/canvas-v2/src
 RUN npm run build --prefix apps/canvas-v2
 
+FROM node:20-bookworm-slim AS agent-workspace-build
+WORKDIR /app
+COPY apps/agent-workspace/package.json ./apps/agent-workspace/package.json
+COPY apps/agent-workspace/scripts ./apps/agent-workspace/scripts
+COPY apps/agent-workspace/src ./apps/agent-workspace/src
+RUN npm run build --prefix apps/agent-workspace
+
 FROM node:20-bookworm-slim AS app
 ENV NODE_ENV=production
 WORKDIR /app
@@ -18,8 +25,10 @@ COPY package.json package-lock.json server.js ./
 COPY src ./src
 COPY public ./public
 COPY apps/canvas-v2 ./apps/canvas-v2
+COPY apps/agent-workspace ./apps/agent-workspace
 COPY scripts ./scripts
 COPY docs/README.md ./docs/README.md
 COPY --from=canvas-v2-build /app/public/canvas-v2 ./public/canvas-v2
+COPY --from=agent-workspace-build /app/public/agent ./public/agent
 EXPOSE 3000
 CMD ["npm", "start"]

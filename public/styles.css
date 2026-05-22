@@ -215,6 +215,7 @@ a {
   padding: 0 14px;
   font-size: 13px;
   backdrop-filter: blur(12px);
+  text-decoration: none;
 }
 
 .icon-pill {

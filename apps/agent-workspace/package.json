@@ -1,0 +1,15 @@
+{
+  "name": "@ai-image-studio/agent-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agent workspace frontend sub-application for ai-image-studio.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs",
+    "typecheck": "npm run check",
+    "build": "npm run check && node scripts/build.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

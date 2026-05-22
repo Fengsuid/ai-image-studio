@@ -75,6 +75,7 @@
 
   #leaderboardBtn,
   #canvasWorkspaceBtn,
+  #agentWorkspaceBtn,
   #contactBtn,
   #langBtn {
     display: none;

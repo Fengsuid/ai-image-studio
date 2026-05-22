@@ -1,5 +1,6 @@
 node_modules
 apps/canvas-v2/node_modules
+apps/agent-workspace/node_modules
 data
 data-*
 uploads

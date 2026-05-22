@@ -5381,12 +5381,16 @@ async function serveStatic(req, res, url) {
   const pathname = decodeURIComponent(url.pathname);
   const isCanvasV2Path = pathname === "/canvas-v2" || pathname.startsWith("/canvas-v2/");
   const isCanvasV2AssetPath = pathname.startsWith("/canvas-v2/assets/");
+  const isAgentPath = pathname === "/agent" || pathname.startsWith("/agent/");
+  const isAgentAssetPath = pathname.startsWith("/agent/assets/");
   const requestedPath = pathname === "/"
     ? "/index.html"
     : pathname === "/admin"
       ? "/admin.html"
-      : isCanvasV2Path && !isCanvasV2AssetPath
-        ? "/canvas-v2/index.html"
+      : isAgentPath && !isAgentAssetPath
+        ? "/agent/index.html"
+        : isCanvasV2Path && !isCanvasV2AssetPath
+          ? "/canvas-v2/index.html"
         : pathname;
   const absolutePath = path.normalize(path.join(PUBLIC_DIR, requestedPath));
   if (absolutePath !== PUBLIC_DIR && !absolutePath.startsWith(PUBLIC_DIR + path.sep)) {
@@ -5404,6 +5408,18 @@ async function serveStatic(req, res, url) {
     }));
     res.end(bytes);
   } catch {
+    if (isAgentPath) {
+      if (isAgentAssetPath) {
+        return sendError(res, 404, "Static asset not found");
+      }
+      const html = await fs.readFile(path.join(PUBLIC_DIR, "agent", "index.html"), "utf8");
+      res.writeHead(200, withSecurityHeaders({
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store"
+      }));
+      res.end(html);
+      return;
+    }
     if (isCanvasV2Path) {
       if (isCanvasV2AssetPath) {
         return sendError(res, 404, "Static asset not found");
@@ -5446,7 +5462,7 @@ async function handleRequest(req, res) {
       const proto = forwardedProto || cfProto || url.protocol.replace(":", "") || "http";
       const origin = `${proto}://${url.host}`;
       res.writeHead(200, withSecurityHeaders({ "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" }));
-      res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${origin}/</loc></url>\n  <url><loc>${origin}/admin</loc></url>\n</urlset>\n`);
+      res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${origin}/</loc></url>\n  <url><loc>${origin}/agent</loc></url>\n  <url><loc>${origin}/admin</loc></url>\n</urlset>\n`);
       return;
     }
     if (url.pathname.startsWith("/api/")) {
