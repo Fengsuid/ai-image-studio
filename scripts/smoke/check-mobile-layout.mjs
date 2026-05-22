@@ -57,6 +57,19 @@ const pages = [
     requiredVisible: ["#editorView", "#editorPromptForm", "#editorUploadCard"],
     coreButtons: ["#editorPromptForm button", "#editorUploadCard"],
   },
+  {
+    name: "editor-image",
+    url: "/?view=editor",
+    requiredVisible: ["#editorView", "#editorPromptForm", "#editorImageFrame", "#editorSourceImage"],
+    coreButtons: ["#editorPromptForm button", ".editor-publish-panel .square-toggle"],
+  },
+  {
+    name: "works-detail",
+    url: "/?view=library&modal=works&work=mobile-smoke-1",
+    requiredVisible: [".works-modal", ".works-detail-drawer", ".works-detail-stage", ".works-detail-actions"],
+    coreButtons: [".works-detail-close", ".works-detail-actions button", ".works-detail-actions a"],
+    keepModal: true,
+  },
 ];
 
 class CdpClient {
@@ -299,13 +312,17 @@ function writeJson(response, body) {
 }
 
 function mockApiResponse(url) {
-  const sampleImage = "/prompt-thumbs/freestylefly/case-001.jpg";
+  const sampleImage = "/prompt-thumbs/evolink/logo.png";
   const sampleGeneration = {
     id: "mobile-smoke-1",
     title: "Mobile smoke sample",
     prompt: "A clean mobile AI image studio layout baseline sample",
+    images: [sampleImage],
+    image: sampleImage,
     imageUrl: sampleImage,
     image_url: sampleImage,
+    sourceImageUrl: sampleImage,
+    source_image_url: sampleImage,
     createdAt: new Date().toISOString(),
     created_at: new Date().toISOString(),
     likeCount: 8,
@@ -393,9 +410,22 @@ async function evaluateLayout(cdp, sessionId, page, viewport) {
 
 function layoutProbe(page, viewport) {
   const modalLayer = document.querySelector("#modalLayer");
-  if (modalLayer) {
+  if (modalLayer && !page.keepModal) {
     modalLayer.innerHTML = "";
     modalLayer.classList.add("hidden");
+  }
+  if (page.name === "editor-image") {
+    const sampleImage = "/prompt-thumbs/evolink/logo.png";
+    const uploadCard = document.querySelector("#editorUploadCard");
+    const imageFrame = document.querySelector("#editorImageFrame");
+    const sourceImage = document.querySelector("#editorSourceImage");
+    const promptInput = document.querySelector("#editorPromptInput");
+    uploadCard?.classList.add("hidden");
+    imageFrame?.classList.remove("hidden");
+    if (sourceImage && sourceImage.getAttribute("src") !== sampleImage) {
+      sourceImage.setAttribute("src", sampleImage);
+    }
+    if (promptInput) promptInput.value = "Mobile smoke edit prompt";
   }
   const failures = [];
   const warnings = [];

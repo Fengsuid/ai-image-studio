@@ -695,3 +695,9 @@ AIS-RLS-058 画廊、排行榜与详情首轮运行：
 - 命令：`npm run smoke:gallery-detail-media`、`npm run smoke:gallery-leaderboard-sidebar`、`npm run smoke:gallery-images -- <production-origin>`、`npm run smoke:mobile-layout`
 - 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-58-54-261Z/summary.md`
 - 结果：新增 `public/mobile-gallery.css`，`public/index.html` 已引入带版本 query 的 gallery mobile 样式。画廊搜索按钮触控高度、标签横滑、单列卡片、排行榜移动布局和详情全屏/吸底操作区完成首轮收口；`smoke:mobile-layout` 25 个页面/视口全部通过，剩余仅为非阻断 warning。
+
+AIS-RLS-059 图片编辑器与我的作品首轮运行：
+
+- 命令：`node --check public/app.js`、`node --check scripts/smoke/check-mobile-layout.mjs`、`git diff --check -- public/index.html public/mobile-editor.css scripts/smoke/check-mobile-layout.mjs`、`npm run smoke:mobile-layout`
+- 输出：`docs/mobile-qa/baseline-local/2026-05-22T06-13-29-599Z/summary.md`
+- 结果：新增 `public/mobile-editor.css`，`public/index.html` 已引入带版本 query 的 editor mobile 样式。图片编辑器手机端改为顶部模式栏、中央画布/图片、底部 prompt bar 与发布设置区的稳定三层结构；我的作品列表改为手机单列、底部批量操作栏，作品详情改为全屏抽屉和吸底核心操作区。`smoke:mobile-layout` 已扩展 `editor-image` 与 `works-detail` 页面，35 个页面/视口检查全部通过，剩余仅为登录态下登录按钮隐藏、手机端排行榜入口收纳的非阻断 warning。`npm run smoke:public` 本地未启动应用服务时返回 `fetch failed`，完整 public smoke 归入 `AIS-RLS-060` 发布闭环补跑。

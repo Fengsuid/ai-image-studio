@@ -101,11 +101,11 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-052` | Canvas v2 生成链路接入后端队列与积分 | Done | P0 | Canvas/Backend | M7 Canvas v2 | `AIS-RLS-051` |
 | `AIS-RLS-053` | Canvas v2 首页、画廊、提示词入口与灰度切换 | Done | P0 | Canvas/Experience | M7 Canvas v2 | `AIS-RLS-052` |
 | `AIS-RLS-054` | Canvas v2 QA、文档、服务器部署与发布闭环 | Done | P0 | Canvas/QA/Ops | M7 Canvas v2 | `AIS-RLS-053` |
-| `AIS-RLS-055` | Mobile P0 基线截图与布局问题清单 | Backlog | P0 | Experience/QA | M8 Mobile Web | 无 |
-| `AIS-RLS-056` | Mobile P1 首页、导航与 Composer | Backlog | P0 | Experience | M8 Mobile Web | `AIS-RLS-055` |
-| `AIS-RLS-057` | Mobile P1 对话工作台与生成结果 | Backlog | P0 | Experience | M8 Mobile Web | `AIS-RLS-056` |
-| `AIS-RLS-058` | Mobile P1 画廊、排行榜与详情 | Backlog | P0 | Gallery/Experience | M8 Mobile Web | `AIS-RLS-057` |
-| `AIS-RLS-059` | Mobile P2 图片编辑器与我的作品 | Backlog | P1 | Experience/Gallery | M8 Mobile Web | `AIS-RLS-058` |
+| `AIS-RLS-055` | Mobile P0 基线截图与布局问题清单 | Done | P0 | Experience/QA | M8 Mobile Web | 无 |
+| `AIS-RLS-056` | Mobile P1 首页、导航与 Composer | Done | P0 | Experience | M8 Mobile Web | `AIS-RLS-055` |
+| `AIS-RLS-057` | Mobile P1 对话工作台与生成结果 | Done | P0 | Experience | M8 Mobile Web | `AIS-RLS-056` |
+| `AIS-RLS-058` | Mobile P1 画廊、排行榜与详情 | Done | P0 | Gallery/Experience | M8 Mobile Web | `AIS-RLS-057` |
+| `AIS-RLS-059` | Mobile P2 图片编辑器与我的作品 | Done | P1 | Experience/Gallery | M8 Mobile Web | `AIS-RLS-058` |
 | `AIS-RLS-060` | Mobile QA、文档、部署与发布闭环 | Backlog | P0 | Platform/QA/Ops | M8 Mobile Web | `AIS-RLS-059` |
 
 ## 4. 历史 T 编号映射
