@@ -39,6 +39,7 @@ const {
   queuePayloadForImageEdit,
   queuePayloadForTextGeneration
 } = require("./src/generation-queue-recovery");
+const { createGenerationQueueRunner } = require("./src/generation-queue-runner");
 const { errorSummary, safeJsonSummary } = require("./src/generation-trace-service");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -92,10 +93,7 @@ const canvasService = createCanvasService({
 });
 
 const generationWindows = new Map();
-const generationQueue = [];
-const generationJobs = new Map();
 const rumEvents = [];
-let generationQueueRunning = 0;
 const GENERATION_RUNNER_ID = `${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
 const GENERATION_QUEUE_CONCURRENCY = Math.max(1, Number.parseInt(process.env.GENERATION_QUEUE_CONCURRENCY || "1", 10) || 1);
 const GENERATION_QUEUE_ESTIMATE_SECONDS = Math.max(20, Number.parseInt(process.env.GENERATION_QUEUE_ESTIMATE_SECONDS || "90", 10) || 90);
@@ -108,6 +106,23 @@ const GENERATION_QUEUE_STALE_QUEUED_MS = Math.max(
   Number.parseInt(process.env.GENERATION_QUEUE_STALE_QUEUED_MS || `${60 * 60 * 1000}`, 10) || 60 * 60 * 1000
 );
 const GALLERY_LEADERBOARD_LIMIT_MAX = 99;
+const generationQueueRunner = createGenerationQueueRunner({
+  concurrency: GENERATION_QUEUE_CONCURRENCY,
+  estimateSeconds: GENERATION_QUEUE_ESTIMATE_SECONDS,
+  onBeforeRun: async (job) => {
+    const attemptCount = Math.max(0, Number(job.attemptCount || 0)) + 1;
+    job.attemptCount = attemptCount;
+    await store.updateGenerationRequest(job.id, {
+      status: "running",
+      queueStatus: "running",
+      attemptCount,
+      lockedBy: GENERATION_RUNNER_ID,
+      lockedAt: new Date(),
+      startedAt: new Date()
+    });
+  },
+  onError: (error) => console.error("[generation-queue]", error)
+});
 
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
@@ -2422,18 +2437,7 @@ async function runGalleryFileChecks({ limit = 1000 } = {}) {
 }
 
 function queueSnapshot(requestId) {
-  const pendingIds = generationQueue.map((job) => job.id);
-  const runningIds = [...generationJobs.values()]
-    .filter((job) => job.status === "running")
-    .map((job) => job.id);
-  const queueTotal = pendingIds.length + runningIds.length;
-  const pendingIndex = pendingIds.indexOf(requestId);
-  const queuePosition = pendingIndex >= 0 ? pendingIndex + 1 : runningIds.includes(requestId) ? 0 : null;
-  return {
-    queuePosition,
-    queueTotal,
-    estimatedWaitSeconds: queuePosition && queuePosition > 0 ? queuePosition * GENERATION_QUEUE_ESTIMATE_SECONDS : 0
-  };
+  return generationQueueRunner.snapshot(requestId);
 }
 
 function requestStatusPayload(request) {
@@ -2470,8 +2474,6 @@ async function sendGenerationRequestStatus(req, res, requestId) {
 }
 
 function enqueueGenerationJob(job, { persistQueued = true } = {}) {
-  generationJobs.set(job.id, { ...job, status: "pending" });
-  generationQueue.push(generationJobs.get(job.id));
   if (persistQueued) {
     store.updateGenerationRequest(job.id, {
       status: "pending",
@@ -2481,46 +2483,11 @@ function enqueueGenerationJob(job, { persistQueued = true } = {}) {
       retryAfterAt: null
     }).catch((error) => console.error("[generation-queue] queue status update failed", error));
   }
-  drainGenerationQueue();
-  return queueSnapshot(job.id);
+  return generationQueueRunner.enqueue(job);
 }
 
 function cancelQueuedGenerationJob(id) {
-  const index = generationQueue.findIndex((job) => job.id === id);
-  if (index === -1) return false;
-  generationQueue.splice(index, 1);
-  generationJobs.delete(id);
-  return true;
-}
-
-function drainGenerationQueue() {
-  while (generationQueueRunning < GENERATION_QUEUE_CONCURRENCY && generationQueue.length) {
-    const job = generationQueue.shift();
-    const current = generationJobs.get(job.id);
-    if (!current) continue;
-    current.status = "running";
-    generationQueueRunning += 1;
-    Promise.resolve()
-      .then(async () => {
-        const attemptCount = Math.max(0, Number(current.attemptCount || 0)) + 1;
-        current.attemptCount = attemptCount;
-        await store.updateGenerationRequest(current.id, {
-          status: "running",
-          queueStatus: "running",
-          attemptCount,
-          lockedBy: GENERATION_RUNNER_ID,
-          lockedAt: new Date(),
-          startedAt: new Date()
-        });
-      })
-      .then(() => current.run())
-      .catch((error) => console.error("[generation-queue]", error))
-      .finally(() => {
-        generationQueueRunning = Math.max(0, generationQueueRunning - 1);
-        generationJobs.delete(current.id);
-        drainGenerationQueue();
-      });
-  }
+  return generationQueueRunner.cancelQueued(id);
 }
 
 async function recoveredGenerationJobFromRequest(request) {
@@ -2592,7 +2559,7 @@ async function recoverGenerationQueueOnStartup() {
   const resumable = await store.listRecoverableGenerationRequests(500);
   let queued = 0;
   for (const request of resumable) {
-    if (!request.queuePayloadJson || generationJobs.has(request.id)) continue;
+    if (!request.queuePayloadJson || generationQueueRunner.has(request.id)) continue;
     const job = await recoveredGenerationJobFromRequest(request);
     if (!job) continue;
     enqueueGenerationJob(job, { persistQueued: false });

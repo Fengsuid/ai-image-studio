@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
+const runner = fs.readFileSync(path.join(rootDir, "src/generation-queue-runner.js"), "utf8");
 const helper = require(path.join(rootDir, "src/generation-queue-recovery.js"));
 
 const now = new Date("2026-05-22T08:00:00.000Z");
@@ -80,8 +81,12 @@ for (const column of [
 }
 
 assert(server.includes("recoverGenerationQueueOnStartup"), "server must run startup queue recovery");
+assert(server.includes("createGenerationQueueRunner"), "server must use the extracted queue runner module");
 assert(server.includes("queuePayloadForTextGeneration"), "text async requests must persist recoverable payloads");
 assert(server.includes("queuePayloadForImageEdit"), "image edit async requests must persist recoverable payloads");
 assert(server.includes("GENERATION_QUEUE_CONCURRENCY"), "queue recovery must preserve concurrency controls");
+assert(runner.includes("function createGenerationQueueRunner"), "queue runner module must expose createGenerationQueueRunner");
+assert(runner.includes("onBeforeRun"), "queue runner must support DB lock/status hooks before execution");
+assert(runner.includes("cancelQueued"), "queue runner must preserve queued cancellation");
 
 console.log("[generation-queue-recovery] OK: recovery patches, schema fields, startup hook, and async payload persistence are present");
