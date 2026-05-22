@@ -318,13 +318,18 @@ function mockApiResponse(url) {
   };
   if (url.pathname === "/api/auth/me") {
     return {
-      user: null,
+      user: {
+        id: "mobile-smoke-user",
+        name: "Smoke",
+        email: "smoke@example.com",
+        role: "user",
+      },
       settings: { model: "GPT-IMAGE-2", capabilities: { imageEdit: true } },
       firstRun: false,
       checkin: {},
     };
   }
-  if (url.pathname === "/api/images/history") return { generations: [] };
+  if (url.pathname === "/api/images/history") return { generations: [sampleGeneration] };
   if (url.pathname === "/api/images/requests/active") return { requests: [] };
   if (url.pathname === "/api/stats/today") return { todayGenerated: 4200 };
   if (url.pathname === "/api/version") return { version: "mobile-baseline-local", node: process.version, startedAt: new Date().toISOString() };

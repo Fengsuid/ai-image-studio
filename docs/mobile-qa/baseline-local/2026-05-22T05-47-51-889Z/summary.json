@@ -1,0 +1,1081 @@
+{
+  "target": "http://127.0.0.1:62598",
+  "outputDir": "D:\\生图广场\\remote-edit\\docs\\mobile-qa\\baseline-local\\2026-05-22T05-47-51-889Z",
+  "createdAt": "2026-05-22T05:47:51.920Z",
+  "viewports": [
+    {
+      "name": "360x800",
+      "width": 360,
+      "height": 800,
+      "mobile": true
+    },
+    {
+      "name": "390x844",
+      "width": 390,
+      "height": 844,
+      "mobile": true
+    },
+    {
+      "name": "430x932",
+      "width": 430,
+      "height": 932,
+      "mobile": true
+    },
+    {
+      "name": "768x1024",
+      "width": 768,
+      "height": 1024,
+      "mobile": true
+    },
+    {
+      "name": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "mobile": false
+    }
+  ],
+  "pages": [
+    {
+      "page": "home",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:62598/",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [],
+      "warnings": [
+        "home 360x800: core control #loginBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 57,
+          "width": 345,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "home-360x800.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:62598/?workspace=1",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 57,
+          "width": 345,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 5,
+          "top": 560,
+          "right": 341,
+          "bottom": 790,
+          "width": 336,
+          "height": 230
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "chat-workspace-360x800.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:62598/?view=library",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [
+        "gallery 360x800: core control #librarySearchForm button touch target 62x35"
+      ],
+      "warnings": [
+        "gallery 360x800: core control #leaderboardBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 57,
+          "width": 345,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-360x800.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:62598/?view=leaderboard",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 57,
+          "width": 345,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-360x800.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:62598/?view=editor",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [],
+      "warnings": [
+        "editor-empty 360x800: possible text overflow: editor-recent-thumb image-unavailable scroll=70 client=46"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 57,
+          "width": 345,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 640,
+          "right": 337,
+          "bottom": 828,
+          "width": 328,
+          "height": 188
+        }
+      ],
+      "screenshot": "editor-empty-360x800.png"
+    },
+    {
+      "page": "home",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:62598/",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [],
+      "warnings": [
+        "home 390x844: core control #loginBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 57,
+          "width": 375,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "home-390x844.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:62598/?workspace=1",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 57,
+          "width": 375,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 5,
+          "top": 604,
+          "right": 371,
+          "bottom": 834,
+          "width": 366,
+          "height": 230
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "chat-workspace-390x844.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:62598/?view=library",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [
+        "gallery 390x844: core control #librarySearchForm button touch target 62x35"
+      ],
+      "warnings": [
+        "gallery 390x844: core control #leaderboardBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 57,
+          "width": 375,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-390x844.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:62598/?view=leaderboard",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 57,
+          "width": 375,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-390x844.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:62598/?view=editor",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [],
+      "warnings": [
+        "editor-empty 390x844: possible text overflow: editor-recent-thumb image-unavailable scroll=76 client=46"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 57,
+          "width": 375,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 684,
+          "right": 367,
+          "bottom": 872,
+          "width": 358,
+          "height": 188
+        }
+      ],
+      "screenshot": "editor-empty-390x844.png"
+    },
+    {
+      "page": "home",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:62598/",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [],
+      "warnings": [
+        "home 430x932: core control #loginBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 57,
+          "width": 415,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "home-430x932.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:62598/?workspace=1",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 57,
+          "width": 415,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 5,
+          "top": 692,
+          "right": 411,
+          "bottom": 922,
+          "width": 406,
+          "height": 230
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "chat-workspace-430x932.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:62598/?view=library",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [
+        "gallery 430x932: core control #librarySearchForm button touch target 62x35"
+      ],
+      "warnings": [
+        "gallery 430x932: core control #leaderboardBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 57,
+          "width": 415,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-430x932.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:62598/?view=leaderboard",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 57,
+          "width": 415,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-430x932.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:62598/?view=editor",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [],
+      "warnings": [
+        "editor-empty 430x932: possible text overflow: editor-recent-thumb image-unavailable scroll=82 client=46"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 57,
+          "width": 415,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 772,
+          "right": 407,
+          "bottom": 960,
+          "width": 398,
+          "height": 188
+        }
+      ],
+      "screenshot": "editor-empty-430x932.png"
+    },
+    {
+      "page": "home",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:62598/",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [],
+      "warnings": [
+        "home 768x1024: core control #loginBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 57,
+          "width": 753,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "home-768x1024.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:62598/?workspace=1",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 57,
+          "width": 753,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 9,
+          "top": 784,
+          "right": 745,
+          "bottom": 1014,
+          "width": 736,
+          "height": 230
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "chat-workspace-768x1024.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:62598/?view=library",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [
+        "gallery 768x1024: core control #librarySearchForm button touch target 62x35"
+      ],
+      "warnings": [
+        "gallery 768x1024: core control #leaderboardBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 57,
+          "width": 753,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-768x1024.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:62598/?view=leaderboard",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 57,
+          "width": 753,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-768x1024.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:62598/?view=editor",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [],
+      "warnings": [
+        "editor-empty 768x1024: possible text overflow: editor-recent-thumb image-unavailable scroll=88 client=46"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 57,
+          "width": 753,
+          "height": 57
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 990,
+          "right": 745,
+          "bottom": 1066,
+          "width": 736,
+          "height": 76
+        }
+      ],
+      "screenshot": "editor-empty-768x1024.png"
+    },
+    {
+      "page": "home",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:62598/",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [],
+      "warnings": [
+        "home 1280x720: core control #loginBtn hidden"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 69,
+          "width": 1265,
+          "height": 69
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "home-1280x720.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:62598/?workspace=1",
+      "scrollWidth": 1280,
+      "innerWidth": 1280,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 69,
+          "width": 1280,
+          "height": 69
+        },
+        {
+          "selector": ".chat-session-panel",
+          "left": 16,
+          "top": 92,
+          "right": 276,
+          "bottom": 696,
+          "width": 260,
+          "height": 604
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 371,
+          "top": 512,
+          "right": 1191,
+          "bottom": 702,
+          "width": 820,
+          "height": 190
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "chat-workspace-1280x720.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:62598/?view=library",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 69,
+          "width": 1265,
+          "height": 69
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-1280x720.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:62598/?view=leaderboard",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 69,
+          "width": 1265,
+          "height": 69
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-1280x720.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:62598/?view=editor",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [],
+      "warnings": [
+        "editor-empty 1280x720: possible text overflow: editor-recent-thumb image-unavailable scroll=88 client=54"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 69,
+          "width": 1265,
+          "height": 69
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 253,
+          "top": 722,
+          "right": 1013,
+          "bottom": 798,
+          "width": 760,
+          "height": 76
+        }
+      ],
+      "screenshot": "editor-empty-1280x720.png"
+    }
+  ],
+  "failures": [
+    "gallery 360x800: core control #librarySearchForm button touch target 62x35",
+    "gallery 390x844: core control #librarySearchForm button touch target 62x35",
+    "gallery 430x932: core control #librarySearchForm button touch target 62x35",
+    "gallery 768x1024: core control #librarySearchForm button touch target 62x35"
+  ],
+  "warnings": [
+    "home 360x800: core control #loginBtn hidden",
+    "gallery 360x800: core control #leaderboardBtn hidden",
+    "editor-empty 360x800: possible text overflow: editor-recent-thumb image-unavailable scroll=70 client=46",
+    "home 390x844: core control #loginBtn hidden",
+    "gallery 390x844: core control #leaderboardBtn hidden",
+    "editor-empty 390x844: possible text overflow: editor-recent-thumb image-unavailable scroll=76 client=46",
+    "home 430x932: core control #loginBtn hidden",
+    "gallery 430x932: core control #leaderboardBtn hidden",
+    "editor-empty 430x932: possible text overflow: editor-recent-thumb image-unavailable scroll=82 client=46",
+    "home 768x1024: core control #loginBtn hidden",
+    "gallery 768x1024: core control #leaderboardBtn hidden",
+    "editor-empty 768x1024: possible text overflow: editor-recent-thumb image-unavailable scroll=88 client=46",
+    "home 1280x720: core control #loginBtn hidden",
+    "editor-empty 1280x720: possible text overflow: editor-recent-thumb image-unavailable scroll=88 client=54"
+  ]
+}

@@ -683,3 +683,9 @@ AIS-RLS-056 首页、导航与 Composer 首轮运行：
 - 命令：`npm run smoke:mobile-layout`
 - 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-32-19-586Z/summary.md`
 - 结果：新增 `public/mobile.css` 与 `public/mobile-home.css`，`public/index.html` 已引入带版本 query 的 mobile 样式。首页、顶部导航、登录按钮、Hero composer 和桌面导航触控基线通过；剩余 4 个失败项全部是画廊搜索按钮 35px 高度，归入 `AIS-RLS-058` 范围。
+
+AIS-RLS-057 对话工作台与生成结果首轮运行：
+
+- 命令：`npm run smoke:generation-flicker`、`npm run smoke:generation-result-actions`、`npm run smoke:mobile-layout`
+- 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-47-51-889Z/summary.md`
+- 结果：移动端会话列表按底部 sheet 处理，打开时有遮罩；sticky composer、生成状态条、历史卡片、图片工具和结果操作区增加手机端布局保护。`smoke:mobile-layout` 的本地 mock 已补充登录用户和一条历史结果，确保 chat workspace 被真实渲染检查。生成闪屏与结果按钮收口 smoke 均通过；mobile layout 仍只剩 4 个画廊搜索按钮高度失败，归入 `AIS-RLS-058` 范围。

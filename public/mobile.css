@@ -166,6 +166,189 @@
   .composer-public-toggle {
     min-height: 40px;
   }
+
+  .app.session-panel-open::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 51;
+    background: rgba(15, 23, 42, 0.32);
+    backdrop-filter: blur(2px);
+  }
+
+  .chat-view {
+    min-height: calc(100svh - var(--mobile-topbar-h));
+    padding: 14px var(--mobile-page-pad) 0;
+    display: block;
+  }
+
+  .chat-workspace {
+    width: 100%;
+  }
+
+  .history-list {
+    gap: 14px;
+  }
+
+  .chat-empty-state {
+    min-height: 220px;
+  }
+
+  .generation-status {
+    position: sticky;
+    top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top) + 8px);
+    z-index: 22;
+    min-height: 48px;
+    margin-bottom: 12px;
+    padding: 9px 10px;
+    gap: 8px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  .paint-drip {
+    height: 24px;
+    gap: 4px;
+  }
+
+  .elapsed-pill {
+    padding-inline: 8px;
+  }
+
+  .chat-session-panel {
+    left: var(--mobile-page-pad);
+    right: var(--mobile-page-pad);
+    top: auto;
+    bottom: calc(var(--mobile-bottom-bar-h) + env(safe-area-inset-bottom) + 12px);
+    z-index: 52;
+    width: auto;
+    max-height: min(72svh, 560px);
+    height: auto;
+    min-height: 0;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.96);
+  }
+
+  .app.chat-panel-visible:not(.session-panel-open) .chat-session-panel,
+  .app.chat-panel-collapsed .chat-session-panel {
+    display: none;
+  }
+
+  .app.session-panel-open .chat-session-panel {
+    display: flex;
+  }
+
+  .chat-session-head {
+    padding: 12px;
+  }
+
+  .chat-session-head button {
+    width: var(--touch-target);
+    height: var(--touch-target);
+    border-radius: 14px;
+  }
+
+  .chat-session-list {
+    max-height: calc(72svh - 74px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    display: grid;
+  }
+
+  .chat-session-card {
+    width: 100%;
+    min-height: 64px;
+    flex-basis: auto;
+  }
+
+  .session-actions {
+    opacity: 1;
+  }
+
+  .message-card {
+    width: 100%;
+    border-radius: 18px;
+  }
+
+  .message-card-top {
+    grid-template-columns: 1fr;
+    padding: 13px 13px 8px;
+  }
+
+  .message-image {
+    padding: 0 10px 10px;
+  }
+
+  .image-shell {
+    min-height: 188px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .image-tools {
+    position: static;
+    justify-content: flex-start;
+    padding: 0 10px 10px;
+  }
+
+  .image-tools button,
+  .image-tools a {
+    min-height: 40px;
+  }
+
+  .message-actions {
+    padding: 0 12px 14px;
+    gap: 7px;
+  }
+
+  .message-actions a,
+  .message-actions button,
+  .message-more summary {
+    min-height: 40px;
+    border-radius: 12px;
+  }
+
+  .result-action-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--touch-target);
+    align-items: stretch;
+  }
+
+  .result-action-bar > .result-action-primary {
+    justify-content: center;
+  }
+
+  .message-more summary {
+    width: var(--touch-target);
+    padding: 0;
+    justify-content: center;
+  }
+
+  .message-more summary span {
+    display: none;
+  }
+
+  .message-more-menu {
+    right: 0;
+    left: auto;
+    bottom: calc(100% + 8px);
+    max-width: calc(100vw - 40px);
+  }
+
+  .generating-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .generating-actions > span {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .bottom-spacer {
+    height: calc(210px + env(safe-area-inset-bottom));
+  }
 }
 
 @media (max-width: 430px) {
