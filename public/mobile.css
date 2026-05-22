@@ -101,8 +101,21 @@
     position: fixed;
     top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top) + 8px);
     right: var(--mobile-page-pad);
-    width: min(292px, calc(100vw - 24px));
-    max-width: calc(100vw - 24px);
+    width: min(238px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+    padding: 10px;
+    border-radius: 18px;
+  }
+
+  .account-menu-head {
+    padding: 8px 10px 10px;
+  }
+
+  .account-menu-item {
+    min-height: 40px;
+    padding: 0 10px;
+    border-radius: 12px;
+    font-size: 13px;
   }
 
   .composer-mount,
@@ -254,6 +267,12 @@
     border-radius: 14px;
   }
 
+  .chat-session-head .chat-session-close {
+    display: grid;
+    background: #f1f5f9;
+    color: #334155;
+  }
+
   .chat-session-list {
     max-height: calc(72svh - 74px);
     overflow-y: auto;
@@ -378,6 +397,11 @@
   .dark-pill {
     min-width: 60px;
     padding-inline: 11px;
+  }
+
+  .account-menu {
+    right: var(--mobile-page-pad-sm);
+    width: min(224px, calc(100vw - 24px));
   }
 
   .composer-mount,

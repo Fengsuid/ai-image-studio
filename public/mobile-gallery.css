@@ -1,3 +1,7 @@
+.library-mobile-leaderboard {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .library-view,
   .leaderboard-view {
@@ -19,6 +23,52 @@
   .leaderboard-page-head p {
     max-width: 32rem;
     font-size: 14px;
+  }
+
+  .library-mobile-leaderboard {
+    display: flex;
+    width: 100%;
+    min-height: 54px;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(250, 204, 21, 0.42);
+    border-radius: 18px;
+    padding: 10px 12px;
+    background:
+      radial-gradient(circle at 88% 20%, rgba(250, 204, 21, 0.24), transparent 28%),
+      linear-gradient(135deg, rgba(255, 251, 235, 0.92), rgba(255, 255, 255, 0.76));
+    color: #78350f;
+    box-shadow: 0 14px 32px rgba(146, 64, 14, 0.12);
+  }
+
+  .library-mobile-leaderboard i {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    background: #111827;
+    color: #facc15;
+    font-size: 18px;
+  }
+
+  .library-mobile-leaderboard span,
+  .library-mobile-leaderboard small {
+    min-width: 0;
+    display: block;
+    text-align: left;
+  }
+
+  .library-mobile-leaderboard span {
+    font-weight: 900;
+  }
+
+  .library-mobile-leaderboard small {
+    margin-left: auto;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 700;
   }
 
   .library-search {

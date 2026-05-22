@@ -976,6 +976,7 @@ const elements = {
   historyList: $("#historyList"),
   imageSessionList: $("#imageSessionList"),
   newImageSessionBtn: $("#newImageSessionBtn"),
+  closeImageSessionBtn: $("#closeImageSessionBtn"),
   sessionDrawerToggle: $("#sessionDrawerToggle"),
   recentSection: $("#recentSection"),
   recentMasonry: $("#recentMasonry"),
@@ -3696,10 +3697,20 @@ function renderLibrary() {
   if (statsTarget) statsTarget.remove();
   const sortTarget = $(".library-sort");
   if (sortTarget) sortTarget.remove();
+  const leaderboardTarget = $(".library-mobile-leaderboard");
+  if (leaderboardTarget) leaderboardTarget.remove();
   const adminCreate = $(".library-admin-create");
   if (adminCreate) adminCreate.remove();
+  $(".library-hero").insertAdjacentHTML("beforeend", `
+    <button class="library-mobile-leaderboard" type="button" data-open-leaderboard-inline>
+      <i class="ri-trophy-line"></i>
+      <span>${escapeHtml(text("galleryLeaderboardPage"))}</span>
+      <small>${state.lang === "zh" ? "查看热门作品" : "Top liked works"}</small>
+    </button>
+  `);
   $(".library-hero").insertAdjacentHTML("beforeend", sortControl);
   $(".library-hero").insertAdjacentHTML("beforeend", stats);
+  $("[data-open-leaderboard-inline]", elements.libraryView)?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
   $$("[data-prompt-sort]", elements.libraryView).forEach((button) => {
     button.addEventListener("click", async () => {
       const nextSort = button.dataset.promptSort;
@@ -5782,6 +5793,7 @@ function openMyWorksModal(options = {}) {
       <div class="works-filter-bar" role="tablist">
         ${filters.map((filter) => `<button type="button" data-works-filter="${filter.id}" class="works-filter-btn${state.worksFilter === filter.id ? " active" : ""}">${escapeHtml(filter.label)}</button>`).join("")}
       </div>
+      <p class="works-mobile-hint">${state.lang === "zh" ? "左右滑动浏览作品，点击卡片打开详情。" : "Swipe through works. Tap a card to open details."}</p>
       <div id="worksGrid" class="works-grid"><div class="empty-message">${text("loadingPrompts")}</div></div>
     </section>
   `);
@@ -6831,6 +6843,11 @@ function bindGlobalEvents() {
     renderAll();
     setView("home");
     setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
+  });
+  elements.closeImageSessionBtn?.addEventListener("click", () => {
+    elements.app.classList.remove("session-panel-open");
+    elements.app.classList.add("chat-panel-collapsed");
+    renderImageSessions();
   });
   elements.imageEditorBtn.addEventListener("click", () => openImageEditor());
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
