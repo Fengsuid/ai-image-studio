@@ -33,6 +33,12 @@ const store = require("./src/mysql-store");
 const promptReview = require("./src/prompt-review-service");
 const { createCanvasService } = require("./src/canvas-service");
 const promptSourceSync = require("./src/prompt-source-sync");
+const {
+  buildStartupRecoveryPatch,
+  parseQueuePayload,
+  queuePayloadForImageEdit,
+  queuePayloadForTextGeneration
+} = require("./src/generation-queue-recovery");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
@@ -89,8 +95,17 @@ const generationQueue = [];
 const generationJobs = new Map();
 const rumEvents = [];
 let generationQueueRunning = 0;
+const GENERATION_RUNNER_ID = `${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
 const GENERATION_QUEUE_CONCURRENCY = Math.max(1, Number.parseInt(process.env.GENERATION_QUEUE_CONCURRENCY || "1", 10) || 1);
 const GENERATION_QUEUE_ESTIMATE_SECONDS = Math.max(20, Number.parseInt(process.env.GENERATION_QUEUE_ESTIMATE_SECONDS || "90", 10) || 90);
+const GENERATION_QUEUE_STALE_RUNNING_MS = Math.max(
+  60_000,
+  Number.parseInt(process.env.GENERATION_QUEUE_STALE_RUNNING_MS || `${10 * 60 * 1000}`, 10) || 10 * 60 * 1000
+);
+const GENERATION_QUEUE_STALE_QUEUED_MS = Math.max(
+  60_000,
+  Number.parseInt(process.env.GENERATION_QUEUE_STALE_QUEUED_MS || `${60 * 60 * 1000}`, 10) || 60 * 60 * 1000
+);
 const GALLERY_LEADERBOARD_LIMIT_MAX = 99;
 
 const jsonHeaders = {
@@ -2319,9 +2334,18 @@ async function sendGenerationRequestStatus(req, res, requestId) {
   });
 }
 
-function enqueueGenerationJob(job) {
+function enqueueGenerationJob(job, { persistQueued = true } = {}) {
   generationJobs.set(job.id, { ...job, status: "pending" });
   generationQueue.push(generationJobs.get(job.id));
+  if (persistQueued) {
+    store.updateGenerationRequest(job.id, {
+      status: "pending",
+      queueStatus: "queued",
+      lockedBy: null,
+      lockedAt: null,
+      retryAfterAt: null
+    }).catch((error) => console.error("[generation-queue] queue status update failed", error));
+  }
   drainGenerationQueue();
   return queueSnapshot(job.id);
 }
@@ -2342,6 +2366,18 @@ function drainGenerationQueue() {
     current.status = "running";
     generationQueueRunning += 1;
     Promise.resolve()
+      .then(async () => {
+        const attemptCount = Math.max(0, Number(current.attemptCount || 0)) + 1;
+        current.attemptCount = attemptCount;
+        await store.updateGenerationRequest(current.id, {
+          status: "running",
+          queueStatus: "running",
+          attemptCount,
+          lockedBy: GENERATION_RUNNER_ID,
+          lockedAt: new Date(),
+          startedAt: new Date()
+        });
+      })
       .then(() => current.run())
       .catch((error) => console.error("[generation-queue]", error))
       .finally(() => {
@@ -2349,6 +2385,86 @@ function drainGenerationQueue() {
         generationJobs.delete(current.id);
         drainGenerationQueue();
       });
+  }
+}
+
+async function recoveredGenerationJobFromRequest(request) {
+  const payload = parseQueuePayload(request.queuePayloadJson);
+  if (!payload?.kind) return null;
+  const user = await store.getUserById(payload.userId || request.userId);
+  if (!user || user.status !== "active") {
+    await store.updateGenerationRequest(request.id, {
+      status: "failed",
+      queueStatus: "failed",
+      errorMessage: "generation queue recovery skipped inactive user",
+      failureStage: "queue_recovery"
+    });
+    return null;
+  }
+  const settings = await store.getSettings();
+  const requestStartedAt = Number(payload.requestStartedAt || Date.parse(request.createdAt) || Date.now());
+  if (payload.kind === "text-generation") {
+    return {
+      id: request.id,
+      userId: user.id,
+      attemptCount: request.attemptCount,
+      run: () => runQueuedTextGeneration({
+        auditId: request.id,
+        user,
+        settings,
+        request: payload.request,
+        openaiRequest: payload.openaiRequest,
+        totalCost: Number(payload.totalCost || 0),
+        costPerImage: Number(payload.costPerImage || 0),
+        requestStartedAt
+      })
+    };
+  }
+  if (payload.kind === "image-edit") {
+    return {
+      id: request.id,
+      userId: user.id,
+      attemptCount: request.attemptCount,
+      run: () => runQueuedImageEdit({
+        auditId: request.id,
+        user,
+        settings,
+        request: payload.request,
+        payload: payload.payload,
+        totalCost: Number(payload.totalCost || 0),
+        costPerImage: Number(payload.costPerImage || 0),
+        requestStartedAt
+      })
+    };
+  }
+  return null;
+}
+
+async function recoverGenerationQueueOnStartup() {
+  const candidates = await store.listRecoverableGenerationRequests(500);
+  let patched = 0;
+  for (const request of candidates) {
+    const patch = buildStartupRecoveryPatch(request, {
+      staleRunningMs: GENERATION_QUEUE_STALE_RUNNING_MS,
+      staleQueuedMs: GENERATION_QUEUE_STALE_QUEUED_MS
+    });
+    if (patch) {
+      await store.updateGenerationRequest(request.id, patch);
+      patched += 1;
+    }
+  }
+
+  const resumable = await store.listRecoverableGenerationRequests(500);
+  let queued = 0;
+  for (const request of resumable) {
+    if (!request.queuePayloadJson || generationJobs.has(request.id)) continue;
+    const job = await recoveredGenerationJobFromRequest(request);
+    if (!job) continue;
+    enqueueGenerationJob(job, { persistQueued: false });
+    queued += 1;
+  }
+  if (candidates.length || patched || queued) {
+    console.log(`[generation-queue] startup recovery scanned=${candidates.length} patched=${patched} requeued=${queued}`);
   }
 }
 
@@ -2375,6 +2491,9 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
   }
   await store.updateGenerationRequest(auditId, {
     status: "succeeded",
+    queueStatus: "succeeded",
+    lockedBy: null,
+    lockedAt: null,
     firstGenerationId: saved[0]?.id || "",
     generationIds: saved.map((generation) => generation.id),
     durationMs
@@ -2386,7 +2505,12 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
 async function runQueuedTextGeneration({ auditId, user, settings, request, openaiRequest, totalCost, costPerImage, requestStartedAt }) {
   let reservedCredits = false;
   try {
-    await store.updateGenerationRequest(auditId, { status: "running" });
+    await store.updateGenerationRequest(auditId, {
+      status: "running",
+      queueStatus: "running",
+      lockedBy: GENERATION_RUNNER_ID,
+      lockedAt: new Date()
+    });
     if (totalCost > 0) {
       reservedCredits = await store.reserveCredits(user.id, totalCost, {
         source: "generation_charge",
@@ -2397,6 +2521,7 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
         await store.updateGenerationRequest(auditId, {
           status: "failed",
           errorMessage: "Not enough credits",
+          failureStage: "credit_reserved",
           durationMs: Date.now() - requestStartedAt
         });
         return;
@@ -2429,6 +2554,7 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
     await store.updateGenerationRequest(auditId, {
       status: "failed",
       errorMessage: String(error.message || error).slice(0, 2000),
+      failureStage: "provider_generation",
       durationMs: Date.now() - requestStartedAt
     }).catch((auditError) => console.error(auditError));
   }
@@ -2437,7 +2563,12 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
 async function runQueuedImageEdit({ auditId, user, settings, request, payload, totalCost, costPerImage, requestStartedAt }) {
   let reservedCredits = false;
   try {
-    await store.updateGenerationRequest(auditId, { status: "running" });
+    await store.updateGenerationRequest(auditId, {
+      status: "running",
+      queueStatus: "running",
+      lockedBy: GENERATION_RUNNER_ID,
+      lockedAt: new Date()
+    });
     if (totalCost > 0) {
       reservedCredits = await store.reserveCredits(user.id, totalCost, {
         source: "generation_charge",
@@ -2448,6 +2579,7 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
         await store.updateGenerationRequest(auditId, {
           status: "failed",
           errorMessage: "Not enough credits",
+          failureStage: "credit_reserved",
           durationMs: Date.now() - requestStartedAt
         });
         return;
@@ -2479,6 +2611,7 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
     await store.updateGenerationRequest(auditId, {
       status: "failed",
       errorMessage: String(error.message || error).slice(0, 2000),
+      failureStage: "provider_edit",
       durationMs: Date.now() - requestStartedAt
     }).catch((auditError) => console.error(auditError));
   }
@@ -4241,6 +4374,7 @@ async function routeApi(req, res, url) {
     };
     const auditId = randomId("req_");
     const requestStartedAt = Date.now();
+    const isAsyncGeneration = body.async === true;
     await store.insertGenerationRequest({
       id: auditId,
       userId: user.id,
@@ -4248,10 +4382,21 @@ async function routeApi(req, res, url) {
       ipAddress: getClientIp(req),
       userAgent: getUserAgent(req),
       isPublic: request.isPublic,
-      status: "pending"
+      status: "pending",
+      queueStatus: "queued",
+      maxAttempts: isAsyncGeneration ? 2 : 1,
+      jobType: isAsyncGeneration ? "text-generation" : null,
+      queuePayloadJson: isAsyncGeneration ? queuePayloadForTextGeneration({
+        userId: user.id,
+        request,
+        openaiRequest,
+        totalCost,
+        costPerImage,
+        requestStartedAt
+      }) : null
     });
 
-    if (body.async === true) {
+    if (isAsyncGeneration) {
       const queue = enqueueGenerationJob({
         id: auditId,
         userId: user.id,
@@ -4413,16 +4558,6 @@ async function routeApi(req, res, url) {
     }
     const auditId = randomId("req_");
     const requestStartedAt = Date.now();
-    await store.insertGenerationRequest({
-      id: auditId,
-      userId: user.id,
-      prompt: `[image-edit] ${prompt}`,
-      ipAddress: getClientIp(req),
-      userAgent: getUserAgent(req),
-      isPublic: request.isPublic,
-      status: "pending"
-    });
-
     const payload = {
       model: request.model,
       prompt: maskData
@@ -4434,8 +4569,29 @@ async function routeApi(req, res, url) {
       referenceImages,
       maskData
     };
+    const isAsyncGeneration = body.async === true;
+    await store.insertGenerationRequest({
+      id: auditId,
+      userId: user.id,
+      prompt: `[image-edit] ${prompt}`,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+      isPublic: request.isPublic,
+      status: "pending",
+      queueStatus: "queued",
+      maxAttempts: isAsyncGeneration ? 2 : 1,
+      jobType: isAsyncGeneration ? "image-edit" : null,
+      queuePayloadJson: isAsyncGeneration ? queuePayloadForImageEdit({
+        userId: user.id,
+        request,
+        payload,
+        totalCost,
+        costPerImage,
+        requestStartedAt
+      }) : null
+    });
 
-    if (body.async === true) {
+    if (isAsyncGeneration) {
       const queue = enqueueGenerationJob({
         id: auditId,
         userId: user.id,
@@ -4942,6 +5098,9 @@ async function start() {
   } catch (error) {
     console.warn(`[tags] seed failed: ${error?.message || error}`);
   }
+  await recoverGenerationQueueOnStartup().catch((error) => {
+    console.warn(`[generation-queue] startup recovery failed: ${error?.message || error}`);
+  });
   const server = http.createServer((req, res) => {
     handleRequest(req, res);
   });

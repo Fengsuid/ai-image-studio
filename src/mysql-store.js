@@ -42,6 +42,20 @@ function getPool() {
   return pool;
 }
 
+async function addColumnIfMissing(db, table, column, definition) {
+  const [columns] = await db.execute(`SHOW COLUMNS FROM ${quoteIdentifier(table)} LIKE ?`, [column]);
+  if (!columns.length) {
+    await db.query(`ALTER TABLE ${quoteIdentifier(table)} ADD COLUMN ${quoteIdentifier(column)} ${definition}`);
+  }
+}
+
+async function addIndexIfMissing(db, table, index, definition) {
+  const [indexes] = await db.execute(`SHOW INDEX FROM ${quoteIdentifier(table)} WHERE Key_name = ?`, [index]);
+  if (!indexes.length) {
+    await db.query(`ALTER TABLE ${quoteIdentifier(table)} ADD INDEX ${quoteIdentifier(index)} ${definition}`);
+  }
+}
+
 function toIso(value) {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
@@ -362,6 +376,20 @@ function mapGenerationRequest(row) {
     errorMessage: row.error_message || "",
     firstGenerationId: row.first_generation_id || "",
     generationIds,
+    queueStatus: row.queue_status || "",
+    attemptCount: Number(row.attempt_count || 0),
+    maxAttempts: Number(row.max_attempts || 1),
+    lockedBy: row.locked_by || "",
+    lockedAt: toIso(row.locked_at),
+    startedAt: toIso(row.started_at),
+    finishedAt: toIso(row.finished_at),
+    providerTaskId: row.provider_task_id || "",
+    nextPollAt: toIso(row.next_poll_at),
+    retryAfterAt: toIso(row.retry_after_at),
+    latencyMs: row.latency_ms === null || row.latency_ms === undefined ? null : Number(row.latency_ms),
+    failureStage: row.failure_stage || "",
+    jobType: row.job_type || "",
+    queuePayloadJson: row.queue_payload_json || "",
     model: row.model || "",
     filename: row.filename || "",
     durationMs: row.duration_ms === null || row.duration_ms === undefined ? null : Number(row.duration_ms),
@@ -960,6 +988,22 @@ async function runMigrations() {
   if (!requestDurationColumns.length) {
     await db.query("ALTER TABLE generation_requests ADD COLUMN duration_ms INT UNSIGNED NULL AFTER generation_ids");
   }
+  await addColumnIfMissing(db, "generation_requests", "queue_status", "VARCHAR(32) NOT NULL DEFAULT 'queued' AFTER status");
+  await addColumnIfMissing(db, "generation_requests", "attempt_count", "INT UNSIGNED NOT NULL DEFAULT 0 AFTER queue_status");
+  await addColumnIfMissing(db, "generation_requests", "max_attempts", "INT UNSIGNED NOT NULL DEFAULT 1 AFTER attempt_count");
+  await addColumnIfMissing(db, "generation_requests", "locked_by", "VARCHAR(96) NULL AFTER max_attempts");
+  await addColumnIfMissing(db, "generation_requests", "locked_at", "DATETIME(3) NULL AFTER locked_by");
+  await addColumnIfMissing(db, "generation_requests", "started_at", "DATETIME(3) NULL AFTER locked_at");
+  await addColumnIfMissing(db, "generation_requests", "finished_at", "DATETIME(3) NULL AFTER started_at");
+  await addColumnIfMissing(db, "generation_requests", "provider_task_id", "VARCHAR(191) NULL AFTER finished_at");
+  await addColumnIfMissing(db, "generation_requests", "next_poll_at", "DATETIME(3) NULL AFTER provider_task_id");
+  await addColumnIfMissing(db, "generation_requests", "retry_after_at", "DATETIME(3) NULL AFTER next_poll_at");
+  await addColumnIfMissing(db, "generation_requests", "latency_ms", "INT UNSIGNED NULL AFTER retry_after_at");
+  await addColumnIfMissing(db, "generation_requests", "failure_stage", "VARCHAR(64) NULL AFTER latency_ms");
+  await addColumnIfMissing(db, "generation_requests", "job_type", "VARCHAR(32) NULL AFTER failure_stage");
+  await addColumnIfMissing(db, "generation_requests", "queue_payload_json", "LONGTEXT NULL AFTER job_type");
+  await db.query("UPDATE generation_requests SET queue_status = CASE WHEN status = 'succeeded' OR status = 'success' THEN 'succeeded' WHEN status = 'running' THEN 'running' WHEN status = 'failed' THEN 'failed' WHEN status = 'cancelled' THEN 'cancelled' WHEN status = 'expired' THEN 'expired' ELSE queue_status END WHERE queue_status = 'queued'");
+  await addIndexIfMissing(db, "generation_requests", "idx_generation_requests_queue_status", "(queue_status, updated_at)");
 
   await db.execute(
     `INSERT IGNORE INTO app_settings
@@ -2639,8 +2683,10 @@ async function insertGenerationRequest(request) {
   const createdAt = new Date();
   await getPool().execute(
     `INSERT INTO generation_requests
-      (id, user_id, prompt, ip_address, user_agent, is_public, status, error_message, first_generation_id, generation_ids, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, user_id, prompt, ip_address, user_agent, is_public, status, queue_status, attempt_count, max_attempts,
+       locked_by, locked_at, started_at, finished_at, provider_task_id, next_poll_at, retry_after_at, latency_ms,
+       failure_stage, job_type, queue_payload_json, error_message, first_generation_id, generation_ids, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       request.id,
       request.userId,
@@ -2649,6 +2695,20 @@ async function insertGenerationRequest(request) {
       request.userAgent || "",
       request.isPublic ? 1 : 0,
       request.status || "pending",
+      request.queueStatus || (request.status === "running" ? "running" : "queued"),
+      Math.max(0, Number(request.attemptCount || 0)),
+      Math.max(1, Number(request.maxAttempts || 1)),
+      request.lockedBy || null,
+      request.lockedAt || null,
+      request.startedAt || null,
+      request.finishedAt || null,
+      request.providerTaskId || null,
+      request.nextPollAt || null,
+      request.retryAfterAt || null,
+      request.latencyMs === null || request.latencyMs === undefined ? null : Math.max(0, Number(request.latencyMs) || 0),
+      request.failureStage || null,
+      request.jobType || null,
+      request.queuePayloadJson || (request.queuePayload ? JSON.stringify(request.queuePayload) : null),
       request.errorMessage || null,
       request.firstGenerationId || null,
       request.generationIds ? JSON.stringify(request.generationIds) : null,
@@ -2670,10 +2730,39 @@ async function updateGenerationRequest(id, patch) {
       return;
     }
   }
+  if (patch && Object.hasOwn(patch, "status") && !Object.hasOwn(patch, "queueStatus")) {
+    if (patch.status === "success" || patch.status === "succeeded") patch.queueStatus = "succeeded";
+    else if (patch.status === "running") patch.queueStatus = "running";
+    else if (patch.status === "pending") patch.queueStatus = "queued";
+    else if (["failed", "cancelled", "expired"].includes(patch.status)) patch.queueStatus = patch.status;
+  }
+  if (patch && Object.hasOwn(patch, "durationMs") && !Object.hasOwn(patch, "latencyMs")) {
+    patch.latencyMs = patch.durationMs;
+  }
+  if (patch?.status === "running" && !Object.hasOwn(patch, "startedAt")) {
+    patch.startedAt = new Date();
+  }
+  if (["success", "succeeded", "failed", "cancelled", "expired"].includes(String(patch?.status || "")) && !Object.hasOwn(patch, "finishedAt")) {
+    patch.finishedAt = new Date();
+  }
   const columns = [];
   const values = [];
   const mapping = {
     status: "status",
+    queueStatus: "queue_status",
+    attemptCount: "attempt_count",
+    maxAttempts: "max_attempts",
+    lockedBy: "locked_by",
+    lockedAt: "locked_at",
+    startedAt: "started_at",
+    finishedAt: "finished_at",
+    providerTaskId: "provider_task_id",
+    nextPollAt: "next_poll_at",
+    retryAfterAt: "retry_after_at",
+    latencyMs: "latency_ms",
+    failureStage: "failure_stage",
+    jobType: "job_type",
+    queuePayloadJson: "queue_payload_json",
     errorMessage: "error_message",
     firstGenerationId: "first_generation_id",
     durationMs: "duration_ms"
@@ -2731,6 +2820,21 @@ async function listActiveGenerationRequestsForUser(userId, limit = 20) {
       ORDER BY gr.created_at ASC
       LIMIT ${normalizedLimit}`,
     [userId]
+  );
+  return rows.map(mapGenerationRequest);
+}
+
+async function listRecoverableGenerationRequests(limit = 100) {
+  const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+  const [rows] = await getPool().execute(
+    `SELECT gr.*, u.name AS user_name, u.email AS user_email, g.model, g.filename
+       FROM generation_requests gr
+       LEFT JOIN users u ON u.id = gr.user_id
+       LEFT JOIN generations g ON g.id = gr.first_generation_id
+      WHERE gr.status IN ('pending', 'running')
+        AND gr.queue_status IN ('queued', 'running', 'failed_retryable')
+      ORDER BY gr.created_at ASC
+      LIMIT ${normalizedLimit}`
   );
   return rows.map(mapGenerationRequest);
 }
@@ -5065,6 +5169,7 @@ module.exports = {
   listGenerationRequests,
   getGenerationRequestById,
   listActiveGenerationRequestsForUser,
+  listRecoverableGenerationRequests,
   listGenerationsForUser,
   listGenerationsForUserId,
   listPublicGenerations,
