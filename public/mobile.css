@@ -76,9 +76,15 @@
   #leaderboardBtn,
   #canvasWorkspaceBtn,
   #contactBtn,
-  .github-pill,
   #langBtn {
     display: none;
+  }
+
+  .github-pill {
+    width: var(--touch-target);
+    min-width: var(--touch-target);
+    padding: 0;
+    display: inline-flex;
   }
 
   .dark-pill {
