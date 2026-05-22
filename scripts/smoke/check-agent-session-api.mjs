@@ -54,6 +54,12 @@ class CookieJar {
   get(name) {
     return this.cookies.get(name) || "";
   }
+
+  summary() {
+    return Array.from(this.cookies.entries())
+      .map(([key, value]) => `${key}=${String(value).slice(0, 12)}`)
+      .join("; ");
+  }
 }
 
 function csrfFrom(body, jar) {
@@ -90,7 +96,7 @@ async function request(pathSuffix, {
       json = { _raw: text };
     }
     if (expected !== undefined) {
-      assert(response.status === expected, `${label} status=${response.status}, expected ${expected}`);
+      assert(response.status === expected, `${label} status=${response.status}, expected ${expected}; body=${JSON.stringify(json).slice(0, 500)}`);
     }
     return { response, body: json };
   } finally {
@@ -112,6 +118,13 @@ async function login(email, password) {
     label: `POST /api/auth/login ${email}`
   });
   assert(result.body?.user?.email === email, `login email mismatch for ${email}`);
+  assert(jar.get("session"), `session cookie missing for ${email}; cookies=${jar.summary()}`);
+  const current = await request("/api/auth/me", {
+    jar,
+    expected: 200,
+    label: `GET /api/auth/me after login ${email}`
+  });
+  assert(current.body?.user?.email === email, `current user mismatch for ${email}; got ${current.body?.user?.email || "anonymous"}`);
   return { jar, csrfToken: csrfFrom(result.body, jar) || csrfToken, user: result.body?.user || null };
 }
 
@@ -213,6 +226,8 @@ async function main() {
     assert(sessionId, "created session id missing");
     if (sessionId) createdSessionIds.push(sessionId);
     assert(created.body?.session?.title?.includes(runId), "created session title mismatch");
+    assert(created.body?.session?.userId === userA.user?.id, `created session owner=${created.body?.session?.userId}, expected ${userA.user?.id}`);
+    assert(created.body?.session?.status === "active", `created session status=${created.body?.session?.status}, expected active`);
     assert(created.body?.session?.data?.apiKey === "[redacted]", "session data should be redacted before storage");
 
     const listA = await request("/api/agent-sessions?limit=10", {
@@ -233,7 +248,10 @@ async function main() {
       jar: userB.jar,
       label: "other user GET session"
     });
-    assert(otherRead.response.status === 404, `other user read status=${otherRead.response.status}, expected 404`);
+    assert(
+      otherRead.response.status === 404,
+      `other user read status=${otherRead.response.status}, expected 404; currentUser=${userB.user?.id}; returnedOwner=${otherRead.body?.session?.userId || ""}; returnedStatus=${otherRead.body?.session?.status || ""}`
+    );
     const otherPatch = await request(`/api/agent-sessions/${encodeURIComponent(sessionId)}`, {
       method: "PATCH",
       jar: userB.jar,
@@ -308,7 +326,10 @@ async function main() {
       jar: userA.jar,
       label: "GET deleted session"
     });
-    assert(afterDelete.response.status === 404, `deleted session read status=${afterDelete.response.status}, expected 404`);
+    assert(
+      afterDelete.response.status === 404,
+      `deleted session read status=${afterDelete.response.status}, expected 404; returnedOwner=${afterDelete.body?.session?.userId || ""}; returnedStatus=${afterDelete.body?.session?.status || ""}`
+    );
 
     if (failures.length) {
       throw new Error(`${failures.length} AIS-RLS-064 smoke assertion(s) failed`);

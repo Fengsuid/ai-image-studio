@@ -14,7 +14,7 @@ function createAgentSessionStore({ getPool, toIso, safeJsonSummary }) {
     return JSON.stringify(safeJsonSummary(value));
   }
 
-  function mapAgentSession(row = {}) {
+  function mapAgentSession(row) {
     if (!row) return null;
     return {
       id: row.id || "",
@@ -32,7 +32,7 @@ function createAgentSessionStore({ getPool, toIso, safeJsonSummary }) {
     };
   }
 
-  function mapAgentMessage(row = {}) {
+  function mapAgentMessage(row) {
     if (!row) return null;
     return {
       id: row.id || "",
@@ -45,7 +45,7 @@ function createAgentSessionStore({ getPool, toIso, safeJsonSummary }) {
     };
   }
 
-  function mapAgentStep(row = {}) {
+  function mapAgentStep(row) {
     if (!row) return null;
     return {
       id: row.id || "",

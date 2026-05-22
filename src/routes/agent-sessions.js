@@ -63,6 +63,13 @@ function cleanAgentMessageInput(body = {}) {
   };
 }
 
+function assertReadableAgentSession(session, userId, httpError) {
+  if (!session || session.userId !== userId || session.status === "deleted") {
+    throw httpError("Agent session not found", 404);
+  }
+  return session;
+}
+
 function createAgentSessionRoute({
   ensureAuthenticated,
   getCurrentUser,
@@ -101,8 +108,11 @@ function createAgentSessionRoute({
     if (sessionMatch && req.method === "GET") {
       const current = await getCurrentUser(req);
       ensureAuthenticated(current);
-      const session = await store.getAgentSessionForUser(sessionMatch[1], current.user.id);
-      if (!session) throw httpError("Agent session not found", 404);
+      const session = assertReadableAgentSession(
+        await store.getAgentSessionForUser(sessionMatch[1], current.user.id),
+        current.user.id,
+        httpError
+      );
       sendJson(res, 200, { session });
       return true;
     }
@@ -112,8 +122,11 @@ function createAgentSessionRoute({
       ensureAuthenticated(current);
       const body = await readJsonBody(req);
       const patch = cleanAgentSessionInput(body, { partial: true });
-      const session = await store.updateAgentSessionForUser(sessionMatch[1], current.user.id, patch);
-      if (!session) throw httpError("Agent session not found", 404);
+      const session = assertReadableAgentSession(
+        await store.updateAgentSessionForUser(sessionMatch[1], current.user.id, patch),
+        current.user.id,
+        httpError
+      );
       sendJson(res, 200, { session });
       return true;
     }
@@ -133,12 +146,15 @@ function createAgentSessionRoute({
       ensureAuthenticated(current);
       const body = await readJsonBody(req);
       const input = cleanAgentMessageInput(body);
-      const session = await store.createAgentMessageForUser(messageMatch[1], current.user.id, {
-        id: randomId("ams_"),
-        ...input,
-        steps: input.steps.map((step) => ({ id: randomId("ast_"), ...step }))
-      });
-      if (!session) throw httpError("Agent session not found", 404);
+      const session = assertReadableAgentSession(
+        await store.createAgentMessageForUser(messageMatch[1], current.user.id, {
+          id: randomId("ams_"),
+          ...input,
+          steps: input.steps.map((step) => ({ id: randomId("ast_"), ...step }))
+        }),
+        current.user.id,
+        httpError
+      );
       sendJson(res, 201, { session });
       return true;
     }
