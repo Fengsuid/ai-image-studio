@@ -6,6 +6,8 @@ This directory only tracks product-facing planning material that is useful for f
 
 - `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`: unified product and implementation plan; primary reference for "what to build next".
 - `IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`: canvas workspace, leaderboard, prompt database, and gallery reliability development plan; tracks landed milestones and pending feedback.
+- `IMAGE_STUDIO_MOBILE_WEB_OPTIMIZATION_PLAN.md`: mobile web layout and interaction optimization plan for home, chat, gallery, editor, works, and QA screenshot coverage.
+- `IMAGE_STUDIO_AGENT_PLAYGROUND_IMPROVEMENT_PLAN.md`: next-stage improvement plan inspired by `gpt_image_playground`, focused on persistent generation queues, Agent creation workflows, provider diagnostics, IndexedDB caching, and frontend modularization.
 - `IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`: Trellis board allocation table; maps all active development tasks, lanes, statuses, and legacy T016-T031 aliases.
 - `IMAGE_STUDIO_RELLIS_TASKS.md`: Rellis/Trellis-ready task breakdown for the current development plan.
 - `IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`: local and production smoke checks, screenshot checklist, release record, and rollback steps.
@@ -21,4 +23,4 @@ This directory only tracks product-facing planning material that is useful for f
 
 ## Excluded from this repository
 
-Local deployment logs, server validation notes, private domain checks, and historical archive notes are intentionally excluded from the GitHub repository. They live alongside this directory in the local workspace but are filtered by `.gitignore` (see the project root `.gitignore` and `.git/info/exclude`).
+Local deployment logs, server validation notes, private domain checks, and historical archive notes are intentionally excluded from the GitHub repository. They live in `docs/private/` in the local workspace and are filtered by `.gitignore` (see the project root `.gitignore` and `.git/info/exclude`).
