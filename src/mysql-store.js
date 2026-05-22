@@ -6,6 +6,7 @@ try {
 }
 const crypto = require("crypto");
 const { normalizeTraceLevel, safeJsonSummary } = require("./generation-trace-service");
+const createAgentSessionStore = require("./stores/agent-session-store");
 const createTagStore = require("./stores/tag-store");
 
 let pool;
@@ -1056,6 +1057,62 @@ async function runMigrations() {
       INDEX idx_generation_trace_request (request_id, created_at),
       INDEX idx_generation_trace_generation (generation_id, created_at),
       INDEX idx_generation_trace_user_created (user_id, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS agent_sessions (
+      id VARCHAR(32) NOT NULL PRIMARY KEY,
+      user_id VARCHAR(32) NOT NULL,
+      title VARCHAR(160) NOT NULL,
+      source_type VARCHAR(32) NOT NULL DEFAULT 'agent',
+      source_id VARCHAR(64) NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'active',
+      summary TEXT NULL,
+      data_json LONGTEXT NULL,
+      created_at DATETIME(3) NOT NULL,
+      updated_at DATETIME(3) NOT NULL,
+      INDEX idx_agent_sessions_user_updated (user_id, updated_at),
+      INDEX idx_agent_sessions_status_updated (status, updated_at),
+      CONSTRAINT fk_agent_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS agent_messages (
+      id VARCHAR(32) NOT NULL PRIMARY KEY,
+      session_id VARCHAR(32) NOT NULL,
+      user_id VARCHAR(32) NOT NULL,
+      role VARCHAR(32) NOT NULL,
+      content TEXT NOT NULL,
+      attachments_json LONGTEXT NULL,
+      created_at DATETIME(3) NOT NULL,
+      INDEX idx_agent_messages_session_created (session_id, created_at),
+      INDEX idx_agent_messages_user_created (user_id, created_at),
+      CONSTRAINT fk_agent_messages_session FOREIGN KEY (session_id) REFERENCES agent_sessions(id) ON DELETE CASCADE,
+      CONSTRAINT fk_agent_messages_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS agent_steps (
+      id VARCHAR(32) NOT NULL PRIMARY KEY,
+      session_id VARCHAR(32) NOT NULL,
+      message_id VARCHAR(32) NULL,
+      kind VARCHAR(64) NOT NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'pending',
+      input_json LONGTEXT NULL,
+      output_json LONGTEXT NULL,
+      request_id VARCHAR(64) NULL,
+      generation_id VARCHAR(32) NULL,
+      created_at DATETIME(3) NOT NULL,
+      updated_at DATETIME(3) NOT NULL,
+      INDEX idx_agent_steps_session_created (session_id, created_at),
+      INDEX idx_agent_steps_message (message_id),
+      INDEX idx_agent_steps_request (request_id),
+      INDEX idx_agent_steps_generation (generation_id),
+      CONSTRAINT fk_agent_steps_session FOREIGN KEY (session_id) REFERENCES agent_sessions(id) ON DELETE CASCADE,
+      CONSTRAINT fk_agent_steps_message FOREIGN KEY (message_id) REFERENCES agent_messages(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
@@ -4611,6 +4668,7 @@ async function seedPromptsIfEmpty(items = []) {
   return inserted;
 }
 
+const agentSessionStore = createAgentSessionStore({ getPool, toIso, safeJsonSummary });
 const tagStore = createTagStore({ getPool, toIso, mapPromptCategory });
 
 module.exports = {
@@ -4673,6 +4731,12 @@ module.exports = {
   deleteSession,
   touchSession,
   getSessionUser,
+  listAgentSessionsForUser: agentSessionStore.listAgentSessionsForUser,
+  getAgentSessionForUser: agentSessionStore.getAgentSessionForUser,
+  createAgentSession: agentSessionStore.createAgentSession,
+  updateAgentSessionForUser: agentSessionStore.updateAgentSessionForUser,
+  deleteAgentSessionForUser: agentSessionStore.deleteAgentSessionForUser,
+  createAgentMessageForUser: agentSessionStore.createAgentMessageForUser,
   insertGenerations,
   insertGenerationRequest,
   updateGenerationRequest,

@@ -45,6 +45,7 @@ const {
   normalizeProviderMapping,
   runProviderMappingRequest
 } = require("./src/provider-mapping");
+const { createAgentSessionRoute } = require("./src/routes/agent-sessions");
 const { createHealthRoute } = require("./src/routes/health");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -146,6 +147,17 @@ const handleHealthRoute = createHealthRoute({
   serverStartedAt: SERVER_STARTED_AT,
   openaiFetchTimeoutMs: OPENAI_FETCH_TIMEOUT_MS,
   imageDownloadTimeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS
+});
+
+const handleAgentSessionRoute = createAgentSessionRoute({
+  ensureAuthenticated,
+  getCurrentUser,
+  httpError,
+  randomId,
+  readJsonBody,
+  sanitizePositiveInt,
+  sendJson,
+  store
 });
 
 const jsonHeaders = {
@@ -2933,6 +2945,8 @@ async function routeApi(req, res, url) {
   if (await handleHealthRoute(req, res, url)) return;
 
   verifyCsrf(req);
+
+  if (await handleAgentSessionRoute(req, res, url)) return;
 
   if (req.method === "GET" && url.pathname === "/api/auth/me") {
     const current = await getCurrentUser(req);
