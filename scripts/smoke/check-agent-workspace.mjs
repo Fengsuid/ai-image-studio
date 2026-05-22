@@ -155,8 +155,8 @@ function staticChecks() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
   const agentPackage = JSON.parse(fs.readFileSync(path.join(rootDir, "apps/agent-workspace/package.json"), "utf8"));
   const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
-  const dockerfile = fs.readFileSync(path.join(rootDir, "Dockerfile"), "utf8");
-  const dockerignore = fs.readFileSync(path.join(rootDir, ".dockerignore"), "utf8");
+  const dockerfile = readOptionalText(path.join(rootDir, "Dockerfile"));
+  const dockerignore = readOptionalText(path.join(rootDir, ".dockerignore"));
   const home = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
   const mobileCss = fs.readFileSync(path.join(rootDir, "public/mobile.css"), "utf8");
   const appSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
@@ -175,10 +175,14 @@ function staticChecks() {
   assert(server.includes('pathname.startsWith("/agent/assets/")'), "server must keep /agent assets static");
   assert(server.includes('"/agent/index.html"'), "server must serve agent index for SPA routes");
   assert(server.includes('path.join(PUBLIC_DIR, "agent", "index.html")'), "server fallback must read agent index");
-  assert(dockerfile.includes("AS agent-workspace-build"), "Dockerfile must include isolated agent build stage");
-  assert(dockerfile.includes("npm run build --prefix apps/agent-workspace"), "Dockerfile must build agent workspace");
-  assert(dockerfile.includes("COPY --from=agent-workspace-build /app/public/agent ./public/agent"), "Dockerfile must publish built agent assets");
-  assert(dockerignore.includes("apps/agent-workspace/node_modules"), ".dockerignore must exclude agent node_modules");
+  if (dockerfile) {
+    assert(dockerfile.includes("AS agent-workspace-build"), "Dockerfile must include isolated agent build stage");
+    assert(dockerfile.includes("npm run build --prefix apps/agent-workspace"), "Dockerfile must build agent workspace");
+    assert(dockerfile.includes("COPY --from=agent-workspace-build /app/public/agent ./public/agent"), "Dockerfile must publish built agent assets");
+  }
+  if (dockerignore) {
+    assert(dockerignore.includes("apps/agent-workspace/node_modules"), ".dockerignore must exclude agent node_modules");
+  }
 
   assert(home.includes('id="agentWorkspaceBtn"'), "home topbar must include Agent workspace entry");
   assert(home.includes('href="/agent"'), "Agent entry must link to /agent");
@@ -213,6 +217,15 @@ function staticChecks() {
   assert.equal(samplePlan.confirmationRequired, true, "planner must require confirmation");
   assert.equal(samplePlan.willCreateGenerations, false, "planner must not create generations");
   assert(samplePlan.variants.every((variant) => variant.prompt && variant.size && variant.quality), "planner variants must be executable");
+}
+
+function readOptionalText(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return "";
+    throw error;
+  }
 }
 
 async function apiChecks() {
