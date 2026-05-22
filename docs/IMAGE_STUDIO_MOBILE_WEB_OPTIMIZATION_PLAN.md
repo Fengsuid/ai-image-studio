@@ -689,3 +689,9 @@ AIS-RLS-057 对话工作台与生成结果首轮运行：
 - 命令：`npm run smoke:generation-flicker`、`npm run smoke:generation-result-actions`、`npm run smoke:mobile-layout`
 - 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-47-51-889Z/summary.md`
 - 结果：移动端会话列表按底部 sheet 处理，打开时有遮罩；sticky composer、生成状态条、历史卡片、图片工具和结果操作区增加手机端布局保护。`smoke:mobile-layout` 的本地 mock 已补充登录用户和一条历史结果，确保 chat workspace 被真实渲染检查。生成闪屏与结果按钮收口 smoke 均通过；mobile layout 仍只剩 4 个画廊搜索按钮高度失败，归入 `AIS-RLS-058` 范围。
+
+AIS-RLS-058 画廊、排行榜与详情首轮运行：
+
+- 命令：`npm run smoke:gallery-detail-media`、`npm run smoke:gallery-leaderboard-sidebar`、`npm run smoke:gallery-images -- <production-origin>`、`npm run smoke:mobile-layout`
+- 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-58-54-261Z/summary.md`
+- 结果：新增 `public/mobile-gallery.css`，`public/index.html` 已引入带版本 query 的 gallery mobile 样式。画廊搜索按钮触控高度、标签横滑、单列卡片、排行榜移动布局和详情全屏/吸底操作区完成首轮收口；`smoke:mobile-layout` 25 个页面/视口全部通过，剩余仅为非阻断 warning。

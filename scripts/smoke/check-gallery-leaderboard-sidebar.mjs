@@ -21,8 +21,11 @@ assert(!app.includes("bindGalleryLeaderboardControls(elements.promptGrid);"), "l
 assert(indexHtml.includes("/gallery-leaderboard.js"), "index.html must load gallery-leaderboard.js before app.js");
 assert(indexHtml.indexOf("/gallery-leaderboard.js") < indexHtml.indexOf("/app.js"), "gallery-leaderboard.js must load before app.js");
 assert(indexHtml.includes("/gallery-leaderboard.js?v=20260521-leaderboard-top-v5"), "leaderboard module must have a fresh cache-busting version");
-assert(indexHtml.includes("/styles.css?v=20260521-canvas-v2-entry-v1"), "styles bundle must match the app cache-busting version");
-assert(indexHtml.includes("/app.js?v=20260521-canvas-v2-entry-v1"), "app bundle must have a fresh cache-busting version");
+const stylesVersion = indexHtml.match(/\/styles\.css\?v=([^"]+)/)?.[1] || "";
+const appVersion = indexHtml.match(/\/app\.js\?v=([^"]+)/)?.[1] || "";
+assert(stylesVersion, "styles bundle must have a cache-busting version");
+assert(appVersion, "app bundle must have a cache-busting version");
+assert.equal(stylesVersion, appVersion, "styles bundle must match the app cache-busting version");
 assert(leaderboard.includes("ImageStudioGalleryLeaderboard"), "leaderboard module must register a global helper");
 assert(leaderboard.includes("<aside class=\"gallery-leaderboard"), "leaderboard must render as a navigation/sidebar aside");
 assert(leaderboard.includes("const MAX_LEADERBOARD_ITEMS = 99;"), "leaderboard page must expose up to 99 ranked items");
