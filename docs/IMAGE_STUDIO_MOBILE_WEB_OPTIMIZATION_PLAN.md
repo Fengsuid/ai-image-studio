@@ -626,7 +626,7 @@ docs/mobile-qa/YYYYMMDD-<version>/
 
 - `docs/IMAGE_STUDIO_RELLIS_TASKS.md`
 - `docs/IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`
-- `D:\生图广场\.trelis\tasks\<task-dir>\task.json`
+- `D:\生图广场\.trelis\tasks\<task directory>\task.json`
 
 不要只改公开文档里的表格。真实任务状态以 `.trelis/tasks` 和 `task.py` 为准。
 
@@ -701,3 +701,11 @@ AIS-RLS-059 图片编辑器与我的作品首轮运行：
 - 命令：`node --check public/app.js`、`node --check scripts/smoke/check-mobile-layout.mjs`、`git diff --check -- public/index.html public/mobile-editor.css scripts/smoke/check-mobile-layout.mjs`、`npm run smoke:mobile-layout`
 - 输出：`docs/mobile-qa/baseline-local/2026-05-22T06-13-29-599Z/summary.md`
 - 结果：新增 `public/mobile-editor.css`，`public/index.html` 已引入带版本 query 的 editor mobile 样式。图片编辑器手机端改为顶部模式栏、中央画布/图片、底部 prompt bar 与发布设置区的稳定三层结构；我的作品列表改为手机单列、底部批量操作栏，作品详情改为全屏抽屉和吸底核心操作区。`smoke:mobile-layout` 已扩展 `editor-image` 与 `works-detail` 页面，35 个页面/视口检查全部通过，剩余仅为登录态下登录按钮隐藏、手机端排行榜入口收纳的非阻断 warning。`npm run smoke:public` 本地未启动应用服务时返回 `fetch failed`，完整 public smoke 归入 `AIS-RLS-060` 发布闭环补跑。
+
+AIS-RLS-060 Mobile QA、文档、部署与发布闭环运行：
+
+- 命令：`node --check server.js`、`node --check public/app.js`、`node --check public/admin.js`、`node --check scripts/smoke/check-mobile-layout.mjs`、`git diff --check`、隐私扫描、`npm run smoke:generation-flicker`、`npm run smoke:generation-result-actions`、`npm run smoke:gallery-leaderboard-sidebar`、`npm run smoke:gallery-detail-media`、`npm run smoke:gallery-images -- <production-origin>`、`npm run smoke:public -- <production-origin>`、`npm run smoke:mobile-layout`
+- 输出：本地公开截图基线继续使用 `docs/mobile-qa/baseline-local/2026-05-22T06-13-29-599Z/summary.md`；线上 mobile layout smoke 输出保存到私有 QA 目录，不提交真实域名。
+- 部署：使用 `git archive` 从提交树打包，包大小 `236318369` bytes、`1489` 个条目、SHA256 `A45E20E457FE095E8C1D377F3FDDCFFA0159FB76E79C6FB900FB055C11938F7D`；服务器备份、解包、重建 app 镜像并重启 app 容器完成，运行版本为 `20260522-mobile-web-v1`。
+- 验证：app 容器与数据库容器运行正常，app 日志无启动错误；`/api/version` 返回 `20260522-mobile-web-v1`；正式入口返回 `200`；nginx 旧入口 server block 通过 Host/resolve 校验返回 `410`；`mobile.css`、`mobile-home.css`、`mobile-gallery.css`、`mobile-editor.css` 均返回 `200`。
+- 结果：容器内语法检查和 `npm run smoke:public -- http://127.0.0.1:3000` 通过；线上 `smoke:public`、`smoke:gallery-images`、`smoke:mobile-layout` 通过。线上 mobile smoke 匿名运行时会把需要登录态或历史记录的 `chat-workspace`、`works-detail` 记录为 warning；这些页面在本地 mock 矩阵中仍作为必测页面通过。

@@ -15,6 +15,7 @@ let targetArg = process.argv[2] || "";
 const outputRoot = process.argv[3] || path.join(rootDir, "docs/mobile-qa/baseline-local");
 const chromePath = process.env.CHROME_PATH || findChromeExecutable();
 const port = Number(process.env.MOBILE_SMOKE_CDP_PORT || 9322);
+const isExternalTarget = Boolean(targetArg);
 let staticServer = null;
 
 const viewports = [
@@ -29,12 +30,14 @@ const pages = [
   {
     name: "home",
     url: "/",
+    readySelector: "#homeView",
     requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button"],
     coreButtons: ["#heroComposerMount .send-button", "#promptLibraryBtn", "#imageEditorBtn", "#loginBtn"],
   },
   {
     name: "chat-workspace",
     url: "/?workspace=1",
+    readySelector: "#chatView",
     requiredVisible: ["#chatView", "#stickyComposerMount", "#stickyComposerMount .send-button"],
     coreButtons: ["#stickyComposerMount .send-button", "#sessionDrawerToggle"],
     allowMissing: true,
@@ -42,33 +45,39 @@ const pages = [
   {
     name: "gallery",
     url: "/?view=library",
+    readySelector: "#libraryView",
     requiredVisible: ["#libraryView", "#librarySearchInput", "#promptGrid"],
     coreButtons: ["#librarySearchForm button", "#leaderboardBtn"],
   },
   {
     name: "leaderboard",
     url: "/?view=leaderboard",
+    readySelector: "#leaderboardView",
     requiredVisible: ["#leaderboardView", "#leaderboardPage"],
     coreButtons: ["#promptLibraryBtn"],
   },
   {
     name: "editor-empty",
     url: "/?view=editor",
+    readySelector: "#editorView",
     requiredVisible: ["#editorView", "#editorPromptForm", "#editorUploadCard"],
     coreButtons: ["#editorPromptForm button", "#editorUploadCard"],
   },
   {
     name: "editor-image",
     url: "/?view=editor",
+    readySelector: "#editorView",
     requiredVisible: ["#editorView", "#editorPromptForm", "#editorImageFrame", "#editorSourceImage"],
     coreButtons: ["#editorPromptForm button", ".editor-publish-panel .square-toggle"],
   },
   {
     name: "works-detail",
     url: "/?view=library&modal=works&work=mobile-smoke-1",
+    readySelector: ".works-detail-drawer",
     requiredVisible: [".works-modal", ".works-detail-drawer", ".works-detail-stage", ".works-detail-actions"],
     coreButtons: [".works-detail-close", ".works-detail-actions button", ".works-detail-actions a"],
     keepModal: true,
+    allowMissing: isExternalTarget,
   },
 ];
 
@@ -187,6 +196,7 @@ try {
         expression: "document.fonts?.ready ? document.fonts.ready.then(() => true) : true",
         awaitPromise: true,
       }, sessionId).catch(() => null);
+      await waitForReadySelector(cdp, sessionId, page);
       await delay(250);
 
       const result = await evaluateLayout(cdp, sessionId, page, viewport);
@@ -408,6 +418,30 @@ async function evaluateLayout(cdp, sessionId, page, viewport) {
   return response.result.value;
 }
 
+async function waitForReadySelector(cdp, sessionId, page) {
+  const selector = page.readySelector || page.requiredVisible?.[0];
+  if (!selector) return;
+  const started = Date.now();
+  while (Date.now() - started < 8000) {
+    const response = await cdp.send("Runtime.evaluate", {
+      expression: `(${readySelectorProbe.toString()})(${JSON.stringify(selector)})`,
+      returnByValue: true,
+    }, sessionId).catch(() => null);
+    if (response?.result?.value === true) return;
+    await delay(180);
+  }
+}
+
+function readySelectorProbe(selector) {
+  const candidates = [...document.querySelectorAll(selector)];
+  return candidates.some((el) => {
+    if (el.closest(".hidden")) return false;
+    const style = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+  });
+}
+
 function layoutProbe(page, viewport) {
   const modalLayer = document.querySelector("#modalLayer");
   if (modalLayer && !page.keepModal) {
@@ -415,15 +449,30 @@ function layoutProbe(page, viewport) {
     modalLayer.classList.add("hidden");
   }
   if (page.name === "editor-image") {
-    const sampleImage = "/prompt-thumbs/evolink/logo.png";
+    const sampleImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 420'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%232563eb'/%3E%3Cstop offset='1' stop-color='%230f766e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='640' height='420' rx='36' fill='url(%23g)'/%3E%3Ccircle cx='500' cy='120' r='78' fill='rgba(255,255,255,.32)'/%3E%3Cpath d='M72 326 212 194l98 84 74-62 184 110z' fill='rgba(255,255,255,.72)'/%3E%3C/svg%3E";
     const uploadCard = document.querySelector("#editorUploadCard");
     const imageFrame = document.querySelector("#editorImageFrame");
+    const imageScaler = document.querySelector("#editorImageScaler");
     const sourceImage = document.querySelector("#editorSourceImage");
     const promptInput = document.querySelector("#editorPromptInput");
     uploadCard?.classList.add("hidden");
     imageFrame?.classList.remove("hidden");
     if (sourceImage && sourceImage.getAttribute("src") !== sampleImage) {
       sourceImage.setAttribute("src", sampleImage);
+    }
+    if (imageFrame) {
+      imageFrame.style.width = "min(76vw, 520px)";
+      imageFrame.style.height = "min(34svh, 320px)";
+    }
+    if (imageScaler) {
+      imageScaler.style.width = "min(70vw, 420px)";
+      imageScaler.style.height = "min(30svh, 280px)";
+    }
+    if (sourceImage) {
+      sourceImage.style.width = "100%";
+      sourceImage.style.height = "100%";
+      sourceImage.style.objectFit = "contain";
+      sourceImage.style.display = "block";
     }
     if (promptInput) promptInput.value = "Mobile smoke edit prompt";
   }

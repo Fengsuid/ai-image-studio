@@ -106,7 +106,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-057` | Mobile P1 对话工作台与生成结果 | Done | P0 | Experience | M8 Mobile Web | `AIS-RLS-056` |
 | `AIS-RLS-058` | Mobile P1 画廊、排行榜与详情 | Done | P0 | Gallery/Experience | M8 Mobile Web | `AIS-RLS-057` |
 | `AIS-RLS-059` | Mobile P2 图片编辑器与我的作品 | Done | P1 | Experience/Gallery | M8 Mobile Web | `AIS-RLS-058` |
-| `AIS-RLS-060` | Mobile QA、文档、部署与发布闭环 | Backlog | P0 | Platform/QA/Ops | M8 Mobile Web | `AIS-RLS-059` |
+| `AIS-RLS-060` | Mobile QA、文档、部署与发布闭环 | Done | P0 | Platform/QA/Ops | M8 Mobile Web | `AIS-RLS-059` |
 
 ## 4. 历史 T 编号映射
 
