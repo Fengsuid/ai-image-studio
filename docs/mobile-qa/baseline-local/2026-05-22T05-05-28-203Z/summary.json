@@ -1,0 +1,1225 @@
+{
+  "target": "http://127.0.0.1:64808",
+  "outputDir": "D:\\生图广场\\remote-edit\\docs\\mobile-qa\\baseline-local\\2026-05-22T05-05-28-203Z",
+  "createdAt": "2026-05-22T05:05:28.243Z",
+  "viewports": [
+    {
+      "name": "360x800",
+      "width": 360,
+      "height": 800,
+      "mobile": true
+    },
+    {
+      "name": "390x844",
+      "width": 390,
+      "height": 844,
+      "mobile": true
+    },
+    {
+      "name": "430x932",
+      "width": 430,
+      "height": 932,
+      "mobile": true
+    },
+    {
+      "name": "768x1024",
+      "width": 768,
+      "height": 1024,
+      "mobile": true
+    },
+    {
+      "name": "1280x720",
+      "width": 1280,
+      "height": 720,
+      "mobile": false
+    }
+  ],
+  "pages": [
+    {
+      "page": "home",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:64808/",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [
+        "home 360x800: core control #promptLibraryBtn touch target 42x36",
+        "home 360x800: core control #imageEditorBtn touch target 38x36",
+        "home 360x800: core control #loginBtn touch target 56x36",
+        "home 360x800: core control #loginBtn outside viewport"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 136,
+          "width": 345,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 20,
+          "right": 348,
+          "bottom": 780,
+          "width": 328,
+          "height": 760
+        }
+      ],
+      "screenshot": "home-360x800.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:64808/?workspace=1",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [
+        "chat-workspace 360x800: core control #sessionDrawerToggle touch target 44x36"
+      ],
+      "warnings": [
+        "chat-workspace 360x800: required selector #chatView hidden 0x0",
+        "chat-workspace 360x800: required selector #stickyComposerMount hidden 0x0"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 136,
+          "width": 345,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 20,
+          "right": 348,
+          "bottom": 780,
+          "width": 328,
+          "height": 760
+        }
+      ],
+      "screenshot": "chat-workspace-360x800.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:64808/?view=library",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [
+        "gallery 360x800: core control #librarySearchForm button touch target 62x35",
+        "gallery 360x800: core control #leaderboardBtn touch target 38x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 136,
+          "width": 345,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-360x800.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:64808/?view=leaderboard",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [
+        "leaderboard 360x800: core control #promptLibraryBtn touch target 42x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 136,
+          "width": 345,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-360x800.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "360x800",
+      "url": "http://127.0.0.1:64808/?view=editor",
+      "scrollWidth": 345,
+      "innerWidth": 360,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 345,
+          "bottom": 136,
+          "width": 345,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 643,
+          "right": 337,
+          "bottom": 831,
+          "width": 328,
+          "height": 188
+        }
+      ],
+      "screenshot": "editor-empty-360x800.png"
+    },
+    {
+      "page": "home",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:64808/",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [
+        "home 390x844: core control #promptLibraryBtn touch target 42x36",
+        "home 390x844: core control #imageEditorBtn touch target 38x36",
+        "home 390x844: core control #loginBtn touch target 56x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 136,
+          "width": 375,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 20,
+          "right": 378,
+          "bottom": 824,
+          "width": 358,
+          "height": 804
+        }
+      ],
+      "screenshot": "home-390x844.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:64808/?workspace=1",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [
+        "chat-workspace 390x844: core control #sessionDrawerToggle touch target 44x36"
+      ],
+      "warnings": [
+        "chat-workspace 390x844: required selector #chatView hidden 0x0",
+        "chat-workspace 390x844: required selector #stickyComposerMount hidden 0x0"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 136,
+          "width": 375,
+          "height": 136
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 20,
+          "right": 378,
+          "bottom": 824,
+          "width": 358,
+          "height": 804
+        }
+      ],
+      "screenshot": "chat-workspace-390x844.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:64808/?view=library",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [
+        "gallery 390x844: core control #librarySearchForm button touch target 62x35",
+        "gallery 390x844: core control #leaderboardBtn touch target 38x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 121,
+          "width": 375,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-390x844.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:64808/?view=leaderboard",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [
+        "leaderboard 390x844: core control #promptLibraryBtn touch target 42x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 121,
+          "width": 375,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-390x844.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "390x844",
+      "url": "http://127.0.0.1:64808/?view=editor",
+      "scrollWidth": 375,
+      "innerWidth": 390,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 375,
+          "bottom": 121,
+          "width": 375,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 672,
+          "right": 367,
+          "bottom": 860,
+          "width": 358,
+          "height": 188
+        }
+      ],
+      "screenshot": "editor-empty-390x844.png"
+    },
+    {
+      "page": "home",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:64808/",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [
+        "home 430x932: core control #promptLibraryBtn touch target 42x36",
+        "home 430x932: core control #imageEditorBtn touch target 38x36",
+        "home 430x932: core control #loginBtn touch target 69x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 121,
+          "width": 415,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 29,
+          "right": 418,
+          "bottom": 903,
+          "width": 398,
+          "height": 873
+        }
+      ],
+      "screenshot": "home-430x932.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:64808/?workspace=1",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [
+        "chat-workspace 430x932: core control #sessionDrawerToggle touch target 44x36"
+      ],
+      "warnings": [
+        "chat-workspace 430x932: required selector #chatView hidden 0x0",
+        "chat-workspace 430x932: required selector #stickyComposerMount hidden 0x0"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 121,
+          "width": 415,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 29,
+          "right": 418,
+          "bottom": 903,
+          "width": 398,
+          "height": 873
+        }
+      ],
+      "screenshot": "chat-workspace-430x932.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:64808/?view=library",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [
+        "gallery 430x932: core control #librarySearchForm button touch target 62x35",
+        "gallery 430x932: core control #leaderboardBtn touch target 38x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 121,
+          "width": 415,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-430x932.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:64808/?view=leaderboard",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [
+        "leaderboard 430x932: core control #promptLibraryBtn touch target 42x36"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 121,
+          "width": 415,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-430x932.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "430x932",
+      "url": "http://127.0.0.1:64808/?view=editor",
+      "scrollWidth": 415,
+      "innerWidth": 430,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 415,
+          "bottom": 121,
+          "width": 415,
+          "height": 121
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 760,
+          "right": 407,
+          "bottom": 948,
+          "width": 398,
+          "height": 188
+        }
+      ],
+      "screenshot": "editor-empty-430x932.png"
+    },
+    {
+      "page": "home",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:64808/",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [
+        "home 768x1024: core control #promptLibraryBtn touch target 48x38",
+        "home 768x1024: core control #imageEditorBtn touch target 44x38",
+        "home 768x1024: core control #loginBtn touch target 79x38"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 123,
+          "width": 753,
+          "height": 123
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 135,
+          "right": 756,
+          "bottom": 889,
+          "width": 736,
+          "height": 754
+        }
+      ],
+      "screenshot": "home-768x1024.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:64808/?workspace=1",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [
+        "chat-workspace 768x1024: core control #sessionDrawerToggle touch target 50x38"
+      ],
+      "warnings": [
+        "chat-workspace 768x1024: required selector #chatView hidden 0x0",
+        "chat-workspace 768x1024: required selector #stickyComposerMount hidden 0x0"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 123,
+          "width": 753,
+          "height": 123
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 20,
+          "top": 135,
+          "right": 756,
+          "bottom": 889,
+          "width": 736,
+          "height": 754
+        }
+      ],
+      "screenshot": "chat-workspace-768x1024.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:64808/?view=library",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [
+        "gallery 768x1024: core control #librarySearchForm button touch target 62x35",
+        "gallery 768x1024: core control #leaderboardBtn touch target 44x38"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 123,
+          "width": 753,
+          "height": 123
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-768x1024.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:64808/?view=leaderboard",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [
+        "leaderboard 768x1024: core control #promptLibraryBtn touch target 48x38"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 123,
+          "width": 753,
+          "height": 123
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-768x1024.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "768x1024",
+      "url": "http://127.0.0.1:64808/?view=editor",
+      "scrollWidth": 753,
+      "innerWidth": 768,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 753,
+          "bottom": 123,
+          "width": 753,
+          "height": 123
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 9,
+          "top": 980,
+          "right": 745,
+          "bottom": 1056,
+          "width": 736,
+          "height": 76
+        }
+      ],
+      "screenshot": "editor-empty-768x1024.png"
+    },
+    {
+      "page": "home",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:64808/",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [
+        "home 1280x720: core control #promptLibraryBtn touch target 81x38",
+        "home 1280x720: core control #imageEditorBtn touch target 103x38",
+        "home 1280x720: core control #loginBtn touch target 79x38"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 67,
+          "width": 1265,
+          "height": 67
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 243,
+          "top": 20,
+          "right": 1023,
+          "bottom": 700,
+          "width": 780,
+          "height": 680
+        }
+      ],
+      "screenshot": "home-1280x720.png"
+    },
+    {
+      "page": "chat-workspace",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:64808/?workspace=1",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [
+        "chat-workspace 1280x720: core control #sessionDrawerToggle touch target 110x38"
+      ],
+      "warnings": [
+        "chat-workspace 1280x720: required selector #chatView hidden 0x0",
+        "chat-workspace 1280x720: required selector #stickyComposerMount hidden 0x0"
+      ],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 67,
+          "width": 1265,
+          "height": 67
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": ".modal compliance-modal",
+          "left": 243,
+          "top": 20,
+          "right": 1023,
+          "bottom": 700,
+          "width": 780,
+          "height": 680
+        }
+      ],
+      "screenshot": "chat-workspace-1280x720.png"
+    },
+    {
+      "page": "gallery",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:64808/?view=library",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [
+        "gallery 1280x720: core control #librarySearchForm button touch target 62x35",
+        "gallery 1280x720: core control #leaderboardBtn touch target 116x38"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 67,
+          "width": 1265,
+          "height": 67
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "gallery-1280x720.png"
+    },
+    {
+      "page": "leaderboard",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:64808/?view=leaderboard",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [
+        "leaderboard 1280x720: core control #promptLibraryBtn touch target 81x38"
+      ],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 67,
+          "width": 1265,
+          "height": 67
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "screenshot": "leaderboard-1280x720.png"
+    },
+    {
+      "page": "editor-empty",
+      "viewport": "1280x720",
+      "url": "http://127.0.0.1:64808/?view=editor",
+      "scrollWidth": 1265,
+      "innerWidth": 1280,
+      "failures": [],
+      "warnings": [],
+      "fixed": [
+        {
+          "selector": ".topbar",
+          "left": 0,
+          "top": 0,
+          "right": 1265,
+          "bottom": 67,
+          "width": 1265,
+          "height": 67
+        },
+        {
+          "selector": "#stickyComposerMount",
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        },
+        {
+          "selector": "#editorPromptForm",
+          "left": 253,
+          "top": 618,
+          "right": 1013,
+          "bottom": 694,
+          "width": 760,
+          "height": 76
+        }
+      ],
+      "screenshot": "editor-empty-1280x720.png"
+    }
+  ],
+  "failures": [
+    "home 360x800: core control #promptLibraryBtn touch target 42x36",
+    "home 360x800: core control #imageEditorBtn touch target 38x36",
+    "home 360x800: core control #loginBtn touch target 56x36",
+    "home 360x800: core control #loginBtn outside viewport",
+    "chat-workspace 360x800: core control #sessionDrawerToggle touch target 44x36",
+    "gallery 360x800: core control #librarySearchForm button touch target 62x35",
+    "gallery 360x800: core control #leaderboardBtn touch target 38x36",
+    "leaderboard 360x800: core control #promptLibraryBtn touch target 42x36",
+    "home 390x844: core control #promptLibraryBtn touch target 42x36",
+    "home 390x844: core control #imageEditorBtn touch target 38x36",
+    "home 390x844: core control #loginBtn touch target 56x36",
+    "chat-workspace 390x844: core control #sessionDrawerToggle touch target 44x36",
+    "gallery 390x844: core control #librarySearchForm button touch target 62x35",
+    "gallery 390x844: core control #leaderboardBtn touch target 38x36",
+    "leaderboard 390x844: core control #promptLibraryBtn touch target 42x36",
+    "home 430x932: core control #promptLibraryBtn touch target 42x36",
+    "home 430x932: core control #imageEditorBtn touch target 38x36",
+    "home 430x932: core control #loginBtn touch target 69x36",
+    "chat-workspace 430x932: core control #sessionDrawerToggle touch target 44x36",
+    "gallery 430x932: core control #librarySearchForm button touch target 62x35",
+    "gallery 430x932: core control #leaderboardBtn touch target 38x36",
+    "leaderboard 430x932: core control #promptLibraryBtn touch target 42x36",
+    "home 768x1024: core control #promptLibraryBtn touch target 48x38",
+    "home 768x1024: core control #imageEditorBtn touch target 44x38",
+    "home 768x1024: core control #loginBtn touch target 79x38",
+    "chat-workspace 768x1024: core control #sessionDrawerToggle touch target 50x38",
+    "gallery 768x1024: core control #librarySearchForm button touch target 62x35",
+    "gallery 768x1024: core control #leaderboardBtn touch target 44x38",
+    "leaderboard 768x1024: core control #promptLibraryBtn touch target 48x38",
+    "home 1280x720: core control #promptLibraryBtn touch target 81x38",
+    "home 1280x720: core control #imageEditorBtn touch target 103x38",
+    "home 1280x720: core control #loginBtn touch target 79x38",
+    "chat-workspace 1280x720: core control #sessionDrawerToggle touch target 110x38",
+    "gallery 1280x720: core control #librarySearchForm button touch target 62x35",
+    "gallery 1280x720: core control #leaderboardBtn touch target 116x38",
+    "leaderboard 1280x720: core control #promptLibraryBtn touch target 81x38"
+  ],
+  "warnings": [
+    "chat-workspace 360x800: required selector #chatView hidden 0x0",
+    "chat-workspace 360x800: required selector #stickyComposerMount hidden 0x0",
+    "chat-workspace 390x844: required selector #chatView hidden 0x0",
+    "chat-workspace 390x844: required selector #stickyComposerMount hidden 0x0",
+    "chat-workspace 430x932: required selector #chatView hidden 0x0",
+    "chat-workspace 430x932: required selector #stickyComposerMount hidden 0x0",
+    "chat-workspace 768x1024: required selector #chatView hidden 0x0",
+    "chat-workspace 768x1024: required selector #stickyComposerMount hidden 0x0",
+    "chat-workspace 1280x720: required selector #chatView hidden 0x0",
+    "chat-workspace 1280x720: required selector #stickyComposerMount hidden 0x0"
+  ]
+}

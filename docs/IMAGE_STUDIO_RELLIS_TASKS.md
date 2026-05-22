@@ -7,6 +7,7 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 - `IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 - `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`
 - `IMAGE_STUDIO_FRONTEND_ADMIN_DESIGN.md`
+- `IMAGE_STUDIO_MOBILE_WEB_OPTIMIZATION_PLAN.md`
 
 ## 1. 看板列建议
 
@@ -165,6 +166,19 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 - `AIS-RLS-043`
 - `AIS-RLS-044`
 - `AIS-RLS-045`
+
+### Milestone 8：移动端 Web 一等体验
+
+目标：按 `IMAGE_STUDIO_MOBILE_WEB_OPTIMIZATION_PLAN.md` 把手机端首屏、导航、生成流、画廊、编辑器、弹窗和 QA 门禁整理为可独立验收的一等体验。
+
+包含任务：
+
+- `AIS-RLS-055`
+- `AIS-RLS-056`
+- `AIS-RLS-057`
+- `AIS-RLS-058`
+- `AIS-RLS-059`
+- `AIS-RLS-060`
 
 ## 4. 任务卡
 
@@ -1350,6 +1364,145 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 - 线上接口 smoke 通过。
 - 出现问题时可快速回滚到上一备份。
 
+### AIS-RLS-055：Mobile P0 基线截图与布局问题清单
+
+优先级：P0
+标签：`frontend`, `qa`, `mobile`
+依赖：无
+建议状态：Ready
+
+目标：
+
+- 建立移动端布局 QA 基线，让后续移动端任务有可重复截图和失败项对照。
+
+交付物：
+
+- `scripts/smoke/check-mobile-layout.mjs`。
+- `npm run smoke:mobile-layout`。
+- `docs/mobile-qa/baseline-local/<timestamp>/summary.md`、`summary.json` 和视口截图。
+- 360x800、390x844、430x932、768x1024、1280x720 视口的横向溢出和核心控件检查。
+
+验收：
+
+- 每个 P0 页面至少有一张截图和一条结论。
+- 失败项能映射到后续 `AIS-RLS-056` 到 `AIS-RLS-059`。
+- 脚本不引入项目级浏览器依赖，不泄露私有服务器信息。
+
+### AIS-RLS-056：Mobile P1 首页、导航与 Composer
+
+优先级：P0
+标签：`frontend`, `experience`, `mobile`
+依赖：`AIS-RLS-055`
+建议状态：Ready
+
+目标：
+
+- 手机端首页首屏、顶部导航和 Composer 进入可直接创作的稳定状态。
+
+交付物：
+
+- `public/mobile.css`、`public/mobile-home.css` 和必要的 `public/mobile-ui.js`。
+- `public/index.html` 引入新增 mobile 文件并更新 cache-bust query。
+- 首页和导航移动端截图回归。
+
+验收：
+
+- 360px 下无横向滚动，首屏直接可见输入框和生成按钮。
+- 登录前后导航高度可控。
+- 首页提交生成进入对话工作台时不闪回、不重置滚动。
+
+### AIS-RLS-057：Mobile P1 对话工作台与生成结果
+
+优先级：P0
+标签：`frontend`, `experience`, `mobile`
+依赖：`AIS-RLS-056`
+建议状态：Ready
+
+目标：
+
+- 修复会话列表、sticky composer、生成状态和结果操作区在手机端的遮挡与不可点问题。
+
+交付物：
+
+- 手机端会话列表 sheet。
+- 生成状态条和历史卡片移动端布局。
+- 结果操作按钮换行或收口规则。
+
+验收：
+
+- 会话列表打开后有遮罩和关闭入口。
+- sticky composer 不遮挡最后一条生成结果。
+- 生成完成后的公开、下载、加入画布等操作可见可点。
+
+### AIS-RLS-058：Mobile P1 画廊、排行榜与详情
+
+优先级：P0
+标签：`frontend`, `gallery`, `mobile`
+依赖：`AIS-RLS-057`
+建议状态：Ready
+
+目标：
+
+- 让画廊列表、标签、搜索、排行榜和详情抽屉在手机端清晰可扫读、可操作。
+
+交付物：
+
+- `public/mobile-gallery.css`。
+- 移动画廊搜索、标签、卡片、排行榜和详情样式。
+- 画廊详情底部核心操作区。
+
+验收：
+
+- 标签默认不把作品流推离首屏。
+- 卡片图片比例稳定，详情核心操作不被遮挡。
+- prompt 数据库图片、公开生成图片、榜单图片都有稳定展示或 fallback。
+
+### AIS-RLS-059：Mobile P2 图片编辑器与我的作品
+
+优先级：P1
+标签：`frontend`, `editor`, `mobile`
+依赖：`AIS-RLS-058`
+建议状态：Ready
+
+目标：
+
+- 修复图片编辑器和我的作品在手机端的底部输入、发布设置、详情抽屉和批量操作体验。
+
+交付物：
+
+- `public/mobile-editor.css`。
+- 编辑器顶部模式栏、中央图片/画布、底部操作栏移动端结构。
+- 我的作品单列列表、底部批量操作和全屏详情抽屉。
+
+验收：
+
+- 上传图片、输入编辑 prompt、提交生成和失败重试可完整触达。
+- 公开到画廊/公布原图设置不挡住生成按钮。
+- 我的作品详情在 360px 下可查看图片、元信息和操作按钮。
+
+### AIS-RLS-060：Mobile QA、文档、部署与发布闭环
+
+优先级：P0
+标签：`qa`, `ops`, `mobile`
+依赖：`AIS-RLS-059`
+建议状态：Ready
+
+目标：
+
+- 完成移动端优化的自动化、截图、文档、提交、推送、服务器部署和线上验证闭环。
+
+交付物：
+
+- 完整 `smoke:mobile-layout` 通过记录。
+- 移动端 QA summary 和 release note。
+- 公开代码提交、推送和服务器验证记录。
+
+验收：
+
+- 360px、390px、430px、768px 无横向溢出和核心遮挡。
+- 390x844、360x800、1280x720 截图人工验收通过。
+- 正式域名、旧域名 410、public smoke 和 mobile layout smoke 通过。
+
 ## 5. 建议执行顺序
 
 第一批：
@@ -1392,6 +1545,15 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 - `AIS-RLS-039`
 - `AIS-RLS-041`
 - `AIS-RLS-043`
+
+移动端批次：
+
+1. `AIS-RLS-055`
+2. `AIS-RLS-056`
+3. `AIS-RLS-057`
+4. `AIS-RLS-058`
+5. `AIS-RLS-059`
+6. `AIS-RLS-060`
 
 ## 6. 每张 Rellis / Trellis 卡片建议模板
 

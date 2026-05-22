@@ -44,6 +44,7 @@
     "smoke:gallery-detail-media": "node scripts/smoke/check-gallery-detail-media.mjs",
     "smoke:gallery-card-tags": "node scripts/smoke/check-gallery-card-tags.mjs",
     "smoke:gallery-experience-task46": "node scripts/smoke/check-gallery-experience-task46.mjs",
+    "smoke:mobile-layout": "node scripts/smoke/check-mobile-layout.mjs",
     "smoke:prompt-review": "node scripts/smoke/check-prompt-review-service.mjs",
     "smoke:data": "node scripts/smoke/check-data-counts.mjs"
   },

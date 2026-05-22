@@ -93,7 +93,20 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-044` | 画廊详情主图联动修复 | Backlog | P0 | Gallery | M6 体验回归 | `AIS-RLS-003`, `AIS-RLS-006`, `AIS-RLS-025` |
 | `AIS-RLS-045` | 画廊卡片标签去重与用户标签展示 | Backlog | P0 | Gallery | M6 体验回归 | `AIS-RLS-007`, `AIS-RLS-024`, `AIS-RLS-035` |
 | `AIS-RLS-046` | 画廊展示与输入体验综合修复 | Backlog | P0 | Experience/Gallery/Prompt | M6 体验回归 | `AIS-RLS-041`, `AIS-RLS-043`, `AIS-RLS-044`, `AIS-RLS-045` |
-| `AIS-RLS-047` | 画布工作台布局与连线系统重构 | Backlog | P0 | Canvas/Experience | M6 体验回归 | `AIS-RLS-039`, `AIS-RLS-046` |
+| `AIS-RLS-047` | 画布工作台布局与连线系统重构 | Done | P0 | Canvas/Experience | M6 体验回归 | `AIS-RLS-039`, `AIS-RLS-046` |
+| `AIS-RLS-048` | Canvas v2 源码引入与 AGPL 合规基线 | Done | P0 | Canvas/Platform | M7 Canvas v2 | 无 |
+| `AIS-RLS-049` | Canvas v2 子应用 Shell、构建与 /canvas-v2 路由 | Done | P0 | Canvas/Platform | M7 Canvas v2 | `AIS-RLS-048` |
+| `AIS-RLS-050` | Canvas v2 API 适配、项目 CRUD 与保存恢复 | Done | P0 | Canvas | M7 Canvas v2 | `AIS-RLS-049` |
+| `AIS-RLS-051` | Canvas v2 核心编辑器交互与节点连线 | Done | P0 | Canvas/Experience | M7 Canvas v2 | `AIS-RLS-050` |
+| `AIS-RLS-052` | Canvas v2 生成链路接入后端队列与积分 | Done | P0 | Canvas/Backend | M7 Canvas v2 | `AIS-RLS-051` |
+| `AIS-RLS-053` | Canvas v2 首页、画廊、提示词入口与灰度切换 | Done | P0 | Canvas/Experience | M7 Canvas v2 | `AIS-RLS-052` |
+| `AIS-RLS-054` | Canvas v2 QA、文档、服务器部署与发布闭环 | Done | P0 | Canvas/QA/Ops | M7 Canvas v2 | `AIS-RLS-053` |
+| `AIS-RLS-055` | Mobile P0 基线截图与布局问题清单 | Backlog | P0 | Experience/QA | M8 Mobile Web | 无 |
+| `AIS-RLS-056` | Mobile P1 首页、导航与 Composer | Backlog | P0 | Experience | M8 Mobile Web | `AIS-RLS-055` |
+| `AIS-RLS-057` | Mobile P1 对话工作台与生成结果 | Backlog | P0 | Experience | M8 Mobile Web | `AIS-RLS-056` |
+| `AIS-RLS-058` | Mobile P1 画廊、排行榜与详情 | Backlog | P0 | Gallery/Experience | M8 Mobile Web | `AIS-RLS-057` |
+| `AIS-RLS-059` | Mobile P2 图片编辑器与我的作品 | Backlog | P1 | Experience/Gallery | M8 Mobile Web | `AIS-RLS-058` |
+| `AIS-RLS-060` | Mobile QA、文档、部署与发布闭环 | Backlog | P0 | Platform/QA/Ops | M8 Mobile Web | `AIS-RLS-059` |
 
 ## 4. 历史 T 编号映射
 
@@ -153,4 +166,5 @@ docs/IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md
 - P0 bug 卡不再合并到大重构卡里，避免闪屏、按钮、详情主图、标签错误被后台重构拖住。
 - 后台大任务先保留 `AIS-RLS-033` 到 `AIS-RLS-037` 五张主卡；实施时如果单卡超过 2 天，再在 Trellis 内拆子卡，不回到文档新增一堆临时编号。
 - 画布新增功能必须先过 `AIS-RLS-039` 的反单文件治理检查，避免继续膨胀 `public/canvas.js`、`public/app.js` 或 `server.js`。
+- 移动端优化任务来自 `docs/IMAGE_STUDIO_MOBILE_WEB_OPTIMIZATION_PLAN.md`，新增样式和交互优先进入 `mobile*.css` 与 `mobile-ui.js`，不要继续把大段移动端规则堆进 `styles.css` 或 `app.js`。
 - 任何卡进入 `Done` 前，必须在相关开发文档或 QA release record 写完成记录。
