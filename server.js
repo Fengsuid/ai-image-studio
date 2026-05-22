@@ -45,6 +45,7 @@ const {
   normalizeProviderMapping,
   runProviderMappingRequest
 } = require("./src/provider-mapping");
+const { createHealthRoute } = require("./src/routes/health");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
@@ -131,6 +132,20 @@ const generationQueueRunner = createGenerationQueueRunner({
     });
   },
   onError: (error) => console.error("[generation-queue]", error)
+});
+
+const handleHealthRoute = createHealthRoute({
+  store,
+  sendJson,
+  sendNoContent,
+  readJsonBody,
+  publicSettings,
+  nowIso,
+  rumEvents,
+  appVersion: APP_VERSION,
+  serverStartedAt: SERVER_STARTED_AT,
+  openaiFetchTimeoutMs: OPENAI_FETCH_TIMEOUT_MS,
+  imageDownloadTimeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS
 });
 
 const jsonHeaders = {
@@ -2915,55 +2930,9 @@ async function routeApi(req, res, url) {
     console.error("[public-reward]", error);
   });
 
-  if (req.method === "POST" && url.pathname === "/api/csp-report") {
-    await readJsonBody(req).catch(() => ({}));
-    return sendNoContent(res);
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/rum") {
-    const body = await readJsonBody(req).catch(() => ({}));
-    const metric = {
-      name: String(body.name || "").slice(0, 40),
-      value: Number(body.value || 0),
-      path: String(body.path || "").slice(0, 255),
-      detail: body.detail && typeof body.detail === "object" ? body.detail : null,
-      createdAt: nowIso()
-    };
-    if (metric.name) {
-      rumEvents.push(metric);
-      if (rumEvents.length > 1000) rumEvents.splice(0, rumEvents.length - 1000);
-    }
-    return sendNoContent(res);
-  }
+  if (await handleHealthRoute(req, res, url)) return;
 
   verifyCsrf(req);
-
-  if (req.method === "GET" && url.pathname === "/api/version") {
-    return sendJson(res, 200, {
-      ok: true,
-      version: APP_VERSION,
-      startedAt: SERVER_STARTED_AT,
-      uptimeSeconds: Math.round(process.uptime()),
-      node: process.version,
-      platform: `${process.platform}-${process.arch}`,
-      timeoutMs: {
-        openai: OPENAI_FETCH_TIMEOUT_MS,
-        imageDownload: IMAGE_DOWNLOAD_TIMEOUT_MS
-      }
-    });
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/health") {
-    const settings = await store.getSettings();
-    const activeProvider = await store.getDefaultProviderConfig({ includeSecret: true });
-    return sendJson(res, 200, {
-      ok: true,
-      version: APP_VERSION,
-      startedAt: SERVER_STARTED_AT,
-      firstRun: (await store.countUsers()) === 0,
-      settings: publicSettings(settings, activeProvider)
-    });
-  }
 
   if (req.method === "GET" && url.pathname === "/api/auth/me") {
     const current = await getCurrentUser(req);

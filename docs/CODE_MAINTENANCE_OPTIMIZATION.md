@@ -170,6 +170,11 @@ src/
 - 为修复服务器构建对 `registry.npmmirror.com` 的依赖，`package-lock.json` 的 `resolved` tarball 已切到 `registry.npmjs.org`，避免部署时因镜像源 502 阻断。
 - 后续如果继续做路由拆分，优先抽 `src/routes/admin.js` 或 `src/routes/images.js`，每次只迁移一个端点族并立即跑对应 smoke。
 
+执行记录（2026-05-23，维护边界增量拆分）：
+- 当前已无其他开发者并行修改，完成一组低风险 Phase 2 拆分：将 `/api/csp-report`、`/api/rum`、`/api/version`、`/api/health` 抽到 `src/routes/health.js`，保留上报接口在 CSRF 前处理的旧行为。
+- 将 `gallery_tags`、提示词分类种子和标签 CRUD/合并/迁移逻辑抽到 `src/stores/tag-store.js`，`src/mysql-store.js` 继续保持原有对外函数名和调用签名。
+- 新增 `npm run smoke:maintenance-boundaries`，用纯函数和静态检查守护健康路由、标签 store 与主入口接线。
+
 ### Phase 3（较高风险，需完整测试）
 - [ ] `public/app.js` 模块化拆分 — 前端无构建工具，需确保 script 加载顺序正确
 - [ ] `public/admin.js` 拆分
