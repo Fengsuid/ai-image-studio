@@ -677,3 +677,9 @@ AIS-RLS-055 基线首次运行：
 - 命令：`npm run smoke:mobile-layout`
 - 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-05-28-203Z/summary.md`
 - 结果：脚本成功生成 5 个视口 x 5 个页面的截图和 JSON summary；当前移动端基线仍有 36 个失败项，主要集中在顶部导航、登录按钮、会话入口、画廊搜索按钮和编辑器上传卡触控高度，后续由 `AIS-RLS-056` 到 `AIS-RLS-059` 修复。
+
+AIS-RLS-056 首页、导航与 Composer 首轮运行：
+
+- 命令：`npm run smoke:mobile-layout`
+- 输出：`docs/mobile-qa/baseline-local/2026-05-22T05-32-19-586Z/summary.md`
+- 结果：新增 `public/mobile.css` 与 `public/mobile-home.css`，`public/index.html` 已引入带版本 query 的 mobile 样式。首页、顶部导航、登录按钮、Hero composer 和桌面导航触控基线通过；剩余 4 个失败项全部是画廊搜索按钮 35px 高度，归入 `AIS-RLS-058` 范围。

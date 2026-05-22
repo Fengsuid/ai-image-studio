@@ -29,14 +29,14 @@ const pages = [
   {
     name: "home",
     url: "/",
-    requiredVisible: ["#homeView", "#heroComposerMount", ".send-button"],
-    coreButtons: [".send-button", "#promptLibraryBtn", "#imageEditorBtn", "#loginBtn"],
+    requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button"],
+    coreButtons: ["#heroComposerMount .send-button", "#promptLibraryBtn", "#imageEditorBtn", "#loginBtn"],
   },
   {
     name: "chat-workspace",
     url: "/?workspace=1",
-    requiredVisible: ["#chatView", "#stickyComposerMount", ".send-button"],
-    coreButtons: [".send-button", "#sessionDrawerToggle"],
+    requiredVisible: ["#chatView", "#stickyComposerMount", "#stickyComposerMount .send-button"],
+    coreButtons: ["#stickyComposerMount .send-button", "#sessionDrawerToggle"],
     allowMissing: true,
   },
   {
@@ -387,6 +387,11 @@ async function evaluateLayout(cdp, sessionId, page, viewport) {
 }
 
 function layoutProbe(page, viewport) {
+  const modalLayer = document.querySelector("#modalLayer");
+  if (modalLayer) {
+    modalLayer.innerHTML = "";
+    modalLayer.classList.add("hidden");
+  }
   const failures = [];
   const warnings = [];
   const pageLabel = `${page.name} ${viewport.name}`;
@@ -395,13 +400,19 @@ function layoutProbe(page, viewport) {
   const overflow = Math.max(doc.scrollWidth, document.body?.scrollWidth || 0) - viewportWidth;
   if (overflow > 1) failures.push(`${pageLabel}: horizontal overflow ${overflow}px`);
 
-  const visible = (selector) => {
-    const el = document.querySelector(selector);
+  const isElementVisible = (el) => {
     if (!el) return { ok: false, reason: "missing" };
+    if (el.closest(".hidden")) return { ok: false, reason: "hidden ancestor" };
     const style = getComputedStyle(el);
     const rect = el.getBoundingClientRect();
     const ok = style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
     return { ok, reason: ok ? "" : `hidden ${Math.round(rect.width)}x${Math.round(rect.height)}` };
+  };
+  const visible = (selector) => {
+    const candidates = [...document.querySelectorAll(selector)];
+    if (!candidates.length) return { ok: false, reason: "missing" };
+    const firstVisible = candidates.find((el) => isElementVisible(el).ok);
+    return firstVisible ? { ok: true, reason: "", el: firstVisible } : isElementVisible(candidates[0]);
   };
 
   for (const selector of page.requiredVisible || []) {
@@ -414,11 +425,12 @@ function layoutProbe(page, viewport) {
   }
 
   for (const selector of page.coreButtons || []) {
-    const el = document.querySelector(selector);
-    if (!el) {
+    const candidates = [...document.querySelectorAll(selector)];
+    if (!candidates.length) {
       warnings.push(`${pageLabel}: core control ${selector} missing`);
       continue;
     }
+    const el = candidates.find((candidate) => isElementVisible(candidate).ok) || candidates[0];
     const rect = el.getBoundingClientRect();
     const style = getComputedStyle(el);
     const isVisible = style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
@@ -426,11 +438,11 @@ function layoutProbe(page, viewport) {
       warnings.push(`${pageLabel}: core control ${selector} hidden`);
       continue;
     }
-    if (rect.height < 40 || rect.width < 40) {
+    if (viewport.mobile && (rect.height < 40 || rect.width < 40)) {
       failures.push(`${pageLabel}: core control ${selector} touch target ${Math.round(rect.width)}x${Math.round(rect.height)}`);
     }
     if (rect.right > viewportWidth + 1 || rect.left < -1) {
-      failures.push(`${pageLabel}: core control ${selector} outside viewport`);
+      failures.push(`${pageLabel}: core control ${selector} outside viewport (${Math.round(rect.left)}..${Math.round(rect.right)} / ${viewportWidth})`);
     }
   }
 

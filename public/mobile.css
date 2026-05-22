@@ -1,0 +1,200 @@
+:root {
+  --mobile-page-pad: 16px;
+  --mobile-page-pad-sm: 12px;
+  --mobile-topbar-h: 56px;
+  --mobile-bottom-bar-h: 76px;
+  --touch-target: 44px;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    min-height: calc(var(--mobile-topbar-h) + env(safe-area-inset-top));
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: calc(6px + env(safe-area-inset-top)) var(--mobile-page-pad) 6px;
+  }
+
+  .brand-btn {
+    flex: 0 0 auto;
+    min-height: var(--touch-target);
+    max-width: min(44vw, 170px);
+    overflow: hidden;
+  }
+
+  .brand-btn > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand-dot {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+  }
+
+  .top-actions {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 6px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .nav-pill,
+  .dark-pill,
+  .icon-pill,
+  .account-avatar {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+    height: var(--touch-target);
+    padding: 0 12px;
+    flex: 0 0 auto;
+  }
+
+  .nav-pill span {
+    display: none;
+  }
+
+  .nav-pill i,
+  .dark-pill i,
+  .icon-pill i {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  #leaderboardBtn,
+  #canvasWorkspaceBtn,
+  #contactBtn,
+  .github-pill,
+  #langBtn {
+    display: none;
+  }
+
+  .dark-pill {
+    min-width: 64px;
+    padding-inline: 13px;
+  }
+
+  .dark-pill span {
+    display: inline;
+    font-size: 13px;
+  }
+
+  .account-menu {
+    position: fixed;
+    top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top) + 8px);
+    right: var(--mobile-page-pad);
+    width: min(292px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+
+  .composer-mount,
+  .sticky-composer,
+  .chat-view .sticky-composer,
+  .app.chat-panel-collapsed .chat-view .sticky-composer {
+    width: calc(100vw - (var(--mobile-page-pad) * 2));
+    left: 50%;
+  }
+
+  .sticky-composer {
+    bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .composer {
+    border-radius: 18px;
+    padding: 10px;
+    min-width: 0;
+  }
+
+  .composer-bar,
+  .hero .composer-bar {
+    min-height: 56px;
+    align-items: stretch;
+    gap: 8px;
+    padding: 4px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .prompt-box,
+  .hero .prompt-box {
+    width: auto;
+    flex: 1 1 100%;
+    min-height: 48px;
+    min-width: 0;
+    padding: 8px 6px;
+    font-size: 16px;
+  }
+
+  .send-button {
+    width: 100%;
+    min-width: 84px;
+    min-height: var(--touch-target);
+    border-radius: 12px;
+    padding: 0 14px;
+  }
+
+  .composer-settings-row,
+  .hero .composer-settings-row {
+    min-height: 44px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 8px;
+    padding: 8px 2px 0;
+    scrollbar-width: none;
+  }
+
+  .composer-settings-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .add-reference-button,
+  .model-chip,
+  .composer-options-button,
+  .composer-public-toggle {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbar {
+    padding-inline: var(--mobile-page-pad-sm);
+  }
+
+  .brand-btn {
+    max-width: var(--touch-target);
+    padding: 0;
+  }
+
+  .brand-btn > span:last-child {
+    display: none;
+  }
+
+  .top-actions {
+    gap: 5px;
+  }
+
+  .dark-pill {
+    min-width: 60px;
+    padding-inline: 11px;
+  }
+
+  .composer-mount,
+  .sticky-composer,
+  .chat-view .sticky-composer,
+  .app.chat-panel-collapsed .chat-view .sticky-composer {
+    width: calc(100vw - (var(--mobile-page-pad-sm) * 2));
+  }
+}
