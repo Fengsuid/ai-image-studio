@@ -11,9 +11,36 @@
   --green: #52c41a;
   --blue: #1677ff;
   --red: #ff4d4f;
+  --brand: #2563eb;
+  --brand-strong: #1d4ed8;
+  --brand-soft: rgba(37, 99, 235, 0.1);
+  --accent: #f97316;
+  --accent-soft: rgba(249, 115, 22, 0.12);
+  --surface: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --border: #e2e8f0;
+  --border-subtle: rgba(148, 163, 184, 0.22);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-on-brand: #ffffff;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+  --radius-xs: 4px;
+  --radius-full: 999px;
   --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
   --shadow-soft: 0 6px 24px rgba(15, 23, 42, 0.06);
   --shadow-modal: 0 32px 96px rgba(15, 23, 42, 0.18);
+  --shadow-xs: 0 1px 4px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.09);
+  --shadow-lg: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --shadow-xl: 0 32px 96px rgba(15, 23, 42, 0.18);
+  --shadow-brand: 0 12px 32px rgba(37, 99, 235, 0.24);
   --gap-xs: 6px;
   --gap-sm: 10px;
   --gap-md: 16px;
@@ -9272,5 +9299,286 @@ button.tag-chip.active {
     width: 100%;
     justify-content: flex-start;
     padding: 0 12px;
+  }
+}
+
+/* AIS-RLS-070: visual tokens, motion primitives and low-risk polish.
+   Keep this block isolated until styles.css is split into public/css modules. */
+@keyframes ais-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ais-slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ais-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ais-pop {
+  0% { transform: scale(0.9); }
+  58% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ais-shimmer {
+  from { background-position: -420px 0; }
+  to { background-position: 420px 0; }
+}
+
+@keyframes ais-progress-flow {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+
+.animate-fade-in {
+  animation: ais-fade-in var(--dur-base) ease both;
+}
+
+.animate-slide-up {
+  animation: ais-slide-up var(--dur-base) var(--ease-out) both;
+}
+
+.animate-scale-in {
+  animation: ais-scale-in var(--dur-base) var(--ease-out) both;
+}
+
+.animate-pop-in {
+  animation: ais-pop var(--dur-slow) var(--ease-bounce) both;
+}
+
+.skeleton,
+.image-skeleton,
+.generation-card.loading,
+.work-card.loading {
+  background:
+    linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+  background-size: 840px 100%;
+  animation: ais-shimmer 1.45s linear infinite;
+}
+
+.modal-layer {
+  animation: ais-fade-in var(--dur-base) ease both;
+}
+
+.modal,
+.square-preview-modal,
+.works-modal,
+.publish-modal,
+.auth-modal,
+.admin-modal {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-xl);
+  animation: ais-scale-in var(--dur-base) var(--ease-out) both;
+}
+
+.toast {
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow: var(--shadow-lg);
+  animation: ais-slide-up var(--dur-base) var(--ease-out) both;
+}
+
+.toast i {
+  color: var(--brand);
+}
+
+.brand-btn,
+.nav-pill,
+.icon-pill,
+.tool-button,
+.add-reference-button,
+.send-button,
+.modal-primary,
+.modal-secondary,
+.ghost-button,
+.square-preview-actions button,
+.works-detail-actions button,
+.card-actions button,
+.tiny-button {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.send-button,
+.modal-primary,
+.card-actions .use-button {
+  box-shadow: var(--shadow-brand);
+}
+
+.send-button:hover,
+.modal-primary:hover,
+.card-actions .use-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.28);
+}
+
+.composer,
+.sticky-composer,
+.hero .composer {
+  border-color: var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+  box-shadow: var(--shadow-soft);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--brand) 58%, var(--border));
+  box-shadow:
+    0 0 0 4px var(--brand-soft),
+    var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.ambient {
+  background:
+    radial-gradient(circle at 12% 16%, rgba(37, 99, 235, 0.18), transparent 29%),
+    radial-gradient(circle at 84% 12%, rgba(249, 115, 22, 0.14), transparent 30%),
+    radial-gradient(circle at 50% 92%, rgba(20, 184, 166, 0.12), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.hero h1,
+.hero-title {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--brand) 54%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.035em;
+}
+
+.hero .composer-mount,
+.recent-tile,
+.gallery-rank-card,
+.prompt-card,
+.work-card {
+  animation: ais-slide-up var(--dur-slow) var(--ease-out) both;
+}
+
+.recent-tile,
+.gallery-rank-card,
+.prompt-card,
+.work-card {
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-xs);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    filter var(--dur-base) var(--ease-out);
+}
+
+.recent-tile:hover,
+.gallery-rank-card:hover,
+.prompt-card:hover,
+.work-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--border-subtle));
+  box-shadow: var(--shadow-lg);
+}
+
+.recent-visual,
+.work-visual,
+.gallery-rank-visual,
+.prompt-card .card-art {
+  position: relative;
+  overflow: hidden;
+}
+
+.recent-visual::after,
+.work-visual::after,
+.gallery-rank-visual::after,
+.prompt-card .card-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.34));
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.recent-tile:hover .recent-visual::after,
+.work-card:hover .work-visual::after,
+.gallery-rank-card:hover .gallery-rank-visual::after,
+.prompt-card:hover .card-art::after {
+  opacity: 1;
+}
+
+.prompt-engagement button,
+.gallery-rank-card .rank-like,
+.square-preview-actions button[data-square-like] {
+  transform-origin: center;
+}
+
+.prompt-engagement button.liked,
+.gallery-rank-card .rank-like.liked,
+.square-preview-actions button.liked {
+  color: var(--red);
+  animation: ais-pop var(--dur-slow) var(--ease-bounce);
+}
+
+[data-generation-progress] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+[data-generation-progress]::before {
+  content: "";
+  width: 26px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--brand), #14b8a6, var(--accent), var(--brand));
+  background-size: 200% 100%;
+  animation: ais-progress-flow 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-pop-in,
+  .modal-layer,
+  .modal,
+  .square-preview-modal,
+  .works-modal,
+  .publish-modal,
+  .auth-modal,
+  .admin-modal,
+  .toast,
+  .hero .composer-mount,
+  .recent-tile,
+  .gallery-rank-card,
+  .prompt-card,
+  .work-card,
+  .prompt-engagement button.liked,
+  .gallery-rank-card .rank-like.liked,
+  .square-preview-actions button.liked,
+  [data-generation-progress]::before,
+  .skeleton,
+  .image-skeleton,
+  .generation-card.loading,
+  .work-card.loading {
+    animation: none !important;
+    transition-duration: 1ms !important;
   }
 }
