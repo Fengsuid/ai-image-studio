@@ -10,7 +10,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.
 const read = (relativePath) => fs.readFileSync(path.join(rootDir, relativePath), "utf8");
 
 const server = read("server.js");
-const store = read("src/mysql-store.js");
+const generationStore = read("src/stores/generation-store.js");
 const adminHtml = read("public/admin.html");
 const admin = read("public/admin.js");
 const diagnostics = read("public/admin-generation-diagnostics.js");
@@ -36,7 +36,7 @@ for (const token of [
   assert(server.includes(token), `server missing ${token}`);
 }
 
-assert(store.includes("async function listGenerationRequests(limit = 100, filters = {})"), "store must accept generation filters");
+assert(generationStore.includes("async function listGenerationRequests(limit = 100, filters = {})"), "generation store must accept generation filters");
 for (const token of [
   "gr.provider_params_json LIKE ?",
   "g.model LIKE ?",
@@ -45,7 +45,7 @@ for (const token of [
   "gr.created_at >= ?",
   "gr.created_at <= ?"
 ]) {
-  assert(store.includes(token), `store filter missing ${token}`);
+  assert(generationStore.includes(token), `generation store filter missing ${token}`);
 }
 
 assert(adminHtml.includes("/admin-generation-diagnostics.js"), "admin page must load diagnostics module before admin.js");

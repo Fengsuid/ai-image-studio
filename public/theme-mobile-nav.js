@@ -74,6 +74,9 @@
 
   function runAction(action) {
     const app = window.ImageStudioAppActions || {};
+    if (action !== "generate" && action !== "works") {
+      app.releaseSessionDrawerLock?.();
+    }
     if (action === "home") {
       app.navigate?.("home", { scrollTop: true, scrollBehavior: "smooth" });
       return;

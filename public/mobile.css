@@ -130,7 +130,7 @@
   }
 
   .sticky-composer {
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    bottom: calc(var(--mobile-bottom-bar-h) + env(safe-area-inset-bottom) + 12px);
   }
 
   .composer {
@@ -335,11 +335,12 @@
   .message-more summary {
     min-height: 40px;
     border-radius: 12px;
+    font-size: 12px;
   }
 
   .result-action-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--touch-target);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
     align-items: stretch;
   }
 
@@ -348,7 +349,7 @@
   }
 
   .message-more summary {
-    width: var(--touch-target);
+    width: 40px;
     padding: 0;
     justify-content: center;
   }
@@ -375,7 +376,7 @@
   }
 
   .bottom-spacer {
-    height: calc(210px + env(safe-area-inset-bottom));
+    height: calc(280px + env(safe-area-inset-bottom));
   }
 }
 
@@ -412,5 +413,9 @@
   .chat-view .sticky-composer,
   .app.chat-panel-collapsed .chat-view .sticky-composer {
     width: calc(100vw - (var(--mobile-page-pad-sm) * 2));
+  }
+
+  .bottom-spacer {
+    height: calc(300px + env(safe-area-inset-bottom));
   }
 }

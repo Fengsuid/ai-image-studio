@@ -34,12 +34,13 @@
   }
 
   .works-bulk-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .works-bulk-actions span {
-    grid-column: 1 / -1;
+    flex: 0 0 auto;
   }
 
   .works-detail-drawer {

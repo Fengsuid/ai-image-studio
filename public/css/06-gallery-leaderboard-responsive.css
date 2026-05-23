@@ -73,22 +73,29 @@
   }
 
   .square-preview-modal {
-    width: calc(100vw - 20px);
-    height: calc(100vh - 20px);
+    width: min(960px, calc(100vw - 20px));
+    height: min(760px, calc(100svh - 20px));
+    max-height: calc(100svh - 20px);
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(260px, 48vh) minmax(0, 1fr);
+    grid-template-rows: minmax(190px, 36svh) minmax(0, 1fr);
+    justify-self: center;
+    align-self: center;
+    overflow: hidden;
   }
 
   .square-preview-stage {
-    padding: 16px;
+    padding: 14px;
   }
 
   .square-preview-main {
-    max-height: 44vh;
+    max-height: 32svh;
   }
 
   .square-preview-side {
-    padding: 18px;
+    padding: 14px 16px 112px;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .chat-view {
@@ -117,6 +124,10 @@
 
   .app.chat-panel-visible:not(.session-panel-open) .chat-session-panel {
     display: none;
+  }
+
+  .app:not(.session-panel-open) .chat-session-panel {
+    pointer-events: none;
   }
 
   .session-drawer-toggle {

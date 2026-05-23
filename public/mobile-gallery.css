@@ -325,13 +325,26 @@
     font-size: 15px;
   }
 
+  .modal-layer.square-preview-layer {
+    z-index: 180;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
   .square-preview-modal {
-    width: 100vw;
-    height: 100svh;
-    max-height: 100svh;
+    width: min(430px, calc(100vw - 20px)) !important;
+    height: min(88svh, calc(100svh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom))) !important;
+    max-height: calc(100svh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    margin: auto !important;
+    justify-self: center !important;
+    align-self: center !important;
     border-radius: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(240px, 42svh) minmax(0, 1fr);
+    grid-template-rows: minmax(168px, 30svh) minmax(0, 1fr);
+    overflow: hidden;
   }
 
   .square-preview-close {
@@ -342,16 +355,20 @@
   }
 
   .square-preview-stage {
-    padding: calc(18px + env(safe-area-inset-top)) 12px 12px;
+    padding: calc(10px + env(safe-area-inset-top)) 12px 8px;
   }
 
   .square-preview-main {
-    max-height: 38svh;
+    max-height: 27svh;
   }
 
   .square-preview-side {
     min-height: 0;
-    padding: 16px var(--mobile-page-pad) calc(100px + env(safe-area-inset-bottom));
+    max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px var(--mobile-page-pad) calc(18px + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
   }
 
   .square-preview-head {
@@ -364,14 +381,16 @@
   }
 
   .square-preview-actions {
-    position: fixed;
-    left: var(--mobile-page-pad);
-    right: var(--mobile-page-pad);
-    bottom: calc(10px + env(safe-area-inset-bottom));
-    z-index: 3;
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: auto !important;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+    width: 100%;
+    margin-top: 2px;
     padding: 8px;
     border: 1px solid rgba(226, 232, 240, 0.86);
     border-radius: 16px;
@@ -380,11 +399,16 @@
     backdrop-filter: blur(18px);
   }
 
+  .square-route {
+    order: 0;
+    margin-bottom: 10px;
+  }
+
   .square-preview-actions a,
   .square-preview-actions button {
-    min-height: var(--touch-target);
+    min-height: 36px;
     border-radius: 12px;
-    font-size: 13px;
+    font-size: 11px;
   }
 }
 
@@ -407,7 +431,6 @@
   }
 
   .square-preview-actions {
-    left: var(--mobile-page-pad-sm);
-    right: var(--mobile-page-pad-sm);
+    position: static;
   }
 }

@@ -74,8 +74,97 @@
     };
   }
 
+  function routeStepFromEntry(entry = {}) {
+    return {
+      id: entry.id,
+      prompt: entry.prompt,
+      imageUrl: entry.images?.[0] || entry.imageUrl || "",
+      type: entry.type || (entry.sourceImageUrl || entry.sourceImageData || entry.sourceImageId || entry.sourceFilename ? "image-to-image" : "text-to-image"),
+      createdAt: entry.time || entry.createdAt
+    };
+  }
+
+  function isRouteEntryImageToImage(entry = {}) {
+    return Boolean(
+      entry.type === "image-to-image" ||
+      entry.sourceImageUrl ||
+      entry.sourceImageData ||
+      entry.sourceImageId ||
+      entry.sourceFilename
+    );
+  }
+
+  function isCanvasCreativeRoute(route = []) {
+    return route.some((entry) => entry?.nodeId || String(entry?.type || "").startsWith("canvas"));
+  }
+
+  function routeEntryMatchesItem(entry = {}, item = {}) {
+    return String(entry.id || "") === String(item.id || "") ||
+      String(entry.generationId || "") === String(item.id || "");
+  }
+
+  function cropContinuousCreativeRoute(route = [], item = {}) {
+    const entries = Array.isArray(route) ? route.filter(Boolean) : [];
+    if (!entries.length) return [routeStepFromEntry(item)];
+    let targetIndex = entries.findIndex((entry) => routeEntryMatchesItem(entry, item));
+    if (targetIndex < 0 && routeEntryMatchesItem(entries[entries.length - 1], item)) {
+      targetIndex = entries.length - 1;
+    }
+    if (targetIndex < 0) {
+      targetIndex = isRouteEntryImageToImage(item) ? entries.length - 1 : -1;
+    }
+    if (targetIndex < 0) return [routeStepFromEntry(item)];
+
+    const target = entries[targetIndex];
+    if (!isRouteEntryImageToImage(target)) return [routeStepFromEntry(target)];
+
+    const cropped = [];
+    for (let index = targetIndex; index >= 0; index -= 1) {
+      const entry = entries[index];
+      cropped.unshift(entry);
+      if (index !== targetIndex && !isRouteEntryImageToImage(entry)) break;
+    }
+    return cropped.length ? cropped.map(routeStepFromEntry) : [routeStepFromEntry(item)];
+  }
+
+  function sessionEntriesForItem({ item = {}, history = [], imageSessions = [], activeImageSessionId = "" } = {}) {
+    const historyById = new Map(history.map((entry) => [String(entry.id), entry]));
+    const sessions = imageSessions.filter((session) =>
+      (session.generationIds || []).some((id) => String(id) === String(item.id))
+    );
+    const active = sessions.find((session) => session.id === activeImageSessionId);
+    const session = active || sessions[0];
+    return (session?.generationIds || [])
+      .map((id) => historyById.get(String(id)))
+      .filter(Boolean);
+  }
+
+  function continuousSessionEntriesForItem(context = {}) {
+    const item = context.item || {};
+    const sessionEntries = sessionEntriesForItem(context);
+    const targetIndex = sessionEntries.findIndex((entry) => String(entry.id) === String(item.id));
+    if (targetIndex < 0) return [];
+    const sliced = sessionEntries.slice(0, targetIndex + 1);
+    const route = cropContinuousCreativeRoute(sliced, item);
+    return Array.isArray(route) ? route : [];
+  }
+
+  function publishConversationRouteForItem(context = {}) {
+    const item = context.item || {};
+    const sessionRoute = continuousSessionEntriesForItem(context);
+    if (sessionRoute.length) {
+      return sessionRoute;
+    }
+    const storedRoute = item.creativeRoute?.length ? item.creativeRoute : item.conversation;
+    if (Array.isArray(storedRoute) && storedRoute.length) {
+      return isCanvasCreativeRoute(storedRoute) ? storedRoute : cropContinuousCreativeRoute(storedRoute, item);
+    }
+    return [routeStepFromEntry(item)];
+  }
+
   root.promptImageDisplayUrl = promptImageDisplayUrl;
   root.generationEntryFromApi = generationEntryFromApi;
   root.imageListFromItem = imageListFromItem;
+  root.publishConversationRouteForItem = publishConversationRouteForItem;
   window.ImageStudioGalleryModel = root;
 })();

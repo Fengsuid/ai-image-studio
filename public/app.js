@@ -84,6 +84,7 @@ const state = {
   editAbortController: null,
   generateAbortController: null,
   currentGenerationRequestId: "",
+  sessionDrawerLocked: false,
   continuationMode: localStorage.getItem("imageStudio.continuationMode") || "auto",
   continuationLockedSessionId: "",
   continuationLastImageUrl: "",
@@ -1530,8 +1531,14 @@ function syncThemeMobileNav(activeOverride = "") {
     active: activeOverride,
     heroVisible: state.view === "home" ? shouldShowHero() : false,
     loggedIn: Boolean(state.user),
-    canvasHidden: isCanvasEntryHidden()
+    canvasHidden: isCanvasEntryHidden(),
+    sessionDrawerLocked: state.sessionDrawerLocked
   });
+}
+
+function releaseSessionDrawerLock() {
+  state.sessionDrawerLocked = false;
+  syncThemeMobileNav();
 }
 
 function updateNotificationBadge() {
@@ -1642,6 +1649,7 @@ function startNewImageSession(prompt = "") {
   state.continuationLockedSessionId = "";
   state.continuationLastImageUrl = "";
   saveImageSessionState();
+  renderImageSessions();
   return session;
 }
 
@@ -1730,6 +1738,20 @@ function conversationRouteForItem(item) {
   }));
 }
 
+function publishConversationRouteForItem(item) {
+  return window.ImageStudioGalleryModel?.publishConversationRouteForItem?.({
+    item,
+    history: state.history,
+    imageSessions: state.imageSessions,
+    activeImageSessionId: state.activeImageSessionId
+  }) || conversationRouteForItem(item);
+}
+
+function publishConversationRouteWithCurrentSession(item) {
+  const route = publishConversationRouteForItem(item);
+  return Array.isArray(route) && route.length ? route : conversationRouteForItem(item);
+}
+
 function conversationRouteWithDraft(item) {
   const route = [...getActiveSessionHistory(), item]
     .filter(Boolean)
@@ -1756,6 +1778,7 @@ function setView(view) {
   const nextViewSignature = `${view}:${heroVisible ? "hero" : "workspace"}`;
   const viewChanged = state.activeViewSignature !== nextViewSignature;
   state.view = view;
+  if (view !== "home") state.sessionDrawerLocked = false;
   if (viewChanged) {
     state.activeViewSignature = nextViewSignature;
     if (view !== "home" || !showingChatWorkspace) {
@@ -1863,6 +1886,7 @@ function navigate(view, options = {}) {
     openAuthModal("login");
     return;
   }
+  if ($(".works-modal", elements.modalLayer)) closeModal();
   if (view === "home" && options.hero !== false) {
     state.forceHero = true;
     elements.app.classList.remove("session-panel-open");
@@ -1916,6 +1940,8 @@ function shouldShowHero() {
 
 function openHomeHero({ scroll = false } = {}) {
   state.forceHero = true;
+  state.sessionDrawerLocked = false;
+  closeModal();
   elements.app.classList.remove("session-panel-open");
   elements.app.classList.remove("chat-panel-collapsed");
   navigate("home", { scrollTop: scroll, scrollBehavior: "smooth" });
@@ -1964,6 +1990,7 @@ function openCanvasWorkspace() {
     showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
     return;
   }
+  closeModal();
   if (!state.user) {
     state.pendingAuthView = mode === "v2" ? "canvas-v2" : "canvas";
     openAuthModal("login");
@@ -3525,7 +3552,7 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
       sourceImageId: sourceItem?.id || item.sourceImageId || "",
       publicTags: publicTagsForKind(kind, publicTags),
       title: $("#publishTitleInput", elements.modalLayer)?.value.trim() || item.title || "",
-      conversationRoute: item.creativeRoute?.length ? item.creativeRoute : item.conversation?.length ? item.conversation : conversationRouteForItem(item)
+      conversationRoute: publishConversationRouteWithCurrentSession(item)
     };
     return api(`/api/images/${item.id}/public`, {
       method: "PATCH",
@@ -4315,7 +4342,9 @@ function openPromptEditorModal(promptItem = null) {
 }
 
 function openImageEditor(imageUrl = "", prompt = "") {
+  closeModal();
   state.editor.prompt = prompt || state.editor.prompt;
+  if (imageUrl) startNewImageSession(prompt);
   setView("editor");
   if (imageUrl) setEditorImage(imageUrl);
   setTimeout(() => elements.editorPromptInput?.focus(), 80);
@@ -5933,6 +5962,7 @@ async function copyText(value) {
 
 function openModal(html) {
   elements.modalLayer.innerHTML = html;
+  elements.modalLayer.classList.toggle("square-preview-layer", Boolean($(".square-preview-modal", elements.modalLayer)));
   elements.modalLayer.classList.remove("hidden");
   $(".close-modal", elements.modalLayer)?.addEventListener("click", closeModal);
   elements.modalLayer.addEventListener("click", onModalBackdrop);
@@ -5945,6 +5975,7 @@ function onModalBackdrop(event) {
 
 function closeModal() {
   elements.modalLayer.classList.add("hidden");
+  elements.modalLayer.classList.remove("square-preview-layer");
   elements.modalLayer.innerHTML = "";
   elements.modalLayer.removeEventListener("click", onModalBackdrop);
   if (!state.routeSyncing && window.history?.pushState) {
@@ -7029,9 +7060,16 @@ window.ImageStudioAppActions = {
   openCanvasWorkspace,
   openMyWorksModal,
   openAuthModal,
+  releaseSessionDrawerLock,
   focusGenerationComposer() {
+    startNewImageSession();
     state.forceHero = false;
+    state.sessionDrawerLocked = true;
+    closeModal();
+    elements.app.classList.remove("session-panel-open");
+    elements.app.classList.remove("chat-panel-collapsed");
     setView("home");
+    renderAll();
     syncComposers();
     setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
   },
@@ -7048,28 +7086,15 @@ function bindGlobalEvents() {
   elements.leaderboardBtn?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
   elements.canvasWorkspaceBtn?.addEventListener("click", openCanvasWorkspace);
   elements.sessionDrawerToggle?.addEventListener("click", () => {
-    if (state.view === "home" && !shouldShowHero()) {
-      elements.app.classList.toggle("chat-panel-collapsed");
-      elements.app.classList.remove("session-panel-open");
-    } else {
-      elements.app.classList.toggle("session-panel-open");
-      elements.app.classList.remove("chat-panel-collapsed");
-    }
+    if (state.sessionDrawerLocked) return;
+    const willOpen = !elements.app.classList.contains("session-panel-open");
+    elements.app.classList.toggle("session-panel-open", willOpen);
+    elements.app.classList.remove("chat-panel-collapsed");
     renderImageSessions();
   });
   elements.newImageSessionBtn?.addEventListener("click", () => {
-    const session = createImageSession();
-    state.imageSessions.unshift(session);
-    state.activeImageSessionId = session.id;
-    state.continuationLockedSessionId = "";
-    state.continuationLastImageUrl = "";
-    state.forceHero = false;
-    elements.app.classList.remove("session-panel-open");
-    elements.app.classList.remove("chat-panel-collapsed");
-    saveImageSessionState();
-    renderAll();
-    setView("home");
-    setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
+    state.sessionDrawerLocked = false;
+    focusGenerationComposer();
   });
   elements.closeImageSessionBtn?.addEventListener("click", () => {
     elements.app.classList.remove("session-panel-open");
@@ -7113,6 +7138,7 @@ function bindGlobalEvents() {
   });
   elements.myWorksBtn.addEventListener("click", () => {
     closeAccountMenu();
+    state.sessionDrawerLocked = false;
     openMyWorksModal();
   });
   elements.adminBtn.addEventListener("click", () => {
@@ -7129,6 +7155,7 @@ function bindGlobalEvents() {
   $("[data-editor-home]", elements.editorView).addEventListener("click", () => openHomeHero());
   $("[data-editor-create]", elements.editorView).addEventListener("click", () => {
     state.forceHero = true;
+    closeModal();
     navigate("home");
   });
   $$("[data-editor-tool]", elements.editorView).forEach((button) => {

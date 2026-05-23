@@ -49,6 +49,10 @@ const { createAgentGenerationService } = require("./src/agent-generation-service
 const { createAgentSessionRoute } = require("./src/routes/agent-sessions");
 const { createAuthRoute } = require("./src/routes/auth");
 const { createHealthRoute } = require("./src/routes/health");
+const { createImagesRoute } = require("./src/routes/images");
+const { createGalleryRoute } = require("./src/routes/gallery");
+const { createSessionMiddleware } = require("./src/middleware/session");
+const { createCsrfMiddleware } = require("./src/middleware/csrf");
 const { buildCreativeRouteForGeneration, scrubRouteValue } = require("./src/creative-route");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -56,7 +60,7 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260520-gallery-tags-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260523-mobile-route-modal-v2";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = Math.max(
@@ -78,6 +82,18 @@ const IMAGE_DOWNLOAD_TIMEOUT_MS = Math.max(
   Number.parseInt(process.env.IMAGE_DOWNLOAD_TIMEOUT_MS || "30000", 10) || 30_000
 );
 const ALLOWED_IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+const mimeTypes = new Map([
+  [".html", "text/html; charset=utf-8"],
+  [".css", "text/css; charset=utf-8"],
+  [".js", "text/javascript; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".png", "image/png"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"],
+  [".svg", "image/svg+xml; charset=utf-8"],
+  [".ico", "image/x-icon"]
+]);
 
 const canvasService = createCanvasService({
   store,
@@ -136,6 +152,39 @@ const generationQueueRunner = createGenerationQueueRunner({
     });
   },
   onError: (error) => console.error("[generation-queue]", error)
+});
+
+const sessionMiddleware = createSessionMiddleware({
+  crypto,
+  store,
+  randomId,
+  sessionTtlMs: SESSION_TTL_MS
+});
+
+const {
+  clearSessionCookie,
+  createSession,
+  destroySession,
+  getCurrentUser,
+  hashPassword,
+  parseCookies,
+  sessionCookie,
+  shouldUseSecureCookie,
+  timingSafeEqual,
+  verifyPassword
+} = sessionMiddleware;
+
+const {
+  csrfCookie,
+  getOrCreateCsrfToken,
+  verifyCsrf
+} = createCsrfMiddleware({
+  crypto,
+  httpError,
+  parseCookies,
+  shouldUseSecureCookie,
+  timingSafeEqual,
+  sessionTtlMs: SESSION_TTL_MS
 });
 
 const handleHealthRoute = createHealthRoute({
@@ -217,6 +266,37 @@ const handleAuthRoute = createAuthRoute({
   CHECKIN_CREDIT
 });
 
+const handleImagesRoute = createImagesRoute({
+  store,
+  sendError,
+  withSecurityHeaders,
+  mimeTypes,
+  getCurrentUser,
+  ensureAuthenticated,
+  canTouchGeneration,
+  isPubliclyVisibleGeneration,
+  generatedDir: GENERATED_DIR,
+  sourceDir: SOURCE_DIR,
+  httpError
+});
+
+const handleGalleryRoute = createGalleryRoute({
+  store,
+  sendJson,
+  httpError,
+  getCurrentUser,
+  ensureAuthenticated,
+  isPubliclyVisibleGeneration,
+  generationResponse,
+  generationResponseForViewer,
+  promptLeaderboardResponse,
+  filterGenerationsWithImageFiles,
+  imageFileExists,
+  sanitizePositiveInt,
+  writeAdminAudit,
+  GALLERY_LEADERBOARD_LIMIT_MAX
+});
+
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store"
@@ -241,19 +321,6 @@ const securityHeaders = {
 function withSecurityHeaders(headers = {}) {
   return { ...securityHeaders, ...headers };
 }
-
-const mimeTypes = new Map([
-  [".html", "text/html; charset=utf-8"],
-  [".css", "text/css; charset=utf-8"],
-  [".js", "text/javascript; charset=utf-8"],
-  [".json", "application/json; charset=utf-8"],
-  [".png", "image/png"],
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
-  [".webp", "image/webp"],
-  [".svg", "image/svg+xml; charset=utf-8"],
-  [".ico", "image/x-icon"]
-]);
 
 function httpError(message, status = 400, details) {
   return Object.assign(new Error(message), { status, details });
@@ -323,117 +390,6 @@ function firstRevisedPrompt(openaiResult = {}) {
 
 function randomId(prefix = "") {
   return `${prefix}${crypto.randomBytes(12).toString("hex")}`;
-}
-
-function hashSessionToken(token) {
-  return crypto.createHash("sha256").update(String(token)).digest("hex");
-}
-
-function timingSafeEqual(a, b) {
-  const left = Buffer.from(String(a));
-  const right = Buffer.from(String(b));
-  if (left.length !== right.length) return false;
-  return crypto.timingSafeEqual(left, right);
-}
-
-function parseCookies(header = "") {
-  return Object.fromEntries(
-    header
-      .split(";")
-      .map((pair) => pair.trim())
-      .filter(Boolean)
-      .map((pair) => {
-        const index = pair.indexOf("=");
-        if (index === -1) return [pair, ""];
-        return [decodeURIComponent(pair.slice(0, index)), decodeURIComponent(pair.slice(index + 1))];
-      })
-  );
-}
-
-function shouldUseSecureCookie(req) {
-  const override = String(process.env.COOKIE_SECURE || "").trim().toLowerCase();
-  if (["1", "true", "yes"].includes(override)) return true;
-  if (["0", "false", "no"].includes(override)) return false;
-
-  const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
-    .split(",")[0]
-    .trim()
-    .toLowerCase();
-  if (forwardedProto === "https") return true;
-
-  const host = String(req.headers.host || "").toLowerCase();
-  const isLocalHost = host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("[::1]");
-  return process.env.NODE_ENV === "production" && !isLocalHost;
-}
-
-function sessionCookie(token, req) {
-  const secure = shouldUseSecureCookie(req) ? "; Secure" : "";
-  return `session=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}${secure}`;
-}
-
-function clearSessionCookie(req) {
-  const secure = shouldUseSecureCookie(req) ? "; Secure" : "";
-  return `session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`;
-}
-
-function csrfCookie(token, req) {
-  const secure = shouldUseSecureCookie(req) ? "; Secure" : "";
-  return `csrf=${encodeURIComponent(token)}; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}${secure}`;
-}
-
-function getOrCreateCsrfToken(req) {
-  const current = String(parseCookies(req.headers.cookie).csrf || "").trim();
-  return /^[A-Za-z0-9_-]{32,}$/.test(current) ? current : crypto.randomBytes(24).toString("base64url");
-}
-
-function verifyCsrf(req) {
-  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return;
-  if (req.url?.startsWith("/api/csp-report")) return;
-  const cookieToken = String(parseCookies(req.headers.cookie).csrf || "");
-  const headerToken = String(req.headers["x-csrf-token"] || "");
-  if (!cookieToken || !headerToken || !timingSafeEqual(cookieToken, headerToken)) {
-    throw httpError("Invalid CSRF token", 403);
-  }
-}
-
-async function createSession(userId) {
-  const token = randomId("sess_");
-  await store.createSession(hashSessionToken(token), userId, new Date(Date.now() + SESSION_TTL_MS));
-  return token;
-}
-
-async function destroySession(token) {
-  if (!token) return;
-  await store.deleteSession(hashSessionToken(token)).catch(() => null);
-}
-
-async function getCurrentUser(req) {
-  const token = parseCookies(req.headers.cookie).session;
-  if (!token) return null;
-
-  const tokenHash = hashSessionToken(token);
-  const user = await store.getSessionUser(tokenHash);
-  if (!user) {
-    await store.deleteSession(tokenHash).catch(() => null);
-    return null;
-  }
-
-  await store.touchSession(tokenHash, new Date(Date.now() + SESSION_TTL_MS));
-  return { user };
-}
-
-function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
-  const iterations = 210000;
-  const hash = crypto.pbkdf2Sync(password, salt, iterations, 32, "sha256").toString("hex");
-  return { salt, iterations, hash };
-}
-
-function verifyPassword(password, passwordHash) {
-  if (!passwordHash?.salt || !passwordHash?.hash || !passwordHash?.iterations) return false;
-  const hash = crypto
-    .pbkdf2Sync(password, passwordHash.salt, passwordHash.iterations, 32, "sha256")
-    .toString("hex");
-  return timingSafeEqual(hash, passwordHash.hash);
 }
 
 function serializeUser(user) {
@@ -3044,6 +3000,10 @@ async function routeApi(req, res, url) {
 
   if (await handleAuthRoute(req, res, url)) return;
 
+  if (await handleImagesRoute(req, res, url)) return;
+
+  if (await handleGalleryRoute(req, res, url)) return;
+
   if (req.method === "POST" && url.pathname === "/api/checkin") {
     const current = await getCurrentUser(req);
     ensureAuthenticated(current);
@@ -4482,19 +4442,6 @@ async function routeApi(req, res, url) {
     return sendJson(res, 200, { user: serializeUser(target), generations });
   }
 
-  if (req.method === "GET" && url.pathname === "/api/images/public") {
-    const current = await getCurrentUser(req);
-    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 60, 120);
-    const sort = url.searchParams.get("sort") === "likes" ? "likes" : "recent";
-    const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
-    const rawGenerations = await store.listPublicGenerations(limit, { includeBroken, currentUserId: current?.user?.id || "", sort });
-    const visibleGenerations = includeBroken ? rawGenerations : await filterGenerationsWithImageFiles(rawGenerations);
-    const generations = await Promise.all(
-      visibleGenerations.map((generation) => generationResponseForViewer(generation, current))
-    );
-    return sendJson(res, 200, { generations });
-  }
-
   const promptImageMatch = url.pathname.match(/^\/api\/prompt-images\/(\d+)\/file$/);
   if (promptImageMatch && (req.method === "GET" || req.method === "HEAD")) {
     const current = await getCurrentUser(req);
@@ -4562,94 +4509,6 @@ async function routeApi(req, res, url) {
     }
     res.end(bytes);
     return;
-  }
-
-  const galleryLikeMatch = url.pathname.match(/^\/api\/gallery\/([^/]+)\/like$/);
-  if (galleryLikeMatch && (req.method === "POST" || req.method === "DELETE")) {
-    const current = await getCurrentUser(req);
-    ensureAuthenticated(current);
-    const generation = await store.getGenerationById(galleryLikeMatch[1]);
-    if (!generation || !isPubliclyVisibleGeneration(generation)) {
-      throw httpError("Gallery image not found", 404);
-    }
-    const liked = req.method === "POST";
-    const updated = await store.setGenerationLike(generation.id, current.user.id, liked);
-    if (liked) {
-      const anomalies = await store.listGenerationLikeAnomalies({ limit: 50 }).catch(() => []);
-      const row = anomalies.find((item) => item.userId === current.user.id);
-      if (row) {
-        await writeAdminAudit(current, req, "gallery_like_anomaly", "user", current.user.id, {
-          generationId: generation.id,
-          likeCount24h: row.likeCount,
-          firstLikeAt: row.firstLikeAt,
-          lastLikeAt: row.lastLikeAt
-        });
-      }
-    }
-    return sendJson(res, 200, { generation: generationResponse(updated) });
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/gallery/leaderboard") {
-    const current = await getCurrentUser(req);
-    const range = ["day", "week", "month", "all"].includes(url.searchParams.get("range"))
-      ? url.searchParams.get("range")
-      : "week";
-    const limit = sanitizePositiveInt(url.searchParams.get("limit"), 30, GALLERY_LEADERBOARD_LIMIT_MAX);
-    const type = url.searchParams.get("type") || "";
-    const includeBroken = current?.user?.role === "admin" && url.searchParams.get("includeBroken") === "1";
-    const rawGenerationItems = await store.listGenerationLeaderboard({
-      range,
-      tag: url.searchParams.get("tag") || "",
-      type,
-      limit,
-      currentUserId: current?.user?.id || "",
-      includeBroken
-    });
-    const visibleGenerationItems = includeBroken ? rawGenerationItems : await filterGenerationsWithImageFiles(rawGenerationItems);
-    const generationItems = visibleGenerationItems.map(generationResponse);
-    const promptItems = type === "image-to-image"
-      ? []
-      : (await store.listPromptImageLeaderboard({
-        range,
-        limit,
-        currentUserId: current?.user?.id || "",
-        includeHidden: current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1"
-      })).map(promptLeaderboardResponse);
-    const generations = [...generationItems, ...promptItems]
-      .sort((left, right) => {
-        const likes = Number(right.likeCount || 0) - Number(left.likeCount || 0);
-        if (likes) return likes;
-        return new Date(right.publishedAt || right.createdAt || 0) - new Date(left.publishedAt || left.createdAt || 0);
-      })
-      .slice(0, limit);
-    return sendJson(res, 200, { generations, range });
-  }
-
-  const galleryDetailMatch = url.pathname.match(/^\/api\/gallery\/([^/]+)$/);
-  if (galleryDetailMatch && req.method === "GET") {
-    const current = await getCurrentUser(req);
-    const generation = await store.getGenerationById(galleryDetailMatch[1]);
-    const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
-    const imageMissing = generation && !(await imageFileExists("generated", generation.filename));
-    if (!generation || (!includeHidden && (!isPubliclyVisibleGeneration(generation) || imageMissing))) {
-      throw httpError("Gallery image not found", 404);
-    }
-    return sendJson(res, 200, { generation: await generationResponseForViewer(generation, current) });
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/gallery/prompt-audit") {
-    const current = await getCurrentUser(req);
-    ensureAuthenticated(current);
-    const body = await readJsonBody(req);
-    const prompt = cleanPrompt(body.prompt);
-    const requestedMode = body.requestedMode === "image-to-image" ? "image-to-image" : "text-to-image";
-    const audit = await store.auditPromptForPublish({
-      prompt,
-      userId: current.user.id,
-      requestedMode,
-      persist: true
-    });
-    return sendJson(res, 200, { audit: auditPayload(audit) });
   }
 
   const publishAuditMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/publish-audit$/);
@@ -5419,80 +5278,6 @@ async function routeApi(req, res, url) {
     });
     await notifyWithdrawalRequest({ generation: updated, direct: false });
     return sendJson(res, 202, { generation: updated, direct: false });
-  }
-
-  const sourceMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/source-file$/);
-  if (sourceMatch && (req.method === "GET" || req.method === "HEAD")) {
-    const current = await getCurrentUser(req);
-    const generation = await store.getGenerationById(sourceMatch[1]);
-    if (!generation?.sourceFilename) {
-      throw httpError("Image not found", 404);
-    }
-    if (!isPubliclyVisibleGeneration(generation) || !generation.publishOriginal) {
-      ensureAuthenticated(current);
-      if (!canTouchGeneration(current.user, generation)) {
-        throw httpError("Image not found", 404);
-      }
-    }
-    const absolutePath = path.join(SOURCE_DIR, generation.sourceFilename);
-    const extension = path.extname(generation.sourceFilename).toLowerCase();
-    const bytes = await fs.readFile(absolutePath).catch((error) => {
-      if (error?.code === "ENOENT") throw httpError("Image file not found", 404);
-      throw error;
-    });
-    const variant = url.searchParams.get("variant") === "thumb" ? "thumb" : "original";
-    res.writeHead(200, withSecurityHeaders({
-      "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
-      "Cache-Control": "private, max-age=86400",
-      "Content-Length": bytes.length,
-      "X-Image-Variant": variant,
-      "X-AI-Content-Source": "user-provided-source-image",
-      "X-Privacy-Download": url.searchParams.get("privacy") === "1" ? "metadata-minimized" : "standard",
-      "Vary": "Accept"
-    }));
-    if (req.method === "HEAD") {
-      res.end();
-      return;
-    }
-    res.end(bytes);
-    return;
-  }
-
-  const fileMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/file$/);
-  if (fileMatch && (req.method === "GET" || req.method === "HEAD")) {
-    const current = await getCurrentUser(req);
-    const generation = await store.getGenerationById(fileMatch[1]);
-    if (!generation) {
-      throw httpError("Image not found", 404);
-    }
-    if (!isPubliclyVisibleGeneration(generation)) {
-      ensureAuthenticated(current);
-      if (!canTouchGeneration(current.user, generation)) {
-        throw httpError("Image not found", 404);
-      }
-    }
-    const absolutePath = path.join(GENERATED_DIR, generation.filename);
-    const extension = path.extname(generation.filename).toLowerCase();
-    const bytes = await fs.readFile(absolutePath).catch((error) => {
-      if (error?.code === "ENOENT") throw httpError("Image file not found", 404);
-      throw error;
-    });
-    const variant = url.searchParams.get("variant") === "thumb" ? "thumb" : "original";
-    res.writeHead(200, withSecurityHeaders({
-      "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
-      "Cache-Control": "private, max-age=86400",
-      "Content-Length": bytes.length,
-      "X-Image-Variant": variant,
-      "X-AI-Content-Source": "ai-generated",
-      "X-Privacy-Download": url.searchParams.get("privacy") === "1" ? "metadata-minimized" : "standard",
-      "Vary": "Accept"
-    }));
-    if (req.method === "HEAD") {
-      res.end();
-      return;
-    }
-    res.end(bytes);
-    return;
   }
 
   sendError(res, 404, "API route not found");

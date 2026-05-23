@@ -9,7 +9,7 @@ import { createRequire } from "node:module";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
-const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
+const tagStore = fs.readFileSync(path.join(rootDir, "src/stores/tag-store.js"), "utf8");
 const syncModule = fs.readFileSync(path.join(rootDir, "src/prompt-source-sync.js"), "utf8");
 const require = createRequire(import.meta.url);
 const {
@@ -23,9 +23,9 @@ const {
 assert(server.includes('require("./src/prompt-source-sync")'), "server.js must delegate prompt sync to src/prompt-source-sync.js");
 assert(!server.includes("function syncGithubGenericPromptSource"), "prompt sync parser logic must stay out of server.js");
 assert(server.includes("reviewPendingPromptDuplicates({ limit: Math.min(24, result.upserted) })"), "remote sync must trigger AI duplicate review after candidate scanning");
-assert(store.includes("ps_basketikun_infinite_canvas"), "prompt source seed must include basketikun/infinite-canvas");
-assert(store.includes("https://github.com/basketikun/infinite-canvas"), "prompt source seed must point at basketikun/infinite-canvas");
-assert(store.includes('parser: "infinite-canvas"'), "basketikun/infinite-canvas must use the dedicated parser");
+assert(tagStore.includes("ps_basketikun_infinite_canvas"), "prompt source seed must include basketikun/infinite-canvas");
+assert(tagStore.includes("https://github.com/basketikun/infinite-canvas"), "prompt source seed must point at basketikun/infinite-canvas");
+assert(tagStore.includes('parser: "infinite-canvas"'), "basketikun/infinite-canvas must use the dedicated parser");
 
 assert(syncModule.includes('INFINITE_CANVAS_SOURCE_REPO = "basketikun/infinite-canvas"'), "sync module must preserve sourceRepo");
 assert(syncModule.includes("syncInfiniteCanvasPromptSource"), "sync module must expose the infinite-canvas parser path");
