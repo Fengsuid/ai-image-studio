@@ -1517,6 +1517,17 @@ function updateNav() {
       : "API key not configured";
   elements.apiStatus.style.color = hasApiKey ? "#64748b" : "#b42318";
   updateNotificationBadge();
+  syncThemeMobileNav();
+}
+
+function syncThemeMobileNav(activeOverride = "") {
+  window.ImageStudioThemeNav?.sync?.({
+    view: state.view,
+    active: activeOverride,
+    heroVisible: state.view === "home" ? shouldShowHero() : false,
+    loggedIn: Boolean(state.user),
+    canvasHidden: isCanvasEntryHidden()
+  });
 }
 
 function updateNotificationBadge() {
@@ -5909,6 +5920,7 @@ function closeModal() {
     const route = routeState({ modal: "", workDetailId: "", galleryId: "" });
     window.history.replaceState(route, "", routeUrl(route));
   }
+  syncThemeMobileNav();
 }
 
 function openMyWorksModal(options = {}) {
@@ -5916,6 +5928,7 @@ function openMyWorksModal(options = {}) {
     openAuthModal("login");
     return;
   }
+  syncThemeMobileNav("works");
   const shouldReplaceRoute = options.replaceRoute !== false;
   state.worksFilter = state.worksFilter || "all";
   const filters = [
@@ -6978,6 +6991,23 @@ async function bootstrap() {
   }
   setTimeout(maybeOpenUnreadAnnouncementModal, 700);
 }
+
+window.ImageStudioAppActions = {
+  navigate,
+  openImageEditor,
+  openCanvasWorkspace,
+  openMyWorksModal,
+  openAuthModal,
+  focusGenerationComposer() {
+    state.forceHero = false;
+    setView("home");
+    syncComposers();
+    setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
+  },
+  isLoggedIn() {
+    return Boolean(state.user);
+  }
+};
 
 function bindGlobalEvents() {
   elements.brandBtn.addEventListener("click", () => {

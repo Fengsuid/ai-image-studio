@@ -57,6 +57,7 @@
     "smoke:gallery-detail-media": "node scripts/smoke/check-gallery-detail-media.mjs",
     "smoke:css-visual-polish": "node scripts/smoke/check-css-visual-polish.mjs",
     "smoke:css-module-split": "node scripts/smoke/check-css-module-split.mjs",
+    "smoke:theme-mobile-nav": "node scripts/smoke/check-theme-mobile-nav.mjs",
     "smoke:gallery-card-tags": "node scripts/smoke/check-gallery-card-tags.mjs",
     "smoke:gallery-experience-task46": "node scripts/smoke/check-gallery-experience-task46.mjs",
     "smoke:mobile-layout": "node scripts/smoke/check-mobile-layout.mjs",

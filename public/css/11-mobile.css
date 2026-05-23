@@ -90,3 +90,106 @@
     transition-duration: 1ms !important;
   }
 }
+
+@media (max-width: 640px) {
+  .app {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 120;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+    border-top: 1px solid var(--border-subtle);
+    box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(18px);
+  }
+
+  .bottom-nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 54px;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.1;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
+  }
+
+  .bottom-nav-item i {
+    font-size: 21px;
+    line-height: 1;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--brand);
+    background: var(--brand-soft);
+  }
+
+  .bottom-nav-item:active {
+    transform: translateY(1px);
+  }
+
+  .bottom-nav-generate {
+    position: relative;
+    top: -12px;
+    color: var(--brand);
+  }
+
+  .bottom-nav-generate .nav-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-full);
+    display: grid;
+    place-items: center;
+    color: var(--text-on-brand);
+    background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+    box-shadow: var(--shadow-brand);
+  }
+
+  .bottom-nav-generate .nav-icon-wrap i {
+    font-size: 24px;
+  }
+
+  .bottom-nav-generate.active {
+    background: transparent;
+  }
+
+  .toast-layer {
+    bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .chat-view .sticky-composer,
+  .editor-prompt-bar {
+    margin-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .modal-layer {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 641px) {
+  .bottom-nav {
+    display: none;
+  }
+}

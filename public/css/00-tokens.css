@@ -14,6 +14,7 @@
   --green: #52c41a;
   --blue: #1677ff;
   --red: #ff4d4f;
+  --bg: #ffffff;
   --brand: #2563eb;
   --brand-strong: #1d4ed8;
   --brand-soft: rgba(37, 99, 235, 0.1);
@@ -70,7 +71,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  background: #fff;
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -144,11 +145,11 @@ a {
     radial-gradient(circle at 12% 16%, rgba(96, 165, 250, 0.16), transparent 28%),
     radial-gradient(circle at 82% 18%, rgba(244, 114, 182, 0.13), transparent 30%),
     radial-gradient(circle at 50% 92%, rgba(251, 191, 36, 0.12), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
 }
 
 .app.editor-mode {
-  background: linear-gradient(135deg, #eef4f8 0%, #f8fafc 46%, #f1eadf 100%);
+  background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 46%, var(--surface) 100%);
 }
 
 .app.editor-mode .ambient {

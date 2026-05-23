@@ -1,5 +1,6 @@
 /* AIS-RLS-071 compatibility entry. CSS rules live in public/css modules. */
 @import url("/css/00-tokens.css");
+@import url("/css/00-theme.css");
 @import url("/css/01-reset.css");
 @import url("/css/02-typography.css");
 @import url("/css/03-layout.css");
