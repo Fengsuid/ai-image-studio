@@ -335,8 +335,20 @@ async function checkAdminResources() {
   assert(script.body.includes("/api/admin/prompt-duplicates"), `${scriptPath} should load prompt duplicate candidates`);
   assert(script.body.includes("/api/admin/rum"), `${scriptPath} should load RUM metrics`);
   assert(script.body.includes("dashboardContext"), `${scriptPath} should build admin dashboard health context`);
-  assert(script.body.includes("快捷入口"), `${scriptPath} should render admin dashboard quick actions`);
-  assert(script.body.includes("最近异常"), `${scriptPath} should render admin dashboard recent issues`);
+  const adminModuleScripts = [...admin.body.matchAll(/src="([^"]*\/admin-(?:overview|users|providers|gallery)\.js[^"]*)"/g)]
+    .map((match) => match[1]);
+  assert(adminModuleScripts.length >= 4, "/admin should load admin panel modules before admin.js");
+  const moduleBodies = [];
+  for (const modulePath of adminModuleScripts) {
+    log(`GET ${modulePath}`);
+    const module = await fetchText(modulePath, "application/javascript,*/*");
+    assert(module.status === 200, `${modulePath} status=${module.status}`);
+    assert(module.body.includes("window.AdminModules"), `${modulePath} should register an AdminModules entry`);
+    moduleBodies.push(module.body);
+  }
+  const adminBundle = [script.body, ...moduleBodies].join("\n");
+  assert(adminBundle.includes("快捷入口"), "/admin modules should render admin dashboard quick actions");
+  assert(adminBundle.includes("最近异常"), "/admin modules should render admin dashboard recent issues");
   assert(script.body.includes("growthConfig"), `${scriptPath} should expose growth configuration`);
   assert(script.body.includes("providerCapabilityConfig"), `${scriptPath} should expose provider capability configuration`);
   assert(script.body.includes("contactEmail"), `${scriptPath} should expose contact email settings`);
