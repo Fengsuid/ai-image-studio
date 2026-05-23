@@ -8,8 +8,25 @@ import path from "node:path";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
-const css = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const cssEntry = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const cssImportPaths = [...cssEntry.matchAll(/@import\s+url\("([^"]+)"\);/g)].map((match) => match[1]);
+const cssModules = cssImportPaths.map((importPath) => {
+  assert(importPath.startsWith("/css/"), `styles.css import should stay under /css: ${importPath}`);
+  const diskPath = path.join(rootDir, "public", importPath);
+  assert(fs.existsSync(diskPath), `styles.css import target missing: ${importPath}`);
+  const source = fs.readFileSync(diskPath, "utf8");
+  const lineCount = source.split(/\r?\n/).length;
+  assert(lineCount < 500, `${importPath} should stay below 500 lines (${lineCount})`);
+  return source;
+});
+const css = [
+  cssEntry,
+  ...cssModules
+].join("\n");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
+
+assert(cssImportPaths.length >= 12, "styles.css should import split CSS modules");
+assert(!cssEntry.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@import\s+url\("[^"]+"\);\s*/g, "").trim(), "styles.css should remain an import-only compatibility entry");
 
 assert.equal(
   packageJson.scripts["smoke:css-visual-polish"],

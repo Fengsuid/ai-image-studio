@@ -59,6 +59,26 @@ async function fetchText(pathSuffix, accept = "text/plain,*/*") {
   }
 }
 
+async function fetchCssWithImports(pathSuffix, seen = new Set()) {
+  const cssUrl = new URL(pathSuffix, baseUrl);
+  const key = `${cssUrl.pathname}${cssUrl.search}`;
+  if (seen.has(key)) return { status: 200, headers: new Headers(), body: "" };
+  seen.add(key);
+
+  const response = await fetchText(key, "text/css,*/*");
+  const importBodies = [];
+  for (const match of response.body.matchAll(/@import\s+url\(["']?([^"')]+)["']?\);/g)) {
+    const importUrl = new URL(match[1], cssUrl);
+    const imported = await fetchCssWithImports(`${importUrl.pathname}${importUrl.search}`, seen);
+    if (imported.status !== 200) return imported;
+    importBodies.push(imported.body);
+  }
+  return {
+    ...response,
+    body: [response.body, ...importBodies].join("\n")
+  };
+}
+
 async function fetchHead(pathSuffix, accept = "*/*") {
   const url = `${baseUrl}${pathSuffix}`;
   const controller = new AbortController();
@@ -152,7 +172,7 @@ async function checkHomeResources() {
   }
 
   log(`GET ${stylePath}`);
-  const style = await fetchText(stylePath, "text/css,*/*");
+  const style = await fetchCssWithImports(stylePath);
   assert(style.status === 200, `${stylePath} status=${style.status}`);
   assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
   assert(style.body.includes("admin-overview-hero"), `${stylePath} should style admin dashboard overview hero`);
@@ -298,7 +318,7 @@ async function checkAdminResources() {
   }
 
   log(`GET ${stylePath}`);
-  const style = await fetchText(stylePath, "text/css,*/*");
+  const style = await fetchCssWithImports(stylePath);
   assert(style.status === 200, `${stylePath} status=${style.status}`);
   assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
 

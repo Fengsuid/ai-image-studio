@@ -6,12 +6,13 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const actions = fs.readFileSync(path.join(rootDir, "public/generation-result-actions.js"), "utf8");
-const css = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const css = readPublicCssWithImports(rootDir);
 
 assert(indexHtml.includes("/generation-result-actions.js"), "index.html must load generation-result-actions.js");
 assert(indexHtml.indexOf("/generation-result-actions.js") < indexHtml.indexOf("/app.js"), "generation-result-actions.js must load before app.js");

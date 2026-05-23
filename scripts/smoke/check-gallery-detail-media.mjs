@@ -12,7 +12,16 @@ const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const media = fs.readFileSync(path.join(rootDir, "public/gallery-detail-media.js"), "utf8");
 const creativeRoute = fs.readFileSync(path.join(rootDir, "src/creative-route.js"), "utf8");
-const css = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const cssDir = path.join(rootDir, "public/css");
+const css = [
+  fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8"),
+  ...(fs.existsSync(cssDir)
+    ? fs.readdirSync(cssDir)
+        .filter((name) => name.endsWith(".css"))
+        .sort()
+        .map((name) => fs.readFileSync(path.join(cssDir, name), "utf8"))
+    : [])
+].join("\n");
 
 assert(indexHtml.includes("/gallery-detail-media.js"), "index.html must load gallery-detail-media.js");
 assert(indexHtml.indexOf("/gallery-detail-media.js") < indexHtml.indexOf("/app.js"), "gallery-detail-media.js must load before app.js");

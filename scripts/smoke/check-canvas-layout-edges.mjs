@@ -6,10 +6,11 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
-const styles = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const styles = readPublicCssWithImports(rootDir);
 const canvas = fs.readFileSync(path.join(rootDir, "public/canvas.js"), "utf8");
 
 const required = ["/canvas-nodes.js", "/canvas-geometry.js", "/canvas-layout.js", "/canvas-edges.js", "/canvas.js"];

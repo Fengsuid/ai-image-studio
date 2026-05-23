@@ -5,12 +5,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const leaderboard = fs.readFileSync(path.join(rootDir, "public/gallery-leaderboard.js"), "utf8");
-const css = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const css = readPublicCssWithImports(rootDir);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 
 assert(app.includes("gallery-main-grid"), "library cards must be wrapped separately from the leaderboard");

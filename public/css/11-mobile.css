@@ -1,0 +1,92 @@
+/* Split from public/styles.css for AIS-RLS-071.
+   Order chunk 22 of 22; keep import order stable until semantic CSS modules are refined. */
+
+.work-visual,
+.gallery-rank-visual,
+.prompt-card .card-art {
+  position: relative;
+  overflow: hidden;
+}
+
+.recent-visual::after,
+.work-visual::after,
+.gallery-rank-visual::after,
+.prompt-card .card-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.34));
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.recent-tile:hover .recent-visual::after,
+.work-card:hover .work-visual::after,
+.gallery-rank-card:hover .gallery-rank-visual::after,
+.prompt-card:hover .card-art::after {
+  opacity: 1;
+}
+
+.prompt-engagement button,
+.gallery-rank-card .rank-like,
+.square-preview-actions button[data-square-like] {
+  transform-origin: center;
+}
+
+.prompt-engagement button.liked,
+.gallery-rank-card .rank-like.liked,
+.square-preview-actions button.liked {
+  color: var(--red);
+  animation: ais-pop var(--dur-slow) var(--ease-bounce);
+}
+
+[data-generation-progress] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+[data-generation-progress]::before {
+  content: "";
+  width: 26px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--brand), #14b8a6, var(--accent), var(--brand));
+  background-size: 200% 100%;
+  animation: ais-progress-flow 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-pop-in,
+  .modal-layer,
+  .modal,
+  .square-preview-modal,
+  .works-modal,
+  .publish-modal,
+  .auth-modal,
+  .admin-modal,
+  .toast,
+  .hero .composer-mount,
+  .recent-tile,
+  .gallery-rank-card,
+  .prompt-card,
+  .work-card,
+  .prompt-engagement button.liked,
+  .gallery-rank-card .rank-like.liked,
+  .square-preview-actions button.liked,
+  [data-generation-progress]::before,
+  .skeleton,
+  .image-skeleton,
+  .generation-card.loading,
+  .work-card.loading {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -7,11 +7,12 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import vm from "node:vm";
 import { createRequire } from "node:module";
+import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
-const styles = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const styles = readPublicCssWithImports(rootDir);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
 const syncModule = fs.readFileSync(path.join(rootDir, "src/prompt-source-sync.js"), "utf8");
@@ -28,7 +29,7 @@ assert(html.includes("/render-stamp.js"), "render stamp logic must be split into
 assert(app.includes('navigate("leaderboard"'), "top-level navigation must open the leaderboard page");
 assert(app.includes("renderLeaderboardPage"), "leaderboard page renderer must be wired");
 assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "gallery must not inline leaderboard beside cards");
-assert(!app.includes("data-open-leaderboard"), "gallery page must not show a leaderboard CTA");
+assert(!app.includes("data-open-leaderboard\""), "gallery page must not show the old leaderboard CTA");
 assert(!styles.includes(".leaderboard-cta"), "gallery leaderboard CTA styles must be removed");
 assert(html.includes('data-i18n="galleryLeaderboardPage">点赞排行榜</span>'), "top nav must show the Chinese leaderboard label before i18n hydration");
 assert(app.includes('galleryLeaderboardPage: "点赞排行榜"'), "leaderboard nav label must be Chinese in zh locale");

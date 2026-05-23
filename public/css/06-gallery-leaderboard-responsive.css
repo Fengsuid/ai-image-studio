@@ -1,0 +1,374 @@
+/* Split from public/styles.css for AIS-RLS-071.
+   Order chunk 15 of 23; keep import order stable until semantic CSS modules are refined. */
+
+@media (max-width: 860px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px 16px;
+  }
+
+  .top-actions {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .nav-pill span {
+    display: none;
+  }
+
+  .nav-pill .sparkle-icon {
+    display: inline-grid;
+  }
+
+  .hero {
+    min-height: min(700px, calc(100vh - 96px));
+    padding: 126px 18px 36px;
+    gap: 14px;
+  }
+
+  .hero::before {
+    top: 112px;
+    width: 112vw;
+    height: 300px;
+  }
+
+  .hero h1 {
+    font-size: clamp(58px, 16vw, 104px);
+    width: min(100%, 720px);
+  }
+
+  .hero h1 em {
+    font-size: clamp(32px, 7.6vw, 48px);
+  }
+
+  .library-hero h1 {
+    font-size: 56px;
+  }
+
+  .hero-meta-row {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .daily-metric {
+    gap: 8px;
+    white-space: normal;
+  }
+
+  .advanced-options,
+  .custom-size-row,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-masonry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .works-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .square-preview-modal {
+    width: calc(100vw - 20px);
+    height: calc(100vh - 20px);
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 48vh) minmax(0, 1fr);
+  }
+
+  .square-preview-stage {
+    padding: 16px;
+  }
+
+  .square-preview-main {
+    max-height: 44vh;
+  }
+
+  .square-preview-side {
+    padding: 18px;
+  }
+
+  .chat-view {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding-top: 16px;
+  }
+
+  .chat-workspace {
+    grid-column: 1;
+  }
+
+  .chat-session-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 74px;
+    width: auto;
+    max-height: 48vh;
+    height: auto;
+    min-height: 0;
+    z-index: 52;
+    border-radius: 20px;
+  }
+
+  .app.chat-panel-visible:not(.session-panel-open) .chat-session-panel {
+    display: none;
+  }
+
+  .session-drawer-toggle {
+    position: static;
+  }
+
+  .chat-session-list {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px;
+  }
+
+  .chat-session-card {
+    width: 250px;
+    flex: 0 0 250px;
+  }
+
+  .chat-view .sticky-composer {
+    left: 50%;
+    width: min(960px, calc(100vw - 32px));
+  }
+
+  .sticky-composer {
+    bottom: 10px;
+  }
+
+  .editor-header {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .editor-brand {
+    justify-self: center;
+  }
+
+  .editor-canvas-area {
+    padding: 104px 18px 158px;
+  }
+
+  .editor-prompt-bar {
+    width: calc(100vw - 32px);
+    bottom: 84px;
+    border-radius: 28px;
+    flex-wrap: wrap;
+  }
+
+.editor-public-toggle {
+  order: 5;
+}
+
+.editor-source-toggle {
+  order: 6;
+}
+
+  .editor-zoom {
+    left: 16px;
+    bottom: 22px;
+  }
+
+  .editor-keyboard {
+    right: 16px;
+    bottom: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .prompt-grid {
+    grid-template-columns: 1fr;
+    padding: 0 12px;
+  }
+
+  .gallery-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-leaderboard {
+    position: static;
+    order: -1;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .gallery-rank-tabs {
+    overflow-x: auto;
+    margin-inline: -2px;
+  }
+
+  .gallery-rank-card {
+    grid-template-columns: 30px 50px minmax(0, 1fr) auto;
+  }
+
+  .top-actions {
+    gap: 6px;
+  }
+
+  .nav-pill,
+  .dark-pill,
+  .icon-pill {
+    min-height: 36px;
+    padding: 0 11px;
+  }
+
+  .icon-pill,
+  .account-avatar {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+  }
+
+  .hero h1 {
+    font-size: clamp(54px, 17vw, 78px);
+    letter-spacing: -0.082em;
+  }
+
+  .hero h1 em {
+    font-size: clamp(30px, 9vw, 40px);
+    letter-spacing: -0.044em;
+  }
+
+  .hero-desc {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+  }
+
+  .composer {
+    border-radius: 28px;
+    padding: 18px;
+  }
+
+  .chat-session-head {
+    padding: 12px;
+  }
+
+  .chat-session-card {
+    width: 220px;
+    flex-basis: 220px;
+  }
+
+  .composer-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .composer-bar {
+    align-items: stretch;
+  }
+
+  .composer-spacer {
+    display: none;
+  }
+
+  .send-button,
+  .tool-button {
+    min-width: 72px;
+  }
+
+  .prompt-box {
+    min-width: 0;
+    font-size: 15px;
+  }
+
+  .library-search {
+    flex-wrap: wrap;
+  }
+
+  .library-search input {
+    flex-basis: 100%;
+    order: 5;
+  }
+
+  .credits-packages {
+    grid-template-columns: 1fr;
+  }
+
+  .works-modal {
+    padding: 20px 14px;
+  }
+
+  .works-head {
+    margin-right: 40px;
+  }
+
+  .works-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .work-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .compliance-modal {
+    padding: 38px 18px 20px;
+    border-radius: 18px;
+  }
+
+  .compliance-title h2 {
+    font-size: 18px;
+  }
+
+  .notice-card {
+    padding: 16px;
+  }
+
+  .recent-masonry {
+    gap: 10px;
+  }
+
+  .recent-visual,
+  .recent-tile.medium .recent-visual {
+    height: 180px;
+  }
+
+  .recent-tile.tall .recent-visual {
+    height: 240px;
+  }
+
+  .editor-view {
+    padding: 12px 10px 24px;
+  }
+
+  .editor-tabs button {
+    min-height: 40px;
+    padding: 0 16px;
+  }
+
+  .editor-toolbar {
+    top: 18px;
+    gap: 4px;
+    padding: 7px;
+  }
+
+  .editor-toolbar button {
+    width: 39px;
+    height: 39px;
+    font-size: 22px;
+  }
+
+  .editor-image-scaler img,
+  .editor-image-frame {
+    max-width: calc(100vw - 42px);
+  }
+
+  .editor-prompt-bar > input {
+    flex-basis: calc(100% - 76px);
+    font-size: 15px;
+  }
+
+  .editor-prompt-bar button[type="submit"] {
+    min-width: 108px;
+    height: 48px;
+    font-size: 16px;
+  }
+}
