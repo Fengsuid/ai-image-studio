@@ -46,6 +46,8 @@
     "smoke:provider-async-mock": "node scripts/smoke/check-provider-async-mock.mjs",
     "smoke:maintenance-boundaries": "node scripts/smoke/check-maintenance-boundaries.mjs",
     "smoke:agent-session-api": "node scripts/smoke/check-agent-session-api.mjs",
+    "smoke:agent-batch-generation": "node scripts/smoke/check-agent-batch-generation.mjs",
+    "smoke:agent-export-canvas": "node scripts/smoke/check-agent-export-canvas.mjs",
     "smoke:gallery-images": "node scripts/smoke/check-gallery-images.mjs",
     "smoke:gallery-leaderboard-sidebar": "node scripts/smoke/check-gallery-leaderboard-sidebar.mjs",
     "smoke:generation-result-actions": "node scripts/smoke/check-generation-result-actions.mjs",

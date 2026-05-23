@@ -80,6 +80,14 @@ export function confirmAgentPlan(sessionId, payload) {
   }));
 }
 
+export function generateAgentBatch(sessionId, payload) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/generate`, jsonRequest("POST", payload));
+}
+
+export function exportAgentCanvas(sessionId, payload) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/export-canvas`, jsonRequest("POST", payload));
+}
+
 function jsonRequest(method, payload) {
   return {
     method,

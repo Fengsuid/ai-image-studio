@@ -45,6 +45,7 @@ const {
   normalizeProviderMapping,
   runProviderMappingRequest
 } = require("./src/provider-mapping");
+const { createAgentGenerationService } = require("./src/agent-generation-service");
 const { createAgentSessionRoute } = require("./src/routes/agent-sessions");
 const { createHealthRoute } = require("./src/routes/health");
 
@@ -149,6 +150,32 @@ const handleHealthRoute = createHealthRoute({
   imageDownloadTimeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS
 });
 
+const {
+  decorateAgentSession,
+  generateAgentBatch,
+  exportAgentCanvas
+} = createAgentGenerationService({
+  store,
+  httpError,
+  randomId,
+  nowIso,
+  choose,
+  cleanPrompt,
+  sanitizeGenerationTitle,
+  normalizeImageSize,
+  normalizeGenerationCost,
+  sanitizeConversationRoute,
+  getClientIp,
+  getUserAgent,
+  enforceGenerationRate,
+  queuePayloadForTextGeneration,
+  enqueueGenerationJob,
+  runQueuedTextGeneration,
+  traceGeneration,
+  safeJsonSummary,
+  defaultModel: DEFAULT_MODEL
+});
+
 const handleAgentSessionRoute = createAgentSessionRoute({
   ensureAuthenticated,
   getCurrentUser,
@@ -157,6 +184,9 @@ const handleAgentSessionRoute = createAgentSessionRoute({
   readJsonBody,
   sanitizePositiveInt,
   sendJson,
+  decorateAgentSession,
+  generateAgentBatch,
+  exportAgentCanvas,
   store
 });
 

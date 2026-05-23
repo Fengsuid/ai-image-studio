@@ -65,6 +65,8 @@ a {
 .agent-panel-head button,
 .agent-compose-actions button,
 .agent-confirm,
+.agent-secondary-action,
+.agent-canvas-result a,
 .agent-login-card a {
   border: 1px solid var(--agent-line);
   border-radius: 999px;
@@ -185,6 +187,7 @@ button:disabled {
 .agent-session-list,
 .agent-thread,
 .agent-variant-list,
+.agent-result-list,
 .agent-questions {
   display: grid;
   gap: 12px;
@@ -344,6 +347,98 @@ button:disabled {
 
 .agent-confirm {
   width: 100%;
+}
+
+.agent-plan-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.agent-secondary-action,
+.agent-canvas-result a {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--agent-coffee);
+  font-weight: 800;
+}
+
+.agent-result-panel,
+.agent-canvas-result {
+  margin-top: 14px;
+  border: 1px solid var(--agent-line);
+  border-radius: 22px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.agent-result-panel > strong,
+.agent-canvas-result > strong {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.agent-request-card {
+  border: 1px solid rgba(31, 26, 20, 0.1);
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(255, 250, 241, 0.7);
+}
+
+.agent-request-card > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.agent-request-card > div:first-child span,
+.agent-request-meta span,
+.agent-canvas-result span {
+  color: var(--agent-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.agent-result-image,
+.agent-result-placeholder {
+  width: 100%;
+  min-height: 132px;
+  margin: 10px 0;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(113, 129, 109, 0.16), rgba(216, 167, 53, 0.12)),
+    repeating-linear-gradient(45deg, rgba(31, 26, 20, 0.04) 0 1px, transparent 1px 10px);
+  color: var(--agent-muted);
+}
+
+.agent-result-image {
+  min-height: 0;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.agent-request-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agent-request-meta span {
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(113, 129, 109, 0.12);
+}
+
+.agent-request-card[data-request-status="failed"] .agent-request-meta span:first-child,
+.agent-request-card[data-request-status="cancelled"] .agent-request-meta span:first-child {
+  background: rgba(179, 91, 53, 0.16);
+  color: #86341f;
+}
+
+.agent-canvas-result {
+  display: grid;
+  gap: 8px;
 }
 
 .agent-error {

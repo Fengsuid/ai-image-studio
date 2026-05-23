@@ -3,6 +3,8 @@ import {
   confirmAgentPlan,
   createAgentPlan,
   createAgentSession,
+  exportAgentCanvas,
+  generateAgentBatch,
   getAgentSession,
   getCurrentAuth,
   listAgentSessions
@@ -16,6 +18,8 @@ export function createAgentWorkspaceApp(root) {
     sessions: [],
     currentSession: null,
     currentPlan: null,
+    lastBatchResult: null,
+    lastCanvas: null,
     selectedVariantIds: new Set(),
     draft: DEFAULT_PROMPT,
     status: "idle",
@@ -34,6 +38,8 @@ export function createAgentWorkspaceApp(root) {
           state.sessions = [];
           state.currentSession = null;
           state.currentPlan = null;
+          state.lastBatchResult = null;
+          state.lastCanvas = null;
           state.status = "unauthenticated";
           render();
           return;
@@ -61,6 +67,8 @@ export function createAgentWorkspaceApp(root) {
       state.currentSession = result.session || null;
       state.currentPlan = latestPlanFromSession(state.currentSession);
       state.selectedVariantIds = new Set((state.currentPlan?.variants || []).map((item) => item.id));
+      state.lastBatchResult = latestBatchResultFromSession(state.currentSession);
+      state.lastCanvas = latestCanvasFromSession(state.currentSession);
       state.status = "ready";
     },
 
@@ -75,8 +83,8 @@ export function createAgentWorkspaceApp(root) {
         if (!sessionId) {
           const created = await createAgentSession({
             title: titleFromMessage(message),
-            summary: "Agent workspace MVP session",
-            data: { source: "agent-workspace", confirmationRequired: true }
+            summary: "Agent workspace session",
+            data: { source: "agent-workspace", confirmationRequired: true, batchGenerationEnabled: true }
           });
           sessionId = created.session?.id || "";
         }
@@ -87,6 +95,8 @@ export function createAgentWorkspaceApp(root) {
         state.currentSession = result.session || null;
         state.currentPlan = result.plan || latestPlanFromSession(state.currentSession);
         state.selectedVariantIds = new Set((state.currentPlan?.variants || []).map((item) => item.id));
+        state.lastBatchResult = null;
+        state.lastCanvas = null;
         const sessions = await listAgentSessions({ limit: 30 });
         state.sessions = sessions.sessions || [];
         state.status = "ready";
@@ -99,19 +109,57 @@ export function createAgentWorkspaceApp(root) {
 
     async confirmPlan() {
       if (!state.currentSession?.id || !state.currentPlan) return;
+      const selectedVariantIds = [...state.selectedVariantIds];
+      if (selectedVariantIds.length < 2 || selectedVariantIds.length > 4) {
+        state.error = "请选择 2 到 4 个方案后再批量生成。";
+        render();
+        return;
+      }
       state.status = "confirming";
       state.error = "";
       render();
       try {
-        const selectedVariantIds = [...state.selectedVariantIds];
-        const result = await confirmAgentPlan(state.currentSession.id, {
+        const confirmed = await confirmAgentPlan(state.currentSession.id, {
           plan: state.currentPlan,
           selectedVariantIds,
-          note: "Agent workspace MVP confirmation. Batch generation is intentionally deferred."
+          note: "Agent workspace confirmation before batch generation."
+        });
+        state.currentSession = confirmed.session || state.currentSession;
+        state.currentPlan = latestPlanFromSession(state.currentSession) || state.currentPlan;
+        state.status = "generating";
+        render();
+
+        const batch = await generateAgentBatch(state.currentSession.id, {
+          plan: state.currentPlan,
+          selectedVariantIds
+        });
+        state.currentSession = batch.session || state.currentSession;
+        state.currentPlan = latestPlanFromSession(state.currentSession) || state.currentPlan;
+        state.lastBatchResult = batch;
+        state.status = "submitted";
+      } catch (error) {
+        state.error = errorMessage(error);
+        state.status = "error";
+      }
+      render();
+    },
+
+    async exportCanvas() {
+      if (!state.currentSession?.id || !state.currentPlan) return;
+      const selectedVariantIds = [...state.selectedVariantIds];
+      state.status = "exporting";
+      state.error = "";
+      render();
+      try {
+        const result = await exportAgentCanvas(state.currentSession.id, {
+          plan: state.currentPlan,
+          selectedVariantIds,
+          title: `Agent Canvas - ${state.currentSession.title || state.currentPlan.intent || "session"}`
         });
         state.currentSession = result.session || state.currentSession;
         state.currentPlan = latestPlanFromSession(state.currentSession) || state.currentPlan;
-        state.status = "confirmed";
+        state.lastCanvas = result.canvas || null;
+        state.status = "exported";
       } catch (error) {
         state.error = errorMessage(error);
         state.status = "error";
@@ -130,6 +178,8 @@ export function createAgentWorkspaceApp(root) {
     root.querySelector("[data-agent-new]")?.addEventListener("click", () => {
       state.currentSession = null;
       state.currentPlan = null;
+      state.lastBatchResult = null;
+      state.lastCanvas = null;
       state.selectedVariantIds = new Set();
       state.draft = DEFAULT_PROMPT;
       render();
@@ -137,6 +187,7 @@ export function createAgentWorkspaceApp(root) {
     });
     root.querySelector("[data-agent-submit]")?.addEventListener("click", () => actions.submitPlan());
     root.querySelector("[data-agent-confirm]")?.addEventListener("click", () => actions.confirmPlan());
+    root.querySelector("[data-agent-export-canvas]")?.addEventListener("click", () => actions.exportCanvas());
     root.querySelector("[data-agent-draft]")?.addEventListener("input", (event) => {
       state.draft = event.currentTarget.value;
     });
@@ -151,6 +202,7 @@ export function createAgentWorkspaceApp(root) {
       input.addEventListener("change", () => {
         if (input.checked) state.selectedVariantIds.add(input.dataset.agentVariantId);
         else state.selectedVariantIds.delete(input.dataset.agentVariantId);
+        render();
       });
     });
   }
@@ -160,7 +212,7 @@ export function createAgentWorkspaceApp(root) {
 }
 
 function renderShell(state) {
-  const busy = ["loading", "planning", "confirming"].includes(state.status);
+  const busy = ["loading", "planning", "confirming", "generating", "exporting"].includes(state.status);
   return `
     <main class="agent-shell" data-status="${escapeAttr(state.status)}">
       <header class="agent-hero">
@@ -173,13 +225,13 @@ function renderShell(state) {
           <section>
             <span class="agent-kicker">Agent 创作工作台</span>
             <h1>把一句需求拆成可执行的生图路线</h1>
-            <p>当前 MVP 只生成计划和确认记录：确认前不会扣积分，也不会创建真实 generation。批量生成会在后续任务接入。</p>
+            <p>先生成 2 到 4 个结构化方案，再确认入队。每个方案都会创建独立 generation request，并可导出为私有 Canvas v2 项目。</p>
           </section>
           <aside class="agent-safety-card">
             <strong>安全边界</strong>
             <span>同源 API</span>
             <span>CSRF 写保护</span>
-            <span>Provider Key 不进浏览器</span>
+            <span>独立队列追踪</span>
           </aside>
         </div>
       </header>
@@ -268,6 +320,8 @@ function renderPlan(state, busy) {
       </div>
     `;
   }
+  const selectedCount = state.selectedVariantIds.size;
+  const invalidSelection = selectedCount < 2 || selectedCount > 4;
   return `
     <div class="agent-plan-head">
       <div>
@@ -277,13 +331,18 @@ function renderPlan(state, busy) {
       <strong>${Number(plan.estimatedCredits || 0)} credits</strong>
     </div>
     <div class="agent-plan-notice">
-      确认前不扣积分，不创建真实 generation。当前计划共 ${Number(plan.variantCount || plan.variants?.length || 0)} 个方案。
+      当前选中 ${selectedCount} 个方案。点击批量生成后才会进入队列并按现有生成规则扣积分。
     </div>
     <div class="agent-variant-list">
       ${(plan.variants || []).map((variant) => renderVariant(variant, state)).join("")}
     </div>
     ${renderQuestions(plan)}
-    <button type="button" class="agent-confirm" data-agent-confirm ${busy ? "disabled" : ""}>确认方案，等待批量生成</button>
+    ${renderGenerationResults(state)}
+    ${renderCanvasResult(state)}
+    <div class="agent-plan-actions">
+      <button type="button" class="agent-confirm" data-agent-confirm ${busy || invalidSelection ? "disabled" : ""}>确认并开始批量生成</button>
+      <button type="button" class="agent-secondary-action" data-agent-export-canvas ${busy ? "disabled" : ""}>导出到 Canvas v2</button>
+    </div>
   `;
 }
 
@@ -316,6 +375,93 @@ function renderQuestions(plan) {
   `;
 }
 
+function renderGenerationResults(state) {
+  const requests = generationRequestsFromSession(state.currentSession);
+  if (!requests.length) return "";
+  return `
+    <section class="agent-result-panel">
+      <strong>生成请求</strong>
+      <div class="agent-result-list">
+        ${requests.map((request) => renderGenerationRequest(request)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderGenerationRequest(request) {
+  const image = request.imageUrl
+    ? `<img class="agent-result-image" src="${escapeAttr(request.imageUrl)}" alt="Agent generated result">`
+    : `<span class="agent-result-placeholder">等待生成结果</span>`;
+  return `
+    <article class="agent-request-card" data-request-status="${escapeAttr(request.status || "pending")}">
+      <div>
+        <strong>${escapeHtml(request.title || request.variantTitle || request.variantId || "Agent request")}</strong>
+        <span>${escapeHtml(request.id || request.requestId || "")}</span>
+      </div>
+      ${image}
+      <div class="agent-request-meta">
+        <span>${escapeHtml(request.status || "pending")}</span>
+        <span>${escapeHtml(request.queueStatus || "")}</span>
+        ${request.errorMessage ? `<span>${escapeHtml(request.errorMessage)}</span>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function renderCanvasResult(state) {
+  const canvas = state.lastCanvas || latestCanvasFromSession(state.currentSession);
+  if (!canvas?.id) return "";
+  const url = canvas.url || `/canvas-v2?id=${encodeURIComponent(canvas.id)}`;
+  return `
+    <section class="agent-canvas-result">
+      <strong>Canvas v2 已就绪</strong>
+      <span>${escapeHtml(canvas.title || canvas.id)}</span>
+      <a href="${escapeAttr(url)}">打开私有 Canvas</a>
+    </section>
+  `;
+}
+
+function generationRequestsFromSession(session) {
+  return (session?.steps || [])
+    .filter((step) => step?.kind === "generate_batch")
+    .map((step) => {
+      const request = step.output?.request || {};
+      return {
+        id: step.requestId || request.id || "",
+        requestId: step.requestId || request.id || "",
+        variantId: step.input?.id || request.variantId || "",
+        title: step.input?.title || request.title || "",
+        status: step.output?.requestStatus || request.status || step.status || "pending",
+        queueStatus: step.output?.queueStatus || request.queueStatus || "",
+        imageUrl: step.output?.imageUrl || request.imageUrl || "",
+        errorMessage: step.output?.errorMessage || request.errorMessage || ""
+      };
+    });
+}
+
+function latestBatchResultFromSession(session) {
+  const requests = generationRequestsFromSession(session);
+  return requests.length ? { requests } : null;
+}
+
+function latestCanvasFromSession(session) {
+  const steps = session?.steps || [];
+  for (let index = steps.length - 1; index >= 0; index -= 1) {
+    const step = steps[index];
+    if (step?.kind !== "canvas_route_suggestion") continue;
+    const canvasId = step.output?.canvasId || step.output?.id || "";
+    if (!canvasId) continue;
+    return {
+      id: canvasId,
+      title: step.output?.title || `Canvas ${canvasId}`,
+      nodeCount: Number(step.output?.nodeCount || 0),
+      edgeCount: Number(step.output?.edgeCount || 0),
+      url: `/canvas-v2?id=${encodeURIComponent(canvasId)}`
+    };
+  }
+  return null;
+}
+
 function latestPlanFromSession(session) {
   const steps = session?.steps || [];
   for (let index = steps.length - 1; index >= 0; index -= 1) {
@@ -345,7 +491,11 @@ function statusText(status) {
     loading: "加载会话中...",
     planning: "正在生成结构化方案...",
     confirming: "正在保存确认记录...",
-    confirmed: "方案已确认，尚未触发生成。",
+    generating: "正在提交独立生成请求...",
+    submitted: "批量生成已提交，刷新可查看最新状态。",
+    exporting: "正在导出 Canvas v2 项目...",
+    exported: "Canvas v2 项目已导出。",
+    confirmed: "方案已确认。",
     ready: "准备就绪",
     error: "出现错误",
     idle: "准备就绪"

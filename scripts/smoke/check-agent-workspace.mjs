@@ -201,7 +201,9 @@ function staticChecks() {
   assert(!apiSource.includes("apiKey"), "agent workspace must not handle provider API keys");
   assert(appSource.includes("createAgentPlan"), "agent app must submit plan requests");
   assert(appSource.includes("confirmAgentPlan"), "agent app must confirm plans through API");
-  assert(appSource.includes("确认前不会扣积分"), "agent UI must state no-credit-before-confirm contract");
+  assert(appSource.includes("generateAgentBatch"), "agent app must submit batch generation requests");
+  assert(appSource.includes("exportAgentCanvas"), "agent app must export Agent sessions to Canvas v2");
+  assert(appSource.includes("点击批量生成后才会进入队列"), "agent UI must state explicit queue/credit boundary");
 
   const jsPath = indexHtml.match(/src="([^"]*\/agent\/assets\/main\.[^"]+\.js)"/)?.[1] || "";
   const cssPath = indexHtml.match(/href="([^"]*\/agent\/assets\/styles\.[^"]+\.css)"/)?.[1] || "";
