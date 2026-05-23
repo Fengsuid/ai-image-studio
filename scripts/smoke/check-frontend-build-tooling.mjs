@@ -18,6 +18,7 @@ const builtJs = read("public/frontend-build-manifest.js");
 const builtJson = JSON.parse(read("public/frontend-build-manifest.json"));
 const indexHtml = read("public/index.html");
 const packageJson = JSON.parse(read("package.json"));
+const dockerfile = read("Dockerfile");
 
 assert(source.includes("export const frontendBuildManifest"), "frontend source must use standard export");
 assert(buildScript.includes("from \"../../src/frontend/app-build-manifest.mjs\""), "build script must import frontend source module");
@@ -29,6 +30,9 @@ assert(indexHtml.indexOf("/frontend-build-manifest.js") < indexHtml.indexOf("/ap
 assert(packageJson.scripts?.["frontend:check"] === "node scripts/frontend/check-public-modules.mjs", "package.json must expose frontend:check");
 assert(packageJson.scripts?.["frontend:build"] === "node scripts/frontend/build-public-modules.mjs", "package.json must expose frontend:build");
 assert(packageJson.scripts?.["smoke:frontend-build-tooling"] === "node scripts/smoke/check-frontend-build-tooling.mjs", "package.json must expose smoke:frontend-build-tooling");
+assert(dockerfile.includes("COPY src ./src"), "Dockerfile must copy src for frontend source modules");
+assert(dockerfile.includes("COPY public ./public"), "Dockerfile must copy generated public frontend assets");
+assert(dockerfile.includes("COPY scripts ./scripts"), "Dockerfile must copy frontend build/smoke scripts");
 
 if (failures.length) {
   console.error("[smoke] frontend build tooling failed:");
