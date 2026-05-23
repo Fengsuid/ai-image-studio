@@ -122,6 +122,7 @@ function renderIndex({ mainFile, cssFile }) {
         <p>正在初始化 Agent 创作工作台...</p>
       </main>
     </div>
+    <script src="/cache-db.js?v=20260523-indexeddb-cache-v1"></script>
     <script type="module" src="/agent/assets/${mainFile}"></script>
   </body>
 </html>

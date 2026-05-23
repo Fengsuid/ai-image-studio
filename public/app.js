@@ -1164,6 +1164,96 @@ function imageVariantUrl(url, variant = "thumb") {
   return `${url}${joiner}variant=${encodeURIComponent(variant)}`;
 }
 
+function cacheDb() {
+  return window.ImageStudioCacheDb || null;
+}
+
+function setCurrentCacheUser(user = state.user) {
+  window.ImageStudioCurrentUser = user || null;
+}
+
+function galleryDetailCacheKey(id) {
+  const cleanId = String(id || "").replace(/^square_/, "");
+  return cleanId ? `gallery:${cleanId}:detail` : "";
+}
+
+function galleryThumbCacheKey(id) {
+  const cleanId = String(id || "").replace(/^square_/, "");
+  return cleanId ? `image:generation:${cleanId}:thumb` : "";
+}
+
+async function cacheGalleryDetail(id, generation) {
+  const key = galleryDetailCacheKey(id);
+  if (!key || !generation) return;
+  await cacheDb()?.putJsonSnapshot?.(key, generation, {
+    userId: state.user?.id,
+    ttlMs: 1000 * 60 * 60 * 6,
+    meta: { kind: "gallery-detail", generationId: String(id || "").replace(/^square_/, "") }
+  });
+}
+
+async function readCachedGalleryDetail(id) {
+  const snapshot = await cacheDb()?.getJsonSnapshot?.(galleryDetailCacheKey(id));
+  return snapshot?.value || null;
+}
+
+function wireGalleryImageCache(container, item = {}) {
+  const generationId = item.generationId || item.id || "";
+  const cacheKey = galleryThumbCacheKey(generationId);
+  if (!cacheKey || !container) return;
+  $$("img", container).forEach((image) => {
+    const src = image.getAttribute("src") || "";
+    if (!src || src.includes("/source-file") || /^(data:|blob:)/i.test(src)) return;
+    void cacheDb()?.preferCachedImage?.(image, cacheKey);
+    void cacheDb()?.cacheImageUrl?.(src, {
+      key: cacheKey,
+      userId: state.user?.id,
+      meta: { generationId, kind: "gallery-thumb-refresh" }
+    });
+    image.addEventListener("load", () => {
+      if (image.dataset.cacheObjectUrl) return;
+      void cacheDb()?.cacheImageElement?.(image, {
+        key: cacheKey,
+        userId: state.user?.id,
+        meta: { generationId, kind: "gallery-thumb" }
+      });
+    }, { once: true });
+  });
+}
+
+async function sha256Hex(blob) {
+  if (!blob || !window.crypto?.subtle) return "";
+  try {
+    const hash = await window.crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+    return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return "";
+  }
+}
+
+async function cachePreUploadImageMetadata(files) {
+  const items = Array.from(files || []).filter((file) => file?.type?.startsWith("image/")).slice(0, maxReferenceImages());
+  if (!items.length) return;
+  const metadata = [];
+  for (const file of items) {
+    metadata.push({
+      name: file.name || "",
+      size: file.size || 0,
+      type: file.type || "",
+      lastModified: file.lastModified || 0,
+      sha256: await sha256Hex(file)
+    });
+  }
+  await cacheDb()?.putJsonSnapshot?.(`upload:${Date.now()}:metadata`, {
+    count: metadata.length,
+    files: metadata
+  }, {
+    userId: state.user?.id,
+    ttlMs: 1000 * 60 * 60 * 2,
+    meta: { kind: "pre-upload-image-metadata" }
+  });
+}
+
 function promptImageDisplayUrl(prompt = {}) {
   return window.ImageStudioGalleryModel?.promptImageDisplayUrl?.(prompt) || "";
 }
@@ -4354,6 +4444,7 @@ function hexToRgba(hex, alpha) {
 
 async function handleEditorUpload(files, { appendReferences = false } = {}) {
   try {
+    void cachePreUploadImageMetadata(files);
     const selected = await filesToReferenceImages(files, { limit: maxReferenceImages() });
     if (!selected.length) return;
     if (appendReferences && state.editor.imageUrl) {
@@ -4834,13 +4925,20 @@ async function openSquarePreviewById(id, options = {}) {
     openSquarePreview(localPrompt, options);
     return;
   }
+  const cachedGeneration = await readCachedGalleryDetail(key);
+  if (cachedGeneration) {
+    const cached = generationEntryFromApi(cachedGeneration, { status: "done" });
+    state.publicGallery = [cached, ...state.publicGallery.filter((item) => String(item.id) !== String(cached.id))];
+    openSquarePreview({ ...cached, id: `square_${cached.id}`, generationId: cached.id, kind: "square" }, options);
+  }
   try {
     const data = await api(`/api/gallery/${encodeURIComponent(key)}`);
     const generation = generationEntryFromApi(data.generation, { status: "done" });
     state.publicGallery = [generation, ...state.publicGallery.filter((item) => String(item.id) !== String(generation.id))];
-    openSquarePreview({ ...generation, id: `square_${generation.id}`, generationId: generation.id, kind: "square" }, options);
+    await cacheGalleryDetail(key, data.generation || generation);
+    openSquarePreview({ ...generation, id: `square_${generation.id}`, generationId: generation.id, kind: "square" }, cachedGeneration ? { ...options, replaceRoute: false } : options);
   } catch {
-    openGalleryUnavailableModal(key);
+    if (!cachedGeneration) openGalleryUnavailableModal(key);
   }
 }
 
@@ -4989,6 +5087,7 @@ function openSquarePreview(prompt, options = {}) {
   $("[data-square-like]", elements.modalLayer)?.addEventListener("click", async () => {
     await toggleGalleryLike(item.id);
   });
+  wireGalleryImageCache($(".square-preview-modal", elements.modalLayer), item);
   $("[data-square-text]", elements.modalLayer)?.addEventListener("click", () => {
     state.draftPrompt = mediaController?.selected?.()?.prompt || item.prompt;
     closeModal();
@@ -6320,6 +6419,7 @@ async function submitAuth(event) {
       return;
     }
     state.user = data.user;
+    setCurrentCacheUser();
     const me = await api("/api/auth/me");
     state.settings = me.settings;
     state.firstRun = me.firstRun;
@@ -6345,8 +6445,11 @@ async function submitAuth(event) {
 }
 
 async function logout() {
+  const cacheUserId = state.user?.id || state.user?.email || "";
   await api("/api/auth/logout", { method: "POST" }).catch(() => null);
+  await cacheDb()?.clearUserCache?.(cacheUserId);
   state.user = null;
+  setCurrentCacheUser(null);
   state.history = [];
   state.imageSessions = [];
   state.activeImageSessionId = "";
@@ -6398,6 +6501,7 @@ async function submitCheckin(event) {
   try {
     const data = await api("/api/checkin", { method: "POST" });
     state.user = data.user || { ...state.user, credits: data.credits };
+    setCurrentCacheUser();
     state.checkin = data.checkin || { checkedInToday: true, credit: state.checkin?.credit || 1 };
     showToast(data.checkedIn
       ? (state.lang === "zh" ? `签到成功，获得 ${data.awarded} 积分` : `Checked in, +${data.awarded} credit`)
@@ -6811,7 +6915,10 @@ async function saveUser(row) {
       creditDelta: Number($(".credit-delta-input", row).value || 0)
     })
   });
-  if (id === state.user.id) state.user = user.user;
+  if (id === state.user.id) {
+    state.user = user.user;
+    setCurrentCacheUser();
+  }
   showToast(state.lang === "zh" ? "用户已保存" : "User saved", "ri-save-line");
   updateNav();
 }
@@ -6823,6 +6930,7 @@ async function bootstrap() {
   try {
     const data = await api("/api/auth/me");
     state.user = data.user;
+    setCurrentCacheUser();
     state.settings = data.settings;
     state.firstRun = data.firstRun;
     state.checkin = data.checkin || state.checkin;

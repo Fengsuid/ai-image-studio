@@ -9,6 +9,10 @@ import {
   getCurrentAuth,
   listAgentSessions
 } from "../adapters/ai-image-studio-api.a4f6d22e306f.js";
+import {
+  getAgentSessionSnapshot,
+  putAgentSessionSnapshot
+} from "../adapters/cache-db.f58f78e8ef16.js";
 
 const DEFAULT_PROMPT = "我想做一组赛博茶饮品牌海报，适合小红书，统一青绿色并带一点宋代瓷器质感。";
 
@@ -34,6 +38,7 @@ export function createAgentWorkspaceApp(root) {
       try {
         const auth = await getCurrentAuth();
         state.auth = auth.user || null;
+        globalThis.ImageStudioCurrentUser = state.auth;
         if (!state.auth) {
           state.sessions = [];
           state.currentSession = null;
@@ -63,12 +68,15 @@ export function createAgentWorkspaceApp(root) {
         state.error = "";
         render();
       }
+      const cachedSession = await getAgentSessionSnapshot(sessionId);
+      if (cachedSession && !silent) {
+        applySessionSnapshot(cachedSession);
+        render();
+      }
       const result = await getAgentSession(sessionId);
       state.currentSession = result.session || null;
-      state.currentPlan = latestPlanFromSession(state.currentSession);
-      state.selectedVariantIds = new Set((state.currentPlan?.variants || []).map((item) => item.id));
-      state.lastBatchResult = latestBatchResultFromSession(state.currentSession);
-      state.lastCanvas = latestCanvasFromSession(state.currentSession);
+      applySessionSnapshot(state.currentSession);
+      await putAgentSessionSnapshot(state.currentSession, { userId: state.auth?.id });
       state.status = "ready";
     },
 
@@ -171,6 +179,14 @@ export function createAgentWorkspaceApp(root) {
   function render() {
     root.innerHTML = renderShell(state);
     bindEvents();
+  }
+
+  function applySessionSnapshot(session) {
+    state.currentSession = session || null;
+    state.currentPlan = latestPlanFromSession(state.currentSession);
+    state.selectedVariantIds = new Set((state.currentPlan?.variants || []).map((item) => item.id));
+    state.lastBatchResult = latestBatchResultFromSession(state.currentSession);
+    state.lastCanvas = latestCanvasFromSession(state.currentSession);
   }
 
   function bindEvents() {

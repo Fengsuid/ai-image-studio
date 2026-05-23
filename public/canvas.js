@@ -129,7 +129,7 @@
         if (state.loadingProjectId !== projectId) return;
         applyProject(serverCanvas);
       }
-      const draft = readDraft(projectId);
+      const draft = readDraft(projectId) || await readCachedDraft(projectId);
       if (draft && shouldRestoreDraft(projectId, draft, serverCanvas)) {
         applyDraft(draft);
         state.dirty = true;
@@ -137,7 +137,7 @@
         scheduleAutosave();
       }
     } catch (error) {
-      const draft = readDraft(projectId);
+      const draft = readDraft(projectId) || await readCachedDraft(projectId);
       if (draft && global.confirm("恢复本地画布草稿？")) {
         applyDraft(draft);
         state.dirty = true;
@@ -1030,18 +1030,32 @@
     return `${DRAFT_PREFIX}${projectId || "new"}`;
   }
 
+  function indexedDbDraftKey(projectId = state.projectId) {
+    return `canvas:${projectId || "new"}:draft-snapshot`;
+  }
+
+  function cacheDb() {
+    return global.ImageStudioCacheDb || null;
+  }
+
   function writeDraft() {
     if (!state.projectId) return;
+    const draft = {
+      projectId: state.projectId,
+      title: state.projectTitle,
+      savedAt: new Date().toISOString(),
+      data: canvasPayload().dataJson
+    };
     try {
-      global.localStorage?.setItem(draftKey(), JSON.stringify({
-        projectId: state.projectId,
-        title: state.projectTitle,
-        savedAt: new Date().toISOString(),
-        data: canvasPayload().dataJson
-      }));
+      global.localStorage?.setItem(draftKey(), JSON.stringify(draft));
     } catch {
       // localStorage may be unavailable in private browsing.
     }
+    void cacheDb()?.putJsonSnapshot?.(indexedDbDraftKey(), draft, {
+      userId: global.ImageStudioCurrentUser?.id,
+      ttlMs: 1000 * 60 * 60 * 24 * 7,
+      meta: { kind: "canvas-draft", projectId: state.projectId }
+    });
   }
 
   function readDraft(projectId) {
@@ -1050,6 +1064,11 @@
     } catch {
       return null;
     }
+  }
+
+  async function readCachedDraft(projectId) {
+    const snapshot = await cacheDb()?.getJsonSnapshot?.(indexedDbDraftKey(projectId));
+    return snapshot?.value || null;
   }
 
   function removeDraft(key) {
