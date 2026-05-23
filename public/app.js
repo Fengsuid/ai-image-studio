@@ -1368,7 +1368,11 @@ function publicTagsForKind(kind, tags = []) {
 
 function galleryTagViewModelForItem(item = {}, tags = item.publicTags || []) {
   const kind = publicKindTagForItem(item);
-  return window.ImageStudioGalleryTagViewModel?.create?.({
+  return window.AppModules?.gallery?.createTagViewModel?.({
+    kind,
+    publicTags: tags,
+    adminBadge: null
+  }) || window.ImageStudioGalleryTagViewModel?.create?.({
     kind,
     publicTags: tags,
     adminBadge: null
@@ -3181,7 +3185,18 @@ function renderImageSessions() {
   const stamp = imageSessionRenderStamp();
   if (stamp && state.renderStamp.sessions === stamp) return;
   state.renderStamp.sessions = stamp;
-  elements.imageSessionList.innerHTML = window.ImageStudioSessionList?.render?.({
+  elements.imageSessionList.innerHTML = window.AppModules?.session?.renderImageSessions?.({
+    sessions: state.imageSessions,
+    history: state.history,
+    activeSessionId: state.activeImageSessionId,
+    text,
+    escapeHtml,
+    truncate,
+    imageVariantUrl,
+    imageFallbackImgAttrs,
+    imageFallbackContainerAttrs,
+    lang: state.lang
+  }) || window.ImageStudioSessionList?.render?.({
     sessions: state.imageSessions,
     history: state.history,
     activeSessionId: state.activeImageSessionId,
@@ -3288,7 +3303,13 @@ function renderHistory() {
         `).join("")}
       </div>
     ` : "";
-    const actions = window.ImageStudioGenerationResultActions?.render?.({
+    const actions = window.AppModules?.generation?.renderResultActions?.({
+      item,
+      state,
+      text,
+      escapeHtml,
+      generatingActionText
+    }) || window.ImageStudioGenerationResultActions?.render?.({
       item,
       state,
       text,
@@ -3914,7 +3935,16 @@ function renderLibrary() {
 }
 
 function renderGalleryLeaderboard() {
-  return window.ImageStudioGalleryLeaderboard?.render?.({
+  return window.AppModules?.gallery?.renderLeaderboard?.({
+    state,
+    text,
+    escapeHtml,
+    truncate,
+    displayUserName,
+    imageVariantUrl,
+    imageFallbackImgAttrs,
+    imageFallbackContainerAttrs
+  }) || window.ImageStudioGalleryLeaderboard?.render?.({
     state,
     text,
     escapeHtml,
@@ -4982,7 +5012,8 @@ function openSquarePreview(prompt, options = {}) {
   const tags = tagView.publicTags;
   const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
-  const mediaController = window.ImageStudioGalleryDetailMedia?.create?.({ item, imageUrl, route, text });
+  const mediaController = window.AppModules?.gallery?.createDetailMedia?.({ item, imageUrl, route, text })
+    || window.ImageStudioGalleryDetailMedia?.create?.({ item, imageUrl, route, text });
   openModal(`
     <section class="modal square-preview-modal" data-square-id="${escapeHtml(item.id || prompt.generationId || "")}">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>

@@ -28,6 +28,7 @@
     "smoke:canvas-v2:entry": "node scripts/smoke/check-canvas-v2-entry.mjs",
     "smoke:auth-admin": "node scripts/smoke/check-auth-admin.mjs",
     "smoke:admin-module-split": "node scripts/smoke/check-admin-module-split.mjs",
+    "smoke:public-app-module-split": "node scripts/smoke/check-public-app-module-split.mjs",
     "smoke:user-credits-reward": "node scripts/smoke/check-user-credits-reward.mjs",
     "smoke:moderation-withdrawal": "node scripts/smoke/check-moderation-withdrawal.mjs",
     "smoke:canvas-history": "node scripts/smoke/check-canvas-history.mjs",
