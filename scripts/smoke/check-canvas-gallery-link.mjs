@@ -261,6 +261,10 @@ async function main() {
   const ownerDetail = await request(`/api/gallery/${encodeURIComponent(generationId)}`);
   assert(ownerDetail.generation?.canvasProject?.id === createdCanvasId, "owner gallery detail missing source canvas project");
   assert(ownerDetail.generation.canvasProject.outputNodeId === "node_output", "source canvas output node missing");
+  assert(Array.isArray(ownerDetail.generation?.creativeRoute), "owner gallery detail missing creativeRoute");
+  assert(ownerDetail.generation.creativeRoute.some((step) => step.nodeId === "node_prompt"), "creativeRoute should include source canvas prompt node");
+  assert(ownerDetail.generation.creativeRoute.some((step) => step.nodeId === "node_output" && step.generationId === generationId), "creativeRoute should link output node to generation");
+  assert(!JSON.stringify(ownerDetail.generation.creativeRoute).includes(email), "creativeRoute should scrub owner email metadata");
 
   const canvas = await request(`/api/canvases/${encodeURIComponent(ownerDetail.generation.canvasProject.id)}`);
   assert(canvas.canvas?.id === createdCanvasId, "source canvas project is not openable by owner");
@@ -271,6 +275,9 @@ async function main() {
   assert(copyUserDetail.generation?.canvasProject?.id === createdCanvasId, "copy user gallery detail missing duplicable canvas route");
   assert(copyUserDetail.generation.canvasProject.canDuplicate === true, "copy user should be allowed to duplicate the public route");
   assert(copyUserDetail.generation.canvasProject.canOpenOriginal === false, "copy user should not open the private source canvas");
+  assert(Array.isArray(copyUserDetail.generation?.creativeRoute), "copy user gallery detail missing creativeRoute");
+  assert(!JSON.stringify(copyUserDetail.generation.creativeRoute).includes("/source-file"), "creativeRoute should not expose private source files to copy users");
+  assert(!JSON.stringify(copyUserDetail.generation.creativeRoute).includes(copyEmail), "creativeRoute should not include viewer private metadata");
   await request(`/api/canvases/${encodeURIComponent(createdCanvasId)}`, { expected: 404 });
   const duplicated = await request(`/api/canvases/${encodeURIComponent(createdCanvasId)}/duplicate`, {
     method: "POST",

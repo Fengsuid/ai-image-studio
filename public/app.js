@@ -1356,7 +1356,8 @@ function isImageToImageItem(item = {}) {
 }
 
 function isCanvasRouteItem(item = {}) {
-  return (item.conversation || []).some((step) => String(step.type || "").startsWith("canvas"));
+  const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation || [];
+  return route.some((step) => String(step.type || "").startsWith("canvas") || step.nodeId);
 }
 
 function publicTagsForKind(kind, tags = []) {
@@ -1701,6 +1702,7 @@ function getActiveSessionHistory() {
 }
 
 function conversationRouteForItem(item) {
+  if (Array.isArray(item.creativeRoute) && item.creativeRoute.length) return item.creativeRoute;
   const visible = getActiveSessionHistory();
   const index = visible.findIndex((entry) => String(entry.id) === String(item.id));
   const route = index >= 0 ? visible.slice(0, index + 1) : [item];
@@ -2184,7 +2186,8 @@ function canvasPayloadFromGeneration(item = {}, title = "Image") {
     generationId: item.id || item.generationId || "",
     imageUrl: item.images?.[0] || item.imageUrl || "",
     prompt: item.prompt || "",
-    sourceImage: item.sourceImageId || item.sourceImageUrl || ""
+    sourceImage: item.sourceImageId || item.sourceImageUrl || "",
+    creativeRoute: item.creativeRoute || item.conversation || []
   };
 }
 
@@ -2223,6 +2226,7 @@ function recentHistoryItems() {
       image: item.images[0],
       sourceImage: item.sourceImageUrl || "",
       conversation: item.conversation || [],
+      creativeRoute: item.creativeRoute || item.conversation || [],
       publishOriginal: Boolean(item.publishOriginal),
       publicTags: item.publicTags || [],
       userId: item.userId || "",
@@ -2272,6 +2276,7 @@ function openRecentPreview(item) {
       prompt: item.prompt,
       images: [item.image],
       sourceImageUrl: item.sourceImage || "",
+      creativeRoute: item.creativeRoute || item.conversation || [],
       conversation: item.conversation || [],
       publicTags: item.publicTags || [],
       userId: item.userId || "",
@@ -3488,7 +3493,7 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
       sourceImageId: sourceItem?.id || item.sourceImageId || "",
       publicTags: publicTagsForKind(kind, publicTags),
       title: $("#publishTitleInput", elements.modalLayer)?.value.trim() || item.title || "",
-      conversationRoute: item.conversation?.length ? item.conversation : conversationRouteForItem(item)
+      conversationRoute: item.creativeRoute?.length ? item.creativeRoute : item.conversation?.length ? item.conversation : conversationRouteForItem(item)
     };
     return api(`/api/images/${item.id}/public`, {
       method: "PATCH",
@@ -3502,7 +3507,8 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
       String(entry.id) === String(item.id)
         ? generationEntryFromApi(generation, {
             ...entry,
-            conversation: generation.conversation || conversationRouteForItem(entry),
+            creativeRoute: generation.creativeRoute || generation.conversation || conversationRouteForItem(entry),
+            conversation: generation.creativeRoute || generation.conversation || conversationRouteForItem(entry),
             publicTags: generation.publicTags || publicTagsForKind(publicKindTagForItem(entry), publicTags)
           })
         : entry
@@ -3589,7 +3595,8 @@ function openBindSourceModal({ item, publishOriginal = false, publicTags = [], a
               sourceImageUrl: source.images?.[0] || "",
               originGalleryId: source.originGalleryId || source.id,
               publicTags: generation.publicTags || publicTagsForKind("image-to-image", publicTags),
-              conversation: generation.conversation || conversationRouteForItem(entry)
+              creativeRoute: generation.creativeRoute || generation.conversation || conversationRouteForItem(entry),
+              conversation: generation.creativeRoute || generation.conversation || conversationRouteForItem(entry)
             })
           : entry
       );
@@ -4775,7 +4782,8 @@ async function submitImageEdit(event) {
       sourceImageUrl: generation.sourceImageUrl || "",
       sourceImageData: originalData,
       publishOriginal: Boolean(generation.publishOriginal),
-      conversation: generation.conversation || draftRoute,
+      creativeRoute: generation.creativeRoute || generation.conversation || draftRoute,
+      conversation: generation.creativeRoute || generation.conversation || draftRoute,
       publicTags: generation.publicTags || [],
       userId: generation.userId || "",
       userName: generation.userName || "",
@@ -4850,6 +4858,7 @@ function publicGalleryPromptItems() {
         userId: item.userId || "",
         userName: item.userName || "",
         colors: "linear-gradient(135deg,#0f172a,#94a3b8)",
+        creativeRoute: item.creativeRoute || item.conversation || [],
         conversation: item.conversation || [],
         sourceImageUrl: item.sourceImageUrl || "",
         sourceImageId: item.sourceImageId || "",
@@ -4894,6 +4903,7 @@ function squareItemFromPrompt(prompt) {
       likeCount: Number(prompt.likeCount || 0),
       likedByCurrentUser: Boolean(prompt.likedByCurrentUser),
       conversation: prompt.conversation || [],
+      creativeRoute: prompt.creativeRoute || prompt.conversation || [],
       publicTags: prompt.publicTags || [],
       userId: prompt.userId || "",
       userName: prompt.userName || prompt.author || "",
@@ -4959,7 +4969,7 @@ function openSquarePreview(prompt, options = {}) {
   const canDuplicateCanvasRoute = canShowCanvasEntry && Boolean(originalCanvas?.canDuplicate ?? originalCanvas);
   const tagView = galleryTagViewModelForItem(item, item.publicTags || []);
   const tags = tagView.publicTags;
-  const route = item.conversation || [];
+  const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
   const mediaController = window.ImageStudioGalleryDetailMedia?.create?.({ item, imageUrl, route, text });
   openModal(`
@@ -6236,7 +6246,7 @@ function openWorkDetail(id, options = {}) {
   closeWorkDetail();
   const tags = (item.publicTags || []).map(displayTag).filter(Boolean);
   const isImageToImage = isImageToImageItem(item);
-  const route = item.conversation?.length ? item.conversation : conversationRouteForItem(item);
+  const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation?.length ? item.conversation : conversationRouteForItem(item);
   const optionRows = [
     [text("model"), item.model || "-"],
     [text("size"), item.options?.size || "-"],

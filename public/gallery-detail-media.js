@@ -38,7 +38,7 @@
   function routeMedia({ item, imageUrl, route, index, text }) {
     const step = route[index];
     if (!step) return null;
-    const label = `${text("routeStepUntitled").replace(/[()]/g, "") || "Step"} ${index + 1}`;
+    const label = step.label || `${text("routeStepUntitled").replace(/[()]/g, "") || "Step"} ${index + 1}`;
     return {
       type: "route-step",
       key: `route:${index}`,
@@ -47,7 +47,7 @@
       imageUrl: step.imageUrl || imageUrl,
       prompt: step.prompt || item.prompt || "",
       downloadName: `${item.id || "image"}-route-${index + 1}.png`,
-      generationId: item.id || item.generationId || "",
+      generationId: step.generationId || item.id || item.generationId || "",
       sourceImage: step.sourceImageUrl || item.sourceImageId || item.sourceImageUrl || ""
     };
   }

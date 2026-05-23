@@ -48,6 +48,7 @@ const {
 const { createAgentGenerationService } = require("./src/agent-generation-service");
 const { createAgentSessionRoute } = require("./src/routes/agent-sessions");
 const { createHealthRoute } = require("./src/routes/health");
+const { buildCreativeRouteForGeneration, scrubRouteValue } = require("./src/creative-route");
 
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT_DIR, "data"));
@@ -1922,11 +1923,27 @@ function sanitizeConversationRoute(value) {
   return value.slice(0, 20).map((step, index) => ({
     index: index + 1,
     id: String(step?.id || "").slice(0, 64),
-    prompt: String(step?.prompt || "").trim().slice(0, 1200),
-    imageUrl: String(step?.imageUrl || step?.images?.[0] || "").slice(0, 500),
+    nodeId: String(step?.nodeId || "").slice(0, 64),
     type: String(step?.type || "image").slice(0, 32),
-    createdAt: String(step?.createdAt || step?.time || "").slice(0, 64)
-  })).filter((step) => step.prompt || step.imageUrl);
+    label: String(step?.label || step?.title || "").trim().slice(0, 160),
+    prompt: String(step?.prompt || step?.body || "").trim().slice(0, 1200),
+    imageUrl: publicRouteImageRef(step?.imageUrl || step?.images?.[0] || ""),
+    generationId: String(step?.generationId || "").trim().slice(0, 64),
+    sourceImageId: String(step?.sourceImageId || "").trim().slice(0, 64),
+    sourceImageUrl: publicRouteImageRef(step?.sourceImageUrl || ""),
+    model: String(step?.model || "").trim().slice(0, 120),
+    size: String(step?.size || "").trim().slice(0, 32),
+    quality: String(step?.quality || "").trim().slice(0, 32),
+    createdAt: String(step?.createdAt || step?.time || "").slice(0, 64),
+    data: scrubRouteValue(step?.data || {})
+  })).filter((step) => step.prompt || step.imageUrl || step.generationId);
+}
+
+function publicRouteImageRef(value) {
+  const text = String(value || "").trim();
+  if (!text || /^(data:|blob:)/i.test(text)) return "";
+  if (/^\/api\/images\/[^/]+\/source-file(?:[?#].*)?$/i.test(text)) return "";
+  return text.slice(0, 500);
 }
 
 function sanitizePublicTags(value) {
@@ -2398,10 +2415,17 @@ async function saveGeneratedImages(user, request, openaiResult) {
 }
 
 function generationResponse(generation) {
+  const imageUrl = `/api/images/${generation.id}/file`;
+  const sourceImageUrl = sourceImageUrlForGeneration(generation);
+  const creativeRoute = buildCreativeRouteForGeneration(generation, {
+    resultImageUrl: imageUrl,
+    sourceImageUrl
+  });
   return {
     ...generation,
-    imageUrl: `/api/images/${generation.id}/file`,
-    sourceImageUrl: sourceImageUrlForGeneration(generation),
+    imageUrl,
+    sourceImageUrl,
+    creativeRoute,
     ...sourceImageAuditFields(generation)
   };
 }
@@ -2409,6 +2433,20 @@ function generationResponse(generation) {
 async function generationResponseForViewer(generation, current) {
   const response = generationResponse(generation);
   const canvasProject = await store.getCanvasProjectForGeneration(generation.id);
+  if (canvasProject) {
+    const sourceCanvasProject = await store.getCanvasProjectById(canvasProject.id).catch((error) => {
+      console.warn("[creative-route] failed to load source canvas", error?.message || error);
+      return null;
+    });
+    response.creativeRoute = buildCreativeRouteForGeneration(generation, {
+      resultImageUrl: response.imageUrl,
+      sourceImageUrl: response.sourceImageUrl,
+      canvasProject: {
+        ...canvasProject,
+        dataJson: sourceCanvasProject?.dataJson || {}
+      }
+    });
+  }
   if (!canvasProject || !current?.user) return response;
   const canOpenOriginal = canvasService.canReadCanvas(current.user, canvasProject);
   if (canOpenOriginal) {
