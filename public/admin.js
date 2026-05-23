@@ -28,6 +28,9 @@ const adminState = {
   status: "all",
   page: 1,
   pageSize: 12,
+  generationDiagnostics: {
+    filters: {}
+  },
   selectedUsers: new Set(),
   audit: [],
   csrfToken: "",
@@ -164,6 +167,31 @@ function recordAudit(action, target, detail = "") {
   adminState.audit = adminState.audit.slice(0, 80);
 }
 
+function generationDiagnosticsModule() {
+  return window.AdminModules?.generationDiagnostics || null;
+}
+
+function generationDiagnosticsQuery() {
+  const filters = adminState.generationDiagnostics?.filters || {};
+  const params = new URLSearchParams({ limit: "500" });
+  for (const [key, value] of Object.entries(filters)) {
+    const text = String(value || "").trim();
+    if (text) params.set(key, text);
+  }
+  return `/api/admin/generations?${params.toString()}`;
+}
+
+function generationDiagnosticsHelpers() {
+  return {
+    fmtNumber,
+    fmtDate,
+    fmtDuration,
+    imageVariantUrl,
+    paged,
+    pagination
+  };
+}
+
 function currentNav() {
   return navItems.find(([id]) => id === adminState.active) || navItems[0];
 }
@@ -243,7 +271,7 @@ async function loadAll() {
     api("/api/version"),
     api("/api/admin/settings"),
     api("/api/admin/users"),
-    api("/api/admin/generations?limit=500"),
+    api(generationDiagnosticsQuery()),
     api("/api/prompts?includeHidden=1&limit=2000"),
     api("/api/admin/prompt-sources?runsLimit=120"),
     api("/api/tags?includeHidden=1&limit=2000"),
@@ -606,6 +634,10 @@ function requestTable(items) {
 }
 
 function renderRequests() {
+  const module = generationDiagnosticsModule();
+  if (module?.render) {
+    return module.render({ state: adminState, helpers: generationDiagnosticsHelpers() });
+  }
   const items = filtered(adminState.generations, ["prompt", "userName", "userEmail", "status"]);
   return `${toolbar("搜索用户、提示词或错误", ["pending", "running", "success", "failed", "cancelled"])}
     <section class="admin-panel">${requestTable(paged(items))}${pagination(items.length)}</section>`;
@@ -1228,6 +1260,20 @@ async function requestDrawer(itemOrId) {
   const item = response?.request || fallback;
   const trace = response?.trace || [];
   if (!item) return;
+  const module = generationDiagnosticsModule();
+  if (module?.renderDrawer) {
+    openDrawer("生成请求详情", module.renderDrawer({ item, trace, helpers: generationDiagnosticsHelpers() }));
+    module.bind({
+      root: $("#adminDrawer"),
+      state: adminState,
+      api,
+      refresh: loadAll,
+      render,
+      confirmAction,
+      toast: (message) => setStatus(message, "ok")
+    });
+    return;
+  }
   openDrawer("生成请求详情", `
     <dl class="admin-detail-list">
       <dt>ID</dt><dd>${escapeHtml(item.id)}</dd>
@@ -1960,6 +2006,15 @@ function bindPromptAuditActions(root = document) {
 }
 
 function bindActions() {
+  generationDiagnosticsModule()?.bind?.({
+    root: document,
+    state: adminState,
+    api,
+    refresh: loadAll,
+    render,
+    confirmAction,
+    toast: (message) => setStatus(message, "ok")
+  });
   document.querySelectorAll("[data-jump]").forEach((button) => {
     button.addEventListener("click", () => {
       adminState.active = button.dataset.jump;

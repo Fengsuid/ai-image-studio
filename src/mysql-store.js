@@ -2922,15 +2922,56 @@ async function updateGenerationRequest(id, patch) {
   await getPool().execute(`UPDATE generation_requests SET ${columns.join(", ")} WHERE id = ?`, values);
 }
 
-async function listGenerationRequests(limit = 100) {
+async function listGenerationRequests(limit = 100, filters = {}) {
   const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 100));
+  const where = [];
+  const values = [];
+  const addLike = (column, value) => {
+    const text = String(value || "").trim();
+    if (!text) return;
+    where.push(`${column} LIKE ?`);
+    values.push(`%${text.slice(0, 120)}%`);
+  };
+  const status = String(filters.status || "").trim();
+  if (status && status !== "all") {
+    where.push("(gr.status = ? OR gr.queue_status = ?)");
+    values.push(status, status);
+  }
+  addLike("gr.provider_params_json", filters.provider);
+  const model = String(filters.model || "").trim();
+  if (model) {
+    where.push("(g.model LIKE ? OR gr.normalized_params_json LIKE ? OR gr.provider_params_json LIKE ?)");
+    values.push(`%${model.slice(0, 120)}%`, `%${model.slice(0, 120)}%`, `%${model.slice(0, 120)}%`);
+  }
+  const user = String(filters.user || "").trim();
+  if (user) {
+    where.push("(gr.user_id LIKE ? OR u.name LIKE ? OR u.email LIKE ?)");
+    values.push(`%${user.slice(0, 120)}%`, `%${user.slice(0, 120)}%`, `%${user.slice(0, 120)}%`);
+  }
+  const errorStage = String(filters.errorStage || filters.failureStage || "").trim();
+  if (errorStage) {
+    where.push("(gr.error_stage = ? OR gr.failure_stage = ?)");
+    values.push(errorStage, errorStage);
+  }
+  const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : null;
+  const dateTo = filters.dateTo ? new Date(filters.dateTo) : null;
+  if (dateFrom && !Number.isNaN(dateFrom.getTime())) {
+    where.push("gr.created_at >= ?");
+    values.push(dateFrom);
+  }
+  if (dateTo && !Number.isNaN(dateTo.getTime())) {
+    where.push("gr.created_at <= ?");
+    values.push(dateTo);
+  }
   const [rows] = await getPool().execute(
     `SELECT gr.*, u.name AS user_name, u.email AS user_email, g.model, g.filename
        FROM generation_requests gr
        LEFT JOIN users u ON u.id = gr.user_id
        LEFT JOIN generations g ON g.id = gr.first_generation_id
+      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
       ORDER BY gr.created_at DESC
-      LIMIT ${normalizedLimit}`
+      LIMIT ${normalizedLimit}`,
+    values
   );
   return rows.map(mapGenerationRequest);
 }

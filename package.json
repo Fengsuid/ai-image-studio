@@ -49,6 +49,7 @@
     "smoke:agent-batch-generation": "node scripts/smoke/check-agent-batch-generation.mjs",
     "smoke:agent-export-canvas": "node scripts/smoke/check-agent-export-canvas.mjs",
     "smoke:indexeddb-cache-static": "node scripts/smoke/check-indexeddb-cache-static.mjs",
+    "smoke:admin-generation-diagnostics": "node scripts/smoke/check-admin-generation-diagnostics.mjs",
     "smoke:gallery-images": "node scripts/smoke/check-gallery-images.mjs",
     "smoke:gallery-leaderboard-sidebar": "node scripts/smoke/check-gallery-leaderboard-sidebar.mjs",
     "smoke:generation-result-actions": "node scripts/smoke/check-generation-result-actions.mjs",
