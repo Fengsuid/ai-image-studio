@@ -192,6 +192,31 @@ function generationDiagnosticsHelpers() {
   };
 }
 
+function adminModuleContext() {
+  return {
+    state: adminState,
+    helpers: {
+      escapeHtml,
+      fmtNumber,
+      fmtDate,
+      fmtDuration,
+      imageVariantUrl,
+      metrics,
+      dashboardContext,
+      requestTable,
+      toolbar,
+      filtered,
+      paged,
+      pagination,
+      renderPlaceholder
+    }
+  };
+}
+
+function renderAdminModule(name) {
+  return window.AdminModules?.[name]?.render?.(adminModuleContext()) || "";
+}
+
 function currentNav() {
   return navItems.find(([id]) => id === adminState.active) || navItems[0];
 }
@@ -456,96 +481,6 @@ function statCard(label, value, hint, icon, tone = "blue") {
   `;
 }
 
-function renderOverview() {
-  const m = metrics();
-  const dashboard = dashboardContext();
-  const actions = [
-    ["users-credits", "ri-user-settings-line", "用户管理", "账号、积分、状态"],
-    ["square-review", "ri-gallery-view-2", "广场审核", "公开作品与举报处理"],
-    ["tag-library", "ri-price-tag-3-line", "标签管理", "标签、分类和合并"],
-    ["prompt-cms", "ri-quill-pen-line", "提示词来源", "远程来源和同步记录"],
-    ["system-settings", "ri-sliders-line", "系统设置", "注册、积分和开关"]
-  ];
-  return `
-    <section class="admin-overview-hero">
-      <div class="admin-overview-hero-copy">
-        <p class="admin-kicker">运营控制台</p>
-        <h2>${dashboard.label}</h2>
-        <p>${dashboard.detail}</p>
-        <div class="admin-overview-meta">
-          <span class="admin-status-pill" data-tone="${dashboard.tone}">${dashboard.label}</span>
-          <span>${fmtDate(dashboard.rumSummary.updatedAt)} · RUM ${fmtNumber(dashboard.rumSummary.total || 0)}</span>
-        </div>
-      </div>
-      <div class="admin-overview-hero-panel">
-        <div class="admin-overview-hero-row">
-          <strong>${fmtNumber(dashboard.issues.length)} 个最近异常</strong>
-          <span>${fmtNumber(dashboard.providerIssues.length)} 个供应商异常</span>
-        </div>
-        <div class="admin-overview-hero-row">
-          <strong>${fmtNumber(dashboard.reportQueue)} 条举报队列</strong>
-          <span>${fmtNumber(dashboard.brokenFiles.length)} 个文件异常</span>
-        </div>
-        <div class="admin-overview-hero-row">
-          <strong>${fmtNumber(dashboard.syncFailures.length)} 个同步失败</strong>
-          <span>${fmtNumber(dashboard.withdrawalQueue)} 条撤回待处理</span>
-        </div>
-      </div>
-    </section>
-    <section class="admin-stats-grid admin-dashboard-grid">
-      ${statCard("用户", fmtNumber(m.newUsers), "今日新增 / 总用户 " + fmtNumber(adminState.users.length), "ri-user-add-line", "teal")}
-      ${statCard("生成量", fmtNumber(m.todayGenerated), "今日生成 / 总请求 " + fmtNumber(m.total), "ri-image-ai-line", "blue")}
-      ${statCard("公开作品", fmtNumber(m.publicWorks), "当前公开广场内容", "ri-gallery-view-2", "violet")}
-      ${statCard("举报", fmtNumber(dashboard.reportQueue), "待处理举报队列", "ri-alarm-warning-line", "amber")}
-      ${statCard("提示词同步", fmtNumber(dashboard.syncFailures.length), "异常同步任务", "ri-sync-warning-line", "rose")}
-      ${statCard("文件异常", fmtNumber(dashboard.brokenFiles.length), "巡检命中异常文件", "ri-folder-warning-line", "slate")}
-    </section>
-    <section class="admin-overview-split">
-      <section class="admin-panel">
-        <div class="admin-panel-head">
-          <h2>快捷入口</h2>
-          <span>常用运营路径</span>
-        </div>
-        <div class="admin-quick-links">
-          ${actions.map(([jump, icon, label, hint]) => `
-            <button type="button" class="admin-quick-link" data-jump="${jump}">
-              <i class="${icon}"></i>
-              <strong>${label}</strong>
-              <span>${hint}</span>
-            </button>
-          `).join("")}
-        </div>
-      </section>
-      <section class="admin-panel">
-        <div class="admin-panel-head">
-          <h2>最近异常</h2>
-          <span>${fmtNumber(dashboard.issues.length)} 项</span>
-        </div>
-        <div class="admin-issue-list">
-          ${dashboard.issues.map((issue) => `
-            <article class="admin-issue" data-tone="${issue.tone}">
-              <i class="${issue.icon}"></i>
-              <div>
-                <strong>${escapeHtml(issue.title)}</strong>
-                <p>${escapeHtml(issue.detail)}</p>
-                <small>${escapeHtml(issue.meta || "")}${issue.time ? ` · ${fmtDate(issue.time)}` : ""}</small>
-              </div>
-              <button type="button" data-jump="${issue.jump}">查看</button>
-            </article>
-          `).join("") || `<div class="admin-empty-state">暂无异常</div>`}
-        </div>
-      </section>
-    </section>
-    <section class="admin-panel">
-      <div class="admin-panel-head">
-        <h2>最近生成请求</h2>
-        <button type="button" data-jump="generation-requests">查看全部</button>
-      </div>
-      ${requestTable(adminState.generations.slice(0, 8))}
-    </section>
-  `;
-}
-
 function toolbar(placeholder, statuses = []) {
   return `
     <div class="admin-toolbar">
@@ -641,114 +576,6 @@ function renderRequests() {
   const items = filtered(adminState.generations, ["prompt", "userName", "userEmail", "status"]);
   return `${toolbar("搜索用户、提示词或错误", ["pending", "running", "success", "failed", "cancelled"])}
     <section class="admin-panel">${requestTable(paged(items))}${pagination(items.length)}</section>`;
-}
-
-function renderSquareReview() {
-  const items = filtered(adminState.publicImages, ["prompt", "userName", "id", "moderationStatus"]);
-  return `${toolbar("搜索待审作品、作者或提示词", ["reported", "reviewing", "requested", "hidden", "restored"])}
-    <section class="admin-grid-list">
-      ${paged(items).map((item) => `
-        <article class="admin-work-card">
-          <img src="${escapeHtml(imageVariantUrl(item.imageUrl))}" alt="">
-          <div>
-            <strong>${escapeHtml(item.userName || item.userId || "匿名")}</strong>
-            <p>${escapeHtml(item.prompt || "")}</p>
-            <small>${fmtDate(item.createdAt)} · ${escapeHtml(item.moderationStatus || "visible")} · 举报 ${fmtNumber(item.reportCount || 0)}</small>
-            ${item.latestReportReason || item.moderationReason ? `<small>${escapeHtml(item.latestReportReason || item.moderationReason)}</small>` : ""}
-          </div>
-          <div class="admin-card-actions">
-            <button type="button" data-detail="work:${escapeHtml(item.id)}">详情</button>
-            ${item.moderationStatus === "hidden"
-              ? `<button type="button" data-moderation="restore:${escapeHtml(item.id)}">恢复</button>`
-              : Number(item.reportCount || 0) > 0
-                ? `<button type="button" data-moderation="hide:${escapeHtml(item.id)}">确认隐藏</button><button type="button" data-moderation="reject:${escapeHtml(item.id)}">驳回举报并恢复</button>`
-                : `<button type="button" data-moderation="hide:${escapeHtml(item.id)}">隐藏</button>`}
-          </div>
-        </article>
-      `).join("") || `<div class="admin-empty-state">暂无待审核作品</div>`}
-    </section>${pagination(items.length)}`;
-}
-
-function renderGalleryFiles() {
-  const checks = filtered(adminState.galleryFileChecks, ["generationId", "filename", "relativePath", "status", "errorMessage", "prompt", "userName"]);
-  return `${toolbar("搜索作品 ID、文件名、作者或错误", ["broken", "ok", "unknown"])}
-    <section class="admin-panel">
-      <div class="admin-panel-head">
-        <div>
-          <h2>画廊文件巡检</h2>
-          <span>${fmtNumber(adminState.galleryFileChecks.filter((item) => item.status === "broken").length)} 个异常文件</span>
-        </div>
-        <button type="button" data-gallery-file-check-run><i class="ri-loop-right-line"></i>运行巡检</button>
-      </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>作品</th><th>类型</th><th>文件</th><th>状态</th><th>大小</th><th>检查时间</th></tr></thead>
-          <tbody>
-            ${paged(checks).map((item) => `
-              <tr>
-                <td><strong>${escapeHtml(item.generationId)}</strong><small class="admin-truncate">${escapeHtml(item.prompt || item.userName || item.userEmail || "")}</small></td>
-                <td>${escapeHtml(item.imageKind || "-")}</td>
-                <td><strong>${escapeHtml(item.filename || "-")}</strong><small class="admin-truncate">${escapeHtml(item.relativePath || "")}</small>${item.errorMessage ? `<small class="admin-truncate">${escapeHtml(item.errorMessage)}</small>` : ""}</td>
-                <td><span class="admin-badge" data-status="${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td>
-                <td>${item.fileSize === null || item.fileSize === undefined ? "-" : fmtNumber(item.fileSize)}</td>
-                <td>${fmtDate(item.checkedAt)}</td>
-              </tr>
-            `).join("") || `<tr><td colspan="6">暂无文件巡检记录</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>${pagination(checks.length)}`;
-}
-
-function renderUsers() {
-  const items = filtered(adminState.users, ["name", "email", "role", "status"]);
-  const pageItems = paged(items);
-  return `${toolbar("搜索用户姓名、邮箱或角色", ["active", "disabled", "admin", "user"])}
-    <section class="admin-panel">
-      <div class="admin-panel-head">
-        <h2>用户与积分</h2>
-        <button type="button" data-create-user><i class="ri-user-add-line"></i> 新建用户</button>
-      </div>
-      <div class="admin-bulk-bar">
-        <strong>已选 ${fmtNumber(adminState.selectedUsers.size)} 个用户</strong>
-        <span>批量操作仅作用于当前勾选用户；不会默认覆盖全部搜索结果。</span>
-        <select id="bulkUserAction">
-          <option value="creditDelta">调整积分</option>
-          <option value="status">修改状态</option>
-        </select>
-        <input id="bulkCreditDelta" type="number" value="1" aria-label="积分调整">
-        <select id="bulkStatus" aria-label="状态"><option value="active">active</option><option value="disabled">disabled</option></select>
-        <input id="bulkNote" placeholder="备注">
-        <button type="button" data-bulk-users>应用到已选</button>
-      </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th><input type="checkbox" data-select-page-users></th><th>用户</th><th>角色</th><th>状态</th><th>积分</th><th>首发奖励</th><th>注册时间</th><th></th></tr></thead>
-          <tbody>
-            ${pageItems.map((user) => {
-              const latestReward = user.firstPublicRewardStatus && user.firstPublicRewardStatus !== "none"
-                ? {
-                    status: user.firstPublicRewardStatus,
-                    amount: user.firstPublicRewardAmount,
-                    referenceId: user.firstPublicRewardGenerationId
-                  }
-                : adminState.rewardLedger.find((item) => item.userId === user.id && item.rewardType === "first_public");
-              return `
-              <tr>
-                <td><input type="checkbox" data-user-select="${escapeHtml(user.id)}"${adminState.selectedUsers.has(user.id) ? " checked" : ""}></td>
-                <td><strong>${escapeHtml(user.name || user.email)}</strong><small>${escapeHtml(user.email)}</small></td>
-                <td>${escapeHtml(user.role)}</td>
-                <td><span class="admin-badge" data-status="${escapeHtml(user.status)}">${escapeHtml(user.status)}</span></td>
-                <td>${fmtNumber(user.credits)}</td>
-                <td>${latestReward ? `${escapeHtml(latestReward.status)} · ${fmtNumber(latestReward.amount)}<small>${escapeHtml(latestReward.referenceId || "")}</small>` : "未发放"}</td>
-                <td>${fmtDate(user.createdAt)}</td>
-                <td><button type="button" data-detail="user:${escapeHtml(user.id)}">编辑</button></td>
-              </tr>
-            `; }).join("")}
-          </tbody>
-        </table>
-      </div>${pagination(items.length)}
-    </section>`;
 }
 
 function renderPrompts() {
@@ -912,47 +739,6 @@ function renderPlaceholder(title, icon, items) {
       <p>该模块已进入独立后台信息架构，当前版本先保留稳定入口和上下文。后续任务会接入完整数据表、审核流和审计落库。</p>
       <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
     </section>`;
-}
-
-function providerCapabilityText(provider) {
-  const caps = provider.capabilities || {};
-  return Object.entries(caps).filter(([, value]) => value === true).map(([key]) => key).join(", ") || "-";
-}
-
-function renderProvidersPlaceholder() {
-  return `
-    <section class="admin-panel">
-      <div class="admin-panel-head">
-        <h2>API 供应商</h2>
-        <button type="button" data-create-provider><i class="ri-add-line"></i> 新增 Provider</button>
-      </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>名称</th><th>Base URL</th><th>模型</th><th>能力</th><th>健康</th><th>状态</th><th></th></tr></thead>
-          <tbody>
-            ${adminState.providers.map((provider) => `
-              <tr>
-                <td><strong>${escapeHtml(provider.name)}${provider.id === adminState.defaultProviderId ? " · 默认" : ""}</strong><small>${escapeHtml(provider.providerType)} · ${escapeHtml(provider.apiKeyMask || "no key")}</small></td>
-                <td class="admin-truncate">${escapeHtml(provider.baseUrl || "-")}</td>
-                <td>${escapeHtml(provider.defaultModel || "-")}</td>
-                <td class="admin-truncate">${escapeHtml(providerCapabilityText(provider))}</td>
-                <td><span class="admin-badge" data-status="${escapeHtml(provider.healthStatus || "unknown")}">${escapeHtml(provider.healthStatus || "unknown")}</span><small>${escapeHtml(provider.lastError || "")}</small></td>
-                <td><span class="admin-badge" data-status="${escapeHtml(provider.status)}">${escapeHtml(provider.status)}</span></td>
-                <td>
-                  <button type="button" data-detail="provider:${escapeHtml(provider.id)}">编辑</button>
-                  <button type="button" data-provider-test="${escapeHtml(provider.id)}">测试</button>
-                  ${provider.id === adminState.defaultProviderId ? "" : `<button type="button" data-provider-default="${escapeHtml(provider.id)}">设默认</button>`}
-                </td>
-              </tr>
-            `).join("") || `<tr><td colspan="7">暂无 Provider</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>
-    ${renderPlaceholder("Provider Router 预留", "ri-route-line", [
-      "T019 将把生成和编辑接口改为 provider-router。",
-      "当前 T018 已提供 provider_configs、CRUD、测试连接和默认供应商。"
-    ])}`;
 }
 
 function renderGrowthPlaceholder() {
@@ -1188,11 +974,11 @@ function renderAudit() {
 
 function renderContent() {
   switch (adminState.active) {
-    case "providers": return renderProvidersPlaceholder();
+    case "providers": return renderAdminModule("providers");
     case "generation-requests": return renderRequests();
-    case "square-review": return renderSquareReview();
-    case "gallery-files": return renderGalleryFiles();
-    case "users-credits": return renderUsers();
+    case "square-review": return renderAdminModule("squareReview");
+    case "gallery-files": return renderAdminModule("galleryFiles");
+    case "users-credits": return renderAdminModule("users");
     case "prompt-cms": return renderPrompts();
     case "prompt-audit": return renderPromptAudit();
     case "tag-library": return renderTags();
@@ -1202,7 +988,7 @@ function renderContent() {
     case "announcements": return renderAnnouncements();
     case "rum-performance": return renderRum();
     case "audit-log": return renderAudit();
-    default: return renderOverview();
+    default: return renderAdminModule("overview");
   }
 }
 
