@@ -47,6 +47,7 @@
     "smoke:provider-capabilities": "node scripts/smoke/check-provider-capabilities.mjs",
     "smoke:provider-async-mock": "node scripts/smoke/check-provider-async-mock.mjs",
     "smoke:maintenance-boundaries": "node scripts/smoke/check-maintenance-boundaries.mjs",
+    "smoke:server-route-boundary-split": "node scripts/smoke/check-server-route-boundary-split.mjs",
     "smoke:agent-session-api": "node scripts/smoke/check-agent-session-api.mjs",
     "smoke:agent-batch-generation": "node scripts/smoke/check-agent-batch-generation.mjs",
     "smoke:agent-export-canvas": "node scripts/smoke/check-agent-export-canvas.mjs",
