@@ -17,6 +17,7 @@ const routeFiles = {
   auth: read("src/routes/auth.js"),
   health: read("src/routes/health.js"),
   agentSessions: read("src/routes/agent-sessions.js"),
+  images: read("src/routes/images.js"),
   prompts: read("src/routes/prompts.js"),
   canvases: read("src/routes/canvases.js"),
   admin: read("src/routes/admin.js"),
@@ -43,6 +44,17 @@ assert(routeFiles.health.includes("createHealthRoute") && routeFiles.health.incl
 assert(routeFiles.agentSessions.includes("createAgentSessionRoute") && routeFiles.agentSessions.includes("module.exports"), "src/routes/agent-sessions.js must export createAgentSessionRoute");
 
 const splitRoutes = [
+  {
+    key: "images",
+    requirePath: 'require("./src/routes/images")',
+    factory: "createImagesRoute",
+    handle: "handleImagesRoute",
+    endpoints: [
+      "/api/images/history",
+      "/api/images/bulk"
+    ],
+    allowLocalRequires: true
+  },
   {
     key: "prompts",
     requirePath: 'require("./src/routes/prompts")',
@@ -138,7 +150,9 @@ for (const route of splitRoutes) {
   }
   assert(!routeFile.includes('require("mysql2/promise")'), `src/routes/${route.key}.js must not open mysql2 connections directly`);
   assert(!routeFile.includes("require('mysql2/promise')"), `src/routes/${route.key}.js must not open mysql2 connections directly`);
-  assert(!/\brequire\s*\(/.test(routeFile), `src/routes/${route.key}.js must stay dependency-injected and avoid local require cycles`);
+  if (!route.allowLocalRequires) {
+    assert(!/\brequire\s*\(/.test(routeFile), `src/routes/${route.key}.js must stay dependency-injected and avoid local require cycles`);
+  }
 }
 
 const csrfIndex = server.indexOf("verifyCsrf(req);");

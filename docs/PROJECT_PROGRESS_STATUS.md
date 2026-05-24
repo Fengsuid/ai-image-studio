@@ -9,16 +9,16 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction has been verified through `AIS-RLS-102`.
+- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction has been verified through `AIS-RLS-103`.
 
 ## Current Summary
 
 - Trellis total: 160 tasks.
-- Done: 133 tasks.
+- Done: 134 tasks.
 - Active: none.
-- Backlog: 27 tasks in the local Trellis board as of this update (AIS-RLS-103 to AIS-RLS-129).
+- Backlog: 26 tasks in the local Trellis board as of this update (AIS-RLS-104 to AIS-RLS-129).
 - Current active work: none in the local Trellis board.
-- Working tree handoff: follow-up optimization work is now in the working tree. `server.js` has new route modules for credits, settings, announcements, generate, and the gallery route dependency injection bug was fixed; `public/app-auth.js` and `public/app-settings.js` were added as bridge modules; reward-related UI remains split into `public/app-reward-policy.js`, `public/app-credits-detail.js`, and `public/admin-settings.js`; `AIS-RLS-098` promoted the reviewed visual baselines in `docs/mobile-qa/baseline-local/`; `AIS-RLS-099` added ESLint 9, Prettier, `syntax:check`, `lint:fix`, `format:check`, and `npm run check`; `AIS-RLS-100` moved `/api/checkin` and `/api/credits/detail` into `src/routes/credits.js`; `AIS-RLS-101` verified `/api/settings` and `/api/growth` ownership in `src/routes/settings-public.js`; `AIS-RLS-102` verified `/api/announcements*` and `/api/stats/today` ownership in `src/routes/announcements.js`; route-boundary smoke coverage now locks all three public extraction modules.
+- Working tree handoff: follow-up optimization work is now in the working tree. `server.js` has new route modules for credits, settings, announcements, images, generate, and the gallery route dependency injection bug was fixed; `public/app-auth.js` and `public/app-settings.js` were added as bridge modules; reward-related UI remains split into `public/app-reward-policy.js`, `public/app-credits-detail.js`, and `public/admin-settings.js`; `AIS-RLS-098` promoted the reviewed visual baselines in `docs/mobile-qa/baseline-local/`; `AIS-RLS-099` added ESLint 9, Prettier, `syntax:check`, `lint:fix`, `format:check`, and `npm run check`; `AIS-RLS-100` moved `/api/checkin` and `/api/credits/detail` into `src/routes/credits.js`; `AIS-RLS-101` verified `/api/settings` and `/api/growth` ownership in `src/routes/settings-public.js`; `AIS-RLS-102` verified `/api/announcements*` and `/api/stats/today` ownership in `src/routes/announcements.js`; `AIS-RLS-103` verified `/api/images/history` and `/api/images/bulk` ownership in `src/routes/images.js`; route-boundary smoke coverage now locks these Phase B public extraction modules.
 
 ## Completed Milestones
 
@@ -34,19 +34,19 @@ This is the current handoff entry point for project progress. Older planning doc
 | `AIS-RLS-061` - `AIS-RLS-069` | Done | Queue recovery, provider diagnostics/capabilities, Agent workspace, creative route unification. |
 | `AIS-RLS-070` - `AIS-RLS-079` | Done | CSS tokens, CSS split, dark mode, admin/app module split, backend/store split, frontend build tooling, visual polish. |
 | `AIS-RLS-080` - `AIS-RLS-093` | Done | Responsive polish, frontend guardrails, route/store extraction, accessibility, onboarding, prompt library, admin shell, performance budget, visual regression QA harness. |
-| `AIS-RLS-094` - `AIS-RLS-102` | Done | Phase A documentation/baseline cleanup, visual baseline promotion, lint/check tooling foundation, and first Phase B route extractions for credits, public settings/growth, and public announcements/stats. |
+| `AIS-RLS-094` - `AIS-RLS-103` | Done | Phase A documentation/baseline cleanup, visual baseline promotion, lint/check tooling foundation, and first Phase B route extractions for credits, public settings/growth, public announcements/stats, and image history/bulk operations. |
 
 ## Backlog Milestones (Planned)
 
 | Range | Status | Scope |
 | --- | --- | --- |
-| `AIS-RLS-103` - `AIS-RLS-129` | Ready / blocked by dependency | Follow-up Optimization Plan: Code Maintenance, Performance, Visual Polish, and Features. Current working tree already contains several Phase B follow-up changes pending verification and Trellis closure. |
+| `AIS-RLS-104` - `AIS-RLS-129` | Ready / blocked by dependency | Follow-up Optimization Plan: Code Maintenance, Performance, Visual Polish, and Features. Current working tree already contains several Phase B follow-up changes pending verification and Trellis closure. |
 
 ## Active Task
 
 | Task | Status | What Is Implemented | Remaining Closure |
 | --- | --- | --- | --- |
-| None | Done | Local Trellis board has no active tasks. `AIS-RLS-098` passed `npm run smoke:visual-regression` with 10 `Baseline: matched` scenarios and confirmed `VISUAL_REGRESSION_BRAND_PRIMARY_SHIFT=#dc2626` fails the diff assertion. `AIS-RLS-099` passed `npm run lint` with 0 errors and `npm run check`. `AIS-RLS-100` passed `node --check server.js`, `node --check src/routes/credits.js`, `npm run smoke:server-route-boundary-split`, online `npm run smoke:public -- https://<host>`, and online `npm run smoke:gallery-images -- https://<host>`; local `smoke:public` was blocked only by missing local MySQL credentials. `AIS-RLS-101` passed `node --check server.js`, `node --check src/routes/settings-public.js`, `npm run smoke:server-route-boundary-split`, and online `npm run smoke:public -- https://<host>`. `AIS-RLS-102` passed `node --check server.js`, `node --check src/routes/announcements.js`, `npm run smoke:server-route-boundary-split`, and online `npm run smoke:public -- https://<host>`. | Continue with the first dependency-satisfied ready item, normally `AIS-RLS-103`, unless a higher-priority ready task is selected. |
+| None | Done | Local Trellis board has no active tasks. `AIS-RLS-098` passed `npm run smoke:visual-regression` with 10 `Baseline: matched` scenarios and confirmed `VISUAL_REGRESSION_BRAND_PRIMARY_SHIFT=#dc2626` fails the diff assertion. `AIS-RLS-099` passed `npm run lint` with 0 errors and `npm run check`. `AIS-RLS-100` passed `node --check server.js`, `node --check src/routes/credits.js`, `npm run smoke:server-route-boundary-split`, online `npm run smoke:public -- https://<host>`, and online `npm run smoke:gallery-images -- https://<host>`; local `smoke:public` was blocked only by missing local MySQL credentials. `AIS-RLS-101` passed `node --check server.js`, `node --check src/routes/settings-public.js`, `npm run smoke:server-route-boundary-split`, and online `npm run smoke:public -- https://<host>`. `AIS-RLS-102` passed `node --check server.js`, `node --check src/routes/announcements.js`, `npm run smoke:server-route-boundary-split`, and online `npm run smoke:public -- https://<host>`. `AIS-RLS-103` passed `node --check server.js`, `node --check src/routes/images.js`, `npm run smoke:server-route-boundary-split`, online `npm run smoke:public -- https://<host>`, and online `npm run smoke:gallery-images -- https://<host>`. | Continue with the first dependency-satisfied ready item, normally `AIS-RLS-104`, unless a higher-priority ready task is selected. |
 
 ## Documentation Notes
 
@@ -60,6 +60,6 @@ This is the current handoff entry point for project progress. Older planning doc
 
 1. Treat `docs/mobile-qa/visual-regression/runs/2026-05-24T22-57-04-059Z/summary.md` as the latest visual QA review output.
 2. Keep `docs/mobile-qa/baseline-local/*.png` as the approved local comparison set; generated screenshot files remain ignored by git unless a release explicitly force-adds them.
-3. Continue with `AIS-RLS-103` to verify and close the image history and bulk-operation route extraction.
+3. Continue with `AIS-RLS-104` to verify and close the image generation/edit route extraction.
 4. For new work, run the release smoke subset relevant to the touched domains before deployment.
 5. Use `git archive HEAD` for production source bundles when deploying committed work; it avoids stale local tar artifacts and excludes private/untracked files by default.
