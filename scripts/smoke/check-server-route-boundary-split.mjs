@@ -21,7 +21,8 @@ const routeFiles = {
   canvases: read("src/routes/canvases.js"),
   admin: read("src/routes/admin.js"),
   credits: read("src/routes/credits.js"),
-  settingsPublic: read("src/routes/settings-public.js")
+  settingsPublic: read("src/routes/settings-public.js"),
+  announcements: read("src/routes/announcements.js")
 };
 
 assert(server.includes('require("./src/routes/auth")'), "server.js must require src/routes/auth");
@@ -95,6 +96,24 @@ const splitRoutes = [
       "/api/settings",
       "/api/growth"
     ]
+  },
+  {
+    key: "announcements",
+    requirePath: 'require("./src/routes/announcements")',
+    factory: "createAnnouncementsRoute",
+    handle: "handleAnnouncementsRoute",
+    endpoints: [
+      "/api/announcements",
+      "/api/announcements/unread",
+      "/api/stats/today"
+    ],
+    fragments: [
+      "announcementPublicMatch",
+      "(read|ack)"
+    ],
+    forbiddenServerFragments: [
+      "announcementPublicMatch"
+    ]
   }
 ];
 
@@ -110,6 +129,12 @@ for (const route of splitRoutes) {
   for (const endpoint of route.endpoints) {
     assert(routeFile.includes(endpoint), `src/routes/${route.key}.js must own ${endpoint}`);
     assert(!server.includes(`url.pathname === "${endpoint}"`), `server.js should not directly branch on ${endpoint}`);
+  }
+  for (const fragment of route.fragments || []) {
+    assert(routeFile.includes(fragment), `src/routes/${route.key}.js must include ${fragment}`);
+  }
+  for (const fragment of route.forbiddenServerFragments || []) {
+    assert(!server.includes(fragment), `server.js should not directly own ${fragment}`);
   }
   assert(!routeFile.includes('require("mysql2/promise")'), `src/routes/${route.key}.js must not open mysql2 connections directly`);
   assert(!routeFile.includes("require('mysql2/promise')"), `src/routes/${route.key}.js must not open mysql2 connections directly`);
