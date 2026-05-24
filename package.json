@@ -55,6 +55,8 @@
     "smoke:user-gallery-admin-store-split": "node scripts/smoke/check-user-gallery-admin-store-split.mjs",
     "smoke:mysql-store-domain-split": "node scripts/smoke/check-mysql-store-domain-split.mjs",
     "smoke:agent-session-api": "node scripts/smoke/check-agent-session-api.mjs",
+    "smoke:image-session-panel": "node scripts/smoke/check-image-session-panel.mjs",
+    "smoke:user-flow-polish": "node scripts/smoke/check-user-flow-polish.mjs",
     "smoke:agent-batch-generation": "node scripts/smoke/check-agent-batch-generation.mjs",
     "smoke:agent-export-canvas": "node scripts/smoke/check-agent-export-canvas.mjs",
     "smoke:indexeddb-cache-static": "node scripts/smoke/check-indexeddb-cache-static.mjs",

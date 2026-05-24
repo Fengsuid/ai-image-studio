@@ -235,8 +235,14 @@ const i18n = {
     switchToLogin: "已有账号？登录",
     skip: "暂不登录",
     creditsTitle: "每日签到",
+    creditsDetailTitle: "积分明细 / 签到",
     creditsBalance: "当前积分",
     oneCredit: "每次生成消耗积分",
+    creditsLedgerTitle: "积分流水",
+    creditsRewardTitle: "奖励记录",
+    creditsLedgerEmpty: "暂无积分流水",
+    creditsEarned: "获得",
+    creditsSpent: "消耗",
     contactTitle: "联系管理员",
     contactDesc: "通过邮箱联系管理员",
     contactEmailLabel: "管理员邮箱",
@@ -571,8 +577,14 @@ const i18n = {
     switchToLogin: "Already have an account? Login",
     skip: "Skip",
     creditsTitle: "Daily Check-in",
+    creditsDetailTitle: "Credits / Check-in",
     creditsBalance: "Balance",
     oneCredit: "Credits per image",
+    creditsLedgerTitle: "Credit ledger",
+    creditsRewardTitle: "Reward history",
+    creditsLedgerEmpty: "No credit records yet",
+    creditsEarned: "Earned",
+    creditsSpent: "Spent",
     contactTitle: "Contact Admin",
     contactDesc: "Contact the admin by email",
     contactEmailLabel: "Admin email",
@@ -980,6 +992,7 @@ const elements = {
   generationStatus: $("#generationStatus"),
   funMessage: $("#funMessage"),
   elapsedTimer: $("#elapsedTimer"),
+  chatScrollTopBtn: $("#chatScrollTopBtn"),
   historyList: $("#historyList"),
   imageSessionList: $("#imageSessionList"),
   newImageSessionBtn: $("#newImageSessionBtn"),
@@ -1545,33 +1558,76 @@ function createImageSession(title = text("sessionUntitled"), generationIds = [])
     updatedAt: now
   };
 }
-function ensureImageSessions() {
-  const historyIds = state.history.map((item) => String(item.id));
-  const knownIds = new Set(state.imageSessions.flatMap((session) => session.generationIds || []));
-  const missingIds = historyIds.filter((id) => !knownIds.has(id));
-
-  if (!state.imageSessions.length && historyIds.length) {
-    state.imageSessions = [createImageSession(text("historySession"), historyIds)];
-  } else if (missingIds.length) {
-    const historySession = state.imageSessions.find((session) => session.title === text("historySession"));
-    if (historySession) {
-      historySession.generationIds = [...new Set([...(historySession.generationIds || []), ...missingIds])];
-      historySession.updatedAt = new Date().toISOString();
-    } else {
-      state.imageSessions.push(createImageSession(text("historySession"), missingIds));
-    }
+function isHistorySessionTitle(title = "") {
+  const value = String(title || "");
+  return value === translations.zh.historySession || value === translations.en.historySession;
+}
+function recoveredSessionRootId(item = {}) {
+  const route = Array.isArray(item.creativeRoute) && item.creativeRoute.length
+    ? item.creativeRoute
+    : Array.isArray(item.conversation)
+      ? item.conversation
+      : [];
+  const first = route[0] || {};
+  return String(first.id || first.generationId || item.id || "").trim();
+}
+function createRecoveredImageSessions(ids = []) {
+  const allowedIds = new Set(ids.map(String).filter(Boolean));
+  const groups = new Map();
+  for (const item of state.history) {
+    const itemId = String(item.id || "");
+    if (!allowedIds.has(itemId)) continue;
+    const rootId = recoveredSessionRootId(item) || itemId;
+    const group = groups.get(rootId) || { ids: [], first: item, last: item };
+    if (!group.ids.includes(itemId)) group.ids.push(itemId);
+    if (!group.first) group.first = item;
+    group.last = item;
+    groups.set(rootId, group);
   }
-
-  state.imageSessions = state.imageSessions
-    .map((session) => ({
-      ...session,
-      generationIds: [...new Set((session.generationIds || []).map(String).filter((id) => historyIds.includes(id)))]
-    }))
-    .filter((session) => session.generationIds.length || session.id === state.activeImageSessionId)
+  return [...groups.values()]
+    .map((group) => {
+      const first = group.first || {};
+      const last = group.last || first;
+      const title = truncate(first.prompt || last.prompt || text("sessionUntitled"), 24);
+      const session = createImageSession(title, group.ids);
+      session.createdAt = first.time || session.createdAt;
+      session.updatedAt = last.time || session.updatedAt;
+      return session;
+    })
     .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+}
+function ensureImageSessions() {
+  try {
+    const historyIds = state.history.map((item) => String(item.id));
+    state.imageSessions = state.imageSessions.flatMap((session) => {
+      const ids = [...new Set((session.generationIds || []).map(String).filter((id) => historyIds.includes(id)))];
+      if (isHistorySessionTitle(session.title) && ids.length > 1) {
+        return createRecoveredImageSessions(ids);
+      }
+      return [{ ...session, generationIds: ids }];
+    });
+    const knownIds = new Set(state.imageSessions.flatMap((session) => session.generationIds || []));
+    const missingIds = historyIds.filter((id) => !knownIds.has(id));
 
-  if (!state.activeImageSessionId || !state.imageSessions.some((session) => session.id === state.activeImageSessionId)) {
-    state.activeImageSessionId = state.imageSessions[0]?.id || "";
+    if (!state.imageSessions.length && historyIds.length) {
+      state.imageSessions = createRecoveredImageSessions(historyIds);
+    } else if (missingIds.length) {
+      state.imageSessions.push(...createRecoveredImageSessions(missingIds));
+    }
+
+    state.imageSessions = state.imageSessions
+      .map((session) => ({
+        ...session,
+        generationIds: [...new Set((session.generationIds || []).map(String).filter((id) => historyIds.includes(id)))]
+      }))
+      .filter((session) => session.generationIds.length || session.id === state.activeImageSessionId)
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+    if (!state.activeImageSessionId || !state.imageSessions.some((session) => session.id === state.activeImageSessionId)) {
+      state.activeImageSessionId = state.imageSessions[0]?.id || "";
+    }
+  } catch (error) {
+    console.error("[image-session]", error);
   }
   saveImageSessionState();
 }
@@ -1599,6 +1655,18 @@ function startNewImageSession(prompt = "") {
   saveImageSessionState();
   renderImageSessions();
   return session;
+}
+function focusGenerationComposer() {
+  startNewImageSession();
+  state.forceHero = false;
+  state.sessionDrawerLocked = true;
+  closeModal();
+  elements.app.classList.remove("session-panel-open");
+  elements.app.classList.remove("chat-panel-collapsed");
+  setView("home");
+  renderAll();
+  syncComposers();
+  setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
 }
 function addGenerationToActiveSession(itemId, prompt) {
   const session = ensureActiveImageSession(prompt);
@@ -3222,7 +3290,7 @@ function renderHistory() {
           </div>
           <span class="round-pill">${itemIndex + 1} ${text("roundCount")}</span>
         </div>
-        <div class="message-image"><div class="image-shell" ${imageFallbackContainerAttrs()}>${image}</div></div>
+        <div class="message-image"><button type="button" class="image-shell image-shell-zoom" data-zoom-history="${escapeHtml(item.id)}" ${imageFallbackContainerAttrs()} aria-label="${escapeHtml(state.lang === "zh" ? "放大查看生成图片" : "Open generated image")}">${image}</button></div>
         ${routeStrip}
         ${candidateStrip}
         ${tagRow}
@@ -3259,6 +3327,13 @@ function renderHistory() {
       if (!item) return;
       await copyText(item.prompt || "");
       showToast(state.lang === "zh" ? "提示词已复制" : "Prompt copied", "ri-file-copy-line");
+    });
+  });
+  $$("[data-zoom-history]", elements.historyList).forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = state.history.find((entry) => String(entry.id) === button.dataset.zoomHistory);
+      const imageUrl = item?.images?.[0] || "";
+      if (imageUrl) openImageZoomModal({ imageUrl, prompt: item.prompt, title: text("worksDetailTitle") });
     });
   });
   $$("[data-candidate]", elements.historyList).forEach((button) => {
@@ -4258,6 +4333,22 @@ function openImageEditor(imageUrl = "", prompt = "") {
   setView("editor");
   if (imageUrl) setEditorImage(imageUrl);
   setTimeout(() => elements.editorPromptInput?.focus(), 80);
+}
+function openImageZoomModal({ imageUrl = "", prompt = "", title = "" } = {}) {
+  if (!imageUrl) return;
+  openModal(`
+    <section class="modal image-zoom-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title || text("worksOpenDetail"))}">
+      <button class="image-zoom-close" type="button" aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
+      <div class="image-zoom-stage" ${imageFallbackContainerAttrs()}>
+        <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} loading="eager" decoding="async" alt="${escapeHtml(truncate(prompt || title || "", 100))}">
+      </div>
+      <footer class="image-zoom-footer">
+        <p>${escapeHtml(prompt || title || "")}</p>
+        <a href="${escapeHtml(imageUrl)}" download="image.png"><i class="ri-download-line"></i>${escapeHtml(text("download"))}</a>
+      </footer>
+    </section>
+  `);
+  $(".image-zoom-close", elements.modalLayer)?.addEventListener("click", closeModal);
 }
 function renderEditor() {
   if (!elements.editorView) return;
@@ -6448,35 +6539,128 @@ async function logout() {
   window.scrollTo({ top: 0, behavior: "auto" });
   restartHeroVideo();
 }
-function openCreditsModal() {
+function creditSourceLabel(source = "") {
+  const key = String(source || "");
+  const zh = {
+    daily_checkin: "每日签到",
+    generation_charge: "文生图消耗",
+    generation_refund: "生成退款",
+    edit_charge: "图生图消耗",
+    edit_refund: "编辑退款",
+    canvas_generation_charge: "画布生成消耗",
+    canvas_generation_refund: "画布生成退款",
+    canvas_generation_error_refund: "画布生成退款",
+    canvas_generation_cancel_refund: "画布取消退款",
+    admin_adjustment: "管理员调整",
+    credit_grant: "积分赠送",
+    signup_bonus: "注册赠送"
+  };
+  const en = {
+    daily_checkin: "Daily check-in",
+    generation_charge: "Generation charge",
+    generation_refund: "Generation refund",
+    edit_charge: "Image edit charge",
+    edit_refund: "Image edit refund",
+    canvas_generation_charge: "Canvas generation charge",
+    canvas_generation_refund: "Canvas generation refund",
+    canvas_generation_error_refund: "Canvas generation refund",
+    canvas_generation_cancel_refund: "Canvas cancel refund",
+    admin_adjustment: "Admin adjustment",
+    credit_grant: "Credit grant",
+    signup_bonus: "Signup bonus"
+  };
+  return (state.lang === "zh" ? zh : en)[key] || key.replace(/_/g, " ") || "-";
+}
+function rewardStatusLabel(status = "") {
+  const labels = state.lang === "zh"
+    ? { pending: "待入账", awarded: "已入账", cancelled: "已取消" }
+    : { pending: "Pending", awarded: "Awarded", cancelled: "Cancelled" };
+  return labels[String(status || "")] || status || "-";
+}
+function renderCreditLedgerRows(records = []) {
+  if (!records.length) return `<div class="credits-empty">${escapeHtml(text("creditsLedgerEmpty"))}</div>`;
+  return records.map((item) => {
+    const delta = Number(item.delta || 0);
+    const positive = delta >= 0;
+    return `
+      <article class="credit-ledger-row ${positive ? "positive" : "negative"}">
+        <span class="credit-ledger-icon"><i class="${positive ? "ri-add-circle-line" : "ri-subtract-line"}"></i></span>
+        <div>
+          <strong>${escapeHtml(creditSourceLabel(item.source))}</strong>
+          <small>${escapeHtml(item.note || item.referenceId || formatDate(item.createdAt) || "")}</small>
+        </div>
+        <em>${positive ? "+" : ""}${delta}</em>
+        <time>${escapeHtml(formatDate(item.createdAt) || "")}</time>
+        <span>${escapeHtml(text("creditsBalance"))}: ${Number(item.balanceAfter || 0)}</span>
+      </article>
+    `;
+  }).join("");
+}
+function renderRewardLedgerRows(records = []) {
+  if (!records.length) return "";
+  return `
+    <section class="credits-detail-section">
+      <h3>${escapeHtml(text("creditsRewardTitle"))}</h3>
+      <div class="reward-ledger-list">
+        ${records.map((item) => `
+          <article class="reward-ledger-row">
+            <strong>${escapeHtml(item.rewardType ? item.rewardType.replace(/_/g, " ") : "-")}</strong>
+            <span>${escapeHtml(rewardStatusLabel(item.status))}</span>
+            <em>+${Number(item.amount || 0)}</em>
+            <time>${escapeHtml(formatDate(item.awardedAt || item.createdAt) || "")}</time>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+async function loadCreditDetails() {
+  try {
+    return await api("/api/credits/detail?limit=80");
+  } catch (error) {
+    console.warn("[credits]", error);
+    return { ledger: [], rewards: [] };
+  }
+}
+async function openCreditsModal() {
   if (!state.user) {
     openAuthModal("login");
     return;
   }
+  const details = await loadCreditDetails();
   const credits = state.user?.credits ?? 0;
   const checkedIn = Boolean(state.checkin?.checkedInToday);
   const checkinCredit = Number(state.checkin?.credit || state.settings?.checkinCredit || 1);
   const generationCost = Number(state.settings?.generationCreditCost ?? 1);
   openModal(`
-    <section class="modal">
+    <section class="modal credits-detail-modal">
       <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
       <div class="modal-title">
         <i class="ri-sparkling-2-fill"></i>
-        <h2>${text("creditsTitle")}</h2>
+        <h2>${text("creditsDetailTitle")}</h2>
         <p>${text("creditsBalance")}: <strong>${credits}</strong> · ${text("oneCredit")}: <strong>${generationCost}</strong></p>
       </div>
-      <div class="checkin-card">
-        <i class="ri-calendar-check-line"></i>
-        <strong>+${checkinCredit}</strong>
-        <span>${text("checkinReward")}</span>
+      <div class="credits-detail-hero">
+        <div class="checkin-card">
+          <i class="ri-calendar-check-line"></i>
+          <strong>+${checkinCredit}</strong>
+          <span>${text("checkinReward")}</span>
+        </div>
+        <button class="modal-primary" type="button" data-checkin ${checkedIn ? "disabled" : ""}>
+          ${checkedIn ? text("checkedIn") : text("checkinToday")}
+        </button>
       </div>
-      <button class="modal-primary" type="button" data-checkin ${checkedIn ? "disabled" : ""}>
-        ${checkedIn ? text("checkedIn") : text("checkinToday")}
-      </button>
-      <button class="modal-secondary" type="button" data-close-auth>${text("close")}</button>
+      <section class="credits-detail-section">
+        <h3>${escapeHtml(text("creditsLedgerTitle"))}</h3>
+        <div class="credit-ledger-list">${renderCreditLedgerRows(details.ledger || [])}</div>
+      </section>
+      ${renderRewardLedgerRows(details.rewards || [])}
+      <div class="credits-detail-actions">
+        <button class="modal-secondary" type="button" data-close-auth>${text("close")}</button>
+      </div>
     </section>
   `);
-  $("[data-checkin]", elements.modalLayer).addEventListener("click", submitCheckin);
+  $("[data-checkin]", elements.modalLayer)?.addEventListener("click", submitCheckin);
   $("[data-close-auth]", elements.modalLayer).addEventListener("click", closeModal);
 }
 async function submitCheckin(event) {
@@ -6950,18 +7134,7 @@ window.ImageStudioAppActions = {
   openMyWorksModal,
   openAuthModal,
   releaseSessionDrawerLock,
-  focusGenerationComposer() {
-    startNewImageSession();
-    state.forceHero = false;
-    state.sessionDrawerLocked = true;
-    closeModal();
-    elements.app.classList.remove("session-panel-open");
-    elements.app.classList.remove("chat-panel-collapsed");
-    setView("home");
-    renderAll();
-    syncComposers();
-    setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
-  },
+  focusGenerationComposer,
   setDraftPrompt(prompt = "", { focus = false } = {}) {
     state.draftPrompt = String(prompt || "");
     state.forceHero = true;
@@ -6997,6 +7170,11 @@ function bindGlobalEvents() {
     elements.app.classList.remove("session-panel-open");
     elements.app.classList.add("chat-panel-collapsed");
     renderImageSessions();
+  });
+  elements.chatScrollTopBtn?.addEventListener("click", () => {
+    const target = $(".chat-workspace", elements.chatView) || elements.chatView;
+    target.scrollTo?.({ top: 0, behavior: "smooth" });
+    elements.historyList?.firstElementChild?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   });
   elements.imageEditorBtn.addEventListener("click", () => openImageEditor());
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));

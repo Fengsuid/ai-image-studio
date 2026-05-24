@@ -308,16 +308,53 @@
     padding: 20px 14px;
   }
 
+  .works-workspace {
+    height: calc(100svh - 18px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  }
+
   .works-head {
     margin-right: 40px;
   }
 
-  .works-grid {
+  .works-toolbar {
     grid-template-columns: 1fr;
   }
 
+  .works-bulk-actions,
+  .works-filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .works-bulk-actions {
+    justify-content: flex-start;
+  }
+
+  .works-bulk-actions button,
+  .works-bulk-actions span,
+  .works-filter-btn {
+    flex: 0 0 auto;
+  }
+
+  .works-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 148px;
+    gap: 9px;
+  }
+
+  .work-card:nth-child(7n + 1),
+  .work-card:nth-child(7n + 5) {
+    grid-row: span 1;
+  }
+
+  .work-body {
+    padding: 8px;
+  }
+
   .work-actions {
-    grid-template-columns: 1fr;
+    display: none;
   }
 
   .compliance-modal {

@@ -3179,6 +3179,27 @@ async function routeApi(req, res, url) {
     });
   }
 
+  if (req.method === "GET" && url.pathname === "/api/credits/detail") {
+    const current = await getCurrentUser(req);
+    ensureAuthenticated(current);
+    const limit = Math.max(1, Math.min(120, Number(url.searchParams.get("limit")) || 80));
+    const [ledger, rewards, credits, checkedInToday] = await Promise.all([
+      store.listCreditLedger({ userId: current.user.id, limit }),
+      store.listRewardLedger({ userId: current.user.id, limit: Math.min(limit, 80) }),
+      store.getUserCredits(current.user.id),
+      store.hasCheckedInToday(current.user.id)
+    ]);
+    return sendJson(res, 200, {
+      credits,
+      ledger,
+      rewards,
+      checkin: {
+        checkedInToday,
+        credit: CHECKIN_CREDIT
+      }
+    });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/settings") {
     const settings = await store.getSettings();
     return sendJson(res, 200, publicSettings(settings, await store.getDefaultProviderConfig({ includeSecret: true })));
