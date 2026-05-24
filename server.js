@@ -81,14 +81,6 @@ const OPENAI_FETCH_TIMEOUT_MS = Math.max(
   10_000,
   Number.parseInt(process.env.OPENAI_FETCH_TIMEOUT_MS || "120000", 10) || 120_000
 );
-const OPENAI_IMAGE_GENERATION_TIMEOUT_MS = Math.max(
-  15_000,
-  Number.parseInt(process.env.OPENAI_IMAGE_GENERATION_TIMEOUT_MS || "45000", 10) || 45_000
-);
-const OPENAI_IMAGE_EDIT_TIMEOUT_MS = Math.max(
-  30_000,
-  Number.parseInt(process.env.OPENAI_IMAGE_EDIT_TIMEOUT_MS || "60000", 10) || 60_000
-);
 const IMAGE_DOWNLOAD_TIMEOUT_MS = Math.max(
   5_000,
   Number.parseInt(process.env.IMAGE_DOWNLOAD_TIMEOUT_MS || "30000", 10) || 30_000
@@ -210,8 +202,6 @@ const handleHealthRoute = createHealthRoute({
   appVersion: APP_VERSION,
   serverStartedAt: SERVER_STARTED_AT,
   openaiFetchTimeoutMs: OPENAI_FETCH_TIMEOUT_MS,
-  openaiImageGenerationTimeoutMs: OPENAI_IMAGE_GENERATION_TIMEOUT_MS,
-  openaiImageEditTimeoutMs: OPENAI_IMAGE_EDIT_TIMEOUT_MS,
   imageDownloadTimeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS
 });
 
@@ -1493,7 +1483,7 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
         const data = await runProviderMappingRequest({
           apiKey,
           baseUrl: getOpenAIBaseUrl(route.settings),
-          fetchFn: (label, url, init) => fetchWithTimeout(label, url, init, OPENAI_IMAGE_GENERATION_TIMEOUT_MS),
+          fetchFn: (label, url, init) => fetchWithTimeout(label, url, init, OPENAI_FETCH_TIMEOUT_MS),
           mapping,
           payload: routedPayload,
           signal,
@@ -1532,7 +1522,7 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
         },
         body: JSON.stringify(routedPayload),
         signal
-      }, OPENAI_IMAGE_GENERATION_TIMEOUT_MS);
+      });
 
       const text = await response.text();
       let data;
@@ -1870,7 +1860,7 @@ async function callOpenAIImageEdits(settings, payload, { signal, trace = null } 
         },
         body: form,
         signal
-      }, OPENAI_IMAGE_EDIT_TIMEOUT_MS);
+      });
 
       const text = await response.text();
       let data;

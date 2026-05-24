@@ -3,8 +3,6 @@ function createHealthRoute({
   imageDownloadTimeoutMs,
   nowIso,
   openaiFetchTimeoutMs,
-  openaiImageEditTimeoutMs,
-  openaiImageGenerationTimeoutMs,
   publicSettings,
   readJsonBody,
   rumEvents,
@@ -51,8 +49,6 @@ function createHealthRoute({
         platform: `${process.platform}-${process.arch}`,
         timeoutMs: {
           openai: openaiFetchTimeoutMs,
-          openaiImageGeneration: openaiImageGenerationTimeoutMs,
-          openaiImageEdit: openaiImageEditTimeoutMs,
           imageDownload: imageDownloadTimeoutMs
         }
       });
