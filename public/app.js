@@ -7172,9 +7172,9 @@ function bindGlobalEvents() {
     renderImageSessions();
   });
   elements.chatScrollTopBtn?.addEventListener("click", () => {
-    const target = $(".chat-workspace", elements.chatView) || elements.chatView;
-    target.scrollTo?.({ top: 0, behavior: "smooth" });
-    elements.historyList?.firstElementChild?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    elements.chatView?.scrollTo?.({ top: 0, behavior: "smooth" });
+    window.scrollTo?.({ top: 0, behavior: "smooth" });
+    elements.generationStatus?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   });
   elements.imageEditorBtn.addEventListener("click", () => openImageEditor());
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
