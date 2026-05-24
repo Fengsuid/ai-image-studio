@@ -2,13 +2,14 @@
 
 Updated: 2026-05-24
 
-This is the current handoff entry point for project progress. Older planning documents keep historical design detail, but this file reflects the local Trellis board and current working tree.
+This is the current handoff entry point for project progress. Older planning documents keep historical design detail, but this file reflects the local Trellis board, Git state, and current working tree.
 
 ## Source Of Truth
 
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
+- Latest implementation baseline: `fd419c1` (`advance canvas v2 and frontend qa`) is on `main` and `origin/main`; later docs-only calibration commits may follow it.
 
 ## Current Summary
 
@@ -17,6 +18,7 @@ This is the current handoff entry point for project progress. Older planning doc
 - Active: 1 task, `AIS-RLS-093`.
 - Backlog: none in the local Trellis board as of this update.
 - Current active work: visual regression QA harness for the polished frontend.
+- Working tree handoff: Canvas v2 undo/autosave and title IME fixes, frontend QA docs, and smoke harness updates have been committed and pushed to `main`; no project handoff depends on an open PR.
 
 ## Completed Milestones
 
@@ -43,6 +45,8 @@ This is the current handoff entry point for project progress. Older planning doc
 
 - `IMAGE_STUDIO_OPTIMIZATION_DEVELOPMENT_PLAN.md` is now a historical roadmap plus backlog proposal document. Its earlier Ready/Backlog labels for `AIS-RLS-039` through `AIS-RLS-060` are superseded by this file and the Trellis board.
 - `IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md` is the task allocation table and has been updated with post-060 task status.
+- `IMAGE_STUDIO_RELLIS_TASKS.md` is a historical task-spec archive. Use its task descriptions for context, not its older suggested Ready/Backlog labels.
+- `IMAGE_STUDIO_FRONTEND_ADMIN_DESIGN.md` is a design reference. Its top implementation index has been recalibrated, but detailed body sections still preserve original 2026-05-18 design wording.
 - `IMAGE_STUDIO_CANVAS_V2_MIGRATION_PLAN.md` remains the Canvas v2 implementation reference; its status section should be read as completed first-phase migration plus ongoing quality hardening.
 
 ## Immediate Next Steps
@@ -50,4 +54,4 @@ This is the current handoff entry point for project progress. Older planning doc
 1. Finish `AIS-RLS-093` by reviewing `docs/mobile-qa/visual-regression/runs/<timestamp>/summary.md` and screenshots.
 2. If the screenshots are accepted, either promote a baseline intentionally or keep baseline-free mode as the release default.
 3. Run the release smoke subset relevant to the current changes.
-4. Split the large uncommitted working tree into reviewable commits before deployment.
+4. After `AIS-RLS-093` is accepted, update the Trellis card to Done and add the final release/checklist note before deployment.

@@ -1,6 +1,6 @@
 # ai-image-studio Rellis / Trellis 任务拆分
 
-状态：已同步真实 Trellis 看板目录 `D:\生图广场\.trelis\tasks`（2026-05-20）。
+状态：任务规格归档，已按真实 Trellis 看板目录 `D:\生图广场\.trelis\tasks` 重新校准（2026-05-24）。
 Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md)。
 来源文档：
 
@@ -8,6 +8,24 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 - `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`
 - `IMAGE_STUDIO_FRONTEND_ADMIN_DESIGN.md`
 - `IMAGE_STUDIO_MOBILE_WEB_OPTIMIZATION_PLAN.md`
+
+## 0. 当前状态校准（2026-05-24）
+
+本文件保留早期拆卡正文和验收描述，适合查任务来源、范围和依赖；当前完成状态不再以正文中的“建议状态：Ready/Backlog”为准。
+
+当前事实源：
+
+- 进度入口：[`PROJECT_PROGRESS_STATUS.md`](PROJECT_PROGRESS_STATUS.md)
+- 全量任务状态表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md)
+- 本地 Trellis 目录：`D:\生图广场\.trelis\tasks`
+
+最新同步结果：
+
+- `AIS-RLS-001` 到 `AIS-RLS-092`：Done。
+- `AIS-RLS-093` Visual regression QA harness for polished frontend：Active。
+- Backlog：当前本地 Trellis 看板无 backlog 任务。
+
+阅读规则：正文里 2026-05-20 的“尚未完成，保持 Backlog”和单卡“建议状态”是历史拆分记录；如果与上方状态或总表冲突，以上方状态、总表和 Trellis 目录为准。
 
 ## 1. 看板列建议
 
@@ -38,7 +56,7 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 
 ## 3. 里程碑建议
 
-### 当前完成状态（2026-05-20）
+### 历史完成状态快照（2026-05-20）
 
 已完成、提交并通过本轮线上 smoke：
 
@@ -52,7 +70,7 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 - 标签管理与合并：`AIS-RLS-035`。
 - 开发与上线 QA 清单：`AIS-RLS-038`。
 
-尚未完成，保持 Backlog：
+以下为 2026-05-20 当时尚未完成的 Backlog；截至 2026-05-24，`AIS-RLS-039` 到 `AIS-RLS-045` 均已完成：
 
 - `AIS-RLS-039` 画布模块边界与反单文件治理。
 - `AIS-RLS-040` 文生图生成中闪屏修复。

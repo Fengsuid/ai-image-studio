@@ -1,38 +1,38 @@
 # Image2Creat 前端展示与管理员后台专项设计
 
 日期：2026-05-18  
-状态：原始设计稿，部分章节已通过后续批次落地或被合并到 `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`；未落地章节仍作为下一步设计入口。
+状态：原始设计稿，主体体验与后台批次已通过 `AIS-RLS-033` 到 `AIS-RLS-093` 分阶段落地或合并到 `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`；正文保留 2026-05-18 的设计语境，当前完成状态以 `PROJECT_PROGRESS_STATUS.md` 为准。
 范围：前台内容展示、功能呈现、管理员页面信息架构与交互升级。  
 定位：补充 `IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md`、`IMAGE_STUDIO_EXEC4_DESIGN.md`、`IMAGE_STUDIO_EXTERNAL_OPTIMIZATION_RESEARCH.md`，避免重复会话落库、续图、标签表、CSP/CSRF 等已写过的主线。
 
-## 0. 实施进度索引（2026-05-20 更新）
+## 0. 实施进度索引（2026-05-24 校准）
 
 本节是后期补充，目的是把本设计稿各章节与近期实际落地批次对齐。原设计稿正文未改动，仍作为意图说明保留。
 
-> 标记说明：Done = 已上线；Partial = 局部上线，仍有遗留；Not started = 暂未开工，保持 backlog。
+> 标记说明：Done = 已落地并纳入后续 QA；Reference = 原始设计仍可参考，但不代表当前 backlog；Follow-up = 可作为 `AIS-RLS-093` 之后的新提案重新拆卡。
 
 | 章节 | 状态 | 落地依据 / 后续追踪 |
 | --- | --- | --- |
-| §3.1 首页升级为"创作控制台" | Partial | 顶部导航、提示词卡、生成入口已上线；文生图闪屏修复（`AIS-RLS-040`）、composer 重排（统一主计划 §6 P0.0）仍为 backlog |
-| §3.2 卡片体系统一 | Partial | 画廊与提示词卡片已统一为 `gallery-normalize.js` 输出模型；榜单卡片样式统一仍待 `AIS-RLS-041` |
+| §3.1 首页升级为"创作控制台" | Done | 首页 onboarding、prompt discovery、composer/chat/editor 响应式 polish 已通过 `AIS-RLS-040`、`AIS-RLS-080`、`AIS-RLS-089` 等批次落地。 |
+| §3.2 卡片体系统一 | Done | 画廊、榜单、提示词库和详情交互已通过 `AIS-RLS-041`、`AIS-RLS-079`、`AIS-RLS-090` 等批次统一。 |
 | §3.3 作品详情页升级 | Done | 大图、文生图/图生图入口、下载、复制、取消公开均已上线 |
-| §3.4 "我的作品"升级为资产库 | Not started | 仍为弹窗，统一主计划列为 P1，未排进当前批次 |
-| §3.5 提示词库内容运营化 | Partial | 远程提示词源、分类、缩略图、点赞已上线；接入 `basketikun/infinite-canvas` 仍为 `AIS-RLS-043` backlog |
-| §3.6 空状态、加载状态、失败状态 | Partial | 关键路径已补占位与重试，运营资源页空状态仍待统一 |
-| §3.7 移动端导航与常用入口 | Partial | 顶部导航响应式已上线；榜单移动端抽屉仍随 `AIS-RLS-041` 推进 |
-| §3.8 首次公开奖励与 12 小时撤回 | Not started | 字段、奖励发放与撤回时间窗在 `server.js` 中已有常量 `FIRST_PUBLIC_REWARD_CREDIT` / `PUBLIC_WITHDRAWAL_WINDOW_HOURS` 兜底，但完整业务流程仍待落地 |
+| §3.4 "我的作品"升级为资产库 | Reference | 我的作品和公开/撤回/管理入口已覆盖核心流程；若要做完整资产库，应在 `AIS-RLS-093` 之后重新拆新卡。 |
+| §3.5 提示词库内容运营化 | Done | 远程提示词源、分类、缩略图、点赞、排序、提示词库视觉 polish 和 Canvas v2 入口已落地。 |
+| §3.6 空状态、加载状态、失败状态 | Done | 关键路径占位、重试、可访问性和性能预算已通过 `AIS-RLS-088` 到 `AIS-RLS-092` 收口。 |
+| §3.7 移动端导航与常用入口 | Done | 移动端基线、首页、导航、对话、画廊、编辑器和 QA 闭环已通过 `AIS-RLS-055` 到 `AIS-RLS-060` 完成。 |
+| §3.8 首次公开奖励与 12 小时撤回 | Reference | 相关常量和管理能力已有覆盖；完整奖励运营策略如需继续推进，应按新需求重新拆卡。 |
 | §3.9 提示词点赞与热度 | Done | `AIS-RLS-013` 已落地，前台卡片、详情弹窗、榜单提示词项均接入 |
-| §4.1 后台从弹窗升级为独立后台 | Not started | 仍是弹窗实现；`AIS-RLS-033` 与统一主计划 P1 已计入 backlog |
-| §4.2 后台首页：运营总览 | Not started | 与 §4.1 一同推进 |
-| §4.3 生成请求页面 | Partial | `generation_requests` 已落库，后台仅展示历史与失败摘要；筛选、批量动作、详情 drawer 仍待 §4.1 完成后补 |
-| §4.4 广场审核与举报页面 | Partial | 数据模型与基础后台列表已上线；侧栏、状态机、审核日志仍待 P2 推进 |
-| §4.5 用户与积分页面 | Partial | 后台用户列表与积分调整已上线；批量操作、详情 drawer、首次公开奖励状态仍待 §4.1 完成后补 |
-| §4.6 提示词 CMS | Partial | 提示词列表、详情、来源、重复候选已上线；统一编辑工作台仍待推进 |
-| §4.6.1 重复治理与大模型审核 | Partial | `AIS-RLS-014` 完成规则候选 + 大模型 mock 审核 + 人工保留；embedding 召回与真实大模型审核接入仍待 P2 |
+| §4.1 后台从弹窗升级为独立后台 | Done | 后台首页、独立管理 shell、信息层级和 admin 模块拆分已通过 `AIS-RLS-033`、`AIS-RLS-073`、`AIS-RLS-091` 落地。 |
+| §4.2 后台首页：运营总览 | Done | 后台总览和运营信息层级已纳入 `AIS-RLS-033` / `AIS-RLS-091`。 |
+| §4.3 生成请求页面 | Done | 生成队列恢复、trace、provider diagnostics 和后台诊断页已通过 `AIS-RLS-061`、`AIS-RLS-062`、`AIS-RLS-068` 完成。 |
+| §4.4 广场审核与举报页面 | Done | 广场内容审核、撤回管理、详情联动和标签展示修复已通过 `AIS-RLS-036`、`AIS-RLS-044`、`AIS-RLS-045` 完成。 |
+| §4.5 用户与积分页面 | Done | 用户管理、积分奖励和后台 shell polish 已通过 `AIS-RLS-034`、`AIS-RLS-091` 完成。 |
+| §4.6 提示词 CMS | Done | 提示词列表、详情、来源、排序、重复候选和提示词库 polish 已完成。 |
+| §4.6.1 重复治理与大模型审核 | Reference | `AIS-RLS-014` 已完成规则候选、大模型 mock 审核和人工保留；embedding/真实模型审核如需继续，应作为新 P2 提案拆卡。 |
 | §4.7 标签库后台 | Done | `AIS-RLS-035` 标签合并 JSON 迁移已闭环 |
-| §4.8 系统设置与模型配置 | Partial | 单 provider 已支持；多 provider 矩阵仍随 `AIS-RLS-036` 推进 |
-| §4.9 审计日志与权限 | Partial | `admin_audit_logs` 表已上线，关键写操作落审计；权限矩阵与查询页待 §4.1 完成后补 |
-| §5 后台通用组件规范 | Not started | 待 §4.1 后统一 |
+| §4.8 系统设置与模型配置 | Done | provider capabilities、async mapping 和后台诊断已通过 `AIS-RLS-063`、`AIS-RLS-068` 落地。 |
+| §4.9 审计日志与权限 | Reference | `admin_audit_logs` 已上线；更细权限矩阵若继续推进，应单独拆新卡。 |
+| §5 后台通用组件规范 | Done | 后台 shell 视觉层级和模块拆分已通过 `AIS-RLS-073`、`AIS-RLS-091` 收口。 |
 | §6 API 与数据需求 | Partial | 已落地接口随上述章节同步进度，部分新接口（榜单、画布生成、画布助手）以本项目最新 `server.js` 为准 |
 | §7 实施路线 P0–P3 | 已合并 | 内容已并入 `docs/IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md` 的 P0–P3 章节，由后者维护 |
 | §8 验收清单 | 已合并 | 与 `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md` 合用 |
@@ -40,9 +40,9 @@
 
 后续修改原则：
 
-- 本文件不再继续追加"新设计"。新设计直接进 `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md` 与 `IMAGE_STUDIO_RELLIS_TASKS.md`。
+- 本文件不再继续追加"新设计"。新设计直接进 `IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`，并在真实 Trellis 中分配新的 `AIS-RLS-*` 卡。
 - 本表中标记为 `Done` 的章节，作为历史落地记录保留正文，不再修订。
-- `Partial` 与 `Not started` 章节的具体下一步以 `IMAGE_STUDIO_RELLIS_TASKS.md` 中的 AIS-RLS-* 任务为准。
+- `Reference` 与 `Follow-up` 章节只代表可参考的产品方向，不代表当前看板仍有 backlog。
 
 ## 1. 参考资料
 

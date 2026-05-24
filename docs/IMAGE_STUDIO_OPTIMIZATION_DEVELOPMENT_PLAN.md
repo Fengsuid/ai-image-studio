@@ -35,7 +35,7 @@
 
 1. [项目现状概览](#1-项目现状概览)
 2. [已完成里程碑](#2-已完成里程碑)
-3. [当前 Backlog 优先级任务](#3-当前-backlog-优先级任务)
+3. [历史 Backlog 与后续提案](#3-历史-backlog-与后续提案已由-trellis-校准)
 4. [代码结构优化](#4-代码结构优化)
 5. [功能补充路线图](#5-功能补充路线图)
 6. [性能优化](#6-性能优化)
@@ -190,7 +190,9 @@
 
 ---
 
-## 3. 当前 Backlog 优先级任务
+## 3. 历史 Backlog 与后续提案（已由 Trellis 校准）
+
+本节保留早期 Ready/Backlog 拆分和技术方案，方便回看设计意图。当前任务完成状态以 `PROJECT_PROGRESS_STATUS.md`、`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md` 和真实 Trellis 目录为准；不要从本节旧状态判断项目是否仍待开工。
 
 ### 3.1 Milestone 6：新增体验回归与外部提示词源
 

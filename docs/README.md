@@ -10,7 +10,7 @@ This directory only tracks product-facing planning material that is useful for f
 - `IMAGE_STUDIO_MOBILE_WEB_OPTIMIZATION_PLAN.md`: mobile web layout and interaction optimization plan for home, chat, gallery, editor, works, and QA screenshot coverage.
 - `IMAGE_STUDIO_AGENT_PLAYGROUND_IMPROVEMENT_PLAN.md`: next-stage improvement plan inspired by `gpt_image_playground`, focused on persistent generation queues, Agent creation workflows, provider diagnostics, IndexedDB caching, and frontend modularization.
 - `IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`: Trellis board allocation table; maps all active development tasks, lanes, statuses, and legacy T016-T031 aliases.
-- `IMAGE_STUDIO_RELLIS_TASKS.md`: Rellis/Trellis-ready task breakdown for the current development plan.
+- `IMAGE_STUDIO_RELLIS_TASKS.md`: Rellis/Trellis task-spec archive; useful for task descriptions, but current completion state is superseded by `PROJECT_PROGRESS_STATUS.md` and `IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`.
 - `IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`: local and production smoke checks, screenshot checklist, release record, and rollback steps.
 - `mobile-qa/visual-regression/README.md`: visual regression smoke harness, baseline promotion, diff thresholds, and screenshot cleanup rules.
 
@@ -23,6 +23,7 @@ This directory only tracks product-facing planning material that is useful for f
 - "Current handoff": authoritative for current completion state; supersedes stale backlog labels in older planning documents.
 - "Active": kept current; new feedback and progress are appended here first.
 - "Design reference": the original design intent is preserved; per-section status updates are tracked at the top of the document and inside the unified master plan.
+- "Task-spec archive": original task breakdown text is preserved; old `Ready` / `Backlog` suggestions are historical unless repeated in the current handoff.
 
 ## Excluded from this repository
 
