@@ -388,8 +388,9 @@ async function checkAdminResources() {
   const adminBundle = [script.body, ...moduleBodies].join("\n");
   assert(adminBundle.includes("快捷入口"), "/admin modules should render admin dashboard quick actions");
   assert(adminBundle.includes("最近异常"), "/admin modules should render admin dashboard recent issues");
-  assert(script.body.includes("growthConfig"), `${scriptPath} should expose growth configuration`);
-  assert(adminBundle.includes("providerCapabilityConfig"), "/admin settings module should expose provider capability configuration");
+  assert(adminBundle.includes("growthConfig"), "/admin settings module should expose growth configuration");
+  assert(adminBundle.includes("API 配置入口已迁移"), "/admin settings module should explain API provider settings ownership");
+  assert(!adminBundle.includes('name="providerCapabilityConfig"'), "/admin settings module should not duplicate provider capability configuration");
   assert(adminBundle.includes("contactEmail"), "/admin settings module should expose contact email settings");
   assert(adminBundle.includes("maxReferenceImages"), "/admin settings module should expose reference image upload limit settings");
   assert(script.body.includes("if (isNew || apiKey) payload.apiKey = apiKey"), `${scriptPath} should not clear provider API keys when edit field is blank`);

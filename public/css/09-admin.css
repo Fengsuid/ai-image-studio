@@ -345,6 +345,14 @@
   color: #475467;
 }
 
+.admin-settings-provider-note {
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 18px;
+  background: rgba(239, 246, 255, 0.72);
+}
+
 .admin-empty-state,
 .admin-auth-required {
   min-height: 140px;
