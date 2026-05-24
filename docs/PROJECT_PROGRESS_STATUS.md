@@ -9,7 +9,7 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: `e592d25` (`refactor: split reward UI modules`) is on `main` and `origin/main`; the working tree is clean after reward UI module split and production redeploy.
+- Latest implementation baseline: current `main` / `origin/main`; latest runtime-changing commit is `e592d25` (`refactor: split reward UI modules`), followed by handoff and smoke-check documentation updates.
 
 ## Current Summary
 
