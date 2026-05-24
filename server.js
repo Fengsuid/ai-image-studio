@@ -717,6 +717,16 @@ function contactAdminEmail(settings = {}) {
   return email || DEFAULT_CONTACT_ADMIN_EMAIL;
 }
 
+function firstPublicRewardCredit(settings = {}) {
+  const value = Number(settings.firstPublicRewardCredit ?? FIRST_PUBLIC_REWARD_CREDIT);
+  return Number.isFinite(value) ? Math.max(0, value) : FIRST_PUBLIC_REWARD_CREDIT;
+}
+
+function publicRewardHoldMinutes(settings = {}) {
+  const value = Number(settings.publicRewardHoldMinutes ?? PUBLIC_WITHDRAWAL_WINDOW_HOURS * 60);
+  return Number.isFinite(value) ? Math.max(1, value) : PUBLIC_WITHDRAWAL_WINDOW_HOURS * 60;
+}
+
 function canvasEntryMode() {
   return choose(
     String(process.env.CANVAS_ENTRY_MODE || process.env.CANVAS_V2_ENTRY_MODE || "v2").trim().toLowerCase(),
@@ -743,6 +753,7 @@ function publicSettings(settings, activeProvider = null) {
   const capabilities = activeProvider?.capabilities && Object.keys(activeProvider.capabilities).length
     ? { ...providerCapabilities(settings), ...activeProvider.capabilities }
     : providerCapabilities(settings);
+  const rewardHoldMinutes = publicRewardHoldMinutes(settings);
   const model = activeProvider?.defaultModel || settings.model || DEFAULT_MODEL;
   return {
     hasApiKey: Boolean((activeProvider?.apiKey && activeProvider?.baseUrl) || (getOpenAIApiKey(settings) && getOpenAIBaseUrl(settings))),
@@ -751,13 +762,17 @@ function publicSettings(settings, activeProvider = null) {
     requireApproval: Boolean(settings.requireApproval),
     defaultCredits: Number(settings.defaultCredits || 0),
     generationCreditCost: normalizeGenerationCost(settings.generationCreditCost ?? 1),
+    firstPublicRewardCredit: firstPublicRewardCredit(settings),
+    publicRewardHoldMinutes: rewardHoldMinutes,
+    publicUnpublishAllowed: Boolean(settings.publicUnpublishAllowed),
+    publicRewardNotificationsEnabled: settings.publicRewardNotificationsEnabled !== false,
     contactEmail: contactAdminEmail(settings),
     contactAdminEmail: contactAdminEmail(settings),
     checkinCredit: CHECKIN_CREDIT,
     canvasEntryMode: canvasEntryMode(),
     maxImagesPerRequest: Number(settings.maxImagesPerRequest || 1),
     maxReferenceImages: normalizeMaxReferenceImages(settings.maxReferenceImages),
-    publicWithdrawalWindowHours: PUBLIC_WITHDRAWAL_WINDOW_HOURS,
+    publicWithdrawalWindowHours: Math.max(1, Math.ceil(rewardHoldMinutes / 60)),
     providerCapabilities: capabilities,
     provider: activeProvider?.providerType || "openai-compatible",
     activeProvider: activeProvider ? {
@@ -779,7 +794,11 @@ function adminSettings(settings, activeProvider = null) {
     apiKeyMask: key ? `${key.slice(0, 7)}...${key.slice(-4)}` : "",
     growthConfig: growthConfig(settings),
     providerCapabilityConfig: providerCapabilities(settings),
-    defaultProviderId: settings.defaultProviderId || activeProvider?.id || ""
+    defaultProviderId: settings.defaultProviderId || activeProvider?.id || "",
+    firstPublicRewardCredit: firstPublicRewardCredit(settings),
+    publicRewardHoldMinutes: publicRewardHoldMinutes(settings),
+    publicUnpublishAllowed: Boolean(settings.publicUnpublishAllowed),
+    publicRewardNotificationsEnabled: settings.publicRewardNotificationsEnabled !== false
   };
 }
 
@@ -1177,6 +1196,30 @@ async function notifyWithdrawalDecision({ generation, decision, reason = "", act
       decision,
       reason
     }
+  });
+}
+
+async function notifyPublicRewardLocked({ generation, amount, holdMinutes, settings }) {
+  if (settings?.publicRewardNotificationsEnabled === false || !generation?.userId || amount <= 0) return;
+  const name = generationNoticeName(generation);
+  await sendUserNotification({
+    userIds: [generation.userId],
+    title: "公开奖励已锁定",
+    body: `你的公开作品「${name}」已锁定首次公开奖励 +${amount} 积分。作品公开满 ${holdMinutes} 分钟后自动入账；公开后用户不可自行取消公开。`,
+    level: "success",
+    metadata: { type: "first_public_reward_locked", generationId: generation.id, amount, holdMinutes }
+  });
+}
+
+async function notifyPublicRewardAwarded({ generation, amount, settings }) {
+  if (settings?.publicRewardNotificationsEnabled === false || !generation?.userId || amount <= 0) return;
+  const name = generationNoticeName(generation);
+  await sendUserNotification({
+    userIds: [generation.userId],
+    title: "公开奖励已入账",
+    body: `你的公开作品「${name}」已满足公开时长要求，首次公开奖励 +${amount} 积分已入账。`,
+    level: "success",
+    metadata: { type: "first_public_reward_awarded", generationId: generation.id, amount }
   });
 }
 
@@ -2810,12 +2853,17 @@ async function recoverGenerationQueueOnStartup() {
 
 async function claimFirstPublicRewardForGeneration(generation) {
   if (!generation?.id || !generation.userId || !generation.isPublic) return generation;
+  const settings = await store.getSettings();
+  const amount = firstPublicRewardCredit(settings);
   const rewarded = await store.claimFirstPublicReward(
     generation.id,
     generation.userId,
-    FIRST_PUBLIC_REWARD_CREDIT
+    amount
   );
-  return rewarded ? { ...generation, ...rewarded, imageUrl: generation.imageUrl } : generation;
+  if (!rewarded) return generation;
+  const holdMinutes = publicRewardHoldMinutes(settings);
+  await notifyPublicRewardLocked({ generation: rewarded, amount, holdMinutes, settings });
+  return { ...generation, ...rewarded, imageUrl: generation.imageUrl };
 }
 
 async function finalizeSuccessfulGenerations({ auditId, user, request, openaiResult, requestStartedAt, expectedCount }) {
@@ -3136,9 +3184,17 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
 }
 
 async function routeApi(req, res, url) {
-  await store.awardMaturePublicRewards({ minAgeHours: PUBLIC_WITHDRAWAL_WINDOW_HOURS }).catch((error) => {
+  const rewardSettings = await store.getSettings().catch(() => ({}));
+  const rewardResult = await store.awardMaturePublicRewards({
+    minAgeMinutes: publicRewardHoldMinutes(rewardSettings)
+  }).catch((error) => {
     console.error("[public-reward]", error);
+    return null;
   });
+  for (const item of rewardResult?.awardedItems || []) {
+    const generation = await store.getGenerationById(item.id).catch(() => null);
+    await notifyPublicRewardAwarded({ generation, amount: item.amount, settings: rewardSettings });
+  }
 
   if (await handleHealthRoute(req, res, url)) return;
 
@@ -3369,6 +3425,7 @@ async function routeApi(req, res, url) {
     if (!ids.length) throw httpError("No images selected", 400);
     const action = String(body.action || "").trim();
     const results = [];
+    const publishSettings = await store.getSettings();
     for (const id of ids) {
       try {
         const generation = await store.getGenerationById(id);
@@ -3387,12 +3444,18 @@ async function routeApi(req, res, url) {
             incrementUsage: true
           });
         } else if (action === "unpublish") {
+          if (generation.isPublic && current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+            throw new Error("public_unpublish_disabled");
+          }
           if (generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
             throw new Error("withdrawal_request_required");
           }
           patch.isPublic = false;
           patch.publishOriginal = false;
         } else if (action === "archive") {
+          if (generation.isPublic && current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+            throw new Error("public_unpublish_disabled");
+          }
           if (generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
             throw new Error("withdrawal_request_required");
           }
@@ -4001,6 +4064,10 @@ async function routeApi(req, res, url) {
         patch.publishOriginal = false;
       }
     }
+    const publishSettings = await store.getSettings();
+    if ((patch.isPublic === false || patch.archived === true) && generation.isPublic && current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+      throw httpError("Published works cannot be unpublished by users", 409, { publicUnpublishDisabled: true });
+    }
     if ((patch.isPublic === false || patch.archived === true) && generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
       throw httpError("Withdrawal request required after 12 hours", 409, {
         withdrawalRequired: true,
@@ -4085,6 +4152,10 @@ async function routeApi(req, res, url) {
     }
     const body = await readJsonBody(req);
     if (!generation.isPublic) throw httpError("Image is not public", 400);
+    const publishSettings = await store.getSettings();
+    if (current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+      throw httpError("Published works cannot be withdrawn by users", 409, { publicUnpublishDisabled: true });
+    }
     if (canWithdrawDirectly(generation)) {
       const updated = await store.updateGenerationPublic(generation.id, {
         isPublic: false,

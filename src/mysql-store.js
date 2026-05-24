@@ -90,6 +90,10 @@ function mapSettings(row = {}) {
     requireApproval: Boolean(row.require_approval ?? 0),
     maxImagesPerRequest: Number(row.max_images_per_request ?? 1),
     maxReferenceImages: Number(row.max_reference_images ?? 4),
+    firstPublicRewardCredit: Number(row.first_public_reward_credit ?? intEnv("FIRST_PUBLIC_REWARD_CREDIT", 2)),
+    publicRewardHoldMinutes: Number(row.public_reward_hold_minutes ?? intEnv("PUBLIC_REWARD_HOLD_MINUTES", intEnv("PUBLIC_WITHDRAWAL_WINDOW_HOURS", 12) * 60)),
+    publicUnpublishAllowed: Boolean(row.public_unpublish_allowed ?? 0),
+    publicRewardNotificationsEnabled: Boolean(row.public_reward_notifications_enabled ?? 1),
     contactAdminEmail: Object.hasOwn(row, "contact_admin_email")
       ? String(row.contact_admin_email || "")
       : DEFAULT_CONTACT_ADMIN_EMAIL,
@@ -447,6 +451,10 @@ async function runMigrations() {
       require_approval TINYINT(1) NOT NULL DEFAULT 0,
       max_images_per_request TINYINT UNSIGNED NOT NULL DEFAULT 1,
       max_reference_images TINYINT UNSIGNED NOT NULL DEFAULT 4,
+      first_public_reward_credit INT UNSIGNED NOT NULL DEFAULT 2,
+      public_reward_hold_minutes INT UNSIGNED NOT NULL DEFAULT 720,
+      public_unpublish_allowed TINYINT(1) NOT NULL DEFAULT 0,
+      public_reward_notifications_enabled TINYINT(1) NOT NULL DEFAULT 1,
       contact_admin_email VARCHAR(255) NOT NULL DEFAULT 'support@example.com',
       growth_config_json LONGTEXT NULL,
       provider_capability_json LONGTEXT NULL,
@@ -467,6 +475,22 @@ async function runMigrations() {
   const [settingsReferenceColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'max_reference_images'");
   if (!settingsReferenceColumns.length) {
     await db.query("ALTER TABLE app_settings ADD COLUMN max_reference_images TINYINT UNSIGNED NOT NULL DEFAULT 4 AFTER max_images_per_request");
+  }
+  const [firstPublicRewardColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'first_public_reward_credit'");
+  if (!firstPublicRewardColumns.length) {
+    await db.query("ALTER TABLE app_settings ADD COLUMN first_public_reward_credit INT UNSIGNED NOT NULL DEFAULT 2 AFTER max_reference_images");
+  }
+  const [publicRewardHoldColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'public_reward_hold_minutes'");
+  if (!publicRewardHoldColumns.length) {
+    await db.query("ALTER TABLE app_settings ADD COLUMN public_reward_hold_minutes INT UNSIGNED NOT NULL DEFAULT 720 AFTER first_public_reward_credit");
+  }
+  const [publicUnpublishColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'public_unpublish_allowed'");
+  if (!publicUnpublishColumns.length) {
+    await db.query("ALTER TABLE app_settings ADD COLUMN public_unpublish_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER public_reward_hold_minutes");
+  }
+  const [publicRewardNotifyColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'public_reward_notifications_enabled'");
+  if (!publicRewardNotifyColumns.length) {
+    await db.query("ALTER TABLE app_settings ADD COLUMN public_reward_notifications_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER public_unpublish_allowed");
   }
   const [contactAdminEmailColumns] = await db.execute("SHOW COLUMNS FROM app_settings LIKE 'contact_admin_email'");
   if (!contactAdminEmailColumns.length) {

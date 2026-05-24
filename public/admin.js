@@ -742,11 +742,15 @@ function renderSettings() {
         <label>单图消耗<input name="generationCreditCost" type="number" min="0" value="${escapeHtml(s.generationCreditCost ?? 1)}"></label>
         <label>单次最大张数<input name="maxImagesPerRequest" type="number" min="1" max="4" value="${escapeHtml(s.maxImagesPerRequest ?? 1)}"></label>
         <label>参考图最大上传数<input name="maxReferenceImages" type="number" min="1" max="15" value="${escapeHtml(s.maxReferenceImages ?? 4)}"></label>
+        <label>首次公开奖励积分<input name="firstPublicRewardCredit" type="number" min="0" max="10000" value="${escapeHtml(s.firstPublicRewardCredit ?? 2)}"></label>
+        <label>公开奖励锁定分钟<input name="publicRewardHoldMinutes" type="number" min="1" max="43200" value="${escapeHtml(s.publicRewardHoldMinutes ?? 720)}"><small>30 = 满半小时入账，720 = 满 12 小时入账</small></label>
         <label>联系管理员邮箱<input name="contactEmail" type="email" value="${escapeHtml(s.contactEmail ?? s.contactAdminEmail ?? "")}" placeholder="support@example.com"></label>
         <label>运营增长配置<textarea name="growthConfig" rows="6">${escapeHtml(JSON.stringify(s.growthConfig || {}, null, 2))}</textarea></label>
         <label>Provider 能力配置<textarea name="providerCapabilityConfig" rows="6">${escapeHtml(JSON.stringify(s.providerCapabilityConfig || {}, null, 2))}</textarea></label>
         <label class="admin-check"><input name="allowRegistration" type="checkbox"${s.allowRegistration ? " checked" : ""}>允许注册</label>
         <label class="admin-check"><input name="requireApproval" type="checkbox"${s.requireApproval ? " checked" : ""}>注册后需审批</label>
+        <label class="admin-check"><input name="publicRewardNotificationsEnabled" type="checkbox"${s.publicRewardNotificationsEnabled !== false ? " checked" : ""}>公开奖励锁定/入账通知</label>
+        <label class="admin-check"><input name="publicUnpublishAllowed" type="checkbox"${s.publicUnpublishAllowed ? " checked" : ""}>允许用户自行取消公开</label>
         <div class="admin-form-actions">
           <button type="submit">保存设置</button>
           <button type="button" data-clear-key>清除 Key</button>
@@ -1797,9 +1801,13 @@ async function saveSettings(event) {
       generationCreditCost: form.get("generationCreditCost"),
       maxImagesPerRequest: form.get("maxImagesPerRequest"),
       maxReferenceImages: form.get("maxReferenceImages"),
+      firstPublicRewardCredit: form.get("firstPublicRewardCredit"),
+      publicRewardHoldMinutes: form.get("publicRewardHoldMinutes"),
       contactEmail: form.get("contactEmail"),
       allowRegistration: Boolean(form.get("allowRegistration")),
       requireApproval: Boolean(form.get("requireApproval")),
+      publicUnpublishAllowed: Boolean(form.get("publicUnpublishAllowed")),
+      publicRewardNotificationsEnabled: Boolean(form.get("publicRewardNotificationsEnabled")),
       growthConfig: JSON.parse(form.get("growthConfig") || "{}"),
       providerCapabilityConfig: JSON.parse(form.get("providerCapabilityConfig") || "{}")
     })

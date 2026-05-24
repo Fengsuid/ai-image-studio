@@ -3443,7 +3443,7 @@ function openPublishModal(item, publishOriginal = false) {
           </label>
         ` : ""}
         <button class="modal-primary" type="submit">${item.isPublic ? text("saveTags") : text("publishToSquare")}</button>
-        ${item.isPublic ? `<button class="modal-secondary" type="button" data-unpublish-public><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
+        ${item.isPublic && canUserUnpublishPublicWork() ? `<button class="modal-secondary" type="button" data-unpublish-public><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
       </form>
     </section>
   `);
@@ -3484,6 +3484,7 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
     openAuthModal("login");
     return false;
   }
+  if (!window.ImageStudioRewardPolicy?.confirmPublish({ item, settings: state.settings, lang: state.lang })) return false;
   const attemptPublish = async (sourceItem = null) => {
     const forceOriginal = Boolean(item.sourceImageData || item.sourceImageUrl || item.sourceFilename || sourceItem?.id);
     const kind = sourceItem?.id ? "image-to-image" : publicKindTagForItem({ ...item, sourceImageId: item.sourceImageId || "" });
@@ -5099,7 +5100,7 @@ function openSquarePreview(prompt, options = {}) {
           <button type="button" data-square-report><i class="ri-flag-line"></i>${state.lang === "zh" ? "举报" : "Report"}</button>
           ${canManage ? `<button type="button" data-square-manage><i class="ri-price-tag-3-line"></i>${text("editPublicTags")}</button>` : ""}
           ${canManage && isImageToImage && !item.publishOriginal ? `<button type="button" data-square-publish-original><i class="ri-image-add-line"></i>${text("publishWithOriginal")}</button>` : ""}
-          ${canManage ? `<button type="button" data-square-unpublish><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
+          ${canManage && canUserUnpublishPublicWork() ? `<button type="button" data-square-unpublish><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
         </div>
       </aside>
     </section>
@@ -6027,7 +6028,7 @@ function openMyWorksModal(options = {}) {
           <span data-works-selection>0 ${text("worksSelected")}</span>
           <button type="button" data-works-bulk="download"><i class="ri-download-2-line"></i>${text("worksBatchDownload")}</button>
           <button type="button" data-works-bulk="publish"><i class="ri-gallery-upload-line"></i>${text("publishImage")}</button>
-          <button type="button" data-works-bulk="unpublish"><i class="ri-eye-off-line"></i>${text("unpublish")}</button>
+          ${canUserUnpublishPublicWork() ? `<button type="button" data-works-bulk="unpublish"><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
           <button type="button" data-works-bulk="archive"><i class="ri-archive-line"></i>${state.lang === "zh" ? "归档" : "Archive"}</button>
           <button type="button" data-works-bulk="unarchive"><i class="ri-inbox-unarchive-line"></i>${state.lang === "zh" ? "取消归档" : "Unarchive"}</button>
         </div>
@@ -6138,7 +6139,7 @@ async function loadMyWorks(forceReload = false) {
           <button type="button" data-work-detail="${escapeHtml(item.id)}"><i class="ri-eye-line"></i>${text("worksOpenDetail")}</button>
           <button type="button" data-work-retry="${escapeHtml(item.id)}"><i class="ri-refresh-line"></i>${text("retry")}</button>
           <button type="button" data-work-editor="${escapeHtml(item.id)}"><i class="ri-magic-line"></i>${text("openEditor")}</button>
-          ${item.isPublic ? `<button type="button" data-work-withdraw="${escapeHtml(item.id)}"><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
+          ${item.isPublic && canUserUnpublishPublicWork() ? `<button type="button" data-work-withdraw="${escapeHtml(item.id)}"><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
         </div>
       </div>
     </article>
@@ -6211,20 +6212,13 @@ async function loadMyWorks(forceReload = false) {
 }
 function publicRewardLabel(item) {
   if (item.withdrawalStatus === "requested") return state.lang === "zh" ? "撤回审核中" : "withdrawal pending";
-  if (item.publicRewardStatus === "pending") return state.lang === "zh"
-    ? `奖励锁定 ${item.publicRewardAmount || 0} 分，满 12 小时入账`
-    : `${item.publicRewardAmount || 0} credits locked until 12h`;
+  if (item.publicRewardStatus === "pending") return window.ImageStudioRewardPolicy?.pendingLabel(item, state.settings, state.lang) || "";
   if (item.publicRewardStatus === "awarded") return state.lang === "zh" ? "奖励已入账" : "reward awarded";
   if (item.publicRewardStatus === "cancelled") return state.lang === "zh" ? "奖励已取消" : "reward cancelled";
   return "";
 }
-function firstPublicRewardToast(item, fallbackKey = "publishDone") {
-  if (item?.publicRewardStatus !== "pending") return text(fallbackKey);
-  const amount = Number(item.publicRewardAmount || 0);
-  return state.lang === "zh"
-    ? `${text("firstPublicRewardLocked")} +${amount} 积分`
-    : `${text("firstPublicRewardLocked")} (+${amount})`;
-}
+function firstPublicRewardToast(item, fallbackKey = "publishDone") { return item?.publicRewardStatus !== "pending" ? text(fallbackKey) : (window.ImageStudioRewardPolicy?.lockedToast(item, state.settings, state.lang) || text(fallbackKey)); }
+function canUserUnpublishPublicWork() { return state.user?.role === "admin" || Boolean(state.settings?.publicUnpublishAllowed); }
 function publicWithdrawalWindowHours() {
   return Math.max(1, Number(state.settings?.publicWithdrawalWindowHours || 12));
 }
@@ -6240,6 +6234,10 @@ function withdrawalPromptForItem(item) {
   };
 }
 async function requestWorkWithdrawal(id) {
+  if (!canUserUnpublishPublicWork()) {
+    showToast(state.lang === "zh" ? "已关闭用户取消公开功能，请联系管理员处理。" : "User unpublish is disabled; contact an admin.", "ri-lock-line");
+    return;
+  }
   const item = state.history.find((entry) => String(entry.id) === String(id));
   if (!item) return;
   const { withinWindow, message } = withdrawalPromptForItem(item);

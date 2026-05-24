@@ -444,6 +444,10 @@ async function checkSettings() {
   assert(body && typeof body === "object", "/api/settings body is not an object");
   assert(typeof body?.hasApiKey === "boolean", "/api/settings hasApiKey missing");
   assert(typeof body?.contactEmail === "string", "/api/settings contactEmail missing");
+  assert(typeof body?.firstPublicRewardCredit === "number", "/api/settings firstPublicRewardCredit missing");
+  assert(typeof body?.publicRewardHoldMinutes === "number", "/api/settings publicRewardHoldMinutes missing");
+  assert(typeof body?.publicUnpublishAllowed === "boolean", "/api/settings publicUnpublishAllowed missing");
+  assert(typeof body?.publicRewardNotificationsEnabled === "boolean", "/api/settings publicRewardNotificationsEnabled missing");
   assert(body?.providerCapabilities && typeof body.providerCapabilities === "object", "/api/settings providerCapabilities missing");
   assert(typeof body?.providerCapabilities?.textToImage === "boolean", "/api/settings providerCapabilities.textToImage missing");
   assert(body?.growth && typeof body.growth === "object", "/api/settings growth config missing");

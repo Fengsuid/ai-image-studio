@@ -443,6 +443,14 @@ function createAdminRoute({
     if (body.maxReferenceImages !== undefined) {
       patch.maxReferenceImages = normalizeMaxReferenceImages(body.maxReferenceImages);
     }
+    if (body.firstPublicRewardCredit !== undefined) {
+      patch.firstPublicRewardCredit = Math.max(0, Math.min(10000, Number.parseInt(body.firstPublicRewardCredit, 10) || 0));
+    }
+    if (body.publicRewardHoldMinutes !== undefined) {
+      patch.publicRewardHoldMinutes = Math.max(1, Math.min(43200, Number.parseInt(body.publicRewardHoldMinutes, 10) || 720));
+    }
+    if (typeof body.publicUnpublishAllowed === "boolean") patch.publicUnpublishAllowed = body.publicUnpublishAllowed ? 1 : 0;
+    if (typeof body.publicRewardNotificationsEnabled === "boolean") patch.publicRewardNotificationsEnabled = body.publicRewardNotificationsEnabled ? 1 : 0;
     const contactEmailInput = typeof body.contactEmail === "string" ? body.contactEmail : body.contactAdminEmail;
     if (typeof contactEmailInput === "string") {
       const email = normalizeEmail(contactEmailInput);

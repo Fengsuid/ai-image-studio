@@ -547,7 +547,7 @@ function createUserStore({
     );
   }
 
-  async function awardMaturePublicRewards({ minAgeHours = 12 } = {}) {
+  async function awardMaturePublicRewards({ minAgeMinutes = 720 } = {}) {
     const [rows] = await getPool().execute(
       `SELECT * FROM generations
         WHERE is_public = 1
@@ -555,20 +555,28 @@ function createUserStore({
           AND public_reward_status = 'pending'
           AND moderation_status IN ('visible', 'restored')
           AND published_at IS NOT NULL
-          AND published_at <= DATE_SUB(NOW(3), INTERVAL ? HOUR)
+          AND published_at <= DATE_SUB(NOW(3), INTERVAL ? MINUTE)
           AND withdrawal_status IN ('none', 'rejected')
         ORDER BY published_at ASC
         LIMIT 100`,
-      [Math.max(1, Number(minAgeHours) || 12)]
+      [Math.max(1, Number(minAgeMinutes) || 720)]
     );
     let awarded = 0;
+    const awardedItems = [];
     for (const row of rows) {
-      if (await awardMaturePublicReward(row.id, { minAgeHours })) awarded += 1;
+      if (await awardMaturePublicReward(row.id, { minAgeMinutes })) {
+        awarded += 1;
+        awardedItems.push({
+          id: row.id,
+          userId: row.user_id,
+          amount: Number(row.public_reward_amount || 0)
+        });
+      }
     }
-    return awarded;
+    return { awarded, awardedItems };
   }
 
-  async function awardMaturePublicReward(generationId, { minAgeHours = 12 } = {}) {
+  async function awardMaturePublicReward(generationId, { minAgeMinutes = 720 } = {}) {
     const connection = await getPool().getConnection();
     try {
       await connection.beginTransaction();
@@ -587,7 +595,7 @@ function createUserStore({
         generation.archived ||
         !["visible", "restored"].includes(generation.moderationStatus || "visible") ||
         !generation.publishedAt ||
-        Date.now() - new Date(generation.publishedAt).getTime() < Math.max(1, Number(minAgeHours) || 12) * 60 * 60 * 1000 ||
+        Date.now() - new Date(generation.publishedAt).getTime() < Math.max(1, Number(minAgeMinutes) || 720) * 60 * 1000 ||
         !["none", "rejected"].includes(generation.withdrawalStatus || "none")
       ) {
         await connection.rollback();
@@ -633,7 +641,7 @@ function createUserStore({
           `UPDATE reward_ledger
               SET status = 'awarded',
                   amount = ?,
-                  note = 'Public for 12 hours',
+                  note = 'Public reward hold elapsed',
                   awarded_at = ?
             WHERE user_id = ?
               AND reward_type = 'first_public'
@@ -648,7 +656,7 @@ function createUserStore({
             status: "awarded",
             amount,
             referenceId: generation.id,
-            note: "Public for 12 hours",
+            note: "Public reward hold elapsed",
             awardedAt: new Date()
           }, connection);
         }
