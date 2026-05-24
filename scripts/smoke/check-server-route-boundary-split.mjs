@@ -20,7 +20,8 @@ const routeFiles = {
   prompts: read("src/routes/prompts.js"),
   canvases: read("src/routes/canvases.js"),
   admin: read("src/routes/admin.js"),
-  credits: read("src/routes/credits.js")
+  credits: read("src/routes/credits.js"),
+  settingsPublic: read("src/routes/settings-public.js")
 };
 
 assert(server.includes('require("./src/routes/auth")'), "server.js must require src/routes/auth");
@@ -83,6 +84,16 @@ const splitRoutes = [
     endpoints: [
       "/api/checkin",
       "/api/credits/detail"
+    ]
+  },
+  {
+    key: "settingsPublic",
+    requirePath: 'require("./src/routes/settings-public")',
+    factory: "createSettingsPublicRoute",
+    handle: "handleSettingsPublicRoute",
+    endpoints: [
+      "/api/settings",
+      "/api/growth"
     ]
   }
 ];
