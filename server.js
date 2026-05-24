@@ -81,6 +81,14 @@ const OPENAI_FETCH_TIMEOUT_MS = Math.max(
   10_000,
   Number.parseInt(process.env.OPENAI_FETCH_TIMEOUT_MS || "120000", 10) || 120_000
 );
+const OPENAI_IMAGE_GENERATION_TIMEOUT_MS = Math.max(
+  15_000,
+  Number.parseInt(process.env.OPENAI_IMAGE_GENERATION_TIMEOUT_MS || "45000", 10) || 45_000
+);
+const OPENAI_IMAGE_EDIT_TIMEOUT_MS = Math.max(
+  30_000,
+  Number.parseInt(process.env.OPENAI_IMAGE_EDIT_TIMEOUT_MS || "60000", 10) || 60_000
+);
 const IMAGE_DOWNLOAD_TIMEOUT_MS = Math.max(
   5_000,
   Number.parseInt(process.env.IMAGE_DOWNLOAD_TIMEOUT_MS || "30000", 10) || 30_000
@@ -202,6 +210,8 @@ const handleHealthRoute = createHealthRoute({
   appVersion: APP_VERSION,
   serverStartedAt: SERVER_STARTED_AT,
   openaiFetchTimeoutMs: OPENAI_FETCH_TIMEOUT_MS,
+  openaiImageGenerationTimeoutMs: OPENAI_IMAGE_GENERATION_TIMEOUT_MS,
+  openaiImageEditTimeoutMs: OPENAI_IMAGE_EDIT_TIMEOUT_MS,
   imageDownloadTimeoutMs: IMAGE_DOWNLOAD_TIMEOUT_MS
 });
 
@@ -1411,7 +1421,11 @@ function attachRequestAbortController(req) {
 
 async function fetchWithTimeout(label, url, init = {}, timeoutMs = OPENAI_FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new Error(`${label} timeout`)), timeoutMs);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort(new Error(`${label} timeout`));
+  }, timeoutMs);
   // 把外部 signal（来自 HTTP request close 或前端 abort）链接进来：
   // 一旦外部 abort，就 propagate 给 fetch；调用方需要在 catch 中区分外部取消 vs 超时。
   const external = init.signal || null;
@@ -1428,9 +1442,11 @@ async function fetchWithTimeout(label, url, init = {}, timeoutMs = OPENAI_FETCH_
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (error) {
-    if (error?.name === "AbortError") {
-      // 外部触发的取消：保留 AbortError，让上层根据 generation_requests 状态决定是否退积分。
-      if (external?.aborted) throw error;
+    if (external?.aborted) {
+      // 外部触发的取消：保留原错误，让上层根据 generation_requests 状态决定是否退积分。
+      throw error;
+    }
+    if (timedOut || error?.name === "AbortError" || String(error?.message || "").includes(`${label} timeout`)) {
       throw httpError(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`, 504);
     }
     if (error?.code === "ECONNRESET" || /fetch failed|network/i.test(String(error?.message || ""))) {
@@ -1477,7 +1493,7 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
         const data = await runProviderMappingRequest({
           apiKey,
           baseUrl: getOpenAIBaseUrl(route.settings),
-          fetchFn: (label, url, init) => fetchWithTimeout(label, url, init, OPENAI_FETCH_TIMEOUT_MS),
+          fetchFn: (label, url, init) => fetchWithTimeout(label, url, init, OPENAI_IMAGE_GENERATION_TIMEOUT_MS),
           mapping,
           payload: routedPayload,
           signal,
@@ -1516,7 +1532,7 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
         },
         body: JSON.stringify(routedPayload),
         signal
-      });
+      }, OPENAI_IMAGE_GENERATION_TIMEOUT_MS);
 
       const text = await response.text();
       let data;
@@ -1854,7 +1870,7 @@ async function callOpenAIImageEdits(settings, payload, { signal, trace = null } 
         },
         body: form,
         signal
-      });
+      }, OPENAI_IMAGE_EDIT_TIMEOUT_MS);
 
       const text = await response.text();
       let data;
@@ -2858,6 +2874,56 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
   return { saved, durationMs, missing };
 }
 
+function isRetryableGenerationError(error) {
+  const status = Number(error?.status || error?.statusCode || 0);
+  const code = String(error?.code || "").toLowerCase();
+  const message = String(error?.message || error || "").toLowerCase();
+  return status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    code === "econnreset" ||
+    code === "etimedout" ||
+    /timed out|timeout|network error|fetch failed|econnreset|socket hang up/.test(message);
+}
+
+async function maybeRequeueTransientGenerationFailure({ auditId, user, error, stage = "provider_generation" }) {
+  if (!isRetryableGenerationError(error)) return false;
+  const latest = await store.getGenerationRequestById(auditId).catch(() => null);
+  if (!latest?.queuePayloadJson) return false;
+  const attemptCount = Math.max(0, Number(latest.attemptCount || 0));
+  const maxAttempts = Math.max(1, Number(latest.maxAttempts || 1));
+  if (attemptCount >= maxAttempts) return false;
+
+  await store.updateGenerationRequest(auditId, {
+    status: "pending",
+    queueStatus: "queued",
+    errorMessage: String(error.message || error).slice(0, 2000),
+    errorCode: String(error.code || error.status || "transient_generation_failure").slice(0, 96),
+    errorStage: stage,
+    failureStage: stage,
+    lockedBy: null,
+    lockedAt: null,
+    retryAfterAt: new Date()
+  });
+  await traceGeneration(auditId, "retry_queued", {
+    userId: user.id,
+    level: "warn",
+    message: "transient provider failure queued for retry",
+    data: {
+      stage,
+      attemptCount,
+      maxAttempts,
+      error: errorSummary(error)
+    }
+  });
+
+  const retryRequest = await store.getGenerationRequestById(auditId);
+  const job = await recoveredGenerationJobFromRequest(retryRequest);
+  if (!job) return false;
+  setTimeout(() => enqueueGenerationJob(job, { persistQueued: false }), 0);
+  return true;
+}
+
 async function runQueuedTextGeneration({ auditId, user, settings, request, openaiRequest, totalCost, costPerImage, requestStartedAt }) {
   let reservedCredits = false;
   try {
@@ -2945,6 +3011,13 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
         data: { amount: totalCost, reason: "generation failed" }
       });
     }
+    const retryQueued = await maybeRequeueTransientGenerationFailure({
+      auditId,
+      user,
+      error,
+      stage: "provider_generation"
+    });
+    if (retryQueued) return;
     await traceGeneration(auditId, "failed", {
       userId: user.id,
       level: "error",
@@ -3048,6 +3121,13 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
         data: { amount: totalCost, reason: "image edit failed" }
       });
     }
+    const retryQueued = await maybeRequeueTransientGenerationFailure({
+      auditId,
+      user,
+      error,
+      stage: "provider_edit"
+    });
+    if (retryQueued) return;
     await traceGeneration(auditId, "failed", {
       userId: user.id,
       level: "error",

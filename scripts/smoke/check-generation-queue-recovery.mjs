@@ -85,6 +85,11 @@ assert(server.includes("createGenerationQueueRunner"), "server must use the extr
 assert(server.includes("queuePayloadForTextGeneration"), "text async requests must persist recoverable payloads");
 assert(server.includes("queuePayloadForImageEdit"), "image edit async requests must persist recoverable payloads");
 assert(server.includes("GENERATION_QUEUE_CONCURRENCY"), "queue recovery must preserve concurrency controls");
+assert(server.includes("OPENAI_IMAGE_GENERATION_TIMEOUT_MS"), "text-to-image provider calls must use a dedicated shorter timeout");
+assert(server.includes("timedOut = true"), "fetchWithTimeout must classify its own abort timer as a timeout");
+assert(server.includes("isRetryableGenerationError"), "queue worker must classify transient provider failures");
+assert(server.includes("maybeRequeueTransientGenerationFailure"), "queue worker must requeue transient provider failures before marking failed");
+assert(server.includes("retry_queued"), "queue worker must trace automatic transient retries");
 assert(runner.includes("function createGenerationQueueRunner"), "queue runner module must expose createGenerationQueueRunner");
 assert(runner.includes("onBeforeRun"), "queue runner must support DB lock/status hooks before execution");
 assert(runner.includes("cancelQueued"), "queue runner must preserve queued cancellation");
