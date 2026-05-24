@@ -459,7 +459,19 @@ function postReadyProbe(action) {
   if (action === "seedEditorImage") {
     const sampleImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 420'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%232563eb'/%3E%3Cstop offset='1' stop-color='%230f766e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='640' height='420' rx='36' fill='url(%23g)'/%3E%3Ccircle cx='500' cy='120' r='78' fill='rgba(255,255,255,.32)'/%3E%3Cpath d='M72 326 212 194l98 84 74-62 184 110z' fill='rgba(255,255,255,.72)'/%3E%3C/svg%3E";
     document.querySelector("#editorUploadCard")?.classList.add("hidden");
-    document.querySelector("#editorImageFrame")?.classList.remove("hidden");
+    const frame = document.querySelector("#editorImageFrame");
+    frame?.classList.remove("hidden");
+    if (frame) {
+      frame.style.width = "320px";
+      frame.style.height = "210px";
+      frame.style.maxWidth = "calc(100vw - 42px)";
+      frame.style.maxHeight = "260px";
+    }
+    const scaler = document.querySelector("#editorImageScaler");
+    if (scaler) {
+      scaler.style.width = "100%";
+      scaler.style.height = "100%";
+    }
     const sourceImage = document.querySelector("#editorSourceImage");
     if (sourceImage) {
       sourceImage.src = sampleImage;

@@ -2,6 +2,18 @@
 
 Use this checklist before every P0 release and whenever a feature batch is deployed.
 
+## Latest Closeout Notes
+
+### 2026-05-24 AIS-RLS-093 Visual Regression QA Closeout
+
+- Task covered: `AIS-RLS-093`.
+- Latest local visual run: `docs/mobile-qa/visual-regression/runs/2026-05-24T09-58-42-216Z/summary.md`.
+- Result: `npm run smoke:visual-regression` passed 10 scenarios with no failures.
+- Companion check: `npm run smoke:mobile-layout` passed 42 page/viewport checks; latest output `docs/mobile-qa/baseline-local/2026-05-24T10-01-58-798Z/summary.json`.
+- Baseline policy: keep baseline-free mode as the default; missing-baseline warnings are accepted until a future release explicitly promotes screenshots after manual review.
+- Cleanup: stale `docs/mobile-qa/visual-regression/runs/*` folders were removed, leaving only the latest reviewable run.
+- Harness fix: editor fixture now pins image frame/scaler dimensions so the editor mobile screenshot checks a stable visible image state.
+
 ## 1. Local Smoke
 
 - Run syntax checks:

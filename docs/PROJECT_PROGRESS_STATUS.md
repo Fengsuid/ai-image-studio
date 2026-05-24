@@ -9,16 +9,16 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: `fd419c1` (`advance canvas v2 and frontend qa`) is on `main` and `origin/main`; later docs-only calibration commits may follow it.
+- Latest implementation baseline: `6a3ec93` (`feat: configure public reward policy`) is on `main` and `origin/main`; `AIS-RLS-093` closeout changes are in the current working tree until committed.
 
 ## Current Summary
 
 - Trellis total: 124 tasks.
-- Done: 123 tasks.
-- Active: 1 task, `AIS-RLS-093`.
+- Done: 124 tasks.
+- Active: none.
 - Backlog: none in the local Trellis board as of this update.
-- Current active work: visual regression QA harness for the polished frontend.
-- Working tree handoff: Canvas v2 undo/autosave and title IME fixes, frontend QA docs, and smoke harness updates have been committed and pushed to `main`; no project handoff depends on an open PR.
+- Current active work: none in the local Trellis board.
+- Working tree handoff: public reward policy was deployed and pushed; `AIS-RLS-093` visual regression closeout has a passing latest run at `docs/mobile-qa/visual-regression/runs/2026-05-24T09-58-42-216Z/summary.md`.
 
 ## Completed Milestones
 
@@ -33,13 +33,13 @@ This is the current handoff entry point for project progress. Older planning doc
 | `AIS-RLS-055` - `AIS-RLS-060` | Done | Mobile web baseline, home/nav/composer, chat, gallery, editor, QA closure. |
 | `AIS-RLS-061` - `AIS-RLS-069` | Done | Queue recovery, provider diagnostics/capabilities, Agent workspace, creative route unification. |
 | `AIS-RLS-070` - `AIS-RLS-079` | Done | CSS tokens, CSS split, dark mode, admin/app module split, backend/store split, frontend build tooling, visual polish. |
-| `AIS-RLS-080` - `AIS-RLS-092` | Done | Responsive polish, frontend guardrails, route/store extraction, accessibility, onboarding, prompt library, admin shell, performance budget. |
+| `AIS-RLS-080` - `AIS-RLS-093` | Done | Responsive polish, frontend guardrails, route/store extraction, accessibility, onboarding, prompt library, admin shell, performance budget, visual regression QA harness. |
 
 ## Active Task
 
 | Task | Status | What Is Implemented | Remaining Closure |
 | --- | --- | --- | --- |
-| `AIS-RLS-093` Visual regression QA harness for polished frontend | Active | `npm run smoke:visual-regression`, screenshot matrix, summary output, `.gitignore` policy, and docs are present. Latest local run passed all 10 scenarios with missing-baseline warnings. | Manually review screenshots, decide whether to promote baselines, clean stale runs, then mark Trellis task done and add a release/checklist note. |
+| None | Done | Local Trellis board has no active tasks. `AIS-RLS-093` passed `npm run smoke:visual-regression` with 10 scenarios and no failures; old run folders were cleaned, keeping only the latest reviewable output. | Continue only with newly requested follow-up work. |
 
 ## Documentation Notes
 
@@ -51,7 +51,6 @@ This is the current handoff entry point for project progress. Older planning doc
 
 ## Immediate Next Steps
 
-1. Finish `AIS-RLS-093` by reviewing `docs/mobile-qa/visual-regression/runs/<timestamp>/summary.md` and screenshots.
-2. If the screenshots are accepted, either promote a baseline intentionally or keep baseline-free mode as the release default.
-3. Run the release smoke subset relevant to the current changes.
-4. After `AIS-RLS-093` is accepted, update the Trellis card to Done and add the final release/checklist note before deployment.
+1. Treat `docs/mobile-qa/visual-regression/runs/2026-05-24T09-58-42-216Z/summary.md` as the latest visual QA review output.
+2. Keep baseline-free visual regression as the default unless a future release explicitly chooses to promote image baselines.
+3. For new work, run the release smoke subset relevant to the touched domains before deployment.

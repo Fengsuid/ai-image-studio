@@ -131,7 +131,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-090` | Prompt library and marketplace visual polish | Done | P2 | Prompt/Frontend | M11 Frontend QA | `AIS-RLS-074`, `AIS-RLS-078`, `AIS-RLS-088` |
 | `AIS-RLS-091` | Admin shell visual hierarchy and information polish | Done | P2 | Admin/Frontend | M11 Frontend QA | `AIS-RLS-073`, `AIS-RLS-078`, `AIS-RLS-088` |
 | `AIS-RLS-092` | Frontend performance and bundle budget optimization | Done | P2 | Frontend/Performance | M11 Frontend QA | `AIS-RLS-077`, `AIS-RLS-081`, `AIS-RLS-088` |
-| `AIS-RLS-093` | Visual regression QA harness for polished frontend | Active | P2 | Platform/QA | M11 Frontend QA | `AIS-RLS-088`, `AIS-RLS-089`, `AIS-RLS-090`, `AIS-RLS-091`, `AIS-RLS-092` |
+| `AIS-RLS-093` | Visual regression QA harness for polished frontend | Done | P2 | Platform/QA | M11 Frontend QA | `AIS-RLS-088`, `AIS-RLS-089`, `AIS-RLS-090`, `AIS-RLS-091`, `AIS-RLS-092` |
 
 ## 4. 历史 T 编号映射
 

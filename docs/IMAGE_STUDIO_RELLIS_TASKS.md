@@ -22,7 +22,7 @@ Trellis 分配总表：[`IMAGE_STUDIO_TRELLIS_TASK_ALLOCATION.md`](IMAGE_STUDIO_
 最新同步结果：
 
 - `AIS-RLS-001` 到 `AIS-RLS-092`：Done。
-- `AIS-RLS-093` Visual regression QA harness for polished frontend：Active。
+- `AIS-RLS-093` Visual regression QA harness for polished frontend：Done。
 - Backlog：当前本地 Trellis 看板无 backlog 任务。
 
 阅读规则：正文里 2026-05-20 的“尚未完成，保持 Backlog”和单卡“建议状态”是历史拆分记录；如果与上方状态或总表冲突，以上方状态、总表和 Trellis 目录为准。

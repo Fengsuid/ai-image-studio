@@ -3,7 +3,7 @@
 更新：2026-05-24
 前端美化专项方案见：`docs/IMAGE_STUDIO_FRONTEND_BEAUTIFICATION.md`
 
-**状态校准：`AIS-RLS-067` 已完成；`AIS-RLS-070` 到 `AIS-RLS-092` 已完成前端/后端边界、样式拆分、可访问性和性能预算相关治理。当前唯一 active 任务是 `AIS-RLS-093` 视觉回归 QA 收口。**
+**状态校准：`AIS-RLS-067` 已完成；`AIS-RLS-070` 到 `AIS-RLS-093` 已完成前端/后端边界、样式拆分、可访问性、性能预算和视觉回归 QA 治理。当前本地 Trellis 无 active 任务。**
 
 当前完成状态见 `docs/PROJECT_PROGRESS_STATUS.md`。本文件保留维护优化设计和后续补充队列。
 

@@ -2,7 +2,7 @@
 
 **文档版本：** v1.0
 **创建日期：** 2026-05-23
-**项目状态：** 2026-05-24 校准：`AIS-RLS-001` 到 `AIS-RLS-092` 已完成，`AIS-RLS-093` 进行中
+**项目状态：** 2026-05-24 校准：`AIS-RLS-001` 到 `AIS-RLS-093` 已完成，本地 Trellis 当前无 active 任务。
 **当前版本：** 20260524-visual-regression-qa-handoff
 
 > 当前完成状态以 `docs/PROJECT_PROGRESS_STATUS.md` 和 `D:\生图广场\.trelis\tasks` 为准。本文件保留历史方案、技术债务和后续提案；下方早期章节中出现的 Ready/Backlog 状态若与 Trellis 冲突，以 Trellis 和 `PROJECT_PROGRESS_STATUS.md` 为准。
@@ -20,7 +20,7 @@
 
 | 任务 | 状态 | 说明 |
 | --- | --- | --- |
-| `AIS-RLS-093` Visual regression QA harness for polished frontend | Active | 脚本、npm 命令、文档、截图输出和忽略策略已落地；最新本地运行 10 个场景全部通过，但 baseline 尚未人工确认。 |
+| `AIS-RLS-093` Visual regression QA harness for polished frontend | Done | 脚本、npm 命令、文档、截图输出和忽略策略已落地；最新本地运行 10 个场景全部通过。默认保持 baseline-free，截图基线仅在人工确认后显式提升。 |
 
 ### 0.3 文档使用规则
 
