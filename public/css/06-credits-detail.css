@@ -1,18 +1,28 @@
 /* Credits detail and check-in modal. */
 
 .credits-detail-modal {
-  width: min(760px, calc(100vw - 28px));
+  width: min(980px, calc(100vw - 28px));
   max-height: min(820px, calc(100vh - 28px));
   overflow-y: auto;
   padding: 24px;
 }
 
+.credits-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+  grid-template-areas:
+    "ledger reward"
+    "actions actions";
+  gap: 18px;
+  align-items: start;
+}
+
 .credits-detail-hero {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto;
+  grid-template-columns: 1fr;
   align-items: center;
   gap: 14px;
-  margin: 16px 0 18px;
+  margin: 0;
 }
 
 .credits-detail-hero .checkin-card {
@@ -22,7 +32,17 @@
 .credits-detail-section {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 0;
+}
+
+.credit-ledger-panel {
+  grid-area: ledger;
+}
+
+.credits-reward-panel {
+  grid-area: reward;
+  display: grid;
+  gap: 14px;
 }
 
 .credits-detail-section h3 {
@@ -39,7 +59,7 @@
 
 .credit-ledger-row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto auto auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(226, 232, 240, 0.92);
@@ -76,10 +96,15 @@
 }
 
 .credit-ledger-row small,
-.credit-ledger-row time,
-.credit-ledger-row span,
 .reward-ledger-row time,
 .reward-ledger-row span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.credit-ledger-row time,
+.credit-ledger-row span {
+  grid-column: 2 / -1;
   color: #64748b;
   font-size: 12px;
 }
@@ -92,7 +117,7 @@
 
 .reward-ledger-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(226, 232, 240, 0.92);
@@ -110,6 +135,7 @@
 }
 
 .credits-detail-actions {
+  grid-area: actions;
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
@@ -122,8 +148,16 @@
   }
 
   .credits-detail-hero,
+  .credits-detail-grid,
   .credit-ledger-row,
   .reward-ledger-row {
     grid-template-columns: 1fr;
+  }
+
+  .credits-detail-grid {
+    grid-template-areas:
+      "reward"
+      "ledger"
+      "actions";
   }
 }

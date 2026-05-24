@@ -339,14 +339,8 @@
   }
 
   .works-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 148px;
-    gap: 9px;
-  }
-
-  .work-card:nth-child(7n + 1),
-  .work-card:nth-child(7n + 5) {
-    grid-row: span 1;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .work-body {

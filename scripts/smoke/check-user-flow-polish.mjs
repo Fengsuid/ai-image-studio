@@ -14,6 +14,7 @@ const html = read("public/index.html");
 const server = read("server.js");
 const chatCss = read("public/css/08-chat-polish.css");
 const homeCss = read("public/css/05-home.css");
+const worksCarouselCss = read("public/css/06-works-carousel.css");
 const creditsCss = read("public/css/06-credits-detail.css");
 const pkg = JSON.parse(read("package.json"));
 
@@ -26,7 +27,9 @@ assert(server.includes('url.pathname === "/api/credits/detail"'), "server must e
 assert(server.includes("store.listCreditLedger({ userId: current.user.id"), "credit detail API must scope ledger to current user");
 assert(chatCss.includes(".chat-scroll-top"), "chat CSS must style scroll-top button");
 assert(chatCss.includes(".image-zoom-modal"), "chat CSS must style image zoom modal");
-assert(homeCss.includes("grid-auto-flow: dense"), "works grid must use dense layout");
+assert(homeCss.includes("minmax(280px, 1fr)"), "works base cards must remain readable before desktop carousel override");
+assert(worksCarouselCss.includes("scroll-snap-type: x proximity"), "desktop works layout must support horizontal scrolling");
+assert(worksCarouselCss.includes("flex: 0 0 clamp(280px, 24vw, 360px)"), "desktop works cards must stay in one horizontal row");
 assert(creditsCss.includes(".credits-detail-modal"), "credits detail modal styles missing");
 assert(creditsCss.includes("@media (max-width: 640px)"), "mobile credits detail styles missing");
 assert(pkg.scripts?.["smoke:user-flow-polish"] === "node scripts/smoke/check-user-flow-polish.mjs", "package.json must expose smoke:user-flow-polish");

@@ -4343,9 +4343,9 @@ function openImageZoomModal({ imageUrl = "", prompt = "", title = "" } = {}) {
         <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} loading="eager" decoding="async" alt="${escapeHtml(truncate(prompt || title || "", 100))}">
       </div>
       <footer class="image-zoom-footer">
-        <p>${escapeHtml(prompt || title || "")}</p>
-        <a href="${escapeHtml(imageUrl)}" download="image.png"><i class="ri-download-line"></i>${escapeHtml(text("download"))}</a>
-      </footer>
+        <p>${escapeHtml(prompt || title || "")}</p><div class="image-zoom-actions">
+          <a href="${escapeHtml(imageUrl)}" target="_blank" rel="noreferrer"><i class="ri-external-link-line"></i>${escapeHtml(state.lang === "zh" ? "原图" : "Original")}</a><a href="${escapeHtml(imageUrl)}" download="image.png"><i class="ri-download-line"></i>${escapeHtml(text("download"))}</a>
+        </div></footer>
     </section>
   `);
   $(".image-zoom-close", elements.modalLayer)?.addEventListener("click", closeModal);
@@ -6642,23 +6642,27 @@ async function openCreditsModal() {
         <h2>${text("creditsDetailTitle")}</h2>
         <p>${text("creditsBalance")}: <strong>${credits}</strong> · ${text("oneCredit")}: <strong>${generationCost}</strong></p>
       </div>
-      <div class="credits-detail-hero">
-        <div class="checkin-card">
-          <i class="ri-calendar-check-line"></i>
-          <strong>+${checkinCredit}</strong>
-          <span>${text("checkinReward")}</span>
+      <div class="credits-detail-grid">
+        <section class="credits-detail-section credit-ledger-panel">
+          <h3>${escapeHtml(text("creditsLedgerTitle"))}</h3>
+          <div class="credit-ledger-list">${renderCreditLedgerRows(details.ledger || [])}</div>
+        </section>
+        <aside class="credits-reward-panel">
+          <div class="credits-detail-hero">
+            <div class="checkin-card">
+              <i class="ri-calendar-check-line"></i>
+              <strong>+${checkinCredit}</strong>
+              <span>${text("checkinReward")}</span>
+            </div>
+            <button class="modal-primary" type="button" data-checkin ${checkedIn ? "disabled" : ""}>
+              ${checkedIn ? text("checkedIn") : text("checkinToday")}
+            </button>
+          </div>
+          ${renderRewardLedgerRows(details.rewards || []) || `<section class="credits-detail-section"><h3>${escapeHtml(text("creditsRewardTitle"))}</h3><div class="credits-empty">${escapeHtml(text("creditsLedgerEmpty"))}</div></section>`}
+        </aside>
+        <div class="credits-detail-actions">
+          <button class="modal-secondary" type="button" data-close-auth>${text("close")}</button>
         </div>
-        <button class="modal-primary" type="button" data-checkin ${checkedIn ? "disabled" : ""}>
-          ${checkedIn ? text("checkedIn") : text("checkinToday")}
-        </button>
-      </div>
-      <section class="credits-detail-section">
-        <h3>${escapeHtml(text("creditsLedgerTitle"))}</h3>
-        <div class="credit-ledger-list">${renderCreditLedgerRows(details.ledger || [])}</div>
-      </section>
-      ${renderRewardLedgerRows(details.rewards || [])}
-      <div class="credits-detail-actions">
-        <button class="modal-secondary" type="button" data-close-auth>${text("close")}</button>
       </div>
     </section>
   `);

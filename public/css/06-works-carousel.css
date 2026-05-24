@@ -1,0 +1,32 @@
+/* Desktop-only horizontal layout for the My Works shelf. */
+
+@media (min-width: 861px) {
+  .works-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    padding: 4px 8px 14px 0;
+  }
+
+  .works-grid::-webkit-scrollbar {
+    height: 9px;
+  }
+
+  .works-grid::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.18);
+  }
+
+  .work-card {
+    flex: 0 0 clamp(280px, 24vw, 360px);
+    scroll-snap-align: start;
+  }
+
+  .work-visual {
+    height: 260px;
+    min-height: 260px;
+  }
+}
