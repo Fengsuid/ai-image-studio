@@ -46,29 +46,41 @@
   outline-offset: 3px;
 }
 
+.modal-layer.image-zoom-layer {
+  z-index: 190;
+  padding: 28px;
+  background: rgba(2, 6, 23, 0.48);
+  backdrop-filter: blur(18px);
+}
+
 .image-zoom-modal {
-  width: min(1120px, calc(100vw - 28px));
-  height: min(900px, calc(100vh - 28px));
+  width: min(1180px, calc(100vw - 72px));
+  height: auto;
+  min-height: min(520px, calc(100svh - 56px));
+  max-height: calc(100svh - 56px);
   padding: 0;
   overflow: hidden;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  background: #0b1220;
+  border-radius: 26px;
+  background: rgba(2, 6, 23, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 34px 120px rgba(2, 6, 23, 0.5);
+  box-shadow: 0 34px 120px rgba(2, 6, 23, 0.56);
 }
 
 .image-zoom-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 16px;
+  right: 16px;
   z-index: 3;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.72);
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.82);
   color: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
 }
 
 .image-zoom-stage {
@@ -76,7 +88,8 @@
   min-height: 0;
   display: grid;
   place-items: center;
-  padding: 26px;
+  overflow: hidden;
+  padding: 62px 24px 20px;
   background:
     radial-gradient(circle at 18% 12%, rgba(59, 130, 246, 0.2), transparent 34%),
     radial-gradient(circle at 88% 78%, rgba(20, 184, 166, 0.16), transparent 30%),
@@ -84,20 +97,22 @@
 }
 
 .image-zoom-stage img {
+  width: auto;
+  height: auto;
   max-width: 100%;
-  max-height: 100%;
+  max-height: min(760px, calc(100svh - 184px));
   object-fit: contain;
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: 0 22px 80px rgba(0, 0, 0, 0.45);
 }
 
 .image-zoom-footer {
-  min-height: 68px;
+  min-height: 58px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  padding: 14px 18px;
+  padding: 10px 16px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   color: #dbeafe;
 }
@@ -137,13 +152,18 @@
   }
 
   .image-zoom-modal {
-    width: calc(100vw - 16px);
-    height: calc(100svh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    width: calc(100vw - 18px);
+    min-height: 0;
+    max-height: calc(100svh - 18px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     border-radius: 22px;
   }
 
   .image-zoom-stage {
-    padding: 12px;
+    padding: 58px 10px 12px;
+  }
+
+  .image-zoom-stage img {
+    max-height: calc(100svh - 170px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
   .image-zoom-footer {

@@ -5956,6 +5956,7 @@ async function copyText(value) {
 function openModal(html) {
   elements.modalLayer.innerHTML = html;
   elements.modalLayer.classList.toggle("square-preview-layer", Boolean($(".square-preview-modal", elements.modalLayer)));
+  elements.modalLayer.classList.toggle("image-zoom-layer", Boolean($(".image-zoom-modal", elements.modalLayer)));
   elements.modalLayer.classList.remove("hidden");
   elements.modalLayer.setAttribute("aria-hidden", "false");
   const dialog = $("[role='dialog'], [role='alertdialog']", elements.modalLayer) || elements.modalLayer.firstElementChild;
@@ -5983,6 +5984,7 @@ function onModalKeydown(event) {
 function closeModal() {
   elements.modalLayer.classList.add("hidden");
   elements.modalLayer.classList.remove("square-preview-layer");
+  elements.modalLayer.classList.remove("image-zoom-layer");
   elements.modalLayer.setAttribute("aria-hidden", "true");
   elements.modalLayer.innerHTML = "";
   elements.modalLayer.removeEventListener("click", onModalBackdrop);
