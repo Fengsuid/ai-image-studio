@@ -9,7 +9,7 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: `6a3ec93` (`feat: configure public reward policy`) is on `main` and `origin/main`; `AIS-RLS-093` closeout changes are in the current working tree until committed.
+- Latest implementation baseline: `e592d25` (`refactor: split reward UI modules`) is on `main` and `origin/main`; the working tree is clean after reward UI module split and production redeploy.
 
 ## Current Summary
 
@@ -18,7 +18,7 @@ This is the current handoff entry point for project progress. Older planning doc
 - Active: none.
 - Backlog: none in the local Trellis board as of this update.
 - Current active work: none in the local Trellis board.
-- Working tree handoff: public reward policy was deployed and pushed; `AIS-RLS-093` visual regression closeout has a passing latest run at `docs/mobile-qa/visual-regression/runs/2026-05-24T09-58-42-216Z/summary.md`.
+- Working tree handoff: public reward policy was deployed and pushed; reward-related UI was split into `public/app-reward-policy.js`, `public/app-credits-detail.js`, and `public/admin-settings.js`; `AIS-RLS-093` visual regression closeout has a passing latest run at `docs/mobile-qa/visual-regression/runs/2026-05-24T09-58-42-216Z/summary.md`.
 
 ## Completed Milestones
 
@@ -54,3 +54,4 @@ This is the current handoff entry point for project progress. Older planning doc
 1. Treat `docs/mobile-qa/visual-regression/runs/2026-05-24T09-58-42-216Z/summary.md` as the latest visual QA review output.
 2. Keep baseline-free visual regression as the default unless a future release explicitly chooses to promote image baselines.
 3. For new work, run the release smoke subset relevant to the touched domains before deployment.
+4. Use `git archive HEAD` for production source bundles when deploying committed work; it avoids stale local tar artifacts and excludes private/untracked files by default.
