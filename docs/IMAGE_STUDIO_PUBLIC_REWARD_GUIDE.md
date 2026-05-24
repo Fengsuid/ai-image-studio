@@ -59,7 +59,8 @@ Notifications use `announcements` with `audience = specific-users`, so they appe
 - Reward claiming and awarding: `src/stores/user-store.js`
 - Publish/unpublish policy enforcement: `server.js`
 - Frontend reward copy and confirmation: `public/app-reward-policy.js`
-- Admin visual settings: `public/admin.js`
+- User credits/reward detail modal: `public/app-credits-detail.js`
+- Admin visual settings and settings submit payload: `public/admin-settings.js`
 - Static smoke: `scripts/smoke/check-public-reward-policy.mjs`
 
 ## Verification

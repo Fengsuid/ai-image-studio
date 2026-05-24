@@ -22,6 +22,8 @@ const requiredAppScripts = [
   "app-session.js",
   "app-generation.js",
   "app-gallery.js",
+  "app-reward-policy.js",
+  "app-credits-detail.js",
   "app.js"
 ];
 
@@ -31,6 +33,7 @@ const requiredAdminScripts = [
   "admin-users.js",
   "admin-providers.js",
   "admin-gallery.js",
+  "admin-settings.js",
   "admin.js"
 ];
 
@@ -187,6 +190,7 @@ checkModuleRegistration("public/admin-overview.js", "AdminModules", ["overview"]
 checkModuleRegistration("public/admin-users.js", "AdminModules", ["users"]);
 checkModuleRegistration("public/admin-providers.js", "AdminModules", ["providers"]);
 checkModuleRegistration("public/admin-gallery.js", "AdminModules", ["squareReview", "galleryFiles"]);
+checkModuleRegistration("public/admin-settings.js", "AdminModules", ["settings"]);
 
 const packageJson = JSON.parse(read("package.json"));
 assert(

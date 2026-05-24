@@ -15,7 +15,9 @@ const adminRoute = read("src/routes/admin.js");
 const userStore = read("src/stores/user-store.js");
 const app = read("public/app.js");
 const admin = read("public/admin.js");
+const adminSettings = read("public/admin-settings.js");
 const html = read("public/index.html");
+const adminHtml = read("public/admin.html");
 const rewardPolicy = read("public/app-reward-policy.js");
 const pkg = JSON.parse(read("package.json"));
 
@@ -35,11 +37,13 @@ assert(server.includes("publicUnpublishDisabled"), "server must reject user unpu
 assert(adminRoute.includes("publicRewardHoldMinutes"), "admin settings route must save publicRewardHoldMinutes");
 assert(adminRoute.includes("publicUnpublishAllowed"), "admin settings route must save publicUnpublishAllowed");
 assert(userStore.includes("Public reward hold elapsed"), "reward ledger note must be policy-generic");
-assert(admin.includes('name="firstPublicRewardCredit"'), "admin UI must expose reward credit input");
-assert(admin.includes('name="publicRewardHoldMinutes"'), "admin UI must expose reward hold minutes input");
-assert(admin.includes('name="publicUnpublishAllowed"'), "admin UI must expose user unpublish toggle");
+assert(adminSettings.includes('name="firstPublicRewardCredit"'), "admin settings module must expose reward credit input");
+assert(adminSettings.includes('name="publicRewardHoldMinutes"'), "admin settings module must expose reward hold minutes input");
+assert(adminSettings.includes('name="publicUnpublishAllowed"'), "admin settings module must expose user unpublish toggle");
 assert(html.includes("app-reward-policy.js"), "index must load app reward policy module");
+assert(adminHtml.includes("admin-settings.js"), "admin must load settings module");
 assert(rewardPolicy.includes("ImageStudioRewardPolicy"), "reward policy module must register global helper");
+assert(admin.includes('renderAdminModule("settings")'), "admin settings page must render through AdminModules.settings");
 assert(app.includes("ImageStudioRewardPolicy?.confirmPublish"), "publish flow must confirm reward/no-unpublish policy before publishing");
 assert(app.includes("canUserUnpublishPublicWork"), "app must hide/guard unpublish controls by policy");
 assert(pkg.scripts?.["smoke:public-reward-policy"] === "node scripts/smoke/check-public-reward-policy.mjs", "package.json must expose smoke:public-reward-policy");

@@ -19,6 +19,8 @@ Use these locations for new public frontend work:
 | Session list and chat session rendering | `public/app-session.js` or `public/image-session-list.js` |
 | Generation result actions and composer-adjacent helpers | `public/app-generation.js` or `public/generation-result-actions.js` |
 | Gallery cards, detail media, route display, tags, leaderboard | `public/app-gallery.js` plus `public/gallery-*.js` |
+| Credits detail modal, check-in panel, reward ledger display | `public/app-credits-detail.js` |
+| Public-work reward copy and publish confirmation policy | `public/app-reward-policy.js` |
 | Reference image parsing and payloads | `public/reference-images.js` |
 | Canvas-specific behavior | `public/canvas-*.js` |
 
@@ -35,6 +37,7 @@ Use `AdminModules` for admin surface area:
 | Provider configuration | `public/admin-providers.js` |
 | Square review and gallery file checks | `public/admin-gallery.js` |
 | Generation diagnostics | `public/admin-generation-diagnostics.js` |
+| System settings, reward policy controls, settings submit payload | `public/admin-settings.js` |
 
 `public/admin.html` must load admin modules before `public/admin.js`.
 
