@@ -1,89 +1,107 @@
 # ai-image-studio
 
-`ai-image-studio` is a self-hosted AI image creation workspace. It combines text-to-image generation, image-to-image editing, prompt gallery discovery, public image sharing, user credits, moderation workflows, and an admin console in one lightweight Node.js application.
+可自托管的 AI 生图工作台。覆盖文生图、图生图、提示词画廊、公开作品广场、无限画布、积分体系、审核与后台运营管理。
 
-中文：`ai-image-studio` 是一个可自托管的 AI 生图工作台，覆盖文生图、图生图、提示词画廊、公开作品广场、积分、审核与后台运营管理。
+## 项目架构
 
-## Demo
+```text
+┌─────────────────────────────────────────────────────┐
+│  浏览器                                              │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐ │
+│  │ 前台页面  │  │ 后台管理  │  │ Canvas v2 子应用   │ │
+│  │ public/   │  │ public/  │  │ public/canvas-v2/ │ │
+│  └─────┬─────┘  └─────┬────┘  └────────┬──────────┘ │
+└────────┼───────────────┼────────────────┼────────────┘
+         │               │                │
+         ▼               ▼                ▼
+┌─────────────────────────────────────────────────────┐
+│  Node.js HTTP 服务器 (server.js)                     │
+│  ├─ src/routes/        路由分发                      │
+│  ├─ src/middleware/    session + CSRF                │
+│  ├─ src/stores/        数据访问层                    │
+│  ├─ src/canvas-service.js   画布业务逻辑            │
+│  └─ src/generation-queue-runner.js  生成队列        │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│  MySQL 8 + 文件存储 (data/)                          │
+└─────────────────────────────────────────────────────┘
+```
 
-- Demo site: https://ai-image-studio.twisterfeng.com
-- 演示地址：https://ai-image-studio.twisterfeng.com
+## 当前状态
 
-## Authors
-
-- Fengsuid
-- Codex
-
-## 作者
-
-- Fengsuid
-- Codex
-
-## Version
-
-Current release: `1.00`
-
-The npm package metadata uses `1.0.0` for semantic-version compatibility, while the GitHub release tag for this snapshot is `v1.00`.
-
-当前发布版本：`1.00`。npm 元数据使用 `1.0.0`，GitHub 标签使用 `v1.00`。
-
-## Features
-
-- Text-to-image generation with saved conversation history.
-- Image-to-image editing with optional source image publishing metadata.
-- Public gallery with prompt tags, author attribution, likes, and user-owned work management.
-- Prompt library and imported prompt templates.
-- User authentication, credits, check-in rewards, first-publication rewards, and withdrawal window rules.
-- Admin console for users, providers, settings, announcements, audit logs, public images, reports, prompt audits, and duplicate prompt scans.
-- Canvas v2 workspace for saved visual projects, nodes, edges, generation output routing, and JSON export.
-- MySQL-backed persistence with local static assets served by the Node.js server.
+| 模块 | 状态 | 说明 |
+| --- | --- | --- |
+| 文生图/图生图 | 可用 | 对话式生成，历史记录保存 |
+| 公开画廊 | 可用 | 标签、点赞、作者署名、排行榜 |
+| 提示词库 | 可用 | 多来源导入、标签筛选、封面图 |
+| 用户体系 | 可用 | 登录、积分、签到、首发奖励 |
+| 后台管理 | 可用 | 用户、供应商、设置、审核、日志 |
+| 旧画布 (v1) | 不可靠 | `public/canvas-*.js`，已废弃，不再演进 |
+| 新画布 (v2) | 开发中 | `apps/canvas-v2/`，Phase 0-4 基础已实现，Phase 5 入口切换未开始 |
 
 ## 功能
 
-- 文生图对话与历史记录保存。
-- 图生图编辑，并支持记录/展示输入原图相关信息。
-- 公开画廊：提示词标签、作者署名、点赞、用户作品管理。
-- 提示词库与外部提示词模板导入。
-- 用户登录、积分、签到奖励、首次公开奖励与公开撤回窗口。
-- 后台管理：用户、供应商、系统设置、通知、审计日志、公开图片、举报、提示词审核与重复提示词扫描。
-- Canvas v2 工作台：保存可视化项目、节点、连线、生成输出路由与 JSON 导出。
-- 基于 MySQL 的持久化存储，Node.js 服务直接提供静态前端与 API。
+- 文生图对话与历史记录保存
+- 图生图编辑，支持参考图元数据
+- 公开画廊：提示词标签、作者署名、点赞、排行榜
+- 提示词库与外部提示词模板导入
+- 用户登录、积分、签到奖励、首次公开奖励
+- 后台管理：用户、供应商、系统设置、通知、审计日志、举报、提示词审核
+- Canvas v2 工作台：节点编辑、连线、生成输出路由、JSON 导出
+- 基于 MySQL 的持久化存储
 
-## Project Structure
+## 目录结构
 
 ```text
-public/             Frontend pages, styles, and browser scripts
-apps/canvas-v2/     Isolated Canvas v2 source app; builds into public/canvas-v2
-src/                MySQL persistence layer
-scripts/            Import, migration, and smoke-test scripts
-docs/               Product, admin, execution, and deployment design notes
-server.js           HTTP server and API routes
-package.json        Node.js package metadata and scripts
+remote-edit/
+├── server.js              HTTP 服务器和 API 路由（单体入口）
+├── package.json           依赖和脚本
+├── .env.example           环境变量模板
+├── Dockerfile             生产镜像构建
+├── public/                前台页面、样式、浏览器脚本
+│   ├── index.html         主页面（含旧画布模板）
+│   ├── app.js             前台主逻辑
+│   ├── admin.js           后台主逻辑
+│   ├── canvas-*.js        旧画布模块（14 个文件，已废弃）
+│   └── canvas-v2/         新画布构建产物
+├── apps/
+│   └── canvas-v2/         新画布源码（零依赖纯 JS）
+│       ├── src/           源码目录
+│       └── scripts/       构建脚本
+├── src/                   后端业务逻辑
+│   ├── routes/            路由分发
+│   ├── stores/            数据访问层
+│   ├── middleware/        session、CSRF
+│   ├── canvas-service.js  画布业务逻辑
+│   └── mysql-store.js     数据库初始化
+├── scripts/               导入、迁移、smoke 测试脚本
+└── docs/                  设计文档
 ```
-
-## Requirements
-
-- Node.js 20 or newer.
-- MySQL 8 compatible database.
-- An OpenAI-compatible image generation provider configured through environment variables or the admin provider panel.
 
 ## 环境要求
 
-- Node.js 20 或更新版本。
-- MySQL 8 兼容数据库。
-- 一个 OpenAI 兼容的图片生成供应商，可通过环境变量或后台供应商面板配置。
+- Node.js 20+
+- MySQL 8 兼容数据库
+- OpenAI 兼容的图片生成供应商（通过环境变量或后台供应商面板配置）
 
-## Quick Start
+## 快速启动
 
 ```bash
 npm install
 cp .env.example .env
+# 编辑 .env 填入 MySQL 连接和管理员信息
 npm start
 ```
 
-If `.env.example` is not present in your deployment, create `.env` with the values used by your server environment.
+访问：
 
-Common environment variables:
+- 前台：`http://localhost:3000/`
+- 后台：`http://localhost:3000/admin`
+- 新画布：`http://localhost:3000/canvas-v2`
+
+## 环境变量
 
 ```bash
 PORT=3000
@@ -97,60 +115,71 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change-me
 ADMIN_NAME=Admin
 APP_VERSION=1.00
+AI_API_BASE_URL=
+AI_API_KEY=
 ```
-
-Then open:
-
-- Frontend: `http://localhost:3000/`
-- Admin: `http://localhost:3000/admin`
-- Canvas v2: `http://localhost:3000/canvas-v2`
-
-## 快速启动
-
-```bash
-npm install
-cp .env.example .env
-npm start
-```
-
-启动后访问：
-
-- 前台：`http://localhost:3000/`
-- 后台：`http://localhost:3000/admin`
-
-## Smoke Checks
-
-```bash
-npm run smoke:public -- http://localhost:3000
-npm run smoke:auth-admin
-npm run smoke:data
-```
-
-Some smoke checks require a running server and matching admin/database environment variables.
 
 ## Canvas v2
 
-Canvas v2 is built from `apps/canvas-v2/src` into `public/canvas-v2`:
+Canvas v2 是画布功能的重构版本，从 `apps/canvas-v2/src` 构建到 `public/canvas-v2`。
+
+构建和检查：
 
 ```bash
-npm run canvas:v2:check
-npm run canvas:v2:build
-npm run smoke:canvas-v2:static
-npm run smoke:canvas-v2:entry
+npm run canvas:v2:check        # 语法检查
+npm run canvas:v2:build        # 构建产物
+npm run smoke:canvas-v2:static # 静态资源 smoke
+npm run smoke:canvas-v2:entry  # 入口可访问 smoke
 ```
 
-The Canvas v2 source boundary records `basketikun/infinite-canvas` as an AGPL-3.0 upstream reference. Browser code must use the existing ai-image-studio APIs for login, CSRF, persistence, credits, provider routing, generation, and storage; it must not keep provider API keys or call OpenAI-compatible endpoints directly.
+入口模式控制：
 
-Set `CANVAS_ENTRY_MODE=legacy` to route primary Canvas entries back to the existing `#/canvas` workspace, or `CANVAS_ENTRY_MODE=hidden` to suppress public Canvas entry points during rollback.
+- `CANVAS_ENTRY_MODE=v2` — 默认，画布入口指向 v2
+- `CANVAS_ENTRY_MODE=legacy` — 回退到旧画布
+- `CANVAS_ENTRY_MODE=hidden` — 隐藏画布入口
 
-## Deployment Notes
+上游参考：`basketikun/infinite-canvas`（AGPL-3.0），详见 `apps/canvas-v2/UPSTREAM.md`。
 
-Self-hosted installations should keep generated images, uploaded source images, logs, database files, and `.env` outside the Git repository. This repository intentionally ignores local runtime data, historical archives, and server-specific validation notes.
+## Smoke 测试
 
-## Documentation
+```bash
+npm run smoke:public -- http://localhost:3000   # 公开页面
+npm run smoke:auth-admin                        # 管理员认证
+npm run smoke:data                              # 数据完整性
+npm run smoke:canvas-v2:static                  # Canvas v2 静态资源
+npm run smoke:canvas-v2:entry                   # Canvas v2 入口
+```
 
-The main planning document is:
+部分 smoke 需要运行中的服务器和正确的环境变量。
 
-- `docs/IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`
+## 文档索引
 
-Server-specific deployment records are intentionally kept out of version control.
+| 文档 | 说明 |
+| --- | --- |
+| `docs/IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md` | 产品总体规划 |
+| `docs/IMAGE_STUDIO_CANVAS_V2_MIGRATION_PLAN.md` | Canvas v2 迁移开发文档 |
+| `docs/CANVAS_V2_TESTING_GUIDE.md` | Canvas v2 功能测试指南 |
+| `docs/IMAGE_STUDIO_FRONTEND_ADMIN_DESIGN.md` | 前端和后台设计 |
+| `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md` | QA 和发布检查清单 |
+| `docs/FRONTEND_BUILD_TOOLING.md` | 前端构建工具说明 |
+| `docs/FRONTEND_MODULE_BOUNDARIES.md` | 前端模块边界 |
+| `docs/CODE_MAINTENANCE_OPTIMIZATION.md` | 代码维护优化 |
+
+## 开发流程
+
+1. 本地启动服务确认能跑通。
+2. 查看 `docs/IMAGE_STUDIO_CANVAS_V2_MIGRATION_PLAN.md` 了解画布迁移进度。
+3. 画布开发在 `apps/canvas-v2/src/` 下进行，修改后执行 `npm run canvas:v2:build`。
+4. 功能完成后运行对应 smoke 脚本验证。
+5. 提交前确认不包含私有信息（域名、IP、API Key）。
+
+## 部署说明
+
+- 生成图片、上传原图、日志、数据库文件和 `.env` 不进入 Git。
+- Docker 部署参考 `Dockerfile`。
+- 服务器特定的部署记录保存在本地私有文档中，不上传。
+
+## 作者
+
+- Fengsuid
+- Codex

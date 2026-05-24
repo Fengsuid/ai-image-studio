@@ -1,9 +1,11 @@
 # ai-image-studio 前端美化专项方案
 
 日期：2026-05-23
-状态：设计方案，待排入迭代批次落地
+状态：主体方案已通过 `AIS-RLS-070` 到 `AIS-RLS-092` 分批落地；`AIS-RLS-093` 正在收口视觉回归 QA。
 前提：`docs/CODE_MAINTENANCE_OPTIMIZATION.md §九` CSS 拆分完成后，本文件中的样式改动按模块文件写入；拆分前可在 `styles.css` 末尾追加，标注所属区块。
 协调：当前仍有 agent 在项目中工作，CSS/JS 改动必须在活跃开发间隙执行，不要与 agent 批次冲突。
+
+> 2026-05-24 校准：本文件是前端美化设计记录，不再表示待排期状态。当前完成状态见 `docs/PROJECT_PROGRESS_STATUS.md`，发布前视觉检查见 `docs/mobile-qa/visual-regression/README.md`。
 
 ---
 

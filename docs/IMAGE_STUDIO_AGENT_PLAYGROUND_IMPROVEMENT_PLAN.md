@@ -1,9 +1,11 @@
 # ai-image-studio Agent Playground 完善开发计划
 
 日期：2026-05-22
-状态：已拆分为 Trellis 任务 `AIS-RLS-061` 到 `AIS-RLS-069`，并开始串行推进。
+状态：已拆分为 Trellis 任务 `AIS-RLS-061` 到 `AIS-RLS-069`，且这些任务已全部完成（2026-05-24 校准）。
 范围：基于 `CookSleep/gpt_image_playground` 的架构参考，结合 `ai-image-studio` 现有多用户、积分、后台、画廊、画布和部署体系，规划下一阶段最值得投入的完善方向。
 定位：本文件不记录私有服务器、域名、账号、密钥或部署命令；只记录可公开复用的产品、架构、接口、数据和验收标准。
+
+> 当前完成状态见 `docs/PROJECT_PROGRESS_STATUS.md`。本文件保留 Agent Playground 阶段的设计依据和验收口径。
 
 ## 1. 判断结论
 

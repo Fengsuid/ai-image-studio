@@ -1,5 +1,5 @@
 import { createEmptyCanvasDocument } from "../adapters/canvas-schema.8fae55d925c4.js";
-import { renderEditor } from "../editor/view.17365fdb9d85.js";
+import { renderEditor } from "../editor/view.9bb0097c182c.js";
 
 export function createShellState() {
   return {
@@ -108,6 +108,7 @@ function renderCanvasPanel(state) {
       <div class="canvas-v2-actions">
         <button type="button" data-canvas-action="save-now" ${hasProject ? "" : "disabled"}>保存</button>
         <button type="button" data-canvas-action="export-project" ${hasProject ? "" : "disabled"}>导出</button>
+        <button type="button" data-canvas-action="import-project">导入</button>
         <button type="button" data-canvas-action="delete-project" ${hasProject ? "" : "disabled"}>删除</button>
       </div>
     </div>

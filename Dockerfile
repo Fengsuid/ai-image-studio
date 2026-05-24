@@ -28,6 +28,7 @@ COPY apps/canvas-v2 ./apps/canvas-v2
 COPY apps/agent-workspace ./apps/agent-workspace
 COPY scripts ./scripts
 COPY docs/README.md ./docs/README.md
+COPY docs/FRONTEND_MODULE_BOUNDARIES.md ./docs/FRONTEND_MODULE_BOUNDARIES.md
 COPY --from=canvas-v2-build /app/public/canvas-v2 ./public/canvas-v2
 COPY --from=agent-workspace-build /app/public/agent ./public/agent
 EXPOSE 3000

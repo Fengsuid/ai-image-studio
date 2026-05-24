@@ -16,7 +16,10 @@ const packageJson = JSON.parse(read("package.json"));
 const routeFiles = {
   auth: read("src/routes/auth.js"),
   health: read("src/routes/health.js"),
-  agentSessions: read("src/routes/agent-sessions.js")
+  agentSessions: read("src/routes/agent-sessions.js"),
+  prompts: read("src/routes/prompts.js"),
+  canvases: read("src/routes/canvases.js"),
+  admin: read("src/routes/admin.js")
 };
 
 assert(server.includes('require("./src/routes/auth")'), "server.js must require src/routes/auth");
@@ -36,9 +39,73 @@ assert((routeFiles.auth.match(/return true;/g) || []).length >= 4, "src/routes/a
 assert(routeFiles.health.includes("createHealthRoute") && routeFiles.health.includes("module.exports"), "src/routes/health.js must export createHealthRoute");
 assert(routeFiles.agentSessions.includes("createAgentSessionRoute") && routeFiles.agentSessions.includes("module.exports"), "src/routes/agent-sessions.js must export createAgentSessionRoute");
 
+const splitRoutes = [
+  {
+    key: "prompts",
+    requirePath: 'require("./src/routes/prompts")',
+    factory: "createPromptsRoute",
+    handle: "handlePromptsRoute",
+    endpoints: [
+      "/api/prompts",
+      "/api/tags",
+      "/api/prompt-categories"
+    ]
+  },
+  {
+    key: "canvases",
+    requirePath: 'require("./src/routes/canvases")',
+    factory: "createCanvasesRoute",
+    handle: "handleCanvasesRoute",
+    endpoints: [
+      "/api/canvases",
+      "/api/canvases/templates"
+    ]
+  },
+  {
+    key: "admin",
+    requirePath: 'require("./src/routes/admin")',
+    factory: "createAdminRoute",
+    handle: "handleAdminRoute",
+    endpoints: [
+      "/api/admin/settings",
+      "/api/admin/providers",
+      "/api/admin/users",
+      "/api/admin/generations",
+      "/api/admin/public-images",
+      "/api/admin/prompt-sources"
+    ]
+  }
+];
+
+for (const route of splitRoutes) {
+  const routeFile = routeFiles[route.key];
+  assert(server.includes(route.requirePath), `server.js must require src/routes/${route.key}`);
+  assert(server.includes(`const ${route.handle} = ${route.factory}({`), `server.js must create ${route.handle}`);
+  assert(server.includes(`if (await ${route.handle}(req, res, url)) return;`), `server.js must mount ${route.handle}`);
+  assert(routeFile.includes(route.factory) && routeFile.includes("module.exports"), `src/routes/${route.key}.js must export ${route.factory}`);
+  assert(!routeFile.includes("return sendJson("), `src/routes/${route.key}.js handlers must explicitly return true after sendJson`);
+  assert(!routeFile.includes("return sendNoContent("), `src/routes/${route.key}.js handlers must explicitly return true after sendNoContent`);
+  assert(routeFile.includes("return false;"), `src/routes/${route.key}.js must fall through with return false`);
+  for (const endpoint of route.endpoints) {
+    assert(routeFile.includes(endpoint), `src/routes/${route.key}.js must own ${endpoint}`);
+    assert(!server.includes(`url.pathname === "${endpoint}"`), `server.js should not directly branch on ${endpoint}`);
+  }
+  assert(!routeFile.includes('require("mysql2/promise")'), `src/routes/${route.key}.js must not open mysql2 connections directly`);
+  assert(!routeFile.includes("require('mysql2/promise')"), `src/routes/${route.key}.js must not open mysql2 connections directly`);
+  assert(!/\brequire\s*\(/.test(routeFile), `src/routes/${route.key}.js must stay dependency-injected and avoid local require cycles`);
+}
+
 const csrfIndex = server.indexOf("verifyCsrf(req);");
 const authIndex = server.indexOf("if (await handleAuthRoute(req, res, url)) return;");
 assert(csrfIndex >= 0 && authIndex >= 0 && csrfIndex < authIndex, "verifyCsrf(req) must run before handleAuthRoute");
+
+const galleryIndex = server.indexOf("if (await handleGalleryRoute(req, res, url)) return;");
+const promptsIndex = server.indexOf("if (await handlePromptsRoute(req, res, url)) return;");
+const canvasesIndex = server.indexOf("if (await handleCanvasesRoute(req, res, url)) return;");
+const adminIndex = server.indexOf("if (await handleAdminRoute(req, res, url)) return;");
+assert(galleryIndex >= 0 && promptsIndex > galleryIndex, "handlePromptsRoute must mount after handleGalleryRoute");
+assert(canvasesIndex > promptsIndex, "handleCanvasesRoute must mount after handlePromptsRoute");
+assert(adminIndex > canvasesIndex, "handleAdminRoute must mount after handleCanvasesRoute");
 
 assert(
   packageJson.scripts?.["smoke:server-route-boundary-split"] === "node scripts/smoke/check-server-route-boundary-split.mjs",

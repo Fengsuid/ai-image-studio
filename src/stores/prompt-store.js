@@ -1031,6 +1031,41 @@ function createPromptStore({ getPool, toIso }) {
     return rows.map(mapPromptDuplicateCandidate);
   }
 
+  async function listPromptImageLeaderboard({ range = "all", limit = 50, currentUserId = "", includeHidden = false } = {}) {
+    const normalizedLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+    const values = [];
+    const where = ["(p.preview <> '' OR p.image <> '')"];
+    if (!includeHidden) where.push("p.status = 'active'");
+    const rangeDays = { day: 1, week: 7, month: 30 }[range] || 0;
+    const periodLikeJoin = rangeDays
+      ? `INNER JOIN (
+           SELECT prompt_id, COUNT(*) AS period_like_count, MAX(created_at) AS latest_like_at
+             FROM prompt_likes
+            WHERE created_at >= DATE_SUB(NOW(3), INTERVAL ${rangeDays} DAY)
+            GROUP BY prompt_id
+         ) period_likes ON period_likes.prompt_id = p.id`
+      : "";
+    const leaderboardLikeExpr = rangeDays ? "period_likes.period_like_count" : "p.like_count";
+    const leaderboardOrder = rangeDays
+      ? "ORDER BY period_likes.period_like_count DESC, period_likes.latest_like_at DESC, p.created_at DESC, p.id DESC"
+      : "ORDER BY p.like_count DESC, p.use_count DESC, p.created_at DESC, p.id DESC";
+    const likedExpr = currentUserId ? "CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END" : "0";
+    const joinLike = currentUserId ? "LEFT JOIN prompt_likes pl ON pl.prompt_id = p.id AND pl.user_id = ?" : "";
+    if (currentUserId) values.push(currentUserId);
+    const [rows] = await getPool().execute(
+      `SELECT p.*, ${leaderboardLikeExpr} AS leaderboard_like_count,
+              ${likedExpr} AS liked_by_current_user
+         FROM prompts p
+         ${periodLikeJoin}
+         ${joinLike}
+        WHERE ${where.join(" AND ")}
+        ${leaderboardOrder}
+        LIMIT ${normalizedLimit}`,
+      values
+    );
+    return rows.map((row) => mapPrompt({ ...row, like_count: row.leaderboard_like_count ?? row.like_count }));
+  }
+
   async function getPromptDuplicateCandidateById(id) {
     const [rows] = await getPool().execute(
       `SELECT pdc.*,
@@ -1131,6 +1166,7 @@ function createPromptStore({ getPool, toIso }) {
     refreshPromptFingerprints,
     scanPromptDuplicateCandidates,
     scanPromptDuplicateCandidatesForPrompt,
+    listPromptImageLeaderboard,
     listPromptDuplicateCandidates,
     getPromptDuplicateCandidateById,
     reviewPromptDuplicateCandidate,

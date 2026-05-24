@@ -34,6 +34,21 @@ const persistedCanvas = {
   },
 };
 
+const noConfigCanvas = {
+  ...persistedCanvas,
+  id: "can_canvas_v2_no_config_generation",
+  dataJson: {
+    ...persistedCanvas.dataJson,
+    nodes: [
+      { id: "prompt_direct", type: "prompt", x: 0, y: 0, prompt: "Direct prompt to output" },
+      { id: "output_direct", type: "output", x: 320, y: 0 },
+    ],
+    edges: [
+      { id: "edge_prompt_output", source: "prompt_direct", target: "output_direct" },
+    ],
+  },
+};
+
 const imageEditCanvas = {
   ...persistedCanvas,
   id: "can_canvas_v2_image_generation",
@@ -198,6 +213,13 @@ assert.equal(captures.links[0].outputNodeId, "output_saved", "generation links s
 assert.equal(captures.links[0].configNodeId, "config_saved", "generation links should record config node");
 assert.equal(result.outputNode.status, "success", "generate should return successful output status");
 assert.equal(result.generations[0].imageUrl, "/api/images/img_canvas_v2_saved/file", "generate should return saved image URL");
+
+const noConfigService = createService({ canvas: noConfigCanvas });
+await noConfigService.generate(user.id, noConfigCanvas.id, { outputNodeId: "output_direct" }, { on: () => {}, off: () => {}, headers: {} }, { writableEnded: false });
+const directPayload = captures.imagePayloads[captures.imagePayloads.length - 1];
+assert.equal(directPayload.prompt, "Direct prompt to output", "direct prompt-to-output generation should use the saved prompt");
+assert.equal(directPayload.n, 1, "direct prompt-to-output generation should default to one image");
+assert.equal(captures.links[captures.links.length - 1].configNodeId, "", "direct prompt-to-output generation should not require a config node");
 
 const insufficient = createService({ reserveCredits: false });
 await assert.rejects(

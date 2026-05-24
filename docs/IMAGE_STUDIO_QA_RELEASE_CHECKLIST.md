@@ -51,6 +51,10 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `npm run smoke:gallery-detail-media`
   - `npm run smoke:gallery-card-tags`
   - `npm run smoke:prompt-review`
+- Run frontend visual QA smoke when polishing layout, theme, Composer, gallery, editor, works, or admin shell:
+  - `npm run smoke:visual-regression`
+  - Optional container/origin mode: `npm run smoke:visual-regression -- http://localhost:3100`
+  - Review `docs/mobile-qa/visual-regression/runs/<timestamp>/summary.md` before approving baseline changes.
 - Start a local server with a disposable data directory and run public smoke:
   - `PORT=3100 DATA_DIR=data-smoke node server.js`
   - `npm run smoke:public -- http://localhost:3100`
@@ -77,6 +81,8 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
 - Run public API smoke against the production base URL:
   - `npm run smoke:public -- https://<host>`
   - `npm run smoke:gallery-images -- https://<host>`
+- For frontend visual releases, run the shallow visual regression matrix against the deployed origin or SSH tunnel:
+  - `npm run smoke:visual-regression -- https://<host>`
 - Run authenticated admin smoke with production-safe credentials:
   - `ADMIN_EMAIL=<admin> ADMIN_PASSWORD=<password> npm run smoke:auth-admin -- https://<host>`
   - `npm run smoke:canvas-import-export-api -- https://<host>`

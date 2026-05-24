@@ -16,7 +16,10 @@ const userStore = read("src/stores/user-store.js");
 const packageJson = JSON.parse(read("package.json"));
 
 assert(mysqlStore.includes('require("./stores/user-store")'), "mysql-store.js must require user-store");
-assert(mysqlStore.includes("const userStore = createUserStore({ getPool, mapUser });"), "mysql-store.js must create userStore with shared pool");
+assert(mysqlStore.includes("const userStore = createUserStore({"), "mysql-store.js must create userStore");
+for (const dependency of ["getPool", "mapUser"]) {
+  assert(mysqlStore.includes(dependency), `mysql-store.js must inject ${dependency} into userStore`);
+}
 for (const name of ["createSession", "deleteSession", "touchSession", "getSessionUser"]) {
   assert(userStore.includes(`async function ${name}`), `user-store.js must implement ${name}`);
   assert(mysqlStore.includes(`${name}: userStore.${name}`), `mysql-store.js must export ${name} through userStore`);

@@ -227,8 +227,8 @@ function createCanvasService({
     if (!outputNode) throw httpError("Canvas output node not found", 400);
     const configNode = byId.get(String(selectors.configNodeId || ""))
       || visitUpstream(outputNode?.id || "").find((node) => node.type === "config")
-      || nodes.find((node) => node.type === "config");
-    if (!configNode) throw httpError("Canvas config node not found", 400);
+      || nodes.find((node) => node.type === "config")
+      || { id: "", type: "config", data: {} };
     const upstream = uniqueNodesById([...visitUpstream(outputNode.id), ...visitUpstream(configNode.id)]);
     const promptNodes = upstream.filter((node) => node.type === "prompt");
     const textNodes = upstream.filter((node) => node.type === "text");

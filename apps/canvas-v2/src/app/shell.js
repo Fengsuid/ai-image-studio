@@ -108,6 +108,7 @@ function renderCanvasPanel(state) {
       <div class="canvas-v2-actions">
         <button type="button" data-canvas-action="save-now" ${hasProject ? "" : "disabled"}>保存</button>
         <button type="button" data-canvas-action="export-project" ${hasProject ? "" : "disabled"}>导出</button>
+        <button type="button" data-canvas-action="import-project">导入</button>
         <button type="button" data-canvas-action="delete-project" ${hasProject ? "" : "disabled"}>删除</button>
       </div>
     </div>

@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
 日期：2026-05-20
-状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（2026-05-20）。
+状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-24）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -29,19 +29,11 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 ## 2. 当前优先执行
 
-当前真实 Trellis 中剩余 `backlog` 的优先启动顺序：
+当前真实 Trellis 中没有 `backlog` 任务，只有 1 张 `active` 卡：
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-040` 文生图生成中闪屏修复 | Experience | 直接影响核心生成体验 |
-| 2 | `AIS-RLS-042` 文生图结果按钮收口 | Experience | 截图中操作区最刺眼 |
-| 3 | `AIS-RLS-044` 画廊详情主图联动修复 | Gallery | 详情查看与创作路线当前有明确 bug |
-| 4 | `AIS-RLS-045` 画廊卡片标签去重与用户标签展示 | Gallery | 卡片标签误导用户，影响内容表达 |
-| 5 | `AIS-RLS-041` 画廊榜单侧栏化与点赞按钮优化 | Gallery | 榜单已有基础能力，下一步做体验收口 |
-| 6 | `AIS-RLS-043` 接入 infinite-canvas 提示词源到画廊 | Prompt | 扩充提示词库，并打通画布插入 |
-| 7 | `AIS-RLS-039` 画布模块边界与反单文件治理 | Canvas | 后续画布增强前必须继续拆分 |
-| 8 | `AIS-RLS-046` 画廊展示与输入体验综合修复 | Experience/Gallery/Prompt | 最新反馈集中修复：图片展示、榜单独立页、标题、删除/重命名对话、生成闪烁、admin 用户对话入口、图生图导入和新提示词源 |
-| 9 | `AIS-RLS-047` 画布工作台布局与连线系统重构 | Canvas/Experience | 修复画布居中、右侧遮挡、工具栏错位和节点连线不贴合，完成画布核心能力回归 |
+| 1 | `AIS-RLS-093` Visual regression QA harness for polished frontend | Platform/QA | 前端 polish 已完成，需要截图回归脚本、baseline 策略和发布前视觉检查闭环 |
 
 ## 3. 全量 Trellis 任务表
 
@@ -85,14 +77,14 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-036` | 广场内容审核与撤回管理 | Done | P1 | Gallery | M5 后台运营 | `AIS-RLS-007`; 覆盖举报、撤回、Provider 后台剩余项 |
 | `AIS-RLS-037` | 公告与弹窗通知完善 | Done | P1 | Admin | M5 后台运营 | `AIS-RLS-034`, `AIS-RLS-036`; 别名：`T030` 后续增强 |
 | `AIS-RLS-038` | 开发与上线 QA 清单 | Done | P0 | Platform | M5 后台运营 | 所有 P0 实现任务 |
-| `AIS-RLS-039` | 画布模块边界与反单文件治理 | Backlog | P1 | Canvas | M4 画布增强 | `AIS-RLS-026` 到 `AIS-RLS-030` |
-| `AIS-RLS-040` | 文生图生成中闪屏修复 | Backlog | P0 | Experience | M6 体验回归 | 无 |
-| `AIS-RLS-041` | 画廊榜单侧栏化与点赞按钮优化 | Backlog | P1 | Gallery | M6 体验回归 | `AIS-RLS-004`, `AIS-RLS-005`; 别名：`T027` 剩余体验 |
-| `AIS-RLS-042` | 文生图结果按钮收口 | Backlog | P0 | Experience | M6 体验回归 | `AIS-RLS-015`, `AIS-RLS-022`; 别名：`T021` 部分 |
-| `AIS-RLS-043` | 接入 infinite-canvas 提示词源到画廊 | Backlog | P1 | Prompt | M6 体验回归 | `AIS-RLS-010`, `AIS-RLS-011`, `AIS-RLS-014` |
-| `AIS-RLS-044` | 画廊详情主图联动修复 | Backlog | P0 | Gallery | M6 体验回归 | `AIS-RLS-003`, `AIS-RLS-006`, `AIS-RLS-025` |
-| `AIS-RLS-045` | 画廊卡片标签去重与用户标签展示 | Backlog | P0 | Gallery | M6 体验回归 | `AIS-RLS-007`, `AIS-RLS-024`, `AIS-RLS-035` |
-| `AIS-RLS-046` | 画廊展示与输入体验综合修复 | Backlog | P0 | Experience/Gallery/Prompt | M6 体验回归 | `AIS-RLS-041`, `AIS-RLS-043`, `AIS-RLS-044`, `AIS-RLS-045` |
+| `AIS-RLS-039` | 画布模块边界与反单文件治理 | Done | P1 | Canvas | M4 画布增强 | `AIS-RLS-026` 到 `AIS-RLS-030` |
+| `AIS-RLS-040` | 文生图生成中闪屏修复 | Done | P0 | Experience | M6 体验回归 | 无 |
+| `AIS-RLS-041` | 画廊榜单侧栏化与点赞按钮优化 | Done | P1 | Gallery | M6 体验回归 | `AIS-RLS-004`, `AIS-RLS-005`; 别名：`T027` 剩余体验 |
+| `AIS-RLS-042` | 文生图结果按钮收口 | Done | P0 | Experience | M6 体验回归 | `AIS-RLS-015`, `AIS-RLS-022`; 别名：`T021` 部分 |
+| `AIS-RLS-043` | 接入 infinite-canvas 提示词源到画廊 | Done | P1 | Prompt | M6 体验回归 | `AIS-RLS-010`, `AIS-RLS-011`, `AIS-RLS-014` |
+| `AIS-RLS-044` | 画廊详情主图联动修复 | Done | P0 | Gallery | M6 体验回归 | `AIS-RLS-003`, `AIS-RLS-006`, `AIS-RLS-025` |
+| `AIS-RLS-045` | 画廊卡片标签去重与用户标签展示 | Done | P0 | Gallery | M6 体验回归 | `AIS-RLS-007`, `AIS-RLS-024`, `AIS-RLS-035` |
+| `AIS-RLS-046` | 画廊展示与输入体验综合修复 | Done | P0 | Experience/Gallery/Prompt | M6 体验回归 | `AIS-RLS-041`, `AIS-RLS-043`, `AIS-RLS-044`, `AIS-RLS-045` |
 | `AIS-RLS-047` | 画布工作台布局与连线系统重构 | Done | P0 | Canvas/Experience | M6 体验回归 | `AIS-RLS-039`, `AIS-RLS-046` |
 | `AIS-RLS-048` | Canvas v2 源码引入与 AGPL 合规基线 | Done | P0 | Canvas/Platform | M7 Canvas v2 | 无 |
 | `AIS-RLS-049` | Canvas v2 子应用 Shell、构建与 /canvas-v2 路由 | Done | P0 | Canvas/Platform | M7 Canvas v2 | `AIS-RLS-048` |
@@ -107,6 +99,39 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-058` | Mobile P1 画廊、排行榜与详情 | Done | P0 | Gallery/Experience | M8 Mobile Web | `AIS-RLS-057` |
 | `AIS-RLS-059` | Mobile P2 图片编辑器与我的作品 | Done | P1 | Experience/Gallery | M8 Mobile Web | `AIS-RLS-058` |
 | `AIS-RLS-060` | Mobile QA、文档、部署与发布闭环 | Done | P0 | Platform/QA/Ops | M8 Mobile Web | `AIS-RLS-059` |
+| `AIS-RLS-061` | DB-backed generation queue recovery | Done | P0 | Platform/Backend | M9 Agent/Queue | 无 |
+| `AIS-RLS-062` | Generation trace and provider diagnostics | Done | P0 | Platform/Admin | M9 Agent/Queue | `AIS-RLS-061` |
+| `AIS-RLS-063` | Provider capabilities and async mapping | Done | P1 | Platform/Backend | M9 Agent/Queue | `AIS-RLS-062` |
+| `AIS-RLS-064` | Agent session data model and API | Done | P1 | Agent/Backend | M9 Agent/Queue | `AIS-RLS-061` |
+| `AIS-RLS-065` | Agent workspace MVP | Done | P1 | Agent/Experience | M9 Agent/Queue | `AIS-RLS-064` |
+| `AIS-RLS-066` | Agent batch generation and canvas export | Done | P1 | Agent/Canvas | M9 Agent/Queue | `AIS-RLS-063`, `AIS-RLS-065` |
+| `AIS-RLS-067` | IndexedDB image and draft cache | Done | P2 | Experience/Frontend | M9 Agent/Queue | `AIS-RLS-065` |
+| `AIS-RLS-068` | Admin generation request diagnostics page | Done | P1 | Admin/Platform | M9 Agent/Queue | `AIS-RLS-062` |
+| `AIS-RLS-069` | Creative route unification for gallery/canvas/agent | Done | P2 | Experience/Platform | M9 Agent/Queue | `AIS-RLS-066` |
+| `AIS-RLS-070` | CSS tokens, motion library and first visual polish | Done | P1 | Frontend | M10 Frontend Polish | `AIS-RLS-069` |
+| `AIS-RLS-071` | Split public/styles.css into component CSS modules | Done | P1 | Frontend | M10 Frontend Polish | `AIS-RLS-070` |
+| `AIS-RLS-072` | Dark mode and mobile bottom navigation polish | Done | P2 | Frontend/Mobile | M10 Frontend Polish | `AIS-RLS-071` |
+| `AIS-RLS-073` | Split public/admin.js into admin panel modules | Done | P1 | Admin/Frontend | M10 Frontend Polish | `AIS-RLS-068` |
+| `AIS-RLS-074` | Split public/app.js into public AppModules | Done | P1 | Frontend | M10 Frontend Polish | `AIS-RLS-072` |
+| `AIS-RLS-075` | Continue server.js route and middleware boundary split | Done | P1 | Backend/Platform | M10 Frontend Polish | `AIS-RLS-069` |
+| `AIS-RLS-076` | Split mysql-store.js into domain stores | Done | P1 | Backend/Platform | M10 Frontend Polish | `AIS-RLS-075` |
+| `AIS-RLS-077` | Frontend build tooling foundation for modular app code | Done | P2 | Frontend/Platform | M10 Frontend Polish | `AIS-RLS-074`, `AIS-RLS-076` |
+| `AIS-RLS-078` | Frontend visual system polish after CSS split | Done | P1 | Frontend | M10 Frontend Polish | `AIS-RLS-071`, `AIS-RLS-072` |
+| `AIS-RLS-079` | Gallery and detail interaction polish | Done | P1 | Gallery/Frontend | M10 Frontend Polish | `AIS-RLS-069`, `AIS-RLS-078` |
+| `AIS-RLS-080` | Composer, chat and editor responsive polish | Done | P1 | Experience/Frontend | M11 Frontend QA | `AIS-RLS-072`, `AIS-RLS-074` |
+| `AIS-RLS-081` | Frontend module guardrails and file-size checks | Done | P1 | Frontend/Platform | M11 Frontend QA | `AIS-RLS-071`, `AIS-RLS-073`, `AIS-RLS-074` |
+| `AIS-RLS-082` | Extract auth routes and session middleware | Done | P2 | Backend/Platform | M11 Frontend QA | `AIS-RLS-075` |
+| `AIS-RLS-083` | Extract image and gallery route families | Done | P2 | Backend/Gallery | M11 Frontend QA | `AIS-RLS-075`, `AIS-RLS-079` |
+| `AIS-RLS-084` | Extract generation request store domain | Done | P2 | Backend/Platform | M11 Frontend QA | `AIS-RLS-076` |
+| `AIS-RLS-085` | Extract prompt and canvas store domains | Done | P2 | Backend/Prompt/Canvas | M11 Frontend QA | `AIS-RLS-076`, `AIS-RLS-084` |
+| `AIS-RLS-086` | Extract prompts, canvas and admin route families | Done | P2 | Backend/Platform | M11 Frontend QA | `AIS-RLS-075`, `AIS-RLS-082`, `AIS-RLS-083` |
+| `AIS-RLS-087` | Extract user, gallery and admin store domains | Done | P2 | Backend/Platform | M11 Frontend QA | `AIS-RLS-076`, `AIS-RLS-084`, `AIS-RLS-085` |
+| `AIS-RLS-088` | Frontend accessibility, keyboard and contrast polish | Done | P1 | Frontend/QA | M11 Frontend QA | `AIS-RLS-072`, `AIS-RLS-078`, `AIS-RLS-080` |
+| `AIS-RLS-089` | Home hero, onboarding and prompt discovery polish | Done | P2 | Experience/Frontend | M11 Frontend QA | `AIS-RLS-078`, `AIS-RLS-080`, `AIS-RLS-088` |
+| `AIS-RLS-090` | Prompt library and marketplace visual polish | Done | P2 | Prompt/Frontend | M11 Frontend QA | `AIS-RLS-074`, `AIS-RLS-078`, `AIS-RLS-088` |
+| `AIS-RLS-091` | Admin shell visual hierarchy and information polish | Done | P2 | Admin/Frontend | M11 Frontend QA | `AIS-RLS-073`, `AIS-RLS-078`, `AIS-RLS-088` |
+| `AIS-RLS-092` | Frontend performance and bundle budget optimization | Done | P2 | Frontend/Performance | M11 Frontend QA | `AIS-RLS-077`, `AIS-RLS-081`, `AIS-RLS-088` |
+| `AIS-RLS-093` | Visual regression QA harness for polished frontend | Active | P2 | Platform/QA | M11 Frontend QA | `AIS-RLS-088`, `AIS-RLS-089`, `AIS-RLS-090`, `AIS-RLS-091`, `AIS-RLS-092` |
 
 ## 4. 历史 T 编号映射
 

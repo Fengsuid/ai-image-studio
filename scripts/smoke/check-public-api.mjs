@@ -126,6 +126,11 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/gallery-tag-view-model.js"), "/ missing gallery-tag-view-model.js reference");
   assert(typeof home.body === "string" && home.body.includes("/generation-result-actions.js"), "/ missing generation-result-actions.js reference");
   assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/home-onboarding.js"), "/ missing home-onboarding.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/frontend-performance.js"), "/ missing frontend-performance.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/app-prompt-library.js"), "/ missing app-prompt-library.js reference");
+  assert(typeof home.body === "string" && home.body.includes("hero-pathway"), "/ missing home hero pathway");
+  assert(typeof home.body === "string" && home.body.includes("homeDiscovery"), "/ missing home prompt discovery");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
 
@@ -146,6 +151,9 @@ async function checkHomeResources() {
   const galleryTagViewModelMatch = home.body.match(/src="([^"]*\/gallery-tag-view-model\.js[^"]*)"/);
   const generationResultActionsMatch = home.body.match(/src="([^"]*\/generation-result-actions\.js[^"]*)"/);
   const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
+  const homeOnboardingMatch = home.body.match(/src="([^"]*\/home-onboarding\.js[^"]*)"/);
+  const frontendPerformanceMatch = home.body.match(/src="([^"]*\/frontend-performance\.js[^"]*)"/);
+  const promptLibraryMatch = home.body.match(/src="([^"]*\/app-prompt-library\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const canvasLayoutPath = canvasLayoutMatch?.[1] || "/canvas-layout.js";
@@ -163,6 +171,9 @@ async function checkHomeResources() {
   const galleryTagViewModelPath = galleryTagViewModelMatch?.[1] || "/gallery-tag-view-model.js";
   const generationResultActionsPath = generationResultActionsMatch?.[1] || "/generation-result-actions.js";
   const referenceImagesPath = referenceImagesMatch?.[1] || "/reference-images.js";
+  const homeOnboardingPath = homeOnboardingMatch?.[1] || "/home-onboarding.js";
+  const frontendPerformancePath = frontendPerformanceMatch?.[1] || "/frontend-performance.js";
+  const promptLibraryPath = promptLibraryMatch?.[1] || "/app-prompt-library.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
   assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
@@ -178,6 +189,31 @@ async function checkHomeResources() {
   assert(style.body.includes("admin-overview-hero"), `${stylePath} should style admin dashboard overview hero`);
   assert(style.body.includes("admin-quick-links"), `${stylePath} should style admin dashboard quick links`);
   assert(style.body.includes("admin-issue-list"), `${stylePath} should style admin dashboard issue list`);
+  assert(style.body.includes("home-onboarding-card"), `${stylePath} should style home onboarding`);
+  assert(style.body.includes("home-reduced-motion"), `${stylePath} should include home reduced motion fallback`);
+  assert(style.body.includes("prompt-library-card"), `${stylePath} should style prompt library cards`);
+  assert(style.body.includes("prompt-library-state"), `${stylePath} should style prompt library states`);
+
+  log(`GET ${homeOnboardingPath}`);
+  const homeOnboarding = await fetchText(homeOnboardingPath, "application/javascript,*/*");
+  assert(homeOnboarding.status === 200, `${homeOnboardingPath} status=${homeOnboarding.status}`);
+  assert(homeOnboarding.body.includes("window.ImageStudioHomeOnboarding"), `${homeOnboardingPath} should register home onboarding helper`);
+  assert(homeOnboarding.body.includes("imageStudio.homeOnboarding.v1"), `${homeOnboardingPath} should use isolated first-run storage key`);
+
+  log(`GET ${frontendPerformancePath}`);
+  const frontendPerformance = await fetchText(frontendPerformancePath, "application/javascript,*/*");
+  assert(frontendPerformance.status === 200, `${frontendPerformancePath} status=${frontendPerformance.status}`);
+  assert(frontendPerformance.body.includes("ImageStudioPerformance"), `${frontendPerformancePath} should register frontend performance helper`);
+  assert(frontendPerformance.body.includes("IntersectionObserver"), `${frontendPerformancePath} should defer card/image work with IntersectionObserver`);
+  assert(frontendPerformance.body.includes("shouldDisableHeroVideo"), `${frontendPerformancePath} should gate hero video for low-power devices`);
+
+  log(`GET ${promptLibraryPath}`);
+  const promptLibrary = await fetchText(promptLibraryPath, "application/javascript,*/*");
+  assert(promptLibrary.status === 200, `${promptLibraryPath} status=${promptLibrary.status}`);
+  assert(promptLibrary.body.includes("AppModules?.register?.(\"promptLibrary\""), `${promptLibraryPath} should register promptLibrary module`);
+  assert(promptLibrary.body.includes("renderPromptCard"), `${promptLibraryPath} should render prompt cards`);
+  assert(promptLibrary.body.includes("renderLibraryState"), `${promptLibraryPath} should render loading/empty/error states`);
+  assert(promptLibrary.body.includes("renderPromptDetailModal"), `${promptLibraryPath} should render prompt detail modal`);
 
   log(`GET ${appPath}`);
   const app = await fetchText(appPath, "application/javascript,*/*");
@@ -197,6 +233,9 @@ async function checkHomeResources() {
   assert(app.body.includes("data-reference-row-input"), `${appPath} should let the reference row append more images`);
   assert(app.body.includes("handleEditorUpload(event.target.files"), `${appPath} should pass multiple editor upload files`);
   assert(app.body.includes("appendReferences: true"), `${appPath} should append bottom editor uploads as references`);
+  assert(app.body.includes("promptLibraryModule()"), `${appPath} should delegate prompt library rendering to module`);
+  assert(app.body.includes("promptLibraryMeta"), `${appPath} should track prompt library remote/fallback state`);
+  assert(app.body.includes("setLikeFeedback"), `${appPath} should surface prompt like failure feedback`);
 
   log(`GET ${canvasLayoutPath}`);
   const canvasLayout = await fetchText(canvasLayoutPath, "application/javascript,*/*");

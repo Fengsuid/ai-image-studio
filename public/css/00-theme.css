@@ -115,6 +115,24 @@
   border-color: var(--border);
 }
 
+:root[data-theme="dark"] .works-detail-drawer {
+  background: #0f172a;
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .works-detail-stage,
+:root[data-theme="dark"] .works-detail-body {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .works-detail-close {
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.88);
+  border-color: var(--border-subtle);
+}
+
 html.theme-transitioning *,
 html.theme-transitioning *::before,
 html.theme-transitioning *::after {

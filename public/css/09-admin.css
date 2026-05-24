@@ -179,6 +179,42 @@
   color: #9a6700;
 }
 
+.admin-badge[data-status="success"],
+.admin-badge[data-status="allowed"],
+.admin-badge[data-status="reviewed"],
+.admin-badge[data-status="override_allowed"] {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.admin-badge[data-status="queued"],
+.admin-badge[data-status="pending"],
+.admin-badge[data-status="running"] {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-badge[data-status="cancelled"],
+.admin-badge[data-status="blocked"],
+.admin-badge[data-status="error"] {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.admin-badge[data-status="review"],
+.admin-badge[data-status="warning"],
+.admin-badge[data-status="unknown"] {
+  background: #fff8db;
+  color: #9a6700;
+}
+
+.admin-section-shell,
+.admin-list-meta,
+.admin-risk-strip,
+.admin-error-state {
+  min-width: 0;
+}
+
 .admin-pagination {
   display: flex;
   align-items: center;

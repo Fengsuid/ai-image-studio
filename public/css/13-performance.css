@@ -1,0 +1,39 @@
+/* AIS-RLS-092 frontend performance and motion budget fallbacks. */
+
+.perf-observed {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px;
+}
+
+.perf-observed[data-perf-visible="false"] {
+  pointer-events: none;
+}
+
+.performance-low .hero-video-layer video,
+.performance-save-data .hero-video-layer video,
+.performance-reduced-motion .hero-video-layer video {
+  display: none;
+}
+
+.performance-low :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading),
+.performance-save-data :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading),
+.performance-reduced-motion :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading) {
+  animation: none !important;
+  background-size: 100% 100%;
+}
+
+.performance-low :is(.recent-tile, .prompt-card, .work-card, .gallery-rank-card),
+.performance-reduced-motion :is(.recent-tile, .prompt-card, .work-card, .gallery-rank-card) {
+  transition-duration: 1ms !important;
+}
+
+.performance-low :is(.recent-visual::after, .work-visual::after, .gallery-rank-visual::after, .prompt-card .card-art::after) {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perf-observed {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+}

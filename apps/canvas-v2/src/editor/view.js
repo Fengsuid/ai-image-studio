@@ -40,6 +40,8 @@ export function renderEditor(state, { hasProject }) {
         <div class="canvas-v2-toolbar-group">
           <button type="button" data-canvas-editor-action="tool-pan" class="${state.editorTool === "pan" ? "active" : ""}" ${disabled}>平移</button>
           <button type="button" data-canvas-editor-action="tool-box-select" class="${state.editorTool === "box-select" ? "active" : ""}" ${disabled}>框选</button>
+          <button type="button" data-canvas-editor-action="undo" ${disabled || !state.canUndo ? "disabled" : ""}>撤销</button>
+          <button type="button" data-canvas-editor-action="redo" ${disabled || !state.canRedo ? "disabled" : ""}>重做</button>
           <button type="button" data-canvas-editor-action="connect-selected" ${disabled}>连接选中</button>
           <button type="button" data-canvas-editor-action="duplicate-selection" ${disabled}>复制粘贴</button>
           <button type="button" data-canvas-editor-action="delete-selection" ${disabled}>删除</button>

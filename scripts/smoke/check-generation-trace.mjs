@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
+const adminRoute = fs.readFileSync(path.join(rootDir, "src/routes/admin.js"), "utf8");
 const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
 const trace = require(path.join(rootDir, "src/generation-trace-service.js"));
 
@@ -63,7 +64,8 @@ for (const stage of [
   assert(server.includes(`"${stage}"`), `server must trace ${stage}`);
 }
 
-assert(server.includes("/api/admin/generations") && server.includes("getGenerationRequestDiagnostic"), "server must expose admin generation diagnostic API");
+assert(server.includes("createAdminRoute"), "server must mount the admin route module");
+assert(adminRoute.includes("/api/admin/generations") && adminRoute.includes("getGenerationRequestDiagnostic"), "admin route must expose generation diagnostic API");
 assert(admin.includes("/api/admin/generations/${encodeURIComponent(id)}"), "admin request drawer must fetch diagnostic detail");
 assert(admin.includes("Trace 时间线"), "admin request drawer must render trace timeline");
 

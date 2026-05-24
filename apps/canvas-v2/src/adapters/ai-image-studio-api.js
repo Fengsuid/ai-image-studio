@@ -45,7 +45,8 @@ export async function apiFetch(path, options = {}) {
   const payload = options.parseJson === false ? null : await parseJsonResponse(response);
 
   if (!response.ok) {
-    throw new ApiError(`Canvas v2 API request failed with HTTP ${response.status}`, response.status, payload);
+    const message = payload?.error || payload?.message || `Canvas v2 API request failed with HTTP ${response.status}`;
+    throw new ApiError(message, response.status, payload);
   }
 
   return payload;

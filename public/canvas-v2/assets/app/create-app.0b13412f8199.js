@@ -1,4 +1,4 @@
-import { createShellState, renderShell } from "./shell.0313daac826d.js";
+import { createShellState, renderShell } from "./shell.121919f0303e.js";
 import {
   ApiError,
   createCanvasProject,
@@ -10,27 +10,57 @@ import {
   getHealth,
   listCanvasProjects,
   updateCanvasProject,
-} from "../adapters/ai-image-studio-api.76de7730d185.js";
+} from "../adapters/ai-image-studio-api.023ae183d3a7.js";
 import {
   canvasPayloadFromDocument,
   createEmptyCanvasDocument,
   normalizeCanvasDocument,
 } from "../adapters/canvas-schema.8fae55d925c4.js";
-import { installEditorController } from "../editor/dom-controller.b1491be2268c.js";
+import { installEditorController } from "../editor/dom-controller.122b1eb59119.js";
 import {
   applyGenerationResult,
   applyGenerationStatus,
   generationRequestForOutput,
 } from "../features/generation/flow.f2772561bfb2.js";
+import { createHistory, pushHistory, undo, redo, canUndo, canRedo } from "../features/history/index.d7ff862ead52.js";
+import { triggerFileImport } from "../features/imports/index.de41ca5d51db.js";
 
 const SAVE_DEBOUNCE_MS = 700;
 
 export function createCanvasV2App(root) {
   let state = createShellState();
   let saveTimer = 0;
+  let history = createHistory(state.document);
+  let documentRevision = 0;
+  let textCompositionActive = false;
+  let deferredRender = false;
+
+  const isTextComposing = () => textCompositionActive || Boolean(root.querySelector("[data-canvas-composing='true']"));
 
   const render = () => {
+    if (isTextComposing()) {
+      deferredRender = true;
+      return;
+    }
+    deferredRender = false;
+    const focused = document.activeElement;
+    const focusNodeId = focused?.dataset?.canvasNodeId || "";
+    const focusField = focused?.dataset?.canvasNodeField || "";
+    const focusSelStart = focused?.selectionStart;
+    const focusSelEnd = focused?.selectionEnd;
+
     root.replaceChildren(renderShell(state));
+
+    if (focusNodeId && focusField) {
+      const target = root.querySelector(`[data-canvas-node-id="${focusNodeId}"][data-canvas-node-field="${focusField}"]`);
+      if (target) {
+        target.focus();
+        if (typeof focusSelStart === "number") {
+          target.selectionStart = focusSelStart;
+          target.selectionEnd = focusSelEnd ?? focusSelStart;
+        }
+      }
+    }
   };
 
   const setState = (patch) => {
@@ -40,16 +70,43 @@ export function createCanvasV2App(root) {
 
   const scheduleSave = () => {
     window.clearTimeout(saveTimer);
+    const revision = documentRevision;
     saveTimer = window.setTimeout(() => {
-      void saveCurrentCanvas();
+      void saveCurrentCanvas({ revision });
     }, SAVE_DEBOUNCE_MS);
+  };
+
+  const setTextCompositionActive = (active) => {
+    textCompositionActive = Boolean(active);
+    if (!textCompositionActive && deferredRender) render();
   };
 
   const commitDocument = () => {
     window.clearTimeout(saveTimer);
-    setState({ dirty: true, saveStatus: "unsaved", saveError: "" });
+    history = pushHistory(history, state.document);
+    setState({ dirty: true, saveStatus: "unsaved", saveError: "", canUndo: canUndo(history), canRedo: canRedo(history) });
     scheduleSave();
   };
+
+  function undoDocument() {
+    const result = undo(history);
+    if (!result) return;
+    history = result;
+    documentRevision += 1;
+    state = { ...state, document: result.current, dirty: true, saveStatus: "unsaved", canUndo: canUndo(history), canRedo: canRedo(history) };
+    render();
+    scheduleSave();
+  }
+
+  function redoDocument() {
+    const result = redo(history);
+    if (!result) return;
+    history = result;
+    documentRevision += 1;
+    state = { ...state, document: result.current, dirty: true, saveStatus: "unsaved", canUndo: canUndo(history), canRedo: canRedo(history) };
+    render();
+    scheduleSave();
+  }
 
   async function loadProject(canvasId) {
     if (!canvasId) return;
@@ -57,9 +114,11 @@ export function createCanvasV2App(root) {
     try {
       const result = await getCanvasProject(canvasId);
       const canvas = result.canvas;
+      const doc = documentFromCanvas(canvas);
+      history = createHistory(doc);
       setState({
         currentProjectId: canvas.id,
-        document: documentFromCanvas(canvas),
+        document: doc,
         projects: upsertProject(state.projects, canvas),
         projectLoading: false,
         dirty: false,
@@ -69,6 +128,8 @@ export function createCanvasV2App(root) {
         selectedEdgeIds: [],
         connectionSourceId: "",
         selectionRect: null,
+        canUndo: false,
+        canRedo: false,
       });
       updateRoute(canvas.id);
     } catch (error) {
@@ -123,7 +184,7 @@ export function createCanvasV2App(root) {
     }
   }
 
-  async function saveCurrentCanvas() {
+  async function saveCurrentCanvas({ revision = documentRevision } = {}) {
     window.clearTimeout(saveTimer);
     if (!state.currentProjectId) {
       setState({ saveStatus: "unsaved", saveError: "请先新建或打开一个画布。" });
@@ -134,6 +195,10 @@ export function createCanvasV2App(root) {
       const payload = canvasPayloadFromDocument(state.document, state.document.title);
       const result = await updateCanvasProject(state.currentProjectId, payload);
       const canvas = result.canvas;
+      if (revision !== documentRevision) {
+        setState({ projects: upsertProject(state.projects, canvas) });
+        return;
+      }
       setState({
         projects: upsertProject(state.projects, canvas),
         document: documentFromCanvas(canvas),
@@ -199,8 +264,43 @@ export function createCanvasV2App(root) {
     }
   }
 
+  async function importProject() {
+    const result = await triggerFileImport();
+    if (result.error) {
+      setState({ saveError: result.error, saveStatus: "error" });
+      return;
+    }
+    const title = result.document.title || "Imported canvas";
+    setState({ saveStatus: "saving", saveError: "" });
+    try {
+      const payload = canvasPayloadFromDocument(result.document, title);
+      const created = await createCanvasProject(payload);
+      const canvas = created.canvas;
+      const doc = documentFromCanvas(canvas);
+      history = createHistory(doc);
+      setState({
+        projects: upsertProject(state.projects, canvas),
+        currentProjectId: canvas.id,
+        document: doc,
+        dirty: false,
+        saveStatus: "saved",
+        saveError: "",
+        selectedNodeIds: [],
+        selectedEdgeIds: [],
+        connectionSourceId: "",
+        selectionRect: null,
+        canUndo: false,
+        canRedo: false,
+      });
+      updateRoute(canvas.id);
+    } catch (error) {
+      setState({ saveStatus: "error", saveError: errorMessage(error) });
+    }
+  }
+
   function mutateDocument(updater, { commit = true } = {}) {
     const nextDocument = normalizeCanvasDocument(updater(state.document), state.document.title);
+    documentRevision += 1;
     state = {
       ...state,
       document: nextDocument,
@@ -274,6 +374,9 @@ export function createCanvasV2App(root) {
     mutateDocument,
     commitDocument,
     runOutputGeneration,
+    undoDocument,
+    redoDocument,
+    setTextCompositionActive,
   });
 
   root.addEventListener("click", (event) => {
@@ -287,13 +390,31 @@ export function createCanvasV2App(root) {
     if (action === "save-now") void saveCurrentCanvas();
     if (action === "delete-project") void deleteCurrentProject();
     if (action === "export-project") void exportCurrentProject();
+    if (action === "import-project") void importProject();
   });
 
   root.addEventListener("input", (event) => {
     if (!(event.target instanceof HTMLInputElement)) return;
     if (!event.target.matches("[data-canvas-title-input]")) return;
+    if (event.isComposing || event.target.dataset.canvasComposing === "true") return;
     const title = event.target.value.trim() || "Untitled canvas";
     mutateDocument((document) => ({ ...document, title }));
+  });
+
+  root.addEventListener("compositionstart", (event) => {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    if (!event.target.matches("[data-canvas-title-input]")) return;
+    event.target.dataset.canvasComposing = "true";
+    setTextCompositionActive(true);
+  });
+
+  root.addEventListener("compositionend", (event) => {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    if (!event.target.matches("[data-canvas-title-input]")) return;
+    delete event.target.dataset.canvasComposing;
+    const title = event.target.value.trim() || "Untitled canvas";
+    mutateDocument((document) => ({ ...document, title }));
+    setTextCompositionActive(false);
   });
 
   render();

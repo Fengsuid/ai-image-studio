@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260523-mobile-route-modal-v2">
+    <link rel="stylesheet" href="/styles.css?v=20260523-performance-budget-v1">
     <link rel="stylesheet" href="/mobile-gallery.css?v=20260523-mobile-route-modal-v2">
     <link rel="stylesheet" href="/mobile.css?v=20260523-mobile-route-modal-v2">
     <link rel="stylesheet" href="/mobile-home.css?v=20260523-mobile-route-modal-v2">
@@ -125,7 +125,7 @@
       <main id="homeView" class="home-view">
         <section class="hero">
           <div class="hero-video-layer" aria-hidden="true">
-            <video autoplay muted loop playsinline preload="metadata">
+            <video muted loop playsinline preload="metadata">
               <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260302_085640_276ea93b-d7da-4418-a09b-2aa5b490e838.mp4" type="video/mp4">
             </video>
             <div class="hero-video-gradient"></div>
@@ -146,7 +146,42 @@
             <em>is all your need</em>
           </h1>
           <p data-i18n="desc" class="hero-desc">将脑海中的画面，转化为触手可及的惊艳视觉。</p>
-          <div id="heroComposerMount" class="composer-mount"></div>
+          <div class="hero-pathway" aria-label="创作路径">
+            <span><i class="ri-chat-quote-line" aria-hidden="true"></i> 描述想法</span>
+            <b aria-hidden="true"></b>
+            <span><i class="ri-image-add-line" aria-hidden="true"></i> 可加参考图</span>
+            <b aria-hidden="true"></b>
+            <span><i class="ri-magic-line" aria-hidden="true"></i> 生成并保存</span>
+          </div>
+          <div id="heroComposerMount" class="composer-mount">
+            <form class="composer composer-fallback" data-composer-fallback>
+              <div class="composer-bar">
+                <textarea class="prompt-box" rows="2" placeholder="输入提示词（Prompt），让想象落地..."></textarea>
+                <button class="send-button" type="button" aria-disabled="true">
+                  <span data-i18n="create">生成</span>
+                  <i class="ri-magic-line"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+          <div id="homeDiscovery" class="home-discovery" aria-label="提示词发现">
+            <button type="button" data-home-prompt="product">
+              <i class="ri-shopping-bag-3-line" aria-hidden="true"></i>
+              <span>产品摄影</span>
+            </button>
+            <button type="button" data-home-prompt="poster">
+              <i class="ri-layout-4-line" aria-hidden="true"></i>
+              <span>海报设计</span>
+            </button>
+            <button type="button" data-home-prompt="portrait">
+              <i class="ri-user-smile-line" aria-hidden="true"></i>
+              <span>人物角色</span>
+            </button>
+            <button type="button" data-home-prompt="illustration">
+              <i class="ri-brush-line" aria-hidden="true"></i>
+              <span>插画风格</span>
+            </button>
+          </div>
           <p class="reviews"><i class="ri-image-circle-line"></i><span data-i18n="reviews">生成后会自动保存到你的图库</span></p>
         </section>
 
@@ -249,9 +284,9 @@
               </div>
             </div>
             <div class="editor-zoom">
-              <button type="button" data-editor-zoom="-"><i class="ri-subtract-line"></i></button>
+              <button type="button" data-editor-zoom="-" aria-label="缩小编辑画布"><i class="ri-subtract-line" aria-hidden="true"></i></button>
               <span id="editorZoomText">100%</span>
-              <button type="button" data-editor-zoom="+"><i class="ri-add-line"></i></button>
+              <button type="button" data-editor-zoom="+" aria-label="放大编辑画布"><i class="ri-add-line" aria-hidden="true"></i></button>
             </div>
             <label class="editor-keyboard" title="快捷键"><i class="ri-keyboard-line"></i></label>
             <aside class="editor-publish-panel" aria-label="发布设置">
@@ -457,8 +492,8 @@
         </form>
       </template>
 
-      <div id="modalLayer" class="modal-layer hidden"></div>
-      <div id="toastLayer" class="toast-layer"></div>
+      <div id="modalLayer" class="modal-layer hidden" aria-hidden="true"></div>
+      <div id="toastLayer" class="toast-layer" role="status" aria-live="polite" aria-atomic="true"></div>
       <nav id="bottomNav" class="bottom-nav" aria-label="移动端主导航">
         <button class="bottom-nav-item" type="button" data-mobile-nav-action="home" aria-label="首页">
           <i class="ri-home-4-line" aria-hidden="true"></i>
@@ -510,11 +545,14 @@
     <script src="/gallery-tag-view-model.js?v=20260520-gallery-tags-v1" defer></script>
     <script src="/reference-images.js?v=20260520-reference-upload-v1" defer></script>
     <script src="/theme-mobile-nav.js?v=20260523-mobile-route-modal-v2" defer></script>
+    <script src="/home-onboarding.js?v=20260523-home-onboarding-v1" defer></script>
+    <script src="/frontend-performance.js?v=20260523-performance-budget-v1" defer></script>
     <script src="/app-modules.js?v=20260523-mobile-route-modal-v2" defer></script>
+    <script src="/app-prompt-library.js?v=20260523-prompt-library-v1" defer></script>
     <script src="/frontend-build-manifest.js?v=20260523-mobile-route-modal-v2" defer></script>
     <script src="/app-session.js?v=20260523-mobile-route-modal-v2" defer></script>
     <script src="/app-generation.js?v=20260523-mobile-route-modal-v2" defer></script>
     <script src="/app-gallery.js?v=20260523-mobile-route-modal-v2" defer></script>
-    <script src="/app.js?v=20260523-mobile-route-modal-v2" defer></script>
+    <script src="/app.js?v=20260523-performance-budget-v1" defer></script>
   </body>
 </html>

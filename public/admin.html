@@ -7,10 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260523-generation-diagnostics-v1">
+    <link rel="stylesheet" href="/styles.css?v=20260523-admin-shell-polish-v1">
   </head>
   <body class="admin-body">
-    <div id="adminApp" class="admin-shell">
+    <div id="adminApp" class="admin-shell" data-admin-page="overview">
       <aside class="admin-sidebar">
         <div class="admin-sidebar-head">
           <a class="admin-brand" href="/">
@@ -40,18 +40,19 @@
         </header>
 
         <section id="adminNotice" class="admin-notice hidden"></section>
-        <section id="adminContent" class="admin-content"></section>
-        <div id="adminDrawerBackdrop" class="admin-drawer-backdrop hidden"></div>
-        <aside id="adminDrawer" class="admin-drawer hidden"></aside>
+        <section id="adminContent" class="admin-content" data-admin-section="overview"></section>
+        <div id="adminDrawerBackdrop" class="admin-drawer-backdrop hidden" aria-hidden="true"></div>
+        <aside id="adminDrawer" class="admin-drawer hidden" aria-hidden="true"></aside>
       </main>
     </div>
-    <div id="adminConfirmLayer" class="admin-confirm-layer hidden" aria-live="polite"></div>
-    <div id="adminToastLayer" class="toast-layer"></div>
+    <div id="adminConfirmLayer" class="admin-confirm-layer hidden" aria-live="polite" aria-hidden="true"></div>
+    <div id="adminToastLayer" class="toast-layer" role="status" aria-live="polite" aria-atomic="true"></div>
     <script src="/admin-generation-diagnostics.js?v=20260523-generation-diagnostics-v1" defer></script>
     <script src="/admin-overview.js?v=20260523-admin-module-split-v1" defer></script>
     <script src="/admin-users.js?v=20260523-admin-module-split-v1" defer></script>
     <script src="/admin-providers.js?v=20260523-admin-module-split-v1" defer></script>
     <script src="/admin-gallery.js?v=20260523-admin-module-split-v1" defer></script>
-    <script src="/admin.js?v=20260523-generation-diagnostics-v1" defer></script>
+    <script src="/admin-shell-polish.js?v=20260523-admin-shell-polish-v1" defer></script>
+    <script src="/admin.js?v=20260523-admin-shell-polish-v1" defer></script>
   </body>
 </html>

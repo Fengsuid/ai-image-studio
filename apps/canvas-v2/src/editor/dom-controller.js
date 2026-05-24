@@ -37,10 +37,23 @@ export function installEditorController(root, api) {
 
   const onInput = (event) => {
     if (!(event.target instanceof HTMLTextAreaElement)) return;
-    const field = event.target.dataset.canvasNodeField;
-    const nodeId = event.target.dataset.canvasNodeId;
-    if (!field || !nodeId) return;
-    api.mutateDocument((canvasDocument) => updateNodeField(canvasDocument, nodeId, field, event.target.value), { commit: true });
+    if (event.isComposing || event.target.dataset.canvasComposing === "true") return;
+    updateTextAreaField(event.target, api);
+  };
+
+  const onCompositionStart = (event) => {
+    if (!(event.target instanceof HTMLTextAreaElement)) return;
+    if (!event.target.dataset.canvasNodeField || !event.target.dataset.canvasNodeId) return;
+    event.target.dataset.canvasComposing = "true";
+    api.setTextCompositionActive?.(true);
+  };
+
+  const onCompositionEnd = (event) => {
+    if (!(event.target instanceof HTMLTextAreaElement)) return;
+    if (!event.target.dataset.canvasNodeField || !event.target.dataset.canvasNodeId) return;
+    delete event.target.dataset.canvasComposing;
+    updateTextAreaField(event.target, api);
+    api.setTextCompositionActive?.(false);
   };
 
   const onPointerDown = (event) => {
@@ -104,6 +117,12 @@ export function installEditorController(root, api) {
     if (event.ctrlKey && key === "a") {
       event.preventDefault();
       api.setState({ selectedNodeIds: state.document.nodes.map((node) => node.id), selectedEdgeIds: [] });
+    } else if (event.ctrlKey && key === "z" && !event.shiftKey) {
+      event.preventDefault();
+      api.undoDocument?.();
+    } else if ((event.ctrlKey && key === "z" && event.shiftKey) || (event.ctrlKey && key === "y")) {
+      event.preventDefault();
+      api.redoDocument?.();
     } else if (event.ctrlKey && key === "c") {
       event.preventDefault();
       api.setState({ clipboard: copySelection(state.document, state.selectedNodeIds || []) });
@@ -123,6 +142,8 @@ export function installEditorController(root, api) {
 
   root.addEventListener("click", onClick);
   root.addEventListener("input", onInput);
+  root.addEventListener("compositionstart", onCompositionStart);
+  root.addEventListener("compositionend", onCompositionEnd);
   root.addEventListener("pointerdown", onPointerDown);
   root.addEventListener("wheel", onWheel, { passive: false });
   window.addEventListener("pointermove", onPointerMove);
@@ -132,12 +153,21 @@ export function installEditorController(root, api) {
   return () => {
     root.removeEventListener("click", onClick);
     root.removeEventListener("input", onInput);
+    root.removeEventListener("compositionstart", onCompositionStart);
+    root.removeEventListener("compositionend", onCompositionEnd);
     root.removeEventListener("pointerdown", onPointerDown);
     root.removeEventListener("wheel", onWheel);
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
     window.removeEventListener("keydown", onKeyDown);
   };
+}
+
+function updateTextAreaField(textarea, api) {
+  const field = textarea.dataset.canvasNodeField;
+  const nodeId = textarea.dataset.canvasNodeId;
+  if (!field || !nodeId) return;
+  api.mutateDocument((canvasDocument) => updateNodeField(canvasDocument, nodeId, field, textarea.value), { commit: true });
 }
 
 function handleEditorAction(event, action, api) {
@@ -151,6 +181,10 @@ function handleEditorAction(event, action, api) {
     const node = createEditorNode(type, center);
     api.mutateDocument((canvasDocument) => appendNode(canvasDocument, node), { commit: true });
     api.setState({ selectedNodeIds: [node.id], selectedEdgeIds: [] });
+  } else if (name === "undo") {
+    api.undoDocument?.();
+  } else if (name === "redo") {
+    api.redoDocument?.();
   } else if (name === "zoom-in" || name === "zoom-out") {
     zoomBy(api, name === "zoom-in" ? 1.16 : 0.86);
   } else if (name === "reset-viewport") {

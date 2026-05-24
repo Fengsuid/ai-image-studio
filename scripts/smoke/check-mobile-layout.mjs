@@ -15,11 +15,13 @@ let targetArg = process.argv[2] || "";
 const outputRoot = process.argv[3] || path.join(rootDir, "docs/mobile-qa/baseline-local");
 const chromePath = process.env.CHROME_PATH || findChromeExecutable();
 const port = Number(process.env.MOBILE_SMOKE_CDP_PORT || 9322);
+const cdpTimeoutMs = Number(process.env.MOBILE_SMOKE_CDP_TIMEOUT_MS || 20000);
 const isExternalTarget = Boolean(targetArg);
 let staticServer = null;
 
 const viewports = [
   { name: "360x800", width: 360, height: 800, mobile: true },
+  { name: "375x812", width: 375, height: 812, mobile: true },
   { name: "390x844", width: 390, height: 844, mobile: true },
   { name: "430x932", width: 430, height: 932, mobile: true },
   { name: "768x1024", width: 768, height: 1024, mobile: true },
@@ -95,6 +97,7 @@ class CdpClient {
     this.socket = socket;
     this.nextId = 1;
     this.pending = new Map();
+    this.closedIntentionally = false;
     socket.addEventListener("message", (event) => {
       const message = JSON.parse(event.data);
       if (!message.id) return;
@@ -104,18 +107,53 @@ class CdpClient {
       if (message.error) pending.reject(new Error(`${message.error.message || "CDP error"} (${message.error.code || ""})`));
       else pending.resolve(message.result || {});
     });
+    socket.addEventListener("close", () => {
+      if (!this.closedIntentionally) this.rejectPending(new Error("CDP WebSocket closed"));
+    });
+    socket.addEventListener("error", () => {
+      if (!this.closedIntentionally) this.rejectPending(new Error("CDP WebSocket error"));
+    });
   }
 
   send(method, params = {}, sessionId = "") {
     const id = this.nextId++;
     const payload = sessionId ? { id, method, params, sessionId } : { id, method, params };
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.socket.send(JSON.stringify(payload));
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`CDP command timed out: ${method}`));
+      }, cdpTimeoutMs);
+      this.pending.set(id, {
+        method,
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        }
+      });
+      try {
+        this.socket.send(JSON.stringify(payload));
+      } catch (error) {
+        clearTimeout(timer);
+        this.pending.delete(id);
+        reject(error);
+      }
     });
   }
 
+  rejectPending(error) {
+    for (const [id, pending] of this.pending) {
+      this.pending.delete(id);
+      const method = pending.method ? ` during ${pending.method}` : "";
+      pending.reject(new Error(`${error.message || error}${method}`));
+    }
+  }
+
   close() {
+    this.closedIntentionally = true;
     this.socket.close();
   }
 }
@@ -140,6 +178,7 @@ const chrome = spawn(chromePath, [
   "--disable-dev-shm-usage",
   "--no-first-run",
   "--no-default-browser-check",
+  "--remote-allow-origins=*",
   `--remote-debugging-port=${port}`,
   `--user-data-dir=${userDataDir}`,
   "about:blank",
@@ -156,10 +195,11 @@ const summary = {
 };
 
 try {
-  const version = await waitForCdpVersion(port);
-  const cdp = await CdpClient.connect(version.webSocketDebuggerUrl);
-  const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
-  const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
+  await waitForCdpVersion(port);
+  const pageTarget = await waitForPageTarget(port);
+  const cdp = await CdpClient.connect(pageTarget.webSocketDebuggerUrl);
+  const targetId = pageTarget.id;
+  const sessionId = "";
   const browserWindow = await cdp.send("Browser.getWindowForTarget", { targetId }).catch(() => null);
   await cdp.send("Page.enable", {}, sessionId);
   await cdp.send("Runtime.enable", {}, sessionId);
@@ -201,10 +241,15 @@ try {
 
       const result = await evaluateLayout(cdp, sessionId, page, viewport);
       const screenshotName = `${page.name}-${viewport.name}.png`;
-      const screenshot = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, sessionId);
-      await fs.writeFile(path.join(outputDir, screenshotName), Buffer.from(screenshot.data, "base64"));
+      try {
+        const screenshot = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, sessionId);
+        await fs.writeFile(path.join(outputDir, screenshotName), Buffer.from(screenshot.data, "base64"));
+        result.screenshot = screenshotName;
+      } catch (error) {
+        result.screenshot = "";
+        result.warnings.push(`${page.name}/${viewport.name}: screenshot capture skipped (${error.message || error})`);
+      }
 
-      result.screenshot = screenshotName;
       summary.pages.push(result);
       if (result.failures.length) summary.failures.push(...result.failures);
       if (result.warnings.length) summary.warnings.push(...result.warnings);
@@ -270,6 +315,26 @@ async function waitForCdpVersion(cdpPort) {
     }
   }
   throw new Error(`Chrome CDP did not start on ${url}`);
+}
+
+async function waitForPageTarget(cdpPort) {
+  const url = `http://127.0.0.1:${cdpPort}/json/list`;
+  const started = Date.now();
+  while (Date.now() - started < 10000) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const targets = await response.json();
+        const target = Array.isArray(targets)
+          ? targets.find((item) => item.type === "page" && item.webSocketDebuggerUrl)
+          : null;
+        if (target) return target;
+      }
+    } catch {
+      await delay(150);
+    }
+  }
+  throw new Error(`Chrome page target did not appear on ${url}`);
 }
 
 function resolvePageUrl(base, pagePath) {

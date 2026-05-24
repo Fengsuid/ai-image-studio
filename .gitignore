@@ -1,6 +1,7 @@
 node_modules/
 data/
 data-*/
+tmp/
 *.log
 *.tgz
 /*.tar
@@ -21,3 +22,6 @@ docs/IMAGE_STUDIO_EXTERNAL_OPTIMIZATION_RESEARCH.md
 docs/IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md
 docs/IMAGE_STUDIO_SERVER_VALIDATION_DATA_IMPORT_20260519.md
 docs/private/
+docs/mobile-qa/baseline-local/
+docs/mobile-qa/visual-regression/runs/
+docs/mobile-qa/visual-regression/baselines/

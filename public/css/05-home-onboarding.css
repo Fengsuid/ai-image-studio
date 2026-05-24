@@ -1,0 +1,218 @@
+/* AIS-RLS-089 home hero, discovery and first-run onboarding polish. */
+
+.hero {
+  overflow: hidden;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 8% 10% 8%;
+  height: 180px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 36%),
+    radial-gradient(circle at 76% 48%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 34%);
+  filter: blur(42px);
+  opacity: 0.78;
+}
+
+.hero-pathway,
+.home-discovery {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-pathway {
+  width: min(760px, calc(100vw - 32px));
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -4px auto 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hero-pathway span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--surface-raised) 78%, transparent);
+  box-shadow: var(--shadow-xs);
+  backdrop-filter: blur(16px);
+}
+
+.hero-pathway b {
+  width: 22px;
+  height: 1px;
+  display: block;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 45%, var(--border)), transparent);
+}
+
+.home-discovery {
+  width: min(780px, calc(100vw - 28px));
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px auto 0;
+}
+
+.home-discovery button {
+  min-height: 38px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-raised) 88%, transparent), color-mix(in srgb, var(--brand-soft) 32%, transparent));
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.home-discovery button:hover,
+.home-discovery button:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--border));
+  box-shadow: var(--shadow-sm);
+  outline: none;
+}
+
+.home-onboarding-card {
+  position: absolute;
+  z-index: 5;
+  right: max(18px, calc((100vw - 1120px) / 2));
+  bottom: 34px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--brand) 26%, var(--border-subtle));
+  border-radius: 22px;
+  color: var(--text-primary);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-raised) 92%, transparent), color-mix(in srgb, var(--brand-soft) 34%, transparent));
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(22px);
+  animation: ais-scale-in var(--dur-slow) var(--ease-out) both;
+}
+
+.home-onboarding-card span {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.home-onboarding-card strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+
+.home-onboarding-card p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.home-onboarding-card button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.hero .config-chip,
+.hero .daily-metric,
+.hero h1,
+.hero .hero-desc,
+.hero .hero-pathway,
+.hero .composer-mount,
+.hero .home-discovery {
+  animation: ais-slide-up var(--dur-slow) var(--ease-out) both;
+}
+
+.hero .hero-pathway { animation-delay: 0.28s; }
+.hero .composer-mount { animation-delay: 0.36s; }
+.hero .home-discovery { animation-delay: 0.44s; }
+
+@media (max-width: 640px) {
+  .hero-pathway {
+    gap: 6px;
+    margin-top: 0;
+  }
+
+  .hero-pathway span {
+    min-height: 30px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+
+  .hero-pathway b {
+    display: none;
+  }
+
+  .home-discovery {
+    margin-top: 10px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 0 2px 4px;
+    scrollbar-width: none;
+  }
+
+  .home-discovery::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-discovery button {
+    flex: 0 0 auto;
+  }
+
+  .home-onboarding-card {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::after,
+  .hero .config-chip,
+  .hero .daily-metric,
+  .hero h1,
+  .hero .hero-desc,
+  .hero .hero-pathway,
+  .hero .composer-mount,
+  .hero .home-discovery,
+  .home-onboarding-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.home-reduced-motion .hero-video-layer video {
+  display: none;
+}

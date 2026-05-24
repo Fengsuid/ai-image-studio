@@ -10,6 +10,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.
 const read = (relativePath) => fs.readFileSync(path.join(rootDir, relativePath), "utf8");
 
 const server = read("server.js");
+const adminRoute = read("src/routes/admin.js");
 const generationStore = read("src/stores/generation-store.js");
 const adminHtml = read("public/admin.html");
 const admin = read("public/admin.js");
@@ -33,7 +34,7 @@ for (const token of [
   "admin_marked_failed",
   "recoveredGenerationJobFromRequest"
 ]) {
-  assert(server.includes(token), `server missing ${token}`);
+  assert(server.includes(token) || adminRoute.includes(token), `server/admin route missing ${token}`);
 }
 
 assert(generationStore.includes("async function listGenerationRequests(limit = 100, filters = {})"), "generation store must accept generation filters");

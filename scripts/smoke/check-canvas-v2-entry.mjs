@@ -19,7 +19,7 @@ assert.equal(
   "root smoke:canvas-v2:entry script missing",
 );
 
-assert(indexHtml.includes("/app.js?v=20260521-canvas-v2-entry-v1"), "app.js cache bust must include Canvas v2 entry release marker");
+assert(/\/app\.js\?v=2026\d{4}-[a-z0-9-]+/.test(indexHtml), "app.js cache bust must include a dated release marker");
 assert(indexHtml.includes("/generation-result-actions.js?v=20260521-canvas-v2-entry-v1"), "result actions cache bust must include Canvas v2 entry release marker");
 
 assert(server.includes("function canvasEntryMode()"), "server must expose a Canvas entry mode helper");

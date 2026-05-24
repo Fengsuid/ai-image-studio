@@ -208,6 +208,7 @@ function adminModuleContext() {
       filtered,
       paged,
       pagination,
+      emptyState,
       renderPlaceholder
     }
   };
@@ -249,9 +250,10 @@ function confirmAction({ title = "确认操作", message = "该操作会立即�
   if (!layer) return Promise.resolve(window.confirm(message));
   return new Promise((resolve) => {
     layer.classList.remove("hidden");
+    layer.setAttribute("aria-hidden", "false");
     layer.innerHTML = `
       <div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
-        <div class="admin-confirm-icon" data-danger="${danger ? "true" : "false"}"><i class="${danger ? "ri-error-warning-line" : "ri-question-line"}"></i></div>
+        <div class="admin-confirm-icon" data-danger="${danger ? "true" : "false"}"><i class="${danger ? "ri-error-warning-line" : "ri-question-line"}" aria-hidden="true"></i></div>
         <h2 id="adminConfirmTitle">${escapeHtml(title)}</h2>
         <p>${escapeHtml(message)}</p>
         <div class="admin-confirm-actions">
@@ -262,17 +264,25 @@ function confirmAction({ title = "确认操作", message = "该操作会立即�
     `;
     const cleanup = (value) => {
       layer.classList.add("hidden");
+      layer.setAttribute("aria-hidden", "true");
       layer.innerHTML = "";
+      window.removeEventListener("keydown", onConfirmKeydown);
       resolve(value);
+    };
+    const onConfirmKeydown = (event) => {
+      if (event.key === "Escape") cleanup(false);
+      if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) cleanup(true);
     };
     $("[data-confirm-cancel]", layer).addEventListener("click", () => cleanup(false));
     $("[data-confirm-ok]", layer).addEventListener("click", () => cleanup(true));
+    window.addEventListener("keydown", onConfirmKeydown);
     layer.addEventListener("click", function onBackdrop(event) {
       if (event.target === layer) {
         layer.removeEventListener("click", onBackdrop);
         cleanup(false);
       }
     });
+    $("[data-confirm-cancel]", layer)?.focus?.({ preventScroll: true });
   });
 }
 
@@ -483,8 +493,12 @@ function statCard(label, value, hint, icon, tone = "blue") {
 
 function toolbar(placeholder, statuses = []) {
   return `
-    <div class="admin-toolbar">
-      <label><i class="ri-search-line"></i><input id="adminSearchInput" value="${escapeHtml(adminState.search)}" placeholder="${placeholder}"></label>
+    <div class="admin-toolbar admin-toolbar-polished" role="search">
+      <div class="admin-toolbar-meta">
+        <strong>快速筛选</strong>
+        <span>实时过滤当前模块的数据，不会改变服务端记录。</span>
+      </div>
+      <label><i class="ri-search-line" aria-hidden="true"></i><input id="adminSearchInput" value="${escapeHtml(adminState.search)}" placeholder="${placeholder}"></label>
       <select id="adminStatusFilter">
         <option value="all"${adminState.status === "all" ? " selected" : ""}>全部状态</option>
         ${statuses.map((status) => `<option value="${status}"${adminState.status === status ? " selected" : ""}>${status}</option>`).join("")}
@@ -536,6 +550,16 @@ function pagination(total) {
   `;
 }
 
+function emptyState(title, detail, icon = "ri-inbox-archive-line", tone = "neutral") {
+  return `
+    <div class="admin-empty-state admin-empty-state-polished" data-tone="${escapeHtml(tone)}">
+      <i class="${escapeHtml(icon)}" aria-hidden="true"></i>
+      <h3>${escapeHtml(title)}</h3>
+      <p>${escapeHtml(detail)}</p>
+    </div>
+  `;
+}
+
 function bindPagination() {
   document.querySelectorAll("[data-page]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -546,10 +570,10 @@ function bindPagination() {
 }
 
 function requestTable(items) {
-  if (!items.length) return `<div class="admin-empty-state">暂无生成请求</div>`;
+  if (!items.length) return emptyState("暂无生成请求", "当前筛选条件下没有生成任务，可调整状态或关键词后重试。", "ri-image-ai-line");
   return `
     <div class="admin-table-wrap">
-      <table class="admin-table">
+      <table class="admin-table admin-table-polished">
         <thead><tr><th>状态</th><th>用户</th><th>提示词</th><th>耗时</th><th>时间</th><th></th></tr></thead>
         <tbody>
           ${items.map((item) => `
@@ -993,7 +1017,12 @@ function renderContent() {
 }
 
 function render() {
-  const [, , label] = currentNav();
+  const [pageId, , label] = currentNav();
+  const app = $("#adminApp");
+  const content = $("#adminContent");
+  if (app) app.dataset.adminPage = pageId;
+  if (content) content.dataset.adminSection = pageId;
+  document.body.dataset.adminSection = pageId;
   $("#adminPageTitle").textContent = label;
   const description = $("#adminPageDescription");
   if (description) description.textContent = pageDescriptions[adminState.active] || pageDescriptions.overview;
@@ -1002,7 +1031,7 @@ function render() {
     userLabel.textContent = adminState.user ? `${adminState.user.name || adminState.user.email} · 管理员` : "-";
   }
   renderNav();
-  $("#adminContent").innerHTML = renderContent();
+  content.innerHTML = renderContent();
   bindToolbar();
   bindPagination();
   bindActions();
@@ -1012,22 +1041,36 @@ function openDrawer(title, body) {
   const drawer = $("#adminDrawer");
   const backdrop = $("#adminDrawerBackdrop");
   backdrop?.classList.remove("hidden");
+  backdrop?.setAttribute("aria-hidden", "false");
   drawer.classList.remove("hidden");
+  drawer.setAttribute("aria-hidden", "false");
+  drawer.setAttribute("role", "dialog");
+  drawer.setAttribute("aria-modal", "true");
+  drawer.setAttribute("aria-label", title);
+  document.body.classList.add("admin-drawer-open");
   drawer.innerHTML = `
     <div class="admin-drawer-head">
       <h2>${escapeHtml(title)}</h2>
-      <button type="button" data-close-drawer><i class="ri-close-line"></i></button>
+      <button type="button" data-close-drawer aria-label="关闭详情"><i class="ri-close-line" aria-hidden="true"></i></button>
     </div>
     <div class="admin-drawer-body">${body}</div>
   `;
   $("[data-close-drawer]", drawer).addEventListener("click", closeDrawer);
   backdrop?.addEventListener("click", closeDrawer, { once: true });
+  $("[data-close-drawer]", drawer)?.focus?.({ preventScroll: true });
 }
 
 function closeDrawer() {
   $("#adminDrawerBackdrop")?.classList.add("hidden");
-  $("#adminDrawer").classList.add("hidden");
-  $("#adminDrawer").innerHTML = "";
+  $("#adminDrawerBackdrop")?.setAttribute("aria-hidden", "true");
+  const drawer = $("#adminDrawer");
+  drawer.classList.add("hidden");
+  drawer.setAttribute("aria-hidden", "true");
+  drawer.removeAttribute("role");
+  drawer.removeAttribute("aria-modal");
+  drawer.removeAttribute("aria-label");
+  drawer.innerHTML = "";
+  document.body.classList.remove("admin-drawer-open");
 }
 
 function jsonBlock(value) {

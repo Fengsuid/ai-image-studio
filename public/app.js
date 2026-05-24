@@ -54,6 +54,12 @@ const state = {
   promptItems: [],
   promptVisible: 20,
   promptLoading: true,
+  promptLibraryMeta: {
+    fallbackUsed: false,
+    error: "",
+    offline: false,
+    permissionDenied: false
+  },
   editor: {
     imageUrl: "",
     imageData: "",
@@ -1012,7 +1018,6 @@ let heroVideoWatchdog = null;
 const IMAGE_SESSION_STORAGE_KEY = "imageStudio.imageSessions.v1";
 const ACTIVE_IMAGE_SESSION_KEY = "imageStudio.activeImageSessionId";
 const GENERATION_META_STORAGE_KEY = "imageStudio.generationMeta.v1";
-
 async function api(path, options = {}) {
   const method = String(options.method || "GET").toUpperCase();
   const headers = {
@@ -1065,14 +1070,12 @@ window.ImageStudioCanvas.publishGeneration = async ({ generationId = "", convers
   item.conversation = conversationRoute.length ? conversationRoute : item.conversation || [];
   openPublishModal(item, Boolean(item.sourceImageUrl || item.sourceImageData || item.sourceFilename));
 };
-
 function promptAuditPublishMessage(error) {
   if (error?.details?.requiredMode !== "image-to-image") return error?.message || "";
   return state.lang === "zh"
     ? "提示词与画廊已有内容高度相似，不能直接以文生图公开。请从画廊选择原图或上传原图后，以图生图形式带原图公开。"
     : "This prompt is highly similar to existing gallery content. Publish it as image-to-image with an original gallery/source image instead.";
 }
-
 function reportRumMetric(name, value, detail = {}) {
   const payload = JSON.stringify({
     name,
@@ -1092,7 +1095,6 @@ function reportRumMetric(name, value, detail = {}) {
     keepalive: true
   }).catch(() => {});
 }
-
 function setupRumMonitoring() {
   if ("PerformanceObserver" in window) {
     try {
@@ -1126,7 +1128,6 @@ function setupRumMonitoring() {
     }
   }, true);
 }
-
 function readCookie(name) {
   const match = document.cookie
     .split(";")
@@ -1136,7 +1137,6 @@ function readCookie(name) {
     .find(([key]) => decodeURIComponent(key) === name);
   return match ? decodeURIComponent(match.slice(1).join("=")) : "";
 }
-
 function text(key) {
   if (Object.hasOwn(i18n[state.lang] || {}, key)) return i18n[state.lang][key];
   if (Object.hasOwn(i18n.zh, key)) return i18n.zh[key];
@@ -1144,12 +1144,10 @@ function text(key) {
 }
 
 window.ImageStudioText = text;
-
 function local(value) {
   if (value && typeof value === "object") return value[state.lang] || value.zh || value.en || "";
   return value || "";
 }
-
 function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -1158,31 +1156,25 @@ function escapeHtml(value = "") {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-
 function imageVariantUrl(url, variant = "thumb") {
   if (!url || /^(data:|blob:)/i.test(url)) return url || "";
   const joiner = url.includes("?") ? "&" : "?";
   return `${url}${joiner}variant=${encodeURIComponent(variant)}`;
 }
-
 function cacheDb() {
   return window.ImageStudioCacheDb || null;
 }
-
 function setCurrentCacheUser(user = state.user) {
   window.ImageStudioCurrentUser = user || null;
 }
-
 function galleryDetailCacheKey(id) {
   const cleanId = String(id || "").replace(/^square_/, "");
   return cleanId ? `gallery:${cleanId}:detail` : "";
 }
-
 function galleryThumbCacheKey(id) {
   const cleanId = String(id || "").replace(/^square_/, "");
   return cleanId ? `image:generation:${cleanId}:thumb` : "";
 }
-
 async function cacheGalleryDetail(id, generation) {
   const key = galleryDetailCacheKey(id);
   if (!key || !generation) return;
@@ -1192,12 +1184,10 @@ async function cacheGalleryDetail(id, generation) {
     meta: { kind: "gallery-detail", generationId: String(id || "").replace(/^square_/, "") }
   });
 }
-
 async function readCachedGalleryDetail(id) {
   const snapshot = await cacheDb()?.getJsonSnapshot?.(galleryDetailCacheKey(id));
   return snapshot?.value || null;
 }
-
 function wireGalleryImageCache(container, item = {}) {
   const generationId = item.generationId || item.id || "";
   const cacheKey = galleryThumbCacheKey(generationId);
@@ -1221,7 +1211,6 @@ function wireGalleryImageCache(container, item = {}) {
     }, { once: true });
   });
 }
-
 async function sha256Hex(blob) {
   if (!blob || !window.crypto?.subtle) return "";
   try {
@@ -1231,7 +1220,6 @@ async function sha256Hex(blob) {
     return "";
   }
 }
-
 async function cachePreUploadImageMetadata(files) {
   const items = Array.from(files || []).filter((file) => file?.type?.startsWith("image/")).slice(0, maxReferenceImages());
   if (!items.length) return;
@@ -1254,25 +1242,20 @@ async function cachePreUploadImageMetadata(files) {
     meta: { kind: "pre-upload-image-metadata" }
   });
 }
-
 function promptImageDisplayUrl(prompt = {}) {
   return window.ImageStudioGalleryModel?.promptImageDisplayUrl?.(prompt) || "";
 }
-
 function promptCardImageUrl(prompt = {}, coverUrl = promptImageDisplayUrl(prompt)) {
   if (!coverUrl) return "";
   return prompt.kind === "square" ? imageVariantUrl(coverUrl) : coverUrl;
 }
-
 function imageFallbackContainerAttrs(label = text("imageUnavailable")) {
   return `data-image-fallback="${escapeHtml(label)}"`;
 }
-
 function imageFallbackImgAttrs(fallbackSrc = "") {
   const fallbackAttr = fallbackSrc ? ` data-fallback-src="${escapeHtml(fallbackSrc)}"` : "";
   return `data-fallback-image="1"${fallbackAttr}`;
 }
-
 function markImageUnavailable(image) {
   if (!image || image.dataset.imageFailed === "1") return;
   if (image.dataset.removeOnImageError === "1") {
@@ -1304,7 +1287,6 @@ function markImageUnavailable(image) {
   if (!frame.dataset.imageFallback) frame.dataset.imageFallback = text("imageUnavailable");
   frame.classList.add("image-unavailable");
 }
-
 function formatDate(value) {
   if (!value) return "";
   return new Intl.DateTimeFormat(state.lang === "zh" ? "zh-CN" : "en-US", {
@@ -1313,16 +1295,13 @@ function formatDate(value) {
     day: "2-digit"
   }).format(new Date(value));
 }
-
 function truncate(value, length = 120) {
   const textValue = String(value || "");
   return textValue.length > length ? `${textValue.slice(0, length)}...` : textValue;
 }
-
 function promptCoverFallbackSrc(prompt = {}) {
   return window.ImageStudioPromptCoverFallback?.dataUrl?.(prompt, { truncate }) || "";
 }
-
 function normalizePublicTags(value) {
   const rawTags = Array.isArray(value)
     ? value
@@ -1341,32 +1320,26 @@ function normalizePublicTags(value) {
     })
     .slice(0, 8);
 }
-
 function publicTagsText(tags = []) {
   return normalizePublicTags(tags).join(", ");
 }
-
 function publicKindTagForItem(item = {}) {
   return item.sourceImageData || item.sourceImageUrl || item.sourceFilename || item.sourceImageId
     ? "image-to-image"
     : "text-to-image";
 }
-
 function isImageToImageItem(item = {}) {
   return publicKindTagForItem(item) === "image-to-image";
 }
-
 function isCanvasRouteItem(item = {}) {
   const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation || [];
   return route.some((step) => String(step.type || "").startsWith("canvas") || step.nodeId);
 }
-
 function publicTagsForKind(kind, tags = []) {
   const systemTags = new Set(["text-to-image", "image-to-image"]);
   const normalizedKind = kind === "image-to-image" ? "image-to-image" : "text-to-image";
   return [normalizedKind, ...normalizePublicTags(tags).filter((tag) => !systemTags.has(tag.toLowerCase()))];
 }
-
 function galleryTagViewModelForItem(item = {}, tags = item.publicTags || []) {
   const kind = publicKindTagForItem(item);
   return window.AppModules?.gallery?.createTagViewModel?.({
@@ -1387,11 +1360,9 @@ function galleryTagViewModelForItem(item = {}, tags = item.publicTags || []) {
     publicTags: normalizePublicTags(tags).filter((tag) => !["text-to-image", "image-to-image", "square"].includes(tag.toLowerCase()))
   };
 }
-
 function generationEntryFromApi(generation = {}, fallback = {}) {
   return window.ImageStudioGalleryModel?.generationEntryFromApi?.(generation, fallback, { currentUser: state.user }) || fallback;
 }
-
 function tagInfo(slug) {
   if (!slug) return { slug: "", label: "", hue: 0, status: "active" };
   const lib = state.tagsLibrary?.bySlug || {};
@@ -1415,7 +1386,6 @@ function tagInfo(slug) {
   const fallback = tagLabels[state.lang]?.[slug] || slug;
   return { slug, label: fallback, hue: 0, status: "active" };
 }
-
 function categoryInfo(slug) {
   const key = String(slug || "").toLowerCase();
   const entry = state.tagsLibrary?.categoriesBySlug?.[key];
@@ -1433,35 +1403,29 @@ function categoryInfo(slug) {
   const fallback = tagCategoryLabels.zh?.[key] || tagCategoryLabels[state.lang]?.[key] || key;
   return { slug: key, label: fallback, category: key, status: "active", sortOrder: 0 };
 }
-
 function tagCategoryLabel(slug) {
   return categoryInfo(slug).label;
 }
-
 function isCategoryFilter(value) {
   return String(value || "").startsWith("category:");
 }
-
 function displayTag(tag) {
   return tagInfo(tag).label;
 }
-
 function displayUserName(item = {}) {
   return item.userName || item.authorName || item.author || (state.lang === "zh" ? "匿名用户" : "Anonymous");
 }
-
 function isOwnedByCurrentUser(item = {}) {
   return Boolean(state.user?.id && item.userId && String(state.user.id) === String(item.userId));
 }
-
 function showToast(message, icon = "ri-information-line") {
   const toast = document.createElement("div");
   toast.className = "toast";
-  toast.innerHTML = `<i class="${icon}"></i><span>${escapeHtml(message)}</span>`;
+  toast.setAttribute("role", "status");
+  toast.innerHTML = `<i class="${icon}" aria-hidden="true"></i><span>${escapeHtml(message)}</span>`;
   elements.toastLayer.appendChild(toast);
   setTimeout(() => toast.remove(), 2800);
 }
-
 function applyI18n(root = document) {
   $$("[data-i18n]", root).forEach((node) => {
     if (node.dataset.i18n === "contact" && String(state.settings?.contactEmail ?? state.settings?.contactAdminEmail ?? "").trim()) return;
@@ -1476,17 +1440,14 @@ function applyI18n(root = document) {
   elements.langBtn.textContent = state.lang === "zh" ? "中/EN" : "EN/中";
   updateDailyMetric();
 }
-
 function formatDailyCount(value) {
   const count = Math.max(0, Number(value) || 0);
   return `${count.toLocaleString(state.lang === "zh" ? "zh-CN" : "en-US")}${count >= 1000 ? "+" : ""}`;
 }
-
 function updateDailyMetric() {
   if (!elements.todayGeneratedText) return;
   elements.todayGeneratedText.textContent = `${text("todayGeneratedPrefix")} ${formatDailyCount(state.stats.todayGenerated)} ${text("todayGeneratedSuffix")}`;
 }
-
 function updateNav() {
   const loggedIn = Boolean(state.user);
   const capabilities = state.settings?.providerCapabilities || {};
@@ -1524,7 +1485,6 @@ function updateNav() {
   updateNotificationBadge();
   syncThemeMobileNav();
 }
-
 function syncThemeMobileNav(activeOverride = "") {
   window.ImageStudioThemeNav?.sync?.({
     view: state.view,
@@ -1535,24 +1495,20 @@ function syncThemeMobileNav(activeOverride = "") {
     sessionDrawerLocked: state.sessionDrawerLocked
   });
 }
-
 function releaseSessionDrawerLock() {
   state.sessionDrawerLocked = false;
   syncThemeMobileNav();
 }
-
 function updateNotificationBadge() {
   if (!elements.notificationBadge) return;
   const count = state.unreadAnnouncements.length;
   elements.notificationBadge.classList.toggle("hidden", count <= 0);
   elements.notificationBadge.textContent = count > 99 ? "99+" : String(count);
 }
-
 function closeAccountMenu() {
   elements.accountMenu?.classList.add("hidden");
   elements.accountMenuBtn?.setAttribute("aria-expanded", "false");
 }
-
 function readStoredJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -1561,15 +1517,12 @@ function readStoredJson(key, fallback) {
     return fallback;
   }
 }
-
 function writeStoredJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
-
 function sessionId() {
   return `session_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
 }
-
 function loadImageSessionState() {
   state.imageSessions = Array.isArray(readStoredJson(IMAGE_SESSION_STORAGE_KEY, []))
     ? readStoredJson(IMAGE_SESSION_STORAGE_KEY, [])
@@ -1577,13 +1530,11 @@ function loadImageSessionState() {
   state.generationMeta = readStoredJson(GENERATION_META_STORAGE_KEY, {});
   state.activeImageSessionId = localStorage.getItem(ACTIVE_IMAGE_SESSION_KEY) || "";
 }
-
 function saveImageSessionState() {
   writeStoredJson(IMAGE_SESSION_STORAGE_KEY, state.imageSessions);
   writeStoredJson(GENERATION_META_STORAGE_KEY, state.generationMeta);
   if (state.activeImageSessionId) localStorage.setItem(ACTIVE_IMAGE_SESSION_KEY, state.activeImageSessionId);
 }
-
 function createImageSession(title = text("sessionUntitled"), generationIds = []) {
   const now = new Date().toISOString();
   return {
@@ -1594,7 +1545,6 @@ function createImageSession(title = text("sessionUntitled"), generationIds = [])
     updatedAt: now
   };
 }
-
 function ensureImageSessions() {
   const historyIds = state.history.map((item) => String(item.id));
   const knownIds = new Set(state.imageSessions.flatMap((session) => session.generationIds || []));
@@ -1625,7 +1575,6 @@ function ensureImageSessions() {
   }
   saveImageSessionState();
 }
-
 function ensureActiveImageSession(prompt = "") {
   let session = state.imageSessions.find((item) => item.id === state.activeImageSessionId);
   if (!session) {
@@ -1640,7 +1589,6 @@ function ensureActiveImageSession(prompt = "") {
   saveImageSessionState();
   return session;
 }
-
 function startNewImageSession(prompt = "") {
   const session = createImageSession(prompt ? truncate(prompt, 24) : text("sessionUntitled"));
   state.imageSessions.unshift(session);
@@ -1652,14 +1600,12 @@ function startNewImageSession(prompt = "") {
   renderImageSessions();
   return session;
 }
-
 function addGenerationToActiveSession(itemId, prompt) {
   const session = ensureActiveImageSession(prompt);
   session.generationIds = [...new Set([...(session.generationIds || []), String(itemId)])];
   session.updatedAt = new Date().toISOString();
   saveImageSessionState();
 }
-
 function deleteImageSession(sessionIdToDelete) {
   const id = String(sessionIdToDelete || "");
   if (!id) return;
@@ -1677,7 +1623,6 @@ function deleteImageSession(sessionIdToDelete) {
   saveImageSessionState();
   renderAll();
 }
-
 function renameImageSession(sessionIdToRename, title) {
   const id = String(sessionIdToRename || "");
   const nextTitle = String(title || "").trim().slice(0, 48);
@@ -1690,7 +1635,6 @@ function renameImageSession(sessionIdToRename, title) {
   saveImageSessionState();
   renderImageSessions();
 }
-
 function imageSessionRenderStamp() {
   return window.ImageStudioRenderStamp?.imageSessionStamp?.({
     lang: state.lang,
@@ -1699,7 +1643,6 @@ function imageSessionRenderStamp() {
     history: state.history
   }) || null;
 }
-
 function historyRenderStamp() {
   return window.ImageStudioRenderStamp?.historyStamp?.({
     lang: state.lang,
@@ -1707,7 +1650,6 @@ function historyRenderStamp() {
     items: getActiveSessionHistory()
   }) || null;
 }
-
 function replaceSessionGenerationId(oldId, newId, elapsedMs) {
   state.imageSessions.forEach((session) => {
     session.generationIds = (session.generationIds || []).map((id) => String(id) === String(oldId) ? String(newId) : id);
@@ -1716,14 +1658,12 @@ function replaceSessionGenerationId(oldId, newId, elapsedMs) {
   state.generationMeta[newId] = { elapsedMs };
   saveImageSessionState();
 }
-
 function getActiveSessionHistory() {
   const activeSession = state.imageSessions.find((session) => session.id === state.activeImageSessionId);
   if (!activeSession) return state.history;
   const historyById = new Map(state.history.map((item) => [String(item.id), item]));
   return (activeSession.generationIds || []).map((id) => historyById.get(String(id))).filter(Boolean);
 }
-
 function conversationRouteForItem(item) {
   if (Array.isArray(item.creativeRoute) && item.creativeRoute.length) return item.creativeRoute;
   const visible = getActiveSessionHistory();
@@ -1737,7 +1677,6 @@ function conversationRouteForItem(item) {
     createdAt: entry.time
   }));
 }
-
 function publishConversationRouteForItem(item) {
   return window.ImageStudioGalleryModel?.publishConversationRouteForItem?.({
     item,
@@ -1746,12 +1685,10 @@ function publishConversationRouteForItem(item) {
     activeImageSessionId: state.activeImageSessionId
   }) || conversationRouteForItem(item);
 }
-
 function publishConversationRouteWithCurrentSession(item) {
   const route = publishConversationRouteForItem(item);
   return Array.isArray(route) && route.length ? route : conversationRouteForItem(item);
 }
-
 function conversationRouteWithDraft(item) {
   const route = [...getActiveSessionHistory(), item]
     .filter(Boolean)
@@ -1764,14 +1701,12 @@ function conversationRouteWithDraft(item) {
     createdAt: entry.time || entry.createdAt
   }));
 }
-
 function formatElapsed(ms) {
   const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
-
 function setView(view) {
   const heroVisible = shouldShowHero();
   const showingChatWorkspace = view === "home" && !heroVisible;
@@ -1807,7 +1742,6 @@ function setView(view) {
     requestAnimationFrame(playHeroVideo);
   }
 }
-
 function routeState(extra = {}) {
   const modal = $(".works-modal", elements.modalLayer)
     ? "works"
@@ -1833,7 +1767,6 @@ function routeState(extra = {}) {
     ...extra
   };
 }
-
 function routeUrl(route = routeState()) {
   const params = new URLSearchParams();
   if (route.view && route.view !== "home" && route.view !== "canvas") params.set("view", route.view);
@@ -1854,7 +1787,6 @@ function routeUrl(route = routeState()) {
       : "";
   return `${window.location.pathname}${query ? `?${query}` : ""}${hash}`;
 }
-
 function routeFromLocation() {
   const params = new URLSearchParams(window.location.search);
   const hashGalleryMatch = window.location.hash.match(/^#\/gallery\/([^/?#]+)/);
@@ -1874,12 +1806,10 @@ function routeFromLocation() {
     canvasProjectId
   };
 }
-
 function replaceRoute(extra = {}) {
   if (!window.history?.replaceState) return;
   window.history.replaceState(routeState(extra), "", routeUrl(routeState(extra)));
 }
-
 function navigate(view, options = {}) {
   if (view === "canvas" && !state.user) {
     state.pendingAuthView = "canvas";
@@ -1913,7 +1843,6 @@ function navigate(view, options = {}) {
     window.history.pushState(route, "", routeUrl(route));
   }
 }
-
 function applyRoute(route = {}) {
   state.routeSyncing = true;
   closeModal();
@@ -1933,11 +1862,9 @@ function applyRoute(route = {}) {
   }
   state.routeSyncing = false;
 }
-
 function shouldShowHero() {
   return state.forceHero || state.history.length === 0;
 }
-
 function openHomeHero({ scroll = false } = {}) {
   state.forceHero = true;
   state.sessionDrawerLocked = false;
@@ -1948,7 +1875,6 @@ function openHomeHero({ scroll = false } = {}) {
   if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
   restartHeroVideo();
 }
-
 function renderAll() {
   applyI18n();
   updateNav();
@@ -1962,28 +1888,24 @@ function renderAll() {
   if (state.view === "editor") renderEditor();
   renderComposers();
   setView(state.view);
+  window.ImageStudioHomeOnboarding?.init?.();
 }
-
 function renderCanvasShell() {
   window.ImageStudioCanvas?.renderShell?.({
     projectId: state.canvasProjectId,
     elements
   });
 }
-
 function canvasEntryMode() {
   const mode = String(state.settings?.canvasEntryMode || "v2").trim().toLowerCase();
   return ["v2", "legacy", "hidden"].includes(mode) ? mode : "v2";
 }
-
 function isCanvasEntryHidden() {
   return canvasEntryMode() === "hidden";
 }
-
 function canvasV2ProjectUrl(projectId = "") {
   return projectId ? `/canvas-v2/projects/${encodeURIComponent(projectId)}` : "/canvas-v2";
 }
-
 function openCanvasWorkspace() {
   const mode = canvasEntryMode();
   if (mode === "hidden") {
@@ -2002,7 +1924,6 @@ function openCanvasWorkspace() {
   }
   navigate("canvas", { scrollTop: true });
 }
-
 function openCanvasProject(projectId = "") {
   const mode = canvasEntryMode();
   if (mode === "hidden") {
@@ -2015,7 +1936,6 @@ function openCanvasProject(projectId = "") {
   }
   navigate("canvas", { scrollTop: true, route: { canvasProjectId: projectId || "" } });
 }
-
 async function openCanvasTargetModal(payload = {}) {
   if (isCanvasEntryHidden()) {
     showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
@@ -2060,7 +1980,6 @@ async function openCanvasTargetModal(payload = {}) {
     });
   });
 }
-
 async function openNewCanvasWithPayload(payload = {}) {
   const mode = canvasEntryMode();
   if (mode === "hidden") {
@@ -2086,7 +2005,6 @@ async function openNewCanvasWithPayload(payload = {}) {
     showToast(error.message || String(error), "ri-error-warning-line");
   }
 }
-
 async function createCanvasV2ProjectFromPayload(payload = {}) {
   const document = canvasV2DocumentFromPayload(payload);
   const result = await api("/api/canvases", {
@@ -2101,7 +2019,6 @@ async function createCanvasV2ProjectFromPayload(payload = {}) {
   });
   return result.canvas;
 }
-
 function canvasV2DocumentFromPayload(payload = {}) {
   const suffix = Date.now().toString(36);
   const title = canvasV2Title(payload);
@@ -2207,20 +2124,17 @@ function canvasV2DocumentFromPayload(payload = {}) {
     }
   };
 }
-
 function canvasV2Title(payload = {}) {
   const base = payload.title || payload.prompt || payload.body || (state.lang === "zh" ? "画布条目" : "Canvas entry");
   const label = truncate(String(base || "").replace(/\s+/g, " "), 42);
   return state.lang === "zh" ? `Canvas v2 - ${label}` : `Canvas v2 - ${label}`;
 }
-
 function persistableCanvasImageUrl(value = "") {
   const url = String(value || "").trim();
   if (!url || url.startsWith("data:") || url.startsWith("blob:")) return "";
   if (url.startsWith("/") || /^https?:\/\//i.test(url)) return url;
   return "";
 }
-
 function canvasPayloadFromGeneration(item = {}, title = "Image") {
   return {
     kind: "image",
@@ -2232,7 +2146,6 @@ function canvasPayloadFromGeneration(item = {}, title = "Image") {
     creativeRoute: item.creativeRoute || item.conversation || []
   };
 }
-
 function canvasPayloadFromPrompt(prompt = {}) {
   return {
     kind: "prompt",
@@ -2243,7 +2156,6 @@ function canvasPayloadFromPrompt(prompt = {}) {
     tags: prompt.tags || []
   };
 }
-
 function recentFallbackItems() {
   return getPromptSource().slice(0, 12).map((prompt, index) => ({
     id: `sample_${prompt.id}`,
@@ -2256,7 +2168,6 @@ function recentFallbackItems() {
     heightClass: ["tall", "medium", "short", "medium", "tall", "short"][index % 6]
   }));
 }
-
 function recentHistoryItems() {
   return state.publicGallery
     .filter((item) => item.images?.[0])
@@ -2279,7 +2190,6 @@ function recentHistoryItems() {
       time: item.time
     }));
 }
-
 function renderRecentCreations() {
   const items = recentHistoryItems();
   const displayItems = items.length ? items : recentFallbackItems();
@@ -2307,10 +2217,9 @@ function renderRecentCreations() {
     });
   });
 }
-
 function openRecentPreview(item) {
   const visual = item.image
-    ? `<img class="preview-image" src="${escapeHtml(item.image)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">`
+    ? `<img class="preview-image" src="${escapeHtml(item.image)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 80))}">`
     : `<div class="preview-gradient" style="--art-bg:${item.colors}"><i class="${item.icon}"></i></div>`;
   if (item.isPublic && item.image) {
     openSquarePreview({
@@ -2363,17 +2272,15 @@ function openRecentPreview(item) {
     showToast(state.lang === "zh" ? "提示词已复制" : "Prompt copied", "ri-file-copy-line");
   });
 }
-
 function renderComposers() {
-  if (!elements.heroComposerMount.children.length) {
-    elements.heroComposerMount.appendChild(createComposer(false));
+  if (!$(".composer:not([data-composer-fallback])", elements.heroComposerMount)) {
+    elements.heroComposerMount.replaceChildren(createComposer(false));
   }
   if (!elements.stickyComposerMount.children.length) {
     elements.stickyComposerMount.appendChild(createComposer(true));
   }
   syncComposers();
 }
-
 function getContinuationCandidate() {
   if (!state.user) return { active: false, reason: "anon" };
   const sessionId = state.activeImageSessionId || "";
@@ -2401,7 +2308,6 @@ function getContinuationCandidate() {
     lastImageUrl: last.images[0]
   };
 }
-
 function getContinuationContext() {
   const candidate = getContinuationCandidate();
   if (state.continuationMode !== "auto") {
@@ -2409,7 +2315,6 @@ function getContinuationContext() {
   }
   return { ...candidate, canContinue: candidate.active };
 }
-
 function setContinuationMode(mode) {
   const next = mode === "auto" ? "auto" : "off";
   state.continuationMode = next;
@@ -2417,7 +2322,6 @@ function setContinuationMode(mode) {
   syncComposers();
   showToast(text(next === "auto" ? "continuationActiveToast" : "continuationDisabledToast"), "ri-magic-line");
 }
-
 function ensureContinuationToggle(form) {
   let row = $(".continuation-toggle", form);
   if (row) return row;
@@ -2433,7 +2337,7 @@ function ensureContinuationToggle(form) {
         <em>${escapeHtml(text("continuationToggleHint"))}</em>
       </span>
     </button>
-    <span class="continuation-toggle-thumb" hidden><img alt=""></span>
+    <span class="continuation-toggle-thumb" hidden><img loading="lazy" decoding="async" alt=""></span>
     <button class="continuation-toggle-close" type="button" title="${escapeHtml(text("closeContinuation"))}" aria-label="${escapeHtml(text("closeContinuation"))}">
       <i class="ri-close-line"></i>
     </button>
@@ -2462,11 +2366,9 @@ function ensureContinuationToggle(form) {
   }
   return row;
 }
-
 function referenceImageTools() {
   return window.ImageStudioReferenceImages || {};
 }
-
 function maxReferenceImages() {
   const tools = referenceImageTools();
   const configured = Number(state.settings?.maxReferenceImages || 0);
@@ -2474,7 +2376,6 @@ function maxReferenceImages() {
   const serverMax = Number(tools.serverMaxItems || 15);
   return Math.max(1, Math.min(serverMax, configured || fallback));
 }
-
 async function filesToReferenceImages(files, { limit = maxReferenceImages() } = {}) {
   const tools = referenceImageTools();
   if (tools.filesToReferences) return tools.filesToReferences(files, { limit });
@@ -2486,7 +2387,6 @@ async function filesToReferenceImages(files, { limit = maxReferenceImages() } = 
     imageData: await blobToDataUrl(file)
   })));
 }
-
 function revokeReferenceImages(references = []) {
   const tools = referenceImageTools();
   if (tools.revokeReferences) {
@@ -2497,7 +2397,6 @@ function revokeReferenceImages(references = []) {
     if (/^blob:/i.test(reference?.url || "")) URL.revokeObjectURL(reference.url);
   });
 }
-
 function referenceRequestPayload(references = [], { limit = maxReferenceImages() } = {}) {
   const tools = referenceImageTools();
   if (tools.payload) return tools.payload(references, { limit });
@@ -2509,13 +2408,11 @@ function referenceRequestPayload(references = [], { limit = maxReferenceImages()
     .filter((reference) => reference.imageData.startsWith("data:image/"))
     .slice(0, limit);
 }
-
 function clearComposerReferences({ sync = true } = {}) {
   revokeReferenceImages(state.references);
   state.references = [];
   if (sync) syncReferences();
 }
-
 async function handleComposerReferenceUpload(referenceInput, referenceRow, form, { append = true } = {}) {
   const files = [...(referenceInput?.files || [])].filter(Boolean);
   const capacity = append ? Math.max(0, maxReferenceImages() - state.references.length) : maxReferenceImages();
@@ -2544,7 +2441,6 @@ async function handleComposerReferenceUpload(referenceInput, referenceRow, form,
     if (referenceInput) referenceInput.value = "";
   }
 }
-
 function createComposer(sticky) {
   const fragment = elements.composerTemplate.content.cloneNode(true);
   const form = $(".composer", fragment);
@@ -2595,7 +2491,6 @@ function createComposer(sticky) {
   applyI18n(form);
   return fragment;
 }
-
 function getComposerOptions(form) {
   const sizeValue = $(".size-input", form).value;
   const customWidth = $(".custom-width-input", form)?.value || "2048";
@@ -2612,13 +2507,11 @@ function getComposerOptions(form) {
     isPublic: $(".public-input", form).checked
   };
 }
-
 function updateCustomSizeVisibility(form) {
   const row = $(".custom-size-row", form);
   if (!row) return;
   row.classList.toggle("hidden", $(".size-input", form).value !== "custom");
 }
-
 function composerOptionSummary() {
   const options = state.generationOptions || {};
   const size = options.sizeMode || options.size || "auto";
@@ -2630,22 +2523,18 @@ function composerOptionSummary() {
     : size;
   return `${sizeLabel} · ${format}${suffix}`;
 }
-
 function capabilityValues(key) {
   const values = state.settings?.providerCapabilities?.[key];
   return Array.isArray(values) ? values.map((value) => String(value)) : [];
 }
-
 function firstAllowedCapabilityValue(key, fallback) {
   const values = capabilityValues(key);
   return values.length ? values[0] : fallback;
 }
-
 function isCapabilityValueAllowed(key, value) {
   const values = capabilityValues(key);
   return !values.length || values.includes(String(value));
 }
-
 function getGenerateDisabledReason() {
   if (state.generating) return text("generateDisabledGenerating");
   if (!state.settings?.hasApiKey) return text("generateDisabledApiKey");
@@ -2655,7 +2544,6 @@ function getGenerateDisabledReason() {
   if (state.user && Number.isFinite(credits) && credits < cost * candidates) return text("generateDisabledCredits");
   return "";
 }
-
 function syncComposers(sourceForm) {
   const continuation = getContinuationContext();
   const continuationCandidate = getContinuationCandidate();
@@ -2772,14 +2660,13 @@ function syncComposers(sourceForm) {
     }
   });
 }
-
 function renderReferences(row) {
   if (!row) return;
   const maxItems = maxReferenceImages();
   const count = state.references.length;
   const thumbs = state.references.map((reference, index) => `
     <div class="reference-thumb">
-      <img src="${escapeHtml(reference.url)}" alt="${escapeHtml(reference.name)}">
+      <img src="${escapeHtml(reference.url)}" loading="lazy" decoding="async" alt="${escapeHtml(reference.name)}">
       <button type="button" data-remove-reference="${index}" title="${escapeHtml(text("close"))}" aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
     </div>
   `).join("");
@@ -2808,13 +2695,11 @@ function renderReferences(row) {
     handleComposerReferenceUpload(event.currentTarget, row, form, { append: true });
   });
 }
-
 function syncReferences(sourceForm) {
   $$(".reference-row").forEach((row) => {
     if (!sourceForm || row !== $(".reference-row", sourceForm)) renderReferences(row);
   });
 }
-
 async function submitGeneration(form) {
   const prompt = $(".prompt-box", form).value.trim();
   if (!prompt) return;
@@ -3001,7 +2886,6 @@ async function submitGeneration(form) {
     }
   }
 }
-
 function startFunMessages() {
   stopFunMessages();
   state.funIndex = 0;
@@ -3013,13 +2897,11 @@ function startFunMessages() {
     elements.funMessage.textContent = messages[state.funIndex];
   }, 3000);
 }
-
 function stopFunMessages() {
   if (state.funTimer) clearInterval(state.funTimer);
   state.funTimer = null;
   elements.generationStatus.classList.add("hidden");
 }
-
 function startGenerationTimer(startedAt = Date.now()) {
   stopGenerationTimer();
   state.generationStartedAt = startedAt;
@@ -3028,13 +2910,11 @@ function startGenerationTimer(startedAt = Date.now()) {
     updateGenerationTimer();
   }, 1000);
 }
-
 function stopGenerationTimer() {
   if (state.elapsedTimer) clearInterval(state.elapsedTimer);
   state.elapsedTimer = null;
   if (elements.elapsedTimer) elements.elapsedTimer.textContent = "00:00";
 }
-
 function updateGenerationTimer() {
   if (!elements.elapsedTimer || !state.generationStartedAt) return;
   const topElapsed = formatElapsed(Date.now() - state.generationStartedAt);
@@ -3049,7 +2929,6 @@ function updateGenerationTimer() {
       updateGeneratingHistoryCard(item.id);
     });
 }
-
 function generatingActionText(item = {}) {
   const elapsed = Date.now() - (Number(item.startedAt) || state.generationStartedAt || Date.now());
   const queueMeta = item.queuePosition !== undefined && item.queuePosition !== null
@@ -3057,7 +2936,6 @@ function generatingActionText(item = {}) {
     : "";
   return `<i class="ri-loader-4-line"></i>${queueMeta}${text("generatingElapsed")} ${formatElapsed(elapsed)}`;
 }
-
 function updateGeneratingHistoryCard(itemId) {
   const item = state.history.find((entry) => String(entry.id) === String(itemId) || String(entry.requestId || "") === String(itemId));
   if (!item || item.status !== "generating") return false;
@@ -3070,7 +2948,6 @@ function updateGeneratingHistoryCard(itemId) {
   if (cancel) cancel.dataset.generateCancel = item.requestId || state.currentGenerationRequestId || "";
   return true;
 }
-
 function focusGenerationWorkspace(itemId, behavior = "smooth") {
   const focusTarget = () => {
     const selectorId = String(itemId || "").replace(/["\\]/g, "\\$&");
@@ -3081,11 +2958,9 @@ function focusGenerationWorkspace(itemId, behavior = "smooth") {
   };
   requestAnimationFrame(() => setTimeout(focusTarget, 40));
 }
-
 function generationRequestStatus(request = {}) {
   return request.normalizedStatus || (request.status === "success" ? "succeeded" : request.status || "");
 }
-
 function updateQueuedHistoryItem(itemId, request = {}) {
   state.history = state.history.map((entry) => {
     if (String(entry.id) !== String(itemId) && String(entry.requestId || "") !== String(request.id || "")) return entry;
@@ -3099,7 +2974,6 @@ function updateQueuedHistoryItem(itemId, request = {}) {
     };
   });
 }
-
 async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now()) {
   let lastError = null;
   for (;;) {
@@ -3128,7 +3002,6 @@ async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now(
     updateGeneratingHistoryCard(itemId);
   }
 }
-
 async function loadActiveGenerationRequests() {
   if (!state.user) return;
   const data = await api("/api/images/requests/active");
@@ -3163,7 +3036,6 @@ async function loadActiveGenerationRequests() {
     }
   });
 }
-
 function finishRestoredGeneration(tempId, data) {
   const generation = data.generations?.[0];
   if (!generation) return;
@@ -3182,7 +3054,6 @@ function finishRestoredGeneration(tempId, data) {
   renderImageSessions();
   renderComposers();
 }
-
 async function loadHistory() {
   if (!state.user) {
     state.history = [];
@@ -3206,7 +3077,6 @@ async function loadHistory() {
     showToast(error.message, "ri-error-warning-line");
   }
 }
-
 function renderImageSessions() {
   if (!elements.imageSessionList) return;
   const stamp = imageSessionRenderStamp();
@@ -3269,7 +3139,6 @@ function renderImageSessions() {
     });
   });
 }
-
 function renderHistory() {
   const stamp = historyRenderStamp();
   if (stamp && state.renderStamp.history === stamp) return;
@@ -3297,7 +3166,7 @@ function renderHistory() {
       ? `<div class="message-meta"><span ${item.status === "generating" ? `data-elapsed-for="${escapeHtml(item.id)}"` : ""}>${item.status === "generating" ? text("generatingElapsed") : text("elapsed")} ${formatElapsed(elapsedMs)}</span></div>`
       : "";
     const image = item.status === "done" && item.images[0]
-      ? `<img class="img-reveal" src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">`
+      ? `<img class="img-reveal" src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 80))}">`
       : item.status === "generating"
         ? `<div class="paint-drip"><span></span><span></span><span></span><span></span><span></span></div>`
         : `<i class="ri-image-line"></i>`;
@@ -3445,7 +3314,6 @@ function renderHistory() {
     });
   });
 }
-
 function openPublishModal(item, publishOriginal = false) {
   if (!state.user) {
     openAuthModal("login");
@@ -3472,7 +3340,7 @@ function openPublishModal(item, publishOriginal = false) {
     <section class="modal publish-modal">
       <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
       <div class="publish-modal-head">
-        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">
+        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 80))}">
         <div>
           <h2>${item.isPublic ? text("editPublicTags") : text("publishDialogTitle")}</h2>
           <p>${text("publishDialogDesc")}</p>
@@ -3536,7 +3404,6 @@ function openPublishModal(item, publishOriginal = false) {
     if (ok) closeModal();
   });
 }
-
 async function publishGenerationToSquare(item, publishOriginal = false, publicTags = item.publicTags || []) {
   if (!state.user) {
     openAuthModal("login");
@@ -3585,13 +3452,11 @@ async function publishGenerationToSquare(item, publishOriginal = false, publicTa
     return false;
   }
 }
-
 function bindableGallerySources(item) {
   return state.publicGallery
     .filter((source) => source.images?.[0] && source.prompt && String(source.id) !== String(item.id))
     .slice(0, 48);
 }
-
 function openBindSourceModal({ item, publishOriginal = false, publicTags = [], attemptPublish }) {
   const sources = bindableGallerySources(item);
   let selectedId = sources[0]?.id || "";
@@ -3599,7 +3464,7 @@ function openBindSourceModal({ item, publishOriginal = false, publicTags = [], a
     <section class="modal publish-modal bind-source-modal">
       <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
       <div class="publish-modal-head">
-        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 80))}">
+        <img src="${escapeHtml(imageVariantUrl(item.images?.[0] || ""))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 80))}">
         <div>
           <h2>${escapeHtml(text("bindSourceTitle"))}</h2>
           <p>${escapeHtml(text("bindSourceDesc"))}</p>
@@ -3669,7 +3534,6 @@ function openBindSourceModal({ item, publishOriginal = false, publicTags = [], a
     }
   });
 }
-
 async function unpublishGeneration(item) {
   if (!state.user) {
     openAuthModal("login");
@@ -3700,12 +3564,10 @@ async function unpublishGeneration(item) {
     return false;
   }
 }
-
 function renderExamples() {
   elements.exampleGrid.innerHTML = getPromptSource().slice(0, 4).map(promptCardHtml).join("");
   bindPromptCards(elements.exampleGrid);
 }
-
 function filterableSystemTags() {
   const list = Array.isArray(state.tagsLibrary?.list) ? state.tagsLibrary.list : [];
   if (!list.length) {
@@ -3717,7 +3579,6 @@ function filterableSystemTags() {
     .filter((tag) => tag.status !== "hidden" && tag.showInFilter !== false)
     .sort(sortGalleryTags);
 }
-
 function promptCategoriesForFilters() {
   const list = Array.isArray(state.tagsLibrary?.categories) ? state.tagsLibrary.categories : [];
   const source = list.length
@@ -3728,7 +3589,6 @@ function promptCategoriesForFilters() {
     .sort((left, right) => Number(left.sortOrder || 0) - Number(right.sortOrder || 0) || String(left.slug).localeCompare(String(right.slug)))
     .map((category) => ({ ...category, ...categoryInfo(category.slug) }));
 }
-
 function sortGalleryTags(left, right) {
   const pinned = { "text-to-image": 1, "image-to-image": 2 };
   const leftPinned = pinned[left.slug] || 0;
@@ -3739,7 +3599,6 @@ function sortGalleryTags(left, right) {
     || Number(left.sortOrder || 0) - Number(right.sortOrder || 0)
     || String(left.slug).localeCompare(String(right.slug));
 }
-
 function existingPublishTagChoices(currentTags = []) {
   const blocked = new Set(["all", "square", "text-to-image", "image-to-image"]);
   const selected = new Set(normalizePublicTags(currentTags).map((tag) => tag.toLowerCase()));
@@ -3756,20 +3615,49 @@ function existingPublishTagChoices(currentTags = []) {
     })
     .slice(0, 24);
 }
-
 function tagSearchText(slug) {
   const info = tagInfo(slug);
   return [info.slug, info.label, ...(info.aliases || [])].filter(Boolean).join(" ");
 }
-
 function relatedTagsFor(tag) {
   const category = tag.category || "general";
   return filterableSystemTags()
     .filter((item) => item.slug !== tag.slug && (item.category || "general") === category)
     .slice(0, 4);
 }
-
+function promptLibraryModule() {
+  return window.AppModules?.promptLibrary || window.ImageStudioPromptLibrary || null;
+}
+function promptLibraryRenderContext() {
+  return {
+    state,
+    text,
+    escapeHtml,
+    truncate,
+    tagInfo,
+    tagCategoryLabel,
+    displayUserName,
+    promptImageDisplayUrl,
+    promptCardImageUrl,
+    promptCoverFallbackSrc,
+    imageFallbackImgAttrs,
+    imageFallbackContainerAttrs,
+    galleryTagViewModelForItem,
+    isImageToImageItem,
+    isCanvasRouteItem,
+    isCanvasEntryHidden
+  };
+}
 function emptyTagMessageHtml(tag) {
+  const module = promptLibraryModule();
+  if (module?.renderEmptyTagState) {
+    return module.renderEmptyTagState({
+      tag,
+      related: relatedTagsFor(tag),
+      isAdmin: state.user?.role === "admin",
+      ctx: promptLibraryRenderContext()
+    });
+  }
   const related = relatedTagsFor(tag);
   const title = text("emptyTagTitle").replace("{tag}", tag.label || tag.slug);
   const adminAction = state.user?.role === "admin"
@@ -3795,9 +3683,10 @@ function emptyTagMessageHtml(tag) {
     </div>
   `;
 }
-
 function renderLibrary() {
   elements.librarySearchInput.value = state.librarySearch;
+  const module = promptLibraryModule();
+  const ctx = promptLibraryRenderContext();
   const source = getLibrarySource();
   const counts = getTagCounts(source);
   const systemTags = filterableSystemTags();
@@ -3819,7 +3708,13 @@ function renderLibrary() {
     ...systemTags,
     ...dynamicTags
   ];
-  elements.tagFilters.innerHTML = filterTags.map((tag) => {
+  elements.tagFilters.innerHTML = module?.renderTagFilters?.({
+    filterTags,
+    activeTag: state.libraryTag,
+    sourceLength: source.length,
+    counts,
+    ctx
+  }) || filterTags.map((tag) => {
     const info = tag.slug === "all" ? tag : tag.isCategory ? tag : tagInfo(tag.slug);
     const count = tag.slug === "all" ? source.length : (counts[tag.slug] || info.contentCount || 0);
     const empty = tag.slug !== "all" && count === 0;
@@ -3828,12 +3723,12 @@ function renderLibrary() {
       : "";
     const title = `${info.slug}${info.aliases?.length ? ` · ${info.aliases.join(" · ")}` : ""}`;
     return `
-    <button type="button" class="${state.libraryTag === tag.slug ? "active" : ""} ${empty ? "empty" : ""}" data-tag="${escapeHtml(tag.slug)}" title="${escapeHtml(title)}">
-      ${category ? `<em>${escapeHtml(category)}</em>` : ""}
-      ${escapeHtml(info.label || tag.label || tag.slug)}
-      <span>${count}</span>
-    </button>
-  `;
+      <button type="button" class="${state.libraryTag === tag.slug ? "active" : ""} ${empty ? "empty" : ""}" data-tag="${escapeHtml(tag.slug)}" title="${escapeHtml(title)}">
+        ${category ? `<em>${escapeHtml(category)}</em>` : ""}
+        ${escapeHtml(info.label || tag.label || tag.slug)}
+        <span>${count}</span>
+      </button>
+    `;
   }).join("");
   $$("[data-tag]", elements.tagFilters).forEach((button) => {
     button.addEventListener("click", () => {
@@ -3863,7 +3758,11 @@ function renderLibrary() {
     ["used", "ri-arrow-right-circle-line", text("promptSortUsed")],
     ["liked", "ri-heart-line", text("promptSortLiked")]
   ];
-  const sortControl = `
+  const sortControl = module?.renderSortControl?.({
+    sortOptions,
+    activeSort: state.librarySort,
+    ctx
+  }) || `
     <div class="library-sort" role="tablist" aria-label="${escapeHtml(text("promptSortLabel"))}">
       ${sortOptions.map(([value, icon, label]) => `
         <button type="button" role="tab" aria-selected="${state.librarySort === value ? "true" : "false"}" class="${state.librarySort === value ? "active" : ""}" data-prompt-sort="${escapeHtml(value)}">
@@ -3872,7 +3771,13 @@ function renderLibrary() {
       `).join("")}
     </div>
   `;
-  const stats = `
+  const stats = module?.renderStats?.({
+    sourceLength: source.length,
+    sourceCount,
+    summary,
+    systemCount: filterableSystemTags().length,
+    ctx
+  }) || `
     <div class="library-stats">
       <div><strong>${source.length.toLocaleString()}+</strong><span>${text("totalPrompts")}</span></div>
       <div class="stat-divider"></div>
@@ -3888,32 +3793,42 @@ function renderLibrary() {
       ? categoryInfo(selectedCategory)
       : tagInfo(state.libraryTag)
     : null;
+  const sourceNotice = state.promptLoading ? "" : module?.renderSourceNotice?.({
+    ...state.promptLibraryMeta,
+    offline: state.promptLibraryMeta?.offline || navigator.onLine === false,
+    ctx
+  }) || "";
   const cardsHtml = visible.map(promptCardHtml).join("")
     + (visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : "");
   elements.promptGrid.innerHTML = state.promptLoading
-    ? `<div class="empty-message">${text("loadingPrompts")}</div>`
+    ? (module?.renderLibraryState?.({ type: "loading", ctx }) || `<div class="empty-message">${text("loadingPrompts")}</div>`)
     : filtered.length
-      ? `<div class="gallery-main-grid">${cardsHtml}</div>`
+      ? `${sourceNotice}<div class="gallery-main-grid">${cardsHtml}</div>`
       : selectedInfo
-        ? emptyTagMessageHtml(selectedInfo)
-        : `<div class="empty-message">${text("noResults")}</div>`;
-  const statsTarget = $(".library-stats");
+        ? `${sourceNotice}${emptyTagMessageHtml(selectedInfo)}`
+        : `${sourceNotice}${module?.renderLibraryState?.({
+          type: state.promptLibraryMeta?.permissionDenied ? "permission" : state.promptLibraryMeta?.offline ? "offline" : state.promptLibraryMeta?.error ? "error" : "empty",
+          title: text("noResults"),
+          ctx
+        }) || `<div class="empty-message">${text("noResults")}</div>`}`;
+  const statsTarget = $(".library-stats", elements.libraryView);
   if (statsTarget) statsTarget.remove();
-  const sortTarget = $(".library-sort");
+  const sortTarget = $(".library-sort", elements.libraryView);
   if (sortTarget) sortTarget.remove();
-  const leaderboardTarget = $(".library-mobile-leaderboard");
+  const leaderboardTarget = $(".library-mobile-leaderboard", elements.libraryView);
   if (leaderboardTarget) leaderboardTarget.remove();
-  const adminCreate = $(".library-admin-create");
+  const adminCreate = $(".library-admin-create", elements.libraryView);
   if (adminCreate) adminCreate.remove();
-  $(".library-hero").insertAdjacentHTML("beforeend", `
+  const libraryHero = $(".library-hero", elements.libraryView);
+  libraryHero?.insertAdjacentHTML("beforeend", `
     <button class="library-mobile-leaderboard" type="button" data-open-leaderboard-inline>
       <i class="ri-trophy-line"></i>
       <span>${escapeHtml(text("galleryLeaderboardPage"))}</span>
       <small>${state.lang === "zh" ? "查看热门作品" : "Top liked works"}</small>
     </button>
   `);
-  $(".library-hero").insertAdjacentHTML("beforeend", sortControl);
-  $(".library-hero").insertAdjacentHTML("beforeend", stats);
+  libraryHero?.insertAdjacentHTML("beforeend", sortControl);
+  libraryHero?.insertAdjacentHTML("beforeend", stats);
   $("[data-open-leaderboard-inline]", elements.libraryView)?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
   $$("[data-prompt-sort]", elements.libraryView).forEach((button) => {
     button.addEventListener("click", async () => {
@@ -3926,7 +3841,7 @@ function renderLibrary() {
     });
   });
   if (state.user?.role === "admin") {
-    $(".library-hero").insertAdjacentHTML("beforeend", `
+    libraryHero?.insertAdjacentHTML("beforeend", `
       <button class="library-admin-create" type="button" data-prompt-create>
         <i class="ri-add-circle-line"></i>${escapeHtml(text("promptCreateTitle"))}
       </button>
@@ -3960,7 +3875,6 @@ function renderLibrary() {
   });
   bindPromptCards(elements.promptGrid);
 }
-
 function renderGalleryLeaderboard() {
   return window.AppModules?.gallery?.renderLeaderboard?.({
     state,
@@ -3982,11 +3896,9 @@ function renderGalleryLeaderboard() {
     imageFallbackContainerAttrs
   }) || "";
 }
-
 function galleryLeaderboardRequestKey() {
   return `${state.galleryLeaderboardRange || "all"}:${state.galleryLeaderboardType || "all"}`;
 }
-
 function renderLeaderboardPage() {
   if (!elements.leaderboardPage) return;
   elements.leaderboardPage.innerHTML = `
@@ -4000,7 +3912,6 @@ function renderLeaderboardPage() {
   bindGalleryLeaderboardControls(elements.leaderboardPage);
   bindPromptCards(elements.leaderboardPage);
 }
-
 function bindGalleryLeaderboardControls(root = document) {
   $$("[data-rank-range]", root).forEach((button) => {
     button.addEventListener("click", async () => {
@@ -4021,7 +3932,6 @@ function bindGalleryLeaderboardControls(root = document) {
     });
   });
 }
-
 function getSourceCount(source) {
   const origins = new Set();
   source.forEach((prompt) => {
@@ -4035,8 +3945,11 @@ function getSourceCount(source) {
   });
   return Math.max(1, origins.size);
 }
-
 function promptCardHtml(prompt) {
+  const module = promptLibraryModule();
+  if (module?.renderPromptCard) {
+    return module.renderPromptCard(prompt, promptLibraryRenderContext());
+  }
   const promptText = prompt.prompt;
   const title = prompt.title;
   const coverUrl = promptImageDisplayUrl(prompt);
@@ -4109,7 +4022,6 @@ function promptCardHtml(prompt) {
     </article>
   `;
 }
-
 function bindPromptCards(root) {
   $$("[data-open-square], [data-view-square]", root).forEach((node) => {
     const open = () => {
@@ -4207,7 +4119,6 @@ function bindPromptCards(root) {
     });
   });
 }
-
 function openPromptEditorModal(promptItem = null) {
   if (!state.user || state.user.role !== "admin") {
     showToast(state.lang === "zh" ? "需要管理员身份" : "Admin only", "ri-shield-line");
@@ -4230,7 +4141,7 @@ function openPromptEditorModal(promptItem = null) {
     <section class="modal publish-modal prompt-editor-modal">
       <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
       <div class="publish-modal-head">
-        ${initial.image ? `<img src="${escapeHtml(initial.image)}" alt="${escapeHtml(initial.title || "")}" onerror="this.style.display='none'">` : `<div class="prompt-editor-thumb"><i class="ri-image-line"></i></div>`}
+        ${initial.image ? `<img src="${escapeHtml(initial.image)}" loading="lazy" decoding="async" alt="${escapeHtml(initial.title || "")}" onerror="this.style.display='none'">` : `<div class="prompt-editor-thumb"><i class="ri-image-line"></i></div>`}
         <div>
           <h2>${escapeHtml(text(isCreate ? "promptCreateTitle" : "promptEditTitle"))}</h2>
           <p>${escapeHtml(text("promptEditDesc"))}</p>
@@ -4340,7 +4251,6 @@ function openPromptEditorModal(promptItem = null) {
     }
   });
 }
-
 function openImageEditor(imageUrl = "", prompt = "") {
   closeModal();
   state.editor.prompt = prompt || state.editor.prompt;
@@ -4349,7 +4259,6 @@ function openImageEditor(imageUrl = "", prompt = "") {
   if (imageUrl) setEditorImage(imageUrl);
   setTimeout(() => elements.editorPromptInput?.focus(), 80);
 }
-
 function renderEditor() {
   if (!elements.editorView) return;
   $$("[data-editor-tool]", elements.editorView).forEach((button) => {
@@ -4369,7 +4278,6 @@ function renderEditor() {
   renderEditorReferences();
   syncEditorRecentStrip();
 }
-
 function renderEditorReferences() {
   const strip = elements.editorReferenceStrip;
   const thumbsNode = elements.editorReferenceThumbs;
@@ -4378,7 +4286,7 @@ function renderEditorReferences() {
   strip.classList.toggle("hidden", references.length === 0);
   thumbsNode.innerHTML = references.map((reference, index) => `
     <div class="editor-reference-thumb">
-      <img src="${escapeHtml(reference.url || reference.imageData)}" alt="${escapeHtml(reference.name || text("reference"))}">
+      <img src="${escapeHtml(reference.url || reference.imageData)}" loading="lazy" decoding="async" alt="${escapeHtml(reference.name || text("reference"))}">
       <button type="button" data-remove-editor-reference="${index}" title="${escapeHtml(text("close"))}" aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
     </div>
   `).join("");
@@ -4391,7 +4299,6 @@ function renderEditorReferences() {
     });
   });
 }
-
 function setEditorImage(src, imageData = "", references = []) {
   revokeReferenceImages(state.editor.references);
   state.editor.imageUrl = src;
@@ -4401,7 +4308,6 @@ function setEditorImage(src, imageData = "", references = []) {
   state.editor.history = [];
   renderEditor();
 }
-
 function resetEditorCanvas() {
   const image = elements.editorSourceImage;
   const canvas = elements.editorMaskCanvas;
@@ -4412,7 +4318,6 @@ function resetEditorCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   state.editor.history = [canvas.toDataURL("image/png")];
 }
-
 function editorPoint(event) {
   const canvas = elements.editorMaskCanvas;
   const rect = canvas.getBoundingClientRect();
@@ -4421,13 +4326,11 @@ function editorPoint(event) {
     y: (event.clientY - rect.top) * (canvas.height / rect.height)
   };
 }
-
 function pushEditorHistory() {
   const canvas = elements.editorMaskCanvas;
   state.editor.history.push(canvas.toDataURL("image/png"));
   if (state.editor.history.length > 20) state.editor.history.shift();
 }
-
 function restoreEditorHistory(dataUrl) {
   const canvas = elements.editorMaskCanvas;
   const ctx = canvas.getContext("2d");
@@ -4438,7 +4341,6 @@ function restoreEditorHistory(dataUrl) {
   };
   image.src = dataUrl;
 }
-
 function editorPointerDown(event) {
   if (!state.editor.imageUrl || state.editor.tool === "move") return;
   event.preventDefault();
@@ -4464,7 +4366,6 @@ function editorPointerDown(event) {
     ctx.moveTo(point.x, point.y);
   }
 }
-
 function editorPointerMove(event) {
   if (!state.editor.pointerDown) return;
   event.preventDefault();
@@ -4487,7 +4388,6 @@ function editorPointerMove(event) {
     ctx.stroke();
   }
 }
-
 function editorPointerUp() {
   if (!state.editor.pointerDown) return;
   const ctx = elements.editorMaskCanvas.getContext("2d");
@@ -4497,19 +4397,16 @@ function editorPointerUp() {
   state.editor.snapshot = null;
   pushEditorHistory();
 }
-
 function undoEditorMark() {
   if (state.editor.history.length <= 1) return;
   state.editor.history.pop();
   restoreEditorHistory(state.editor.history[state.editor.history.length - 1]);
 }
-
 function zoomEditor(direction) {
   const factor = direction === "+" ? 1.12 : 0.88;
   state.editor.zoom = Math.max(0.25, Math.min(3, state.editor.zoom * factor));
   renderEditor();
 }
-
 function hexToRgba(hex, alpha) {
   const raw = hex.replace("#", "");
   const bigint = Number.parseInt(raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw, 16);
@@ -4518,7 +4415,6 @@ function hexToRgba(hex, alpha) {
   const b = bigint & 255;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
-
 async function handleEditorUpload(files, { appendReferences = false } = {}) {
   try {
     void cachePreUploadImageMetadata(files);
@@ -4542,7 +4438,6 @@ async function handleEditorUpload(files, { appendReferences = false } = {}) {
     showToast(error.message || text("referenceUploadToast"), "ri-error-warning-line");
   }
 }
-
 function blobToDataUrl(blob) {
   const tools = referenceImageTools();
   if (tools.blobToDataUrl) return tools.blobToDataUrl(blob);
@@ -4553,7 +4448,6 @@ function blobToDataUrl(blob) {
     reader.readAsDataURL(blob);
   });
 }
-
 async function imageReferenceForEdit(src) {
   if (!src) return "";
   if (src.startsWith("data:")) return src;
@@ -4565,7 +4459,6 @@ async function imageReferenceForEdit(src) {
     return src;
   }
 }
-
 function loadImageElement(src) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -4574,7 +4467,6 @@ function loadImageElement(src) {
     image.src = src;
   });
 }
-
 async function editorAnnotatedImageData(originalData) {
   const maskCanvas = elements.editorMaskCanvas;
   if (!canvasHasMarks(maskCanvas)) return { imageData: originalData, maskData: "" };
@@ -4590,7 +4482,6 @@ async function editorAnnotatedImageData(originalData) {
     maskData: maskCanvas.toDataURL("image/png")
   };
 }
-
 function canvasHasMarks(canvas) {
   if (!canvas?.width || !canvas.height) return false;
   const ctx = canvas.getContext("2d");
@@ -4600,7 +4491,6 @@ function canvasHasMarks(canvas) {
   }
   return false;
 }
-
 function ensureEditorRecentStrip() {
   if (!elements.editorView) return null;
   let strip = $("#editorRecentStrip", elements.editorView);
@@ -4622,7 +4512,6 @@ function ensureEditorRecentStrip() {
   }
   return strip;
 }
-
 function getRecentEditorBaseImages() {
   if (!state.user || !state.activeImageSessionId) return [];
   const session = state.imageSessions.find((entry) => entry.id === state.activeImageSessionId);
@@ -4637,7 +4526,6 @@ function getRecentEditorBaseImages() {
     .filter((item) => item.images[0] !== currentImage)
     .slice(0, 3);
 }
-
 function syncEditorRecentStrip() {
   const strip = ensureEditorRecentStrip();
   if (!strip) return;
@@ -4667,7 +4555,6 @@ function syncEditorRecentStrip() {
     });
   });
 }
-
 function ensureEditorStatusBar() {
   if (!elements.editorView) return null;
   let bar = $("#editorStatusBar", elements.editorView);
@@ -4698,7 +4585,6 @@ function ensureEditorStatusBar() {
   canvasArea.parentElement?.insertBefore(bar, canvasArea);
   return bar;
 }
-
 function startEditorTimer(label) {
   const bar = ensureEditorStatusBar();
   if (!bar) return;
@@ -4714,7 +4600,6 @@ function startEditorTimer(label) {
   state.editElapsedTimer = setInterval(updateEditorTimer, 500);
   updateEditorTimer();
 }
-
 function updateEditorTimer() {
   const bar = $("#editorStatusBar");
   if (!bar) return;
@@ -4727,7 +4612,6 @@ function updateEditorTimer() {
     showToast(text("editorElapsedLong"), "ri-time-line");
   }
 }
-
 function stopEditorTimer() {
   if (state.editElapsedTimer) {
     clearInterval(state.editElapsedTimer);
@@ -4741,7 +4625,6 @@ function stopEditorTimer() {
     if (!state.editLastFailure) bar.classList.add("hidden");
   }
 }
-
 function showEditorFailureCard(error) {
   const bar = ensureEditorStatusBar();
   if (!bar) return;
@@ -4760,7 +4643,6 @@ function showEditorFailureCard(error) {
   if (state.editFailureHideTimer) clearTimeout(state.editFailureHideTimer);
   state.editFailureHideTimer = setTimeout(() => clearEditorFailure(), 30_000);
 }
-
 function clearEditorFailure() {
   state.editLastFailure = null;
   if (state.editFailureHideTimer) {
@@ -4772,7 +4654,6 @@ function clearEditorFailure() {
   $("[data-status-failure]", bar)?.setAttribute("hidden", "");
   if (!state.editing) bar.classList.add("hidden");
 }
-
 async function submitImageEdit(event) {
   event.preventDefault();
   if (!state.user) {
@@ -4891,7 +4772,6 @@ async function submitImageEdit(event) {
     setTimeout(maybeOpenUnreadAnnouncementModal, 260);
   }
 }
-
 function getPromptSource() {
   return state.promptItems.length ? state.promptItems : fallbackPrompts.map((prompt) => ({
     ...prompt,
@@ -4900,7 +4780,6 @@ function getPromptSource() {
     tags: [prompt.tag]
   }));
 }
-
 function publicGalleryPromptItems() {
   const seen = new Set();
   return [...state.publicGallery, ...state.galleryLeaderboard]
@@ -4942,7 +4821,6 @@ function publicGalleryPromptItems() {
       };
     });
 }
-
 function getLibrarySource() {
   const prompts = getPromptSource();
   const publicItems = publicGalleryPromptItems();
@@ -4954,12 +4832,10 @@ function getLibrarySource() {
     return true;
   });
 }
-
 function getPromptById(id) {
   const key = String(id);
   return getLibrarySource().find((item) => String(item.id) === key);
 }
-
 function squareItemFromPrompt(prompt) {
   if (prompt.kind === "square") {
     return state.publicGallery.find((item) => String(item.id) === String(prompt.generationId)) || {
@@ -4983,7 +4859,6 @@ function squareItemFromPrompt(prompt) {
   }
   return prompt;
 }
-
 function openGalleryUnavailableModal(id = "") {
   openModal(`
     <section class="modal square-empty-modal">
@@ -4997,7 +4872,6 @@ function openGalleryUnavailableModal(id = "") {
     </section>
   `);
 }
-
 async function openSquarePreviewById(id, options = {}) {
   const key = String(id || "").replace(/^square_/, "");
   const localPrompt = getPromptById(`square_${key}`) || getPromptById(key);
@@ -5021,7 +4895,6 @@ async function openSquarePreviewById(id, options = {}) {
     if (!cachedGeneration) openGalleryUnavailableModal(key);
   }
 }
-
 function openSquarePreview(prompt, options = {}) {
   const item = squareItemFromPrompt(prompt);
   const imageUrl = item.images?.[0] || item.image || "";
@@ -5047,7 +4920,7 @@ function openSquarePreview(prompt, options = {}) {
     <section class="modal square-preview-modal" data-square-id="${escapeHtml(item.id || prompt.generationId || "")}">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
       <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
-        <img class="square-preview-main" data-square-main-image src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
+        <img class="square-preview-main" data-square-main-image src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 100))}">
       </div>
       <aside class="square-preview-side">
         <div class="square-preview-head">
@@ -5084,12 +4957,12 @@ function openSquarePreview(prompt, options = {}) {
           <div class="square-source-pair">
             <button type="button" class="square-media-card" data-square-media="source" ${imageFallbackContainerAttrs()}>
               ${item.sourceImageUrl
-                ? `<img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${text("inputImage")}">`
+                ? `<img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${text("inputImage")}">`
                 : `<div class="source-private-placeholder"><i class="ri-eye-off-line"></i><span>${escapeHtml(state.lang === "zh" ? "原图未公开" : "Original not public")}</span></div>`}
               <span>${text("inputImage")}</span>
             </button>
             <button type="button" class="square-media-card active" data-square-media="result" ${imageFallbackContainerAttrs()}>
-              <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} alt="${text("outputImage")}">
+              <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${text("outputImage")}">
               <span>${text("outputImage")}</span>
             </button>
           </div>
@@ -5300,7 +5173,6 @@ function openSquarePreview(prompt, options = {}) {
     });
   }
 }
-
 function openPromptDetailModal(prompt) {
   if (!prompt) return;
   const imageUrl = promptImageDisplayUrl(prompt);
@@ -5311,12 +5183,13 @@ function openPromptDetailModal(prompt) {
   const sourceLabel = prompt.source || "-";
   const sourceUrl = prompt.sourceUrl || "";
   const categoryLabel = prompt.category ? tagCategoryLabel(prompt.category) : "-";
-  openModal(`
+  const module = promptLibraryModule();
+  openModal(module?.renderPromptDetailModal?.(prompt, promptLibraryRenderContext()) || `
     <section class="modal square-preview-modal">
       <button class="square-preview-close" type="button" aria-label="${text("close")}"><i class="ri-close-line"></i></button>
       <div class="square-preview-stage" ${imageFallbackContainerAttrs()}>
         ${imageUrl
-          ? `<img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs(fallbackSrc)} alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">`
+          ? `<img class="square-preview-main" src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs(fallbackSrc)} loading="lazy" decoding="async" alt="${escapeHtml(truncate(prompt.prompt || prompt.title || "", 100))}">`
           : window.ImageStudioPromptCoverFallback?.render?.(prompt, { escapeHtml, truncate }) || `<div class="square-preview-main prompt-no-cover-detail"><i class="ri-quill-pen-line"></i><span>${escapeHtml(prompt.title || text("promptLibrary"))}</span></div>`}
       </div>
       <aside class="square-preview-side">
@@ -5421,7 +5294,6 @@ function openPromptDetailModal(prompt) {
 
 const PUBLISH_ORIGINAL_NOTICE_KEY = "imageStudio.publishOriginalNoticeDismissedAt";
 const PUBLISH_ORIGINAL_NOTICE_DAYS = 7;
-
 function shouldShowPublishOriginalNotice() {
   try {
     const raw = localStorage.getItem(PUBLISH_ORIGINAL_NOTICE_KEY);
@@ -5433,7 +5305,6 @@ function shouldShowPublishOriginalNotice() {
     return true;
   }
 }
-
 function markPublishOriginalNoticeDismissed() {
   try {
     localStorage.setItem(PUBLISH_ORIGINAL_NOTICE_KEY, String(Date.now()));
@@ -5480,7 +5351,6 @@ function openPublishOriginalNoticeModal({ onConfirm, onCancel } = {}) {
   $("[data-publish-notice-cancel]", elements.modalLayer)?.addEventListener("click", cancelHandler);
   $("[data-publish-notice-close]", elements.modalLayer)?.addEventListener("click", cancelHandler);
 }
-
 function getTagCounts(source = getPromptSource()) {
   const counts = {};
   for (const prompt of source) {
@@ -5489,9 +5359,14 @@ function getTagCounts(source = getPromptSource()) {
   }
   return counts;
 }
-
 async function loadPromptLibrary() {
   state.promptLoading = true;
+  state.promptLibraryMeta = {
+    fallbackUsed: false,
+    error: "",
+    offline: navigator.onLine === false,
+    permissionDenied: false
+  };
   if (state.view === "library") renderLibrary();
   let items = [];
   let usedFallback = false;
@@ -5505,6 +5380,12 @@ async function loadPromptLibrary() {
   } catch (error) {
     lastError = error;
     usedFallback = true;
+    state.promptLibraryMeta = {
+      fallbackUsed: true,
+      error: error.message || "",
+      offline: navigator.onLine === false,
+      permissionDenied: [401, 403].includes(Number(error.status || 0))
+    };
   }
   if (!items.length) {
     try {
@@ -5518,6 +5399,12 @@ async function loadPromptLibrary() {
   if (!items.length) {
     state.promptItems = [];
     state.promptLoading = false;
+    state.promptLibraryMeta = {
+      fallbackUsed: true,
+      error: lastError?.message || "",
+      offline: navigator.onLine === false,
+      permissionDenied: [401, 403].includes(Number(lastError?.status || 0))
+    };
     showToast(state.lang === "zh" ? "画廊加载失败，已使用内置示例" : "Gallery failed, using fallback", "ri-error-warning-line");
     renderAll();
     return;
@@ -5527,15 +5414,27 @@ async function loadPromptLibrary() {
     colors: prompt.colors || tagColor(prompt.tags?.[0] || prompt.tag || "other")
   }));
   state.promptLoading = false;
+  state.promptLibraryMeta = {
+    fallbackUsed: usedFallback,
+    error: lastError?.message || "",
+    offline: navigator.onLine === false,
+    permissionDenied: [401, 403].includes(Number(lastError?.status || 0))
+  };
   if (usedFallback && state.user?.role === "admin") {
     showToast(state.lang === "zh" ? "画廊走 prompts.json 回退" : "Gallery fell back to prompts.json", "ri-information-line");
   }
   renderAll();
 }
-
 function setupHeroVideo() {
   const video = $(".hero-video-layer video");
   if (!video) return;
+  const performanceBudget = window.ImageStudioPerformance;
+  if (performanceBudget?.shouldDisableHeroVideo?.(video)) {
+    video.pause();
+    video.removeAttribute("autoplay");
+    video.preload = "metadata";
+    return;
+  }
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
     video.pause();
     video.removeAttribute("autoplay");
@@ -5552,7 +5451,7 @@ function setupHeroVideo() {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) playHeroVideo();
   });
-  if (!heroVideoWatchdog) {
+  if (!heroVideoWatchdog && !performanceBudget?.shouldAvoidHeroWatchdog?.()) {
     let lastTime = -1;
     let stillTicks = 0;
     heroVideoWatchdog = window.setInterval(() => {
@@ -5572,12 +5471,17 @@ function setupHeroVideo() {
       lastTime = currentTime;
     }, 1400);
   }
-  restartHeroVideo();
+  const startHeroVideo = () => restartHeroVideo();
+  if (performanceBudget?.scheduleHeroVideo) {
+    performanceBudget.scheduleHeroVideo(startHeroVideo, video);
+  } else {
+    startHeroVideo();
+  }
 }
-
 function playHeroVideo() {
   const video = $(".hero-video-layer video");
   if (!video || elements.homeView.classList.contains("hidden")) return;
+  if (window.ImageStudioPerformance?.shouldDisableHeroVideo?.(video)) return;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
   video.muted = true;
   video.loop = true;
@@ -5585,10 +5489,10 @@ function playHeroVideo() {
   if (video.readyState === 0) video.load();
   video.play().catch(() => null);
 }
-
 function restartHeroVideo() {
   const video = $(".hero-video-layer video");
   if (!video || elements.homeView.classList.contains("hidden")) return;
+  if (window.ImageStudioPerformance?.shouldDisableHeroVideo?.(video)) return;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
   video.muted = true;
   video.loop = true;
@@ -5602,7 +5506,6 @@ function restartHeroVideo() {
   }
   playHeroVideo();
 }
-
 async function loadStats() {
   try {
     const data = await api("/api/stats/today");
@@ -5612,7 +5515,6 @@ async function loadStats() {
     updateDailyMetric();
   }
 }
-
 async function loadVersion() {
   try {
     const info = await api("/api/version");
@@ -5627,7 +5529,6 @@ async function loadVersion() {
     console.warn("[ImageStudio] /api/version unavailable", error);
   }
 }
-
 async function loadTags() {
   try {
     const includeHidden = state.user?.role === "admin";
@@ -5647,7 +5548,6 @@ async function loadTags() {
     console.warn("[ImageStudio] /api/tags unavailable", error);
   }
 }
-
 async function loadPublicGallery() {
   try {
     const data = await api("/api/images/public?limit=120");
@@ -5656,7 +5556,6 @@ async function loadPublicGallery() {
     state.publicGallery = [];
   }
 }
-
 async function loadGalleryLeaderboard() {
   state.galleryLeaderboardLoading = true;
   const requestKey = galleryLeaderboardRequestKey();
@@ -5678,14 +5577,12 @@ async function loadGalleryLeaderboard() {
     state.galleryLeaderboardLoading = false;
   }
 }
-
 async function ensureGalleryLeaderboardLoaded() {
   if (state.galleryLeaderboardLoading || (state.galleryLeaderboard.length && state.galleryLeaderboardLoadedKey === galleryLeaderboardRequestKey())) return;
   renderLeaderboardPage();
   await loadGalleryLeaderboard();
   if (state.view === "leaderboard") renderLeaderboardPage();
 }
-
 async function loadAnnouncements() {
   if (!state.user) {
     state.announcements = [];
@@ -5706,7 +5603,6 @@ async function loadAnnouncements() {
   }
   updateNotificationBadge();
 }
-
 async function markAnnouncement(announcement, action = "read") {
   if (!announcement?.id) return null;
   const data = await api(`/api/announcements/${encodeURIComponent(announcement.id)}/${action}`, {
@@ -5719,19 +5615,15 @@ async function markAnnouncement(announcement, action = "read") {
   updateNotificationBadge();
   return updated;
 }
-
 function announcementTone(item = {}) {
   return item.level || item.severity || "info";
 }
-
 function announcementSummary(item = {}) {
   return String(item.body || "").replace(/\s+/g, " ").slice(0, 140);
 }
-
 function announcementIsUnread(item = {}) {
   return Boolean(item.unread || !item.userReadAt || (item.requiresAck && !item.userAckedAt));
 }
-
 function renderAnnouncementCard(item, { modal = false } = {}) {
   const unread = announcementIsUnread(item);
   return `
@@ -5751,7 +5643,6 @@ function renderAnnouncementCard(item, { modal = false } = {}) {
     </article>
   `;
 }
-
 function bindAnnouncementActions(root = elements.modalLayer) {
   $$("[data-announcement-filter]", root).forEach((button) => {
     button.addEventListener("click", () => {
@@ -5785,7 +5676,6 @@ function bindAnnouncementActions(root = elements.modalLayer) {
     });
   });
 }
-
 async function openNotificationsModal() {
   if (!state.user) {
     openAuthModal("login");
@@ -5819,7 +5709,6 @@ async function openNotificationsModal() {
   `);
   bindAnnouncementActions(elements.modalLayer);
 }
-
 function maybeOpenUnreadAnnouncementModal() {
   if (!state.user || state.generating || state.editing) return;
   const item = state.unreadAnnouncements.find((entry) => (entry.displayMode || entry.displayType) === "modal" && !state.notificationModalShown.has(entry.id));
@@ -5837,7 +5726,6 @@ function maybeOpenUnreadAnnouncementModal() {
   `);
   bindAnnouncementActions(elements.modalLayer);
 }
-
 function findPromptLikeItem(promptId) {
   const key = String(promptId || "");
   if (!key) return null;
@@ -5846,7 +5734,6 @@ function findPromptLikeItem(promptId) {
     return String(entryPromptId) === key;
   }) || null;
 }
-
 function updatePromptLikeState(prompt) {
   const updated = {
     ...prompt,
@@ -5865,7 +5752,17 @@ function updatePromptLikeState(prompt) {
     button.innerHTML = `<i class="${updated.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(updated.likeCount || 0)}`;
   });
 }
-
+function setLikeFeedback(selector, { busy = false, failed = false, message = "" } = {}) {
+  $$(selector).forEach((button) => {
+    button.toggleAttribute("aria-busy", busy);
+    button.disabled = busy;
+    button.classList.toggle("prompt-like-error", failed);
+    if (message) button.setAttribute("title", message);
+    if (failed) {
+      setTimeout(() => button.classList.remove("prompt-like-error"), 1400);
+    }
+  });
+}
 async function togglePromptLike(promptId) {
   if (!state.user) {
     openAuthModal("login");
@@ -5875,7 +5772,9 @@ async function togglePromptLike(promptId) {
   if (!item) return;
   const targetId = item.promptId || String(item.id || "").replace(/^prompt_/, "");
   const nextLiked = !item.likedByCurrentUser;
+  const selector = `[data-like-prompt="${CSS.escape(String(targetId))}"], [data-prompt-detail-like="${CSS.escape(String(targetId))}"]`;
   try {
+    setLikeFeedback(selector, { busy: true });
     const data = await api(`/api/prompts/${encodeURIComponent(targetId)}/like`, {
       method: "POST",
       body: JSON.stringify({ liked: nextLiked })
@@ -5883,10 +5782,12 @@ async function togglePromptLike(promptId) {
     if (data?.prompt) updatePromptLikeState(data.prompt);
     if (state.view === "library") renderLibrary();
   } catch (error) {
+    setLikeFeedback(selector, { failed: true, message: error.message || text("publishFailed") });
     showToast(error.message || text("publishFailed"), "ri-error-warning-line");
+  } finally {
+    setLikeFeedback(selector, { busy: false });
   }
 }
-
 function updateGalleryLikeState(generation) {
   const updated = generationEntryFromApi(generation, { status: "done" });
   const apply = (item) => String(item.id) === String(updated.id) || String(item.generationId) === String(updated.id)
@@ -5905,7 +5806,6 @@ function updateGalleryLikeState(generation) {
     button.innerHTML = `<i class="${updated.likedByCurrentUser ? "ri-heart-fill" : "ri-heart-line"}"></i>${Number(updated.likeCount || 0)}`;
   });
 }
-
 async function toggleGalleryLike(generationId) {
   if (!state.user) {
     openAuthModal("login");
@@ -5914,7 +5814,9 @@ async function toggleGalleryLike(generationId) {
   const item = [...state.publicGallery, ...state.galleryLeaderboard, ...state.history]
     .find((entry) => String(entry.id) === String(generationId) || String(entry.generationId) === String(generationId));
   const nextLiked = !item?.likedByCurrentUser;
+  const selector = `[data-like-gallery="${CSS.escape(String(generationId))}"], [data-square-like="${CSS.escape(String(generationId))}"]`;
   try {
+    setLikeFeedback(selector, { busy: true });
     const data = await api(`/api/gallery/${encodeURIComponent(generationId)}/like`, {
       method: nextLiked ? "POST" : "DELETE",
       body: "{}"
@@ -5922,10 +5824,12 @@ async function toggleGalleryLike(generationId) {
     if (data?.generation) updateGalleryLikeState(data.generation);
     if (state.view === "library") renderLibrary();
   } catch (error) {
+    setLikeFeedback(selector, { failed: true, message: error.message || text("publishFailed") });
     showToast(error.message || text("publishFailed"), "ri-error-warning-line");
+  } finally {
+    setLikeFeedback(selector, { busy: false });
   }
 }
-
 function tagColor(tag) {
   const colors = {
     ui: "linear-gradient(135deg, #38bdf8, #6366f1)",
@@ -5946,7 +5850,6 @@ function tagColor(tag) {
   };
   return colors[tag] || "linear-gradient(135deg,#64748b,#cbd5e1)";
 }
-
 async function copyText(value) {
   try {
     await navigator.clipboard.writeText(value);
@@ -5959,32 +5862,46 @@ async function copyText(value) {
     textarea.remove();
   }
 }
-
 function openModal(html) {
   elements.modalLayer.innerHTML = html;
   elements.modalLayer.classList.toggle("square-preview-layer", Boolean($(".square-preview-modal", elements.modalLayer)));
   elements.modalLayer.classList.remove("hidden");
-  $(".close-modal", elements.modalLayer)?.addEventListener("click", closeModal);
+  elements.modalLayer.setAttribute("aria-hidden", "false");
+  const dialog = $("[role='dialog'], [role='alertdialog']", elements.modalLayer) || elements.modalLayer.firstElementChild;
+  if (dialog) {
+    if (!dialog.hasAttribute("role")) dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    if (!dialog.hasAttribute("tabindex")) dialog.setAttribute("tabindex", "-1");
+  }
+  $$(".close-modal", elements.modalLayer).forEach((button) => {
+    if (!button.getAttribute("aria-label")) button.setAttribute("aria-label", text("close"));
+    button.addEventListener("click", closeModal);
+  });
   elements.modalLayer.addEventListener("click", onModalBackdrop);
+  document.addEventListener("keydown", onModalKeydown);
   applyI18n(elements.modalLayer);
+  const focusTarget = $("button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])", elements.modalLayer) || dialog;
+  focusTarget?.focus?.({ preventScroll: true });
 }
-
 function onModalBackdrop(event) {
   if (event.target === elements.modalLayer) closeModal();
 }
-
+function onModalKeydown(event) {
+  if (event.key === "Escape" && !elements.modalLayer.classList.contains("hidden")) closeModal();
+}
 function closeModal() {
   elements.modalLayer.classList.add("hidden");
   elements.modalLayer.classList.remove("square-preview-layer");
+  elements.modalLayer.setAttribute("aria-hidden", "true");
   elements.modalLayer.innerHTML = "";
   elements.modalLayer.removeEventListener("click", onModalBackdrop);
+  document.removeEventListener("keydown", onModalKeydown);
   if (!state.routeSyncing && window.history?.pushState) {
     const route = routeState({ modal: "", workDetailId: "", galleryId: "" });
     window.history.replaceState(route, "", routeUrl(route));
   }
   syncThemeMobileNav();
 }
-
 function openMyWorksModal(options = {}) {
   if (!state.user) {
     openAuthModal("login");
@@ -6052,7 +5969,6 @@ function openMyWorksModal(options = {}) {
     window.history?.pushState?.(route, "", routeUrl(route));
   }
 }
-
 async function loadMyWorks(forceReload = false) {
   const grid = $("#worksGrid", elements.modalLayer);
   if (!grid) return;
@@ -6200,7 +6116,6 @@ async function loadMyWorks(forceReload = false) {
     button.addEventListener("click", () => requestWorkWithdrawal(button.dataset.workWithdraw));
   });
 }
-
 function publicRewardLabel(item) {
   if (item.withdrawalStatus === "requested") return state.lang === "zh" ? "撤回审核中" : "withdrawal pending";
   if (item.publicRewardStatus === "pending") return state.lang === "zh"
@@ -6210,7 +6125,6 @@ function publicRewardLabel(item) {
   if (item.publicRewardStatus === "cancelled") return state.lang === "zh" ? "奖励已取消" : "reward cancelled";
   return "";
 }
-
 function firstPublicRewardToast(item, fallbackKey = "publishDone") {
   if (item?.publicRewardStatus !== "pending") return text(fallbackKey);
   const amount = Number(item.publicRewardAmount || 0);
@@ -6218,11 +6132,9 @@ function firstPublicRewardToast(item, fallbackKey = "publishDone") {
     ? `${text("firstPublicRewardLocked")} +${amount} 积分`
     : `${text("firstPublicRewardLocked")} (+${amount})`;
 }
-
 function publicWithdrawalWindowHours() {
   return Math.max(1, Number(state.settings?.publicWithdrawalWindowHours || 12));
 }
-
 function withdrawalPromptForItem(item) {
   const hours = publicWithdrawalWindowHours();
   const withinWindow = !item.publishedAt || Date.now() - new Date(item.publishedAt).getTime() <= hours * 60 * 60 * 1000;
@@ -6234,7 +6146,6 @@ function withdrawalPromptForItem(item) {
       : (state.lang === "zh" ? `已超过 ${hourText}，将提交撤回申请。` : `More than ${hourText} passed. This will submit a withdrawal request.`)
   };
 }
-
 async function requestWorkWithdrawal(id) {
   const item = state.history.find((entry) => String(entry.id) === String(id));
   if (!item) return;
@@ -6253,13 +6164,11 @@ async function requestWorkWithdrawal(id) {
     showToast(error.message, "ri-error-warning-line");
   }
 }
-
 function renderWorksSelectionState() {
   const label = $("[data-works-selection]", elements.modalLayer);
   if (!label) return;
   label.textContent = `${state.worksSelected.size} ${text("worksSelected")}`;
 }
-
 async function bulkUpdateWorks(action) {
   const ids = Array.from(state.worksSelected);
   if (!ids.length) return;
@@ -6293,11 +6202,9 @@ async function bulkUpdateWorks(action) {
     showToast(error.message, "ri-error-warning-line");
   }
 }
-
 function workById(id) {
   return state.history.find((entry) => String(entry.id) === String(id));
 }
-
 function downloadWorks(ids) {
   const items = ids.map(workById).filter((item) => item?.images?.[0]);
   items.forEach((item, index) => {
@@ -6313,7 +6220,6 @@ function downloadWorks(ids) {
   });
   showToast(`${text("worksDownloadStarted")}: ${items.length}`, "ri-download-2-line");
 }
-
 function openWorkDetail(id, options = {}) {
   const item = workById(id);
   if (!item?.images?.[0]) return;
@@ -6335,7 +6241,7 @@ function openWorkDetail(id, options = {}) {
     <aside class="works-detail-drawer" role="dialog" aria-modal="true" aria-label="${escapeHtml(text("worksDetailTitle"))}" data-work-id="${escapeHtml(item.id)}">
       <button class="works-detail-close" type="button" data-work-detail-close><i class="ri-close-line"></i></button>
       <div class="works-detail-stage" ${imageFallbackContainerAttrs()}>
-        <img src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} alt="${escapeHtml(truncate(item.prompt, 100))}">
+        <img src="${escapeHtml(item.images[0])}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 100))}">
       </div>
       <div class="works-detail-body">
         <div class="works-detail-title">
@@ -6357,7 +6263,7 @@ function openWorkDetail(id, options = {}) {
           <dt>${escapeHtml(state.lang === "zh" ? "创建时间" : "Created")}</dt><dd>${escapeHtml(formatDate(item.time) || "-")}</dd>
           ${optionRows.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value || "-"))}</dd>`).join("")}
         </dl>
-        ${item.sourceImageUrl ? `<section class="works-detail-source" ${imageFallbackContainerAttrs()}><h4>${escapeHtml(text("sourceImage"))}</h4><img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} alt="${escapeHtml(text("sourceImage"))}"></section>` : ""}
+        ${item.sourceImageUrl ? `<section class="works-detail-source" ${imageFallbackContainerAttrs()}><h4>${escapeHtml(text("sourceImage"))}</h4><img src="${escapeHtml(item.sourceImageUrl)}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(text("sourceImage"))}"></section>` : ""}
         ${route?.length ? `
           <section class="works-detail-route">
             <h4>${escapeHtml(text("routeTitle"))}</h4>
@@ -6397,7 +6303,6 @@ function openWorkDetail(id, options = {}) {
     window.history?.pushState?.(route, "", routeUrl(route));
   }
 }
-
 function closeWorkDetail() {
   $(".works-detail-drawer", elements.modalLayer)?.remove();
   $(".works-detail-backdrop", elements.modalLayer)?.remove();
@@ -6406,7 +6311,6 @@ function closeWorkDetail() {
     window.history.replaceState(route, "", routeUrl(route));
   }
 }
-
 function openComplianceNotice() {
   const storageKey = "imageStudioComplianceNoticeV1";
   if (localStorage.getItem(storageKey) === "seen") return;
@@ -6448,7 +6352,6 @@ function openComplianceNotice() {
     localStorage.setItem(storageKey, "seen");
   });
 }
-
 function openAuthModal(mode = state.authMode) {
   state.authMode = mode;
   const isRegister = mode === "register";
@@ -6483,7 +6386,6 @@ function openAuthModal(mode = state.authMode) {
   $("[data-close-auth]", elements.modalLayer).addEventListener("click", closeModal);
   $("#authForm").addEventListener("submit", submitAuth);
 }
-
 async function submitAuth(event) {
   event.preventDefault();
   const submit = event.currentTarget.querySelector("button[type='submit']");
@@ -6528,7 +6430,6 @@ async function submitAuth(event) {
     submit.disabled = false;
   }
 }
-
 async function logout() {
   const cacheUserId = state.user?.id || state.user?.email || "";
   await api("/api/auth/logout", { method: "POST" }).catch(() => null);
@@ -6547,7 +6448,6 @@ async function logout() {
   window.scrollTo({ top: 0, behavior: "auto" });
   restartHeroVideo();
 }
-
 function openCreditsModal() {
   if (!state.user) {
     openAuthModal("login");
@@ -6579,7 +6479,6 @@ function openCreditsModal() {
   $("[data-checkin]", elements.modalLayer).addEventListener("click", submitCheckin);
   $("[data-close-auth]", elements.modalLayer).addEventListener("click", closeModal);
 }
-
 async function submitCheckin(event) {
   const button = event.currentTarget;
   button.disabled = true;
@@ -6598,7 +6497,6 @@ async function submitCheckin(event) {
     button.disabled = false;
   }
 }
-
 function openContactModal() {
   const adminEmail = String(state.settings?.contactEmail ?? state.settings?.contactAdminEmail ?? "").trim();
   if (!adminEmail) return;
@@ -6625,7 +6523,6 @@ function openContactModal() {
   });
   $("[data-close-auth]", elements.modalLayer).addEventListener("click", closeModal);
 }
-
 async function openTagsAdminModal() {
   if (state.user?.role !== "admin") return;
   await loadTags();
@@ -6770,7 +6667,6 @@ async function openTagsAdminModal() {
     }
   });
 }
-
 async function openAdminModal() {
   if (state.user?.role !== "admin") return;
   openModal(`
@@ -6827,7 +6723,6 @@ async function openAdminModal() {
   await loadUsers();
   $("#openTagsAdminBtn", elements.modalLayer)?.addEventListener("click", openTagsAdminModal);
 }
-
 async function loadAdminSettings() {
   const settings = await api("/api/admin/settings");
   state.settings = settings;
@@ -6846,7 +6741,6 @@ async function loadAdminSettings() {
   $("#clearApiKeyBtn").addEventListener("click", clearApiKey);
   await renderAdminVersionPanel();
 }
-
 async function renderAdminVersionPanel() {
   const panel = $("#adminVersionPanel");
   if (!panel) return;
@@ -6876,7 +6770,6 @@ async function renderAdminVersionPanel() {
     <div>${escapeHtml(text("timeoutOpenAI"))}: ${openaiTimeoutSeconds}${escapeHtml(text("seconds"))} · ${escapeHtml(text("timeoutDownload"))}: ${downloadTimeoutSeconds}${escapeHtml(text("seconds"))}</div>
   `;
 }
-
 async function saveSettings(event) {
   event.preventDefault();
   const settings = await api("/api/admin/settings", {
@@ -6902,7 +6795,6 @@ async function saveSettings(event) {
   updateNav();
   syncComposers();
 }
-
 async function clearApiKey() {
   const settings = await api("/api/admin/settings", {
     method: "PATCH",
@@ -6914,7 +6806,6 @@ async function clearApiKey() {
   updateNav();
   syncComposers();
 }
-
 async function loadUsers() {
   const data = await api("/api/admin/users");
   const body = $("#usersBody");
@@ -6950,7 +6841,6 @@ async function loadUsers() {
     button.addEventListener("click", () => saveUser(button.closest("tr")));
   });
 }
-
 async function openUserConversationsModal(userId) {
   if (!userId || state.user?.role !== "admin") return;
   const data = await api(`/api/admin/users/${encodeURIComponent(userId)}/generations?includeArchived=1&limit=200`);
@@ -6988,7 +6878,6 @@ async function openUserConversationsModal(userId) {
     </section>
   `);
 }
-
 async function saveUser(row) {
   const id = row.dataset.userId;
   const user = await api(`/api/admin/users/${id}`, {
@@ -7007,11 +6896,18 @@ async function saveUser(row) {
   showToast(state.lang === "zh" ? "用户已保存" : "User saved", "ri-save-line");
   updateNav();
 }
-
 async function bootstrap() {
   setupRumMonitoring();
   renderComposers();
   loadImageSessionState();
+  const initialRoute = routeFromLocation();
+  state.view = initialRoute.view || "home";
+  state.forceHero = initialRoute.view === "home" ? initialRoute.forceHero !== false : true;
+  state.libraryTag = initialRoute.libraryTag || "all";
+  state.librarySearch = initialRoute.librarySearch || "";
+  state.librarySort = initialRoute.librarySort || "hot";
+  renderAll();
+  replaceRoute(initialRoute);
   try {
     const data = await api("/api/auth/me");
     state.user = data.user;
@@ -7031,14 +6927,7 @@ async function bootstrap() {
   } catch (error) {
     showToast(error.message, "ri-error-warning-line");
   }
-  const initialRoute = routeFromLocation();
-  state.view = initialRoute.view || "home";
-  state.forceHero = initialRoute.view === "home" ? initialRoute.forceHero !== false : true;
-  state.libraryTag = initialRoute.libraryTag || "all";
-  state.librarySearch = initialRoute.librarySearch || "";
-  state.librarySort = initialRoute.librarySort || "hot";
   renderAll();
-  replaceRoute(initialRoute);
   if (initialRoute.modal === "works") {
     openMyWorksModal({ replaceRoute: false });
     if (initialRoute.workDetailId) {
@@ -7073,11 +6962,19 @@ window.ImageStudioAppActions = {
     syncComposers();
     setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
   },
+  setDraftPrompt(prompt = "", { focus = false } = {}) {
+    state.draftPrompt = String(prompt || "");
+    state.forceHero = true;
+    if (state.view !== "home") setView("home");
+    syncComposers();
+    if (focus) {
+      setTimeout(() => $(".prompt-box", elements.heroComposerMount)?.focus(), 80);
+    }
+  },
   isLoggedIn() {
     return Boolean(state.user);
   }
 };
-
 function bindGlobalEvents() {
   elements.brandBtn.addEventListener("click", () => {
     openHomeHero({ scroll: true });
