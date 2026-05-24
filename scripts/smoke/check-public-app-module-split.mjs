@@ -24,7 +24,9 @@ const moduleScripts = [
   "app-modules.js",
   "app-session.js",
   "app-generation.js",
-  "app-gallery.js"
+  "app-gallery.js",
+  "app-auth.js",
+  "app-settings.js"
 ];
 
 const appPosition = scriptPosition(indexHtml, "app.js");
@@ -40,7 +42,9 @@ const moduleSourceChecks = {
   "public/app-modules.js": ["global.AppModules", "register"],
   "public/app-session.js": ['register("session"', "renderImageSessions"],
   "public/app-generation.js": ['register("generation"', "renderResultActions"],
-  "public/app-gallery.js": ['register("gallery"', "renderLeaderboard"]
+  "public/app-gallery.js": ['register("gallery"', "renderLeaderboard"],
+  "public/app-auth.js": ['register("auth"'],
+  "public/app-settings.js": ['register("settings"']
 };
 
 for (const [relativePath, snippets] of Object.entries(moduleSourceChecks)) {
@@ -55,6 +59,8 @@ assert(appJs.includes("window.AppModules?.generation?.renderResultActions"), "ap
 assert(appJs.includes("window.AppModules?.gallery?.renderLeaderboard"), "app.js should delegate leaderboard rendering through AppModules.gallery");
 assert(appJs.includes("window.AppModules?.gallery?.createTagViewModel"), "app.js should delegate tag view models through AppModules.gallery");
 assert(appJs.includes("window.AppModules?.gallery?.createDetailMedia"), "app.js should delegate detail media through AppModules.gallery");
+assert(appJs.includes('window.AppModules?.register?.("auth"'), "app.js should register auth module bridge");
+assert(appJs.includes('window.AppModules?.register?.("settings"'), "app.js should register settings module bridge");
 
 assert(
   packageJson.scripts?.["smoke:public-app-module-split"] === "node scripts/smoke/check-public-app-module-split.mjs",

@@ -16,7 +16,18 @@ function createImagesRoute({
   isPubliclyVisibleGeneration,
   generatedDir,
   sourceDir,
-  httpError
+  httpError,
+  sendJson,
+  readJsonBody,
+  sanitizePositiveInt,
+  sourceImageUrlForGeneration,
+  sourceImageAuditFields,
+  ensureActiveAuthenticated,
+  enforcePromptPublishAudit,
+  publicKindTagForGeneration,
+  normalizePublishPublicTags,
+  canWithdrawDirectly,
+  claimFirstPublicRewardForGeneration
 }) {
   async function sendImageFile(req, res, url, { generation, filename, directory, contentSource }) {
     const absolutePath = path.join(directory, filename);
@@ -84,6 +95,86 @@ function createImagesRoute({
         directory: generatedDir,
         contentSource: "ai-generated"
       });
+      return true;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/images/history") {
+      const current = await getCurrentUser(req);
+      ensureAuthenticated(current);
+      const includeArchived = url.searchParams.get("includeArchived") === "1";
+      const limit = sanitizePositiveInt(url.searchParams.get("limit"), 120, 200);
+      const generations = (await store.listGenerationsForUser(current.user, limit, { includeArchived })).map((generation) => ({
+        ...generation,
+        imageUrl: `/api/images/${generation.id}/file`,
+        sourceImageUrl: sourceImageUrlForGeneration(generation, { includePrivateSource: true }),
+        ...sourceImageAuditFields(generation)
+      }));
+      sendJson(res, 200, { generations });
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/images/bulk") {
+      const current = await getCurrentUser(req);
+      ensureActiveAuthenticated(current);
+      const body = await readJsonBody(req);
+      const ids = Array.isArray(body.generationIds)
+        ? body.generationIds.map((id) => String(id || "").trim()).filter(Boolean).slice(0, 200)
+        : [];
+      if (!ids.length) throw httpError("No images selected", 400);
+      const action = String(body.action || "").trim();
+      const results = [];
+      const publishSettings = await store.getSettings();
+      for (const id of ids) {
+        try {
+          const generation = await store.getGenerationById(id);
+          if (!generation || !canTouchGeneration(current.user, generation)) {
+            results.push({ id, ok: false, error: "not_found" });
+            continue;
+          }
+          const patch = {};
+          if (action === "publish") {
+            await enforcePromptPublishAudit({ current, req, generation, body, patch });
+            const kind = publicKindTagForGeneration(generation);
+            patch.isPublic = true;
+            patch.archived = false;
+            patch.publicTags = await normalizePublishPublicTags(body.publicTags, {
+              kind,
+              incrementUsage: true
+            });
+          } else if (action === "unpublish") {
+            if (generation.isPublic && current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+              throw new Error("public_unpublish_disabled");
+            }
+            if (generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
+              throw new Error("withdrawal_request_required");
+            }
+            patch.isPublic = false;
+            patch.publishOriginal = false;
+          } else if (action === "archive") {
+            if (generation.isPublic && current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+              throw new Error("public_unpublish_disabled");
+            }
+            if (generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
+              throw new Error("withdrawal_request_required");
+            }
+            patch.archived = true;
+            patch.isPublic = false;
+            patch.publishOriginal = false;
+          } else if (action === "unarchive") {
+            patch.archived = false;
+          } else {
+            throw new Error("invalid_action");
+          }
+          let updated = await store.updateGenerationPublic(generation.id, patch);
+          if (action === "publish" && !generation.isPublic) {
+            updated = await claimFirstPublicRewardForGeneration(updated);
+          }
+          results.push({ id, ok: true, generation: updated });
+        } catch (error) {
+          results.push({ id, ok: false, error: error.message || String(error) });
+        }
+      }
+      sendJson(res, 200, { results });
       return true;
     }
 

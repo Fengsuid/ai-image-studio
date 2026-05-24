@@ -232,6 +232,44 @@ function createPromptStore({ getPool, toIso }) {
     return distance;
   }
 
+  function promptDisplayDedupeKey(prompt = {}) {
+    const normalizedHash = String(prompt.normalizedHash || prompt.normalized_hash || "").trim().toLowerCase();
+    if (normalizedHash) return `hash:${normalizedHash}`;
+    const promptText = normalizePromptForQuality(prompt.prompt || "");
+    if (promptText) {
+      return `prompt:${crypto.createHash("sha256").update(promptText).digest("hex")}`;
+    }
+    const sourceRepo = String(prompt.sourceRepo || prompt.source_repo || "").trim().toLowerCase();
+    const remoteId = String(prompt.remoteId || prompt.remote_id || "").trim().toLowerCase();
+    if (sourceRepo && remoteId) return `remote:${sourceRepo}:${remoteId}`;
+    const image = String(prompt.preview || prompt.image || prompt.coverUrl || "").trim().toLowerCase();
+    if (image && sourceRepo) return `image:${sourceRepo}:${image}`;
+    return `id:${prompt.id || ""}`;
+  }
+
+  function promptHasDisplayImage(prompt = {}) {
+    return Boolean(String(prompt.preview || prompt.image || prompt.coverUrl || prompt.imageUrl || "").trim());
+  }
+
+  function uniquePromptsForDisplay(prompts = [], limit = 500) {
+    const seen = new Map();
+    const unique = [];
+    for (const prompt of prompts) {
+      const key = promptDisplayDedupeKey(prompt);
+      if (seen.has(key)) {
+        const existingIndex = seen.get(key);
+        if (promptHasDisplayImage(prompt) && !promptHasDisplayImage(unique[existingIndex])) {
+          unique[existingIndex] = prompt;
+        }
+        continue;
+      }
+      if (unique.length >= limit) continue;
+      seen.set(key, unique.length);
+      unique.push(prompt);
+    }
+    return unique;
+  }
+
   function promptAuditDecisionFromMatch(match) {
     const score = Number(match?.score || 0);
     if (!match) {
@@ -454,9 +492,13 @@ function createPromptStore({ getPool, toIso }) {
     return getPromptAuditRecordById(id);
   }
 
-  async function listPrompts({ includeHidden = false, limit = 500, sort = "default", currentUserId = "" } = {}) {
+  async function listPrompts({ includeHidden = false, limit = 500, sort = "default", currentUserId = "", requireImage = false } = {}) {
     const safeLimit = Math.max(1, Math.min(2000, Number(limit) || 500));
-    const where = includeHidden ? "" : "WHERE p.status = 'active'";
+    const selectLimit = Math.min(8000, Math.max(safeLimit, safeLimit * 4));
+    const where = [];
+    if (!includeHidden) where.push("p.status = 'active'");
+    if (requireImage) where.push("(p.preview <> '' OR p.image <> '')");
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const heatExpr = "(p.like_count * 3 + p.use_count + GREATEST(0, 30 - TIMESTAMPDIFF(DAY, p.created_at, NOW())) / 10)";
     const order = sort === "hot"
       ? "ORDER BY heat_score DESC, p.like_count DESC, p.use_count DESC, p.created_at DESC, p.id DESC"
@@ -472,12 +514,12 @@ function createPromptStore({ getPool, toIso }) {
               ${currentUserId ? "CASE WHEN pl.user_id IS NULL THEN 0 ELSE 1 END" : "0"} AS liked_by_current_user
          FROM prompts p
          ${currentUserId ? "LEFT JOIN prompt_likes pl ON pl.prompt_id = p.id AND pl.user_id = ?" : ""}
-         ${where}
+         ${whereSql}
          ${order}
-         LIMIT ${safeLimit}`,
+         LIMIT ${selectLimit}`,
       currentUserId ? [currentUserId] : []
     );
-    return rows.map(mapPrompt);
+    return uniquePromptsForDisplay(rows.map(mapPrompt), safeLimit);
   }
 
   async function getPromptById(id) {
@@ -1033,6 +1075,7 @@ function createPromptStore({ getPool, toIso }) {
 
   async function listPromptImageLeaderboard({ range = "all", limit = 50, currentUserId = "", includeHidden = false } = {}) {
     const normalizedLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+    const selectLimit = Math.min(400, Math.max(normalizedLimit, normalizedLimit * 4));
     const values = [];
     const where = ["(p.preview <> '' OR p.image <> '')"];
     if (!includeHidden) where.push("p.status = 'active'");
@@ -1060,10 +1103,13 @@ function createPromptStore({ getPool, toIso }) {
          ${joinLike}
         WHERE ${where.join(" AND ")}
         ${leaderboardOrder}
-        LIMIT ${normalizedLimit}`,
+        LIMIT ${selectLimit}`,
       values
     );
-    return rows.map((row) => mapPrompt({ ...row, like_count: row.leaderboard_like_count ?? row.like_count }));
+    return uniquePromptsForDisplay(
+      rows.map((row) => mapPrompt({ ...row, like_count: row.leaderboard_like_count ?? row.like_count })),
+      normalizedLimit
+    );
   }
 
   async function getPromptDuplicateCandidateById(id) {

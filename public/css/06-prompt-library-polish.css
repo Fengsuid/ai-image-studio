@@ -282,6 +282,57 @@
   word-break: break-all;
 }
 
+:root[data-theme="dark"] .prompt-library-detail-modal.square-preview-modal {
+  background:
+    radial-gradient(circle at 78% 8%, rgba(96, 165, 250, 0.12), transparent 32%),
+    #050814;
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-side {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 92%, transparent), color-mix(in srgb, var(--surface) 84%, transparent)),
+    radial-gradient(circle at 12% 6%, rgba(96, 165, 250, 0.12), transparent 36%);
+  color: var(--text-primary);
+  border-left: 1px solid var(--border-subtle);
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-head span,
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-section h3,
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-meta span {
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-head strong,
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-section p,
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-meta strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-meta {
+  border-top-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-tags button {
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--brand) 12%, var(--surface-raised));
+  color: color-mix(in srgb, var(--brand) 76%, var(--text-primary));
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-actions a,
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-actions button {
+  background: color-mix(in srgb, var(--surface-raised) 84%, transparent);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-actions a:first-child,
+:root[data-theme="dark"] .prompt-library-detail-modal .square-preview-actions button:first-child {
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: var(--text-on-brand);
+  border-color: transparent;
+}
+
 :root[data-theme="dark"] .prompt-library-card {
   border-color: var(--border-subtle);
   background:

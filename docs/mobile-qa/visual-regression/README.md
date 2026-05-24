@@ -20,7 +20,8 @@ Default mode starts a local static server with fixed mock API data. Passing an o
 ## Output Policy
 
 - Temporary runs go to `docs/mobile-qa/visual-regression/runs/<timestamp>/`.
-- Baselines use `docs/mobile-qa/visual-regression/baselines/current/`.
+- Approved local baselines use `docs/mobile-qa/baseline-local/`.
+- Override the baseline directory with `VISUAL_REGRESSION_BASELINE_DIR` when comparing against a different approved set.
 - Both run output and binary baselines are ignored by `.gitignore` to avoid accidental screenshot commits.
 - Promote baselines only after manual review, then force-add intentionally if a release needs to publish image baselines.
 
@@ -29,6 +30,7 @@ Default mode starts a local static server with fixed mock API data. Passing an o
 - Without a baseline, the smoke passes with a warning and writes screenshots plus `summary.md`.
 - To require existing baselines, run with `VISUAL_REGRESSION_REQUIRE_BASELINE=1`.
 - Pixel comparison supports PNG screenshots with `VISUAL_REGRESSION_PIXEL_DIFF_THRESHOLD` (default `0.012`) and `VISUAL_REGRESSION_CHANNEL_TOLERANCE` (default `18`).
+- To validate the diff assertion without editing application files, set `VISUAL_REGRESSION_BRAND_PRIMARY_SHIFT` to a shifted color such as `#2563eb`; the run should fail against approved baselines.
 
 ## Cleanup
 

@@ -15,10 +15,11 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.
 let targetArg = process.argv[2] || "";
 const outputRoot = process.argv[3] || path.join(rootDir, "docs/mobile-qa/visual-regression/runs");
 const baselineRoot = process.env.VISUAL_REGRESSION_BASELINE_DIR
-  || path.join(rootDir, "docs/mobile-qa/visual-regression/baselines/current");
+  || path.join(rootDir, "docs/mobile-qa/baseline-local");
 const requireBaseline = process.env.VISUAL_REGRESSION_REQUIRE_BASELINE === "1";
 const pixelDiffThreshold = Number(process.env.VISUAL_REGRESSION_PIXEL_DIFF_THRESHOLD || 0.012);
 const channelTolerance = Number(process.env.VISUAL_REGRESSION_CHANNEL_TOLERANCE || 18);
+const brandPrimaryShift = process.env.VISUAL_REGRESSION_BRAND_PRIMARY_SHIFT || "";
 const chromePath = process.env.CHROME_PATH || findChromeExecutable();
 const port = Number(process.env.VISUAL_REGRESSION_CDP_PORT || 9422);
 const cdpTimeoutMs = Number(process.env.VISUAL_REGRESSION_CDP_TIMEOUT_MS || 30000);
@@ -176,8 +177,14 @@ async function main() {
   const userDataDir = await fs.mkdtemp(path.join(os.tmpdir(), "ai-image-studio-visual-regression-"));
   const chrome = spawn(chromePath, [
     "--headless=new",
+    "--no-sandbox",
     "--disable-gpu",
+    "--use-gl=swiftshader",
+    "--use-angle=swiftshader",
     "--disable-dev-shm-usage",
+    "--disable-extensions",
+    "--disable-component-extensions-with-background-pages",
+    "--disable-background-networking",
     "--no-first-run",
     "--no-default-browser-check",
     "--remote-allow-origins=*",
@@ -218,9 +225,13 @@ async function main() {
       await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: viewport.mobile }, sessionId);
 
       const url = resolvePageUrl(targetArg, scenario.url);
+      const initScript = await addStableVisualInitScript(cdp, sessionId, scenario.theme);
       await cdp.send("Page.navigate", { url }, sessionId);
       await delay(1600);
       await setStableVisualState(cdp, sessionId, scenario.theme);
+      if (initScript?.identifier) {
+        await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: initScript.identifier }, sessionId).catch(() => null);
+      }
       await waitForReadySelector(cdp, sessionId, scenario.readySelector, 9000);
       if (scenario.postReadyAction) {
         await runPostReadyAction(cdp, sessionId, scenario.postReadyAction);
@@ -267,6 +278,9 @@ async function main() {
   }
 
   console.log(`[visual-regression-smoke] OK: ${summary.scenarios.length} scenarios. Output: ${outputDir}`);
+  for (const item of summary.scenarios) {
+    console.log(`[visual-regression-smoke] ${item.scenario} Baseline: ${item.comparison?.status || "not-run"}`);
+  }
   if (summary.warnings.length) {
     console.log(`[visual-regression-smoke] warnings: ${summary.warnings.length}; see summary.json`);
   }
@@ -422,11 +436,23 @@ function ensureTrailingSlash(value) {
 }
 
 async function setStableVisualState(cdp, sessionId, theme) {
-  const expression = `(${stableVisualStateProbe.toString()})(${JSON.stringify(theme)})`;
+  const expression = `(${stableVisualStateProbe.toString()})(${JSON.stringify(theme)}, ${JSON.stringify(brandPrimaryShift)})`;
   await cdp.send("Runtime.evaluate", { expression, awaitPromise: true }, sessionId).catch(() => null);
 }
 
-function stableVisualStateProbe(theme) {
+async function addStableVisualInitScript(cdp, sessionId, theme) {
+  const source = `(${stableVisualInitProbe.toString()})(${JSON.stringify(theme)})`;
+  return cdp.send("Page.addScriptToEvaluateOnNewDocument", { source }, sessionId).catch(() => null);
+}
+
+function stableVisualInitProbe(theme) {
+  try {
+    localStorage.setItem("imageStudio.theme", theme);
+    localStorage.setItem("imageStudioComplianceNoticeV1", "seen");
+  } catch {}
+}
+
+function stableVisualStateProbe(theme, primaryShift) {
   try {
     localStorage.setItem("imageStudio.theme", theme);
     localStorage.setItem("imageStudioComplianceNoticeV1", "seen");
@@ -438,9 +464,24 @@ function stableVisualStateProbe(theme) {
     style.id = "visualRegressionFreezeStyle";
     style.textContent = `
       *, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
+      .inspiration-band, .example-grid, .prompt-grid, .works-grid, #adminContent { content-visibility: visible !important; contain-intrinsic-size: auto !important; }
       video { opacity: 0 !important; }
     `;
     document.head.appendChild(style);
+  }
+  if (primaryShift) {
+    document.documentElement.style.setProperty("--brand-primary", primaryShift);
+    document.documentElement.style.setProperty("--brand", primaryShift);
+    document.documentElement.style.setProperty("--brand-strong", primaryShift);
+    document.documentElement.style.setProperty("--brand-soft", `color-mix(in srgb, ${primaryShift} 18%, transparent)`);
+  }
+  const layer = document.querySelector("#modalLayer");
+  const blockingNotice = document.querySelector(".compliance-modal, .announcement-modal-single");
+  if (layer && blockingNotice?.closest("#modalLayer")) {
+    layer.classList.add("hidden");
+    layer.classList.remove("square-preview-layer", "image-zoom-layer");
+    layer.setAttribute("aria-hidden", "true");
+    layer.innerHTML = "";
   }
   window.ImageStudioThemeNav?.sync?.({});
 }
@@ -520,7 +561,7 @@ async function evaluateScenario(cdp, sessionId, scenario, viewport) {
   return response.result.value;
 }
 
-function visualProbe(scenario, viewport, externalTarget) {
+async function visualProbe(scenario, viewport, externalTarget) {
   const failures = [];
   const warnings = [];
   const pageLabel = scenario.name;
@@ -606,7 +647,18 @@ function visualProbe(scenario, viewport, externalTarget) {
   }
 
   for (const selector of scenario.cardSelectors || []) {
-    const cards = [...document.querySelectorAll(selector)].filter((el) => isElementVisible(el).ok);
+    let cards = [...document.querySelectorAll(selector)].filter((el) => isElementVisible(el).ok);
+    if (!cards.length) {
+      const candidates = [...document.querySelectorAll(selector)];
+      if (candidates.length) {
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        candidates[0].scrollIntoView({ block: "center", inline: "nearest" });
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        cards = candidates.filter((el) => isElementVisible(el).ok);
+        window.scrollTo(scrollX, scrollY);
+      }
+    }
     if (!cards.length) {
       warnings.push(`${pageLabel}: no visible cards for ${selector}`);
       continue;
@@ -690,7 +742,7 @@ async function compareWithBaseline(screenshotName, screenshotPath) {
     const current = decodePng(await fs.readFile(screenshotPath));
     const baseline = decodePng(await fs.readFile(baselinePath));
     const diff = diffPng(baseline, current);
-    result.status = diff.ratio <= pixelDiffThreshold ? "match" : "diff";
+    result.status = diff.ratio <= pixelDiffThreshold ? "matched" : "diff";
     result.diffRatio = diff.ratio;
     result.differentPixels = diff.differentPixels;
     result.totalPixels = diff.totalPixels;
@@ -805,6 +857,12 @@ async function startVisualServer() {
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
+      const promptImagePath = promptImageFixturePath(url);
+      if (promptImagePath) {
+        response.writeHead(200, { "content-type": contentType(promptImagePath), "cache-control": "no-store" });
+        fsSync.createReadStream(promptImagePath).pipe(response);
+        return;
+      }
       if (url.pathname.startsWith("/api/")) {
         writeJson(response, mockApiResponse(url));
         return;
@@ -829,6 +887,19 @@ async function startVisualServer() {
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   return { server, port: server.address().port };
+}
+
+function promptImageFixturePath(url) {
+  const match = String(url.pathname || "").match(/^\/api\/prompt-images\/([^/]+)\/file$/);
+  if (!match) return "";
+  const fixture = {
+    101: "/prompt-thumbs/evolink/logo.png",
+    102: "/prompt-thumbs/freestylefly/case-128.jpg"
+  }[decodeURIComponent(match[1])];
+  if (!fixture) return "";
+  const filePath = path.resolve(rootDir, "public", fixture.replace(/^\//, ""));
+  const publicDir = path.join(rootDir, "public");
+  return filePath.startsWith(publicDir) && fsSync.existsSync(filePath) ? filePath : "";
 }
 
 function writeJson(response, body) {
@@ -985,7 +1056,10 @@ async function writeSummaryFiles(data, dir) {
   await fs.writeFile(path.join(dir, "summary.json"), `${JSON.stringify(data, null, 2)}\n`, "utf8");
   const rows = data.scenarios.map((item) => {
     const result = item.failures.length ? "Fail" : "Pass";
-    const comparison = item.comparison?.status || "not-run";
+    const comparisonStatus = item.comparison?.status || "not-run";
+    const comparison = item.comparison?.status === "matched"
+      ? `matched (${((item.comparison.diffRatio || 0) * 100).toFixed(2)}%)`
+      : comparisonStatus;
     const notes = [...item.failures, ...item.warnings].join("<br>");
     return `| ${item.scenario} | ${item.theme} | ${item.viewport} | ${result} | ${comparison} | ${notes.replaceAll("|", "\\|")} | ${item.screenshot} |`;
   });

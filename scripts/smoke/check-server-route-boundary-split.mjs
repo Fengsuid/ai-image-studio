@@ -19,7 +19,8 @@ const routeFiles = {
   agentSessions: read("src/routes/agent-sessions.js"),
   prompts: read("src/routes/prompts.js"),
   canvases: read("src/routes/canvases.js"),
-  admin: read("src/routes/admin.js")
+  admin: read("src/routes/admin.js"),
+  credits: read("src/routes/credits.js")
 };
 
 assert(server.includes('require("./src/routes/auth")'), "server.js must require src/routes/auth");
@@ -69,10 +70,19 @@ const splitRoutes = [
     endpoints: [
       "/api/admin/settings",
       "/api/admin/providers",
-      "/api/admin/users",
       "/api/admin/generations",
       "/api/admin/public-images",
       "/api/admin/prompt-sources"
+    ]
+  },
+  {
+    key: "credits",
+    requirePath: 'require("./src/routes/credits")',
+    factory: "createCreditsRoute",
+    handle: "handleCreditsRoute",
+    endpoints: [
+      "/api/checkin",
+      "/api/credits/detail"
     ]
   }
 ];

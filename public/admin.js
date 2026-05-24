@@ -307,7 +307,7 @@ async function loadAll() {
     api("/api/admin/settings"),
     api("/api/admin/users"),
     api(generationDiagnosticsQuery()),
-    api("/api/prompts?includeHidden=1&limit=2000"),
+    api("/api/prompts?includeHidden=1&includeNoImage=1&limit=2000"),
     api("/api/admin/prompt-sources?runsLimit=120"),
     api("/api/tags?includeHidden=1&limit=2000"),
     api("/api/prompt-categories?includeHidden=1"),

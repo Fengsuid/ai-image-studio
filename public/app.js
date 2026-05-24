@@ -1262,6 +1262,48 @@ function promptCardImageUrl(prompt = {}, coverUrl = promptImageDisplayUrl(prompt
   if (!coverUrl) return "";
   return prompt.kind === "square" ? imageVariantUrl(coverUrl) : coverUrl;
 }
+function normalizePromptDisplayText(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[\u3000\r\n\t]+/g, " ")
+    .replace(/[，。、“”‘’！：；（）【】《》]/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+function promptDisplayDedupeKey(item = {}) {
+  if (item.kind === "square") {
+    return `square:${item.generationId || String(item.id || "").replace(/^square_/, "") || item.images?.[0] || item.image || normalizePromptDisplayText(item.prompt)}`;
+  }
+  const normalizedHash = String(item.normalizedHash || "").trim().toLowerCase();
+  if (normalizedHash) return `hash:${normalizedHash}`;
+  const promptText = normalizePromptDisplayText(item.prompt || "");
+  if (promptText) return `prompt:${promptText}`;
+  const sourceRepo = String(item.sourceRepo || "").trim().toLowerCase();
+  const remoteId = String(item.remoteId || "").trim().toLowerCase();
+  if (sourceRepo && remoteId) return `remote:${sourceRepo}:${remoteId}`;
+  const image = String(item.preview || item.image || item.coverUrl || item.imageUrl || "").trim().toLowerCase();
+  if (image && sourceRepo) return `image:${sourceRepo}:${image}`;
+  return `id:${item.id || ""}`;
+}
+function uniquePromptDisplayItems(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = promptDisplayDedupeKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function uniqueGalleryEntries(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = String(item.generationId || item.id || item.images?.[0] || item.image || "");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 function imageFallbackContainerAttrs(label = text("imageUnavailable")) {
   return `data-image-fallback="${escapeHtml(label)}"`;
 }
@@ -3641,7 +3683,7 @@ async function unpublishGeneration(item) {
   }
 }
 function renderExamples() {
-  elements.exampleGrid.innerHTML = getPromptSource().slice(0, 4).map(promptCardHtml).join("");
+  elements.exampleGrid.innerHTML = getPromptSource().slice(0, 4).map(p => promptCardHtml(p).replace('class="prompt-card', 'class="prompt-card example-card')).join("");
   bindPromptCards(elements.exampleGrid);
 }
 function filterableSystemTags() {
@@ -4865,16 +4907,18 @@ async function submitImageEdit(event) {
   }
 }
 function getPromptSource() {
-  return state.promptItems.length ? state.promptItems : fallbackPrompts.map((prompt) => ({
+  const source = state.promptItems.length ? state.promptItems : fallbackPrompts.map((prompt) => ({
     ...prompt,
     title: local(prompt.title),
     prompt: local(prompt.prompt),
     tags: [prompt.tag]
   }));
+  return uniquePromptDisplayItems(source);
 }
 function publicGalleryPromptItems() {
   const seen = new Set();
   return [...state.publicGallery, ...state.galleryLeaderboard]
+    .filter((item) => item.kind !== "prompt" && !String(item.id || "").startsWith("prompt_"))
     .filter((item) => item.images?.[0] && item.prompt)
     .filter((item) => {
       const key = String(item.id);
@@ -4916,13 +4960,7 @@ function publicGalleryPromptItems() {
 function getLibrarySource() {
   const prompts = getPromptSource();
   const publicItems = publicGalleryPromptItems();
-  const seen = new Set();
-  return [...publicItems, ...prompts].filter((item) => {
-    const key = String(item.id);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return uniquePromptDisplayItems([...publicItems, ...prompts]);
 }
 function getPromptById(id) {
   const key = String(id);
@@ -5501,7 +5539,7 @@ async function loadPromptLibrary() {
     renderAll();
     return;
   }
-  state.promptItems = items.map((prompt) => ({
+  state.promptItems = uniquePromptDisplayItems(items).map((prompt) => ({
     ...prompt,
     colors: prompt.colors || tagColor(prompt.tags?.[0] || prompt.tag || "other")
   }));
@@ -5643,7 +5681,7 @@ async function loadTags() {
 async function loadPublicGallery() {
   try {
     const data = await api("/api/images/public?limit=120");
-    state.publicGallery = (data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" }));
+    state.publicGallery = uniqueGalleryEntries((data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" })));
   } catch {
     state.publicGallery = [];
   }
@@ -5660,7 +5698,7 @@ async function loadGalleryLeaderboard() {
       params.set("type", state.galleryLeaderboardType);
     }
     const data = await api(`/api/gallery/leaderboard?${params.toString()}`);
-    state.galleryLeaderboard = (data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" }));
+    state.galleryLeaderboard = uniqueGalleryEntries((data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" })));
     state.galleryLeaderboardLoadedKey = requestKey;
   } catch {
     state.galleryLeaderboard = [];
@@ -7046,6 +7084,20 @@ window.ImageStudioAppActions = {
     return Boolean(state.user);
   }
 };
+window.AppModules?.register?.("auth", {
+  openAuthModal,
+  submitAuth,
+  logout,
+  loadCreditDetails,
+  openCreditsModal,
+  submitCheckin,
+  openContactModal
+});
+window.AppModules?.register?.("settings", {
+  applyI18n,
+  updateNav,
+  syncThemeMobileNav
+});
 function bindGlobalEvents() {
   elements.brandBtn.addEventListener("click", () => {
     openHomeHero({ scroll: true });

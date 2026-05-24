@@ -25,10 +25,17 @@ function createPromptsRoute({
     if (req.method === "GET" && url.pathname === "/api/prompts") {
       const current = await getCurrentUser(req);
       const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
+      const includeNoImage = current?.user?.role === "admin" && url.searchParams.get("includeNoImage") === "1";
       const limit = sanitizePositiveInt(url.searchParams.get("limit"), 500, 2000);
       const requestedSort = url.searchParams.get("sort") || "default";
       const sort = ["hot", "new", "used", "liked"].includes(requestedSort) ? requestedSort : "default";
-      const prompts = await store.listPrompts({ includeHidden, limit, sort, currentUserId: current?.user?.id || "" });
+      const prompts = await store.listPrompts({
+        includeHidden,
+        limit,
+        sort,
+        currentUserId: current?.user?.id || "",
+        requireImage: !includeNoImage
+      });
       sendJson(res, 200, { prompts });
       return true;
     }
