@@ -117,7 +117,7 @@ This document provides a reference for the REST API endpoints, grouped by their 
 | POST | `/api/gallery/:id/like` | Like an image. |
 | DELETE | `/api/gallery/:id/like` | Remove a like from an image. |
 
-## `src/routes/generate.js`
+## `src/routes/images-generate.js`
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -142,6 +142,8 @@ This document provides a reference for the REST API endpoints, grouped by their 
 |---|---|---|
 | GET/HEAD | `/api/images/:id/file` | Download or view a generated image file. |
 | GET/HEAD | `/api/images/:id/source-file` | Download or view the source reference image file. |
+| GET | `/api/images/history` | List the current user's generated images. |
+| POST | `/api/images/bulk` | Apply bulk publish, archive, or unarchive actions to images. |
 
 ## `src/routes/prompts.js`
 

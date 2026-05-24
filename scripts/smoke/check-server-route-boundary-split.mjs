@@ -18,6 +18,7 @@ const routeFiles = {
   health: read("src/routes/health.js"),
   agentSessions: read("src/routes/agent-sessions.js"),
   images: read("src/routes/images.js"),
+  imagesGenerate: read("src/routes/images-generate.js"),
   prompts: read("src/routes/prompts.js"),
   canvases: read("src/routes/canvases.js"),
   admin: read("src/routes/admin.js"),
@@ -54,6 +55,24 @@ const splitRoutes = [
       "/api/images/bulk"
     ],
     allowLocalRequires: true
+  },
+  {
+    key: "imagesGenerate",
+    requirePath: 'require("./src/routes/images-generate")',
+    factory: "createImagesGenerateRoute",
+    handle: "handleImagesGenerateRoute",
+    endpoints: [
+      "/api/images/requests/active",
+      "/api/images/generate",
+      "/api/images/edit"
+    ],
+    fragments: [
+      "requestStatusMatch",
+      "api\\/images\\/requests"
+    ],
+    forbiddenServerFragments: [
+      "requestStatusMatch"
+    ]
   },
   {
     key: "prompts",

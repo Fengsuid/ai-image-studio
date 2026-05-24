@@ -60,7 +60,7 @@ const { createAdminUsersRoute } = require("./src/routes/admin-users");
 const { createCreditsRoute } = require("./src/routes/credits");
 const { createSettingsPublicRoute } = require("./src/routes/settings-public");
 const { createAnnouncementsRoute } = require("./src/routes/announcements");
-const { createGenerateRoute } = require("./src/routes/generate");
+const { createImagesGenerateRoute } = require("./src/routes/images-generate");
 const { createSessionMiddleware } = require("./src/middleware/session");
 const { createCsrfMiddleware } = require("./src/middleware/csrf");
 const { createAppAuth } = require("./src/middleware/app-auth");
@@ -461,7 +461,7 @@ const handleAnnouncementsRoute = createAnnouncementsRoute({
   sanitizePositiveInt
 });
 
-const handleGenerateRoute = createGenerateRoute({
+const handleImagesGenerateRoute = createImagesGenerateRoute({
   getCurrentUser, ensureAuthenticated, store, requestStatusPayload, sendJson,
   sendGenerationRequestStatus, httpError, cancelQueuedGenerationJob, traceGeneration,
   enforceGenerationRate, readJsonBody, cleanPrompt, sanitizePositiveInt,
@@ -3264,7 +3264,7 @@ async function routeApi(req, res, url) {
   if (await handleCreditsRoute(req, res, url)) return;
   if (await handleSettingsPublicRoute(req, res, url)) return;
   if (await handleAnnouncementsRoute(req, res, url)) return;
-  if (await handleGenerateRoute(req, res, url)) return;
+  if (await handleImagesGenerateRoute(req, res, url)) return;
 
   const promptImageMatch = url.pathname.match(/^\/api\/prompt-images\/(\d+)\/file$/);
   if (promptImageMatch && (req.method === "GET" || req.method === "HEAD")) {
