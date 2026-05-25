@@ -14,6 +14,21 @@ const createPromptStore = require("./stores/prompt-store");
 const createTagStore = require("./stores/tag-store");
 const createUserStore = require("./stores/user-store");
 
+function buildStoreFacade(exportGroups) {
+  const store = {};
+  const owners = new Map();
+  for (const { label, source } of exportGroups) {
+    for (const [name, value] of Object.entries(source)) {
+      if (Object.hasOwn(store, name)) {
+        throw new Error(`Store export collision: ${name} already provided by ${owners.get(name)} before ${label}`);
+      }
+      owners.set(name, label);
+      store[name] = value;
+    }
+  }
+  return store;
+}
+
 function createMySQLStore(dbConfig = {}) {
 let pool;
 let defaultModel = "GPT-IMAGE-2";
@@ -1490,69 +1505,62 @@ const userStore = createUserStore({
   getGenerationById: (...args) => galleryStore.getGenerationById(...args)
 });
 
-function registerStoreExports(target, label, source) {
-  for (const [name, value] of Object.entries(source)) {
-    if (Object.hasOwn(target, name)) {
-      throw new Error(`Store export collision: ${name} already provided before ${label}`);
+const storeExportGroups = [
+  {
+    label: "core",
+    source: {
+      initializeDatabase,
+      getSettings: adminStore.getSettings,
+      updateSettings: adminStore.updateSettings
     }
-    target[name] = value;
-  }
-  return target;
-}
-
-const store = registerStoreExports(
-  registerStoreExports(
-    registerStoreExports(
-      registerStoreExports(
-        registerStoreExports({}, "core", {
-          initializeDatabase,
-          getSettings: adminStore.getSettings,
-          updateSettings: adminStore.updateSettings
-        }),
-        "users",
-        {
-          countUsers: userStore.countUsers,
-          countAdmins: userStore.countAdmins,
-          getUserByEmail: userStore.getUserByEmail,
-          getUserById: userStore.getUserById,
-          createUser: userStore.createUser,
-          listUsers: userStore.listUsers,
-          updateUser: userStore.updateUser,
-          updateUserPassword: userStore.updateUserPassword,
-          hasCheckedInToday: userStore.hasCheckedInToday,
-          checkInToday: userStore.checkInToday,
-          reserveDailyFreeGeneration: userStore.reserveDailyFreeGeneration,
-          refundDailyFreeGeneration: userStore.refundDailyFreeGeneration,
-          getDailyFreeUsed: userStore.getDailyFreeUsed,
-          getUserCredits: userStore.getUserCredits,
-          createSession: userStore.createSession,
-          deleteSession: userStore.deleteSession,
-          touchSession: userStore.touchSession,
-          getSessionUser: userStore.getSessionUser,
-          deleteExpiredSessions: userStore.deleteExpiredSessions,
-          setUserCredits: userStore.setUserCredits,
-          reserveCredits: userStore.reserveCredits,
-          addCredits: userStore.addCredits,
-          adjustCredits: userStore.adjustCredits,
-          listCreditLedger: userStore.listCreditLedger,
-          listRewardLedger: userStore.listRewardLedger,
-          hasFirstPublicReward: userStore.hasFirstPublicReward,
-          claimFirstPublicReward: userStore.claimFirstPublicReward,
-          awardMaturePublicRewards: userStore.awardMaturePublicRewards
-        }
-      ),
-      "agents",
-      {
-        listAgentSessionsForUser: agentSessionStore.listAgentSessionsForUser,
-        getAgentSessionForUser: agentSessionStore.getAgentSessionForUser,
-        createAgentSession: agentSessionStore.createAgentSession,
-        updateAgentSessionForUser: agentSessionStore.updateAgentSessionForUser,
-        deleteAgentSessionForUser: agentSessionStore.deleteAgentSessionForUser,
-        createAgentMessageForUser: agentSessionStore.createAgentMessageForUser
-      }
-    ),
-    "generation",
-    {
+  },
+  {
+    label: "users",
+    source: {
+      countUsers: userStore.countUsers,
+      countAdmins: userStore.countAdmins,
+      getUserByEmail: userStore.getUserByEmail,
+      getUserById: userStore.getUserById,
+      createUser: userStore.createUser,
+      listUsers: userStore.listUsers,
+      updateUser: userStore.updateUser,
+      updateUserPassword: userStore.updateUserPassword,
+      hasCheckedInToday: userStore.hasCheckedInToday,
+      checkInToday: userStore.checkInToday,
+      reserveDailyFreeGeneration: userStore.reserveDailyFreeGeneration,
+      refundDailyFreeGeneration: userStore.refundDailyFreeGeneration,
+      getDailyFreeUsed: userStore.getDailyFreeUsed,
+      getUserCredits: userStore.getUserCredits,
+      createSession: userStore.createSession,
+      deleteSession: userStore.deleteSession,
+      touchSession: userStore.touchSession,
+      getSessionUser: userStore.getSessionUser,
+      deleteExpiredSessions: userStore.deleteExpiredSessions,
+      setUserCredits: userStore.setUserCredits,
+      reserveCredits: userStore.reserveCredits,
+      addCredits: userStore.addCredits,
+      adjustCredits: userStore.adjustCredits,
+      listCreditLedger: userStore.listCreditLedger,
+      listRewardLedger: userStore.listRewardLedger,
+      hasFirstPublicReward: userStore.hasFirstPublicReward,
+      claimFirstPublicReward: userStore.claimFirstPublicReward,
+      awardMaturePublicRewards: userStore.awardMaturePublicRewards
+    }
+  },
+  {
+    label: "agents",
+    source: {
+      listAgentSessionsForUser: agentSessionStore.listAgentSessionsForUser,
+      getAgentSessionForUser: agentSessionStore.getAgentSessionForUser,
+      createAgentSession: agentSessionStore.createAgentSession,
+      updateAgentSessionForUser: agentSessionStore.updateAgentSessionForUser,
+      deleteAgentSessionForUser: agentSessionStore.deleteAgentSessionForUser,
+      createAgentMessageForUser: agentSessionStore.createAgentMessageForUser
+    }
+  },
+  {
+    label: "generation",
+    source: {
       insertGenerations,
       insertGenerationRequest: generationStore.insertGenerationRequest,
       updateGenerationRequest: generationStore.updateGenerationRequest,
@@ -1566,112 +1574,126 @@ const store = registerStoreExports(
       listGenerationsForUser,
       listGenerationsForUserId
     }
-  ),
-  "gallery",
+  },
   {
-    listWithdrawalRequests: galleryStore.listWithdrawalRequests,
-    createGenerationReport: galleryStore.createGenerationReport,
-    getGenerationReportById: galleryStore.getGenerationReportById,
-    listGenerationReports: galleryStore.listGenerationReports,
-    markGenerationReportsHandled: galleryStore.markGenerationReportsHandled,
-    listGalleryModeration: galleryStore.listGalleryModeration,
-    listGalleryFileCheckTargets: galleryStore.listGalleryFileCheckTargets,
-    upsertGalleryFileCheck: galleryStore.upsertGalleryFileCheck,
-    listGalleryFileChecks: galleryStore.listGalleryFileChecks,
-    listPublicGenerations: galleryStore.listPublicGenerations,
-    setGenerationLike: galleryStore.setGenerationLike,
-    listGenerationLeaderboard: galleryStore.listGenerationLeaderboard,
-    listGenerationLikeAnomalies: galleryStore.listGenerationLikeAnomalies,
-    listReportedGenerations: galleryStore.listReportedGenerations,
-    getGenerationById: galleryStore.getGenerationById,
-    getCanvasProjectForGeneration: canvasStore.getCanvasProjectForGeneration,
-    getPublicGenerationForCanvas: canvasStore.getPublicGenerationForCanvas,
-    updateGenerationPublic: galleryStore.updateGenerationPublic,
-    countTodayGenerations: galleryStore.countTodayGenerations,
-    createCanvasGenerationLinks: canvasStore.createCanvasGenerationLinks
+    label: "gallery",
+    source: {
+      listWithdrawalRequests: galleryStore.listWithdrawalRequests,
+      createGenerationReport: galleryStore.createGenerationReport,
+      getGenerationReportById: galleryStore.getGenerationReportById,
+      listGenerationReports: galleryStore.listGenerationReports,
+      markGenerationReportsHandled: galleryStore.markGenerationReportsHandled,
+      listGalleryModeration: galleryStore.listGalleryModeration,
+      listGalleryFileCheckTargets: galleryStore.listGalleryFileCheckTargets,
+      upsertGalleryFileCheck: galleryStore.upsertGalleryFileCheck,
+      listGalleryFileChecks: galleryStore.listGalleryFileChecks,
+      listPublicGenerations: galleryStore.listPublicGenerations,
+      setGenerationLike: galleryStore.setGenerationLike,
+      listGenerationLeaderboard: galleryStore.listGenerationLeaderboard,
+      listGenerationLikeAnomalies: galleryStore.listGenerationLikeAnomalies,
+      listReportedGenerations: galleryStore.listReportedGenerations,
+      getGenerationById: galleryStore.getGenerationById,
+      getCanvasProjectForGeneration: canvasStore.getCanvasProjectForGeneration,
+      getPublicGenerationForCanvas: canvasStore.getPublicGenerationForCanvas,
+      updateGenerationPublic: galleryStore.updateGenerationPublic,
+      countTodayGenerations: galleryStore.countTodayGenerations,
+      createCanvasGenerationLinks: canvasStore.createCanvasGenerationLinks
+    }
+  },
+  {
+    label: "canvas",
+    source: {
+      listCanvasProjectsForUser: canvasStore.listCanvasProjectsForUser,
+      getCanvasProjectById: canvasStore.getCanvasProjectById,
+      createCanvasProject: canvasStore.createCanvasProject,
+      updateCanvasProject: canvasStore.updateCanvasProject,
+      deleteCanvasProject: canvasStore.deleteCanvasProject
+    }
+  },
+  {
+    label: "prompts",
+    source: {
+      listPrompts: promptStore.listPrompts,
+      getPromptById: promptStore.getPromptById,
+      setPromptLike: promptStore.setPromptLike,
+      listPromptImageLeaderboard: promptStore.listPromptImageLeaderboard,
+      incrementPromptUse: promptStore.incrementPromptUse,
+      refreshPromptFingerprints: promptStore.refreshPromptFingerprints,
+      scanPromptDuplicateCandidates: promptStore.scanPromptDuplicateCandidates,
+      scanPromptDuplicateCandidatesForPrompt: promptStore.scanPromptDuplicateCandidatesForPrompt,
+      listPromptDuplicateCandidates: promptStore.listPromptDuplicateCandidates,
+      getPromptDuplicateCandidateById: promptStore.getPromptDuplicateCandidateById,
+      reviewPromptDuplicateCandidate: promptStore.reviewPromptDuplicateCandidate,
+      updatePromptDuplicateAiReview: promptStore.updatePromptDuplicateAiReview,
+      auditPromptForPublish: promptStore.auditPromptForPublish,
+      createPromptAuditRecord: promptStore.createPromptAuditRecord,
+      listPromptAuditRecords: promptStore.listPromptAuditRecords,
+      getPromptAuditRecordById: promptStore.getPromptAuditRecordById,
+      reviewPromptAuditRecord: promptStore.reviewPromptAuditRecord,
+      countPrompts: promptStore.countPrompts,
+      createPrompt: promptStore.createPrompt,
+      updatePrompt: promptStore.updatePrompt,
+      softDeletePrompt: promptStore.softDeletePrompt,
+      getPromptByRemoteKey: promptStore.getPromptByRemoteKey,
+      upsertRemotePrompt: promptStore.upsertRemotePrompt,
+      listPromptSources: promptStore.listPromptSources,
+      getPromptSourceById: promptStore.getPromptSourceById,
+      createPromptSource: promptStore.createPromptSource,
+      updatePromptSource: promptStore.updatePromptSource,
+      createPromptSyncRun: promptStore.createPromptSyncRun,
+      getPromptSyncRunById: promptStore.getPromptSyncRunById,
+      listPromptSyncRuns: promptStore.listPromptSyncRuns,
+      seedPromptsIfEmpty: promptStore.seedPromptsIfEmpty,
+      listPromptCategories: tagStore.listPromptCategories,
+      getPromptCategoryBySlug: tagStore.getPromptCategoryBySlug,
+      upsertPromptCategory: tagStore.upsertPromptCategory,
+      listTags: tagStore.listTags,
+      getTagBySlug: tagStore.getTagBySlug,
+      countTags: tagStore.countTags,
+      findTagByAlias: tagStore.findTagByAlias,
+      createTag: tagStore.createTag,
+      updateTag: tagStore.updateTag,
+      hideTag: tagStore.hideTag,
+      mergeTag: tagStore.mergeTag,
+      migrateTagJsonSlugs: tagStore.migrateTagJsonSlugs,
+      incrementTagUsage: tagStore.incrementTagUsage,
+      seedTagsIfEmpty: tagStore.seedTagsIfEmpty
+    }
+  },
+  {
+    label: "admin",
+    source: {
+      listProviderConfigs: adminStore.listProviderConfigs,
+      getProviderConfigById: adminStore.getProviderConfigById,
+      getDefaultProviderConfig: adminStore.getDefaultProviderConfig,
+      createProviderConfig: adminStore.createProviderConfig,
+      updateProviderConfig: adminStore.updateProviderConfig,
+      deleteProviderConfig: adminStore.deleteProviderConfig,
+      setDefaultProviderConfig: adminStore.setDefaultProviderConfig,
+      updateProviderHealth: adminStore.updateProviderHealth,
+      writeAdminAuditLog: adminStore.writeAdminAuditLog,
+      listAdminAuditLogs: adminStore.listAdminAuditLogs,
+      listAnnouncements: adminStore.listAnnouncements,
+      getAnnouncementById: adminStore.getAnnouncementById,
+      listPublishedAnnouncements: adminStore.listPublishedAnnouncements,
+      createAnnouncement: adminStore.createAnnouncement,
+      updateAnnouncement: adminStore.updateAnnouncement,
+      deleteAnnouncement: adminStore.deleteAnnouncement,
+      publishAnnouncement: adminStore.publishAnnouncement,
+      archiveAnnouncement: adminStore.archiveAnnouncement,
+      markAnnouncementRead: adminStore.markAnnouncementRead,
+      countUnreadAnnouncements: adminStore.countUnreadAnnouncements
+    }
   }
-);
+];
 
-registerStoreExports(store, "canvas", {
-  listCanvasProjectsForUser: canvasStore.listCanvasProjectsForUser,
-  getCanvasProjectById: canvasStore.getCanvasProjectById,
-  createCanvasProject: canvasStore.createCanvasProject,
-  updateCanvasProject: canvasStore.updateCanvasProject,
-  deleteCanvasProject: canvasStore.deleteCanvasProject
-});
-
-registerStoreExports(store, "prompts", {
-  listPrompts: promptStore.listPrompts,
-  getPromptById: promptStore.getPromptById,
-  setPromptLike: promptStore.setPromptLike,
-  listPromptImageLeaderboard: promptStore.listPromptImageLeaderboard,
-  incrementPromptUse: promptStore.incrementPromptUse,
-  refreshPromptFingerprints: promptStore.refreshPromptFingerprints,
-  scanPromptDuplicateCandidates: promptStore.scanPromptDuplicateCandidates,
-  scanPromptDuplicateCandidatesForPrompt: promptStore.scanPromptDuplicateCandidatesForPrompt,
-  listPromptDuplicateCandidates: promptStore.listPromptDuplicateCandidates,
-  getPromptDuplicateCandidateById: promptStore.getPromptDuplicateCandidateById,
-  reviewPromptDuplicateCandidate: promptStore.reviewPromptDuplicateCandidate,
-  updatePromptDuplicateAiReview: promptStore.updatePromptDuplicateAiReview,
-  auditPromptForPublish: promptStore.auditPromptForPublish,
-  createPromptAuditRecord: promptStore.createPromptAuditRecord,
-  listPromptAuditRecords: promptStore.listPromptAuditRecords,
-  getPromptAuditRecordById: promptStore.getPromptAuditRecordById,
-  reviewPromptAuditRecord: promptStore.reviewPromptAuditRecord,
-  countPrompts: promptStore.countPrompts,
-  createPrompt: promptStore.createPrompt,
-  updatePrompt: promptStore.updatePrompt,
-  softDeletePrompt: promptStore.softDeletePrompt,
-  getPromptByRemoteKey: promptStore.getPromptByRemoteKey,
-  upsertRemotePrompt: promptStore.upsertRemotePrompt,
-  listPromptSources: promptStore.listPromptSources,
-  getPromptSourceById: promptStore.getPromptSourceById,
-  createPromptSource: promptStore.createPromptSource,
-  updatePromptSource: promptStore.updatePromptSource,
-  createPromptSyncRun: promptStore.createPromptSyncRun,
-  getPromptSyncRunById: promptStore.getPromptSyncRunById,
-  listPromptSyncRuns: promptStore.listPromptSyncRuns,
-  seedPromptsIfEmpty: promptStore.seedPromptsIfEmpty,
-  listPromptCategories: tagStore.listPromptCategories,
-  getPromptCategoryBySlug: tagStore.getPromptCategoryBySlug,
-  upsertPromptCategory: tagStore.upsertPromptCategory,
-  listTags: tagStore.listTags,
-  getTagBySlug: tagStore.getTagBySlug,
-  countTags: tagStore.countTags,
-  findTagByAlias: tagStore.findTagByAlias,
-  createTag: tagStore.createTag,
-  updateTag: tagStore.updateTag,
-  hideTag: tagStore.hideTag,
-  mergeTag: tagStore.mergeTag,
-  migrateTagJsonSlugs: tagStore.migrateTagJsonSlugs,
-  incrementTagUsage: tagStore.incrementTagUsage,
-  seedTagsIfEmpty: tagStore.seedTagsIfEmpty
-});
-
-registerStoreExports(store, "admin", {
-  listProviderConfigs: adminStore.listProviderConfigs,
-  getProviderConfigById: adminStore.getProviderConfigById,
-  getDefaultProviderConfig: adminStore.getDefaultProviderConfig,
-  createProviderConfig: adminStore.createProviderConfig,
-  updateProviderConfig: adminStore.updateProviderConfig,
-  deleteProviderConfig: adminStore.deleteProviderConfig,
-  setDefaultProviderConfig: adminStore.setDefaultProviderConfig,
-  updateProviderHealth: adminStore.updateProviderHealth,
-  writeAdminAuditLog: adminStore.writeAdminAuditLog,
-  listAdminAuditLogs: adminStore.listAdminAuditLogs,
-  listAnnouncements: adminStore.listAnnouncements,
-  getAnnouncementById: adminStore.getAnnouncementById,
-  listPublishedAnnouncements: adminStore.listPublishedAnnouncements,
-  createAnnouncement: adminStore.createAnnouncement,
-  updateAnnouncement: adminStore.updateAnnouncement,
-  deleteAnnouncement: adminStore.deleteAnnouncement,
-  publishAnnouncement: adminStore.publishAnnouncement,
-  archiveAnnouncement: adminStore.archiveAnnouncement,
-  markAnnouncementRead: adminStore.markAnnouncementRead,
-  countUnreadAnnouncements: adminStore.countUnreadAnnouncements
-});
+const store = buildStoreFacade(storeExportGroups);
 
 return store;
 }
+
+Object.defineProperty(createMySQLStore, "_buildStoreFacadeForTest", {
+  value: buildStoreFacade
+});
 
 module.exports = { createMySQLStore };
