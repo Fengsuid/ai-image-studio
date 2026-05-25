@@ -11,10 +11,11 @@ This is the current handoff entry point for project progress. Older planning doc
 > - **`AIS-RLS-105` is complete** as of commits `b0043f0` and `8bfdc4b`. The wrapper-only draft was not reused; legacy admin route files were deleted and replaced by real `src/routes/admin/*` business-domain modules.
 > - **`AIS-RLS-107` is complete** as of commits `f449a01` and `f3e2ece`. `public/app-auth.js` is now a real 690-line auth controller module, `public/app.js` is down to 6623 lines, and production `/api/version` reports `20260525-app-auth-split-v1`.
 > - **`AIS-RLS-108` is complete** as of commit `fc93f17`. `public/app-settings.js` is now a real settings controller module, `public/app.js` is down to 5929 lines, and production `/api/version` reports `20260525-app-settings-split-v1`.
-> - **`AIS-RLS-099` ESLint rules** were landed as all-`warn`, which means `npm run check` cannot fail on lint. A new follow-up task should tighten `no-undef` / `no-unused-vars` / `no-empty` to `error` before `AIS-RLS-109` CI lands.
+> - **`AIS-RLS-109` is complete** as of commit `987ab86`. `.github/workflows/check.yml` now runs GitHub Actions on `push` / `pull_request` to `main` with Node `20.20.2`, `npm ci`, `npm run check`, and `npm test --if-present`.
+> - **`AIS-RLS-099` ESLint rules** were landed as all-`warn`, which means `npm run check` can still pass with lint warnings. `AIS-RLS-130` should tighten `no-undef` / `no-unused-vars` / `no-empty` to `error`.
 > - **`archive/codex-handoff-20260524/`** holds three Codex draft artifacts (admin wrapper, CI workflow `check.yml`, `14-premium-polish.css`). They are reference-only; do not `git add` directly. The directory is under `.gitignore` (`/archive/`).
 > - **`AIS-RLS-106` is complete** as of commit `74babe1`. `src/mysql-store.js` now builds the store facade from ordered export groups with a collision guard, and production `/api/version` reports `20260525-mysql-store-facade-v1`.
-> - **Working tree was clean after the audit** at `8769d85`; subsequent completed work has advanced `main` through `AIS-RLS-108`.
+> - **Working tree was clean after the audit** at `8769d85`; subsequent completed work has advanced `main` through `AIS-RLS-109`.
 > - **Recommended cadence**: one task at a time, with audit §7.2 ordering (105 redo → 106 → 107 → 108 → 109). Stop and report after each task instead of batch-closing.
 
 ## Source Of Truth
@@ -22,16 +23,16 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction has been verified through `AIS-RLS-108`.
+- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction and CI check workflow have been verified through `AIS-RLS-109`.
 
 ## Current Summary
 
 - Trellis total: 177 tasks.
-- Done: 139 tasks.
+- Done: 140 tasks.
 - Active: none.
-- Remaining ready/blocked tasks: 38 tasks in the local Trellis board as of this update (`AIS-RLS-109` to `AIS-RLS-146`, with dependency blocks on several later cards).
+- Remaining ready/blocked tasks: 37 tasks in the local Trellis board as of this update (`AIS-RLS-110` to `AIS-RLS-146`, with dependency blocks on several later cards).
 - Current active work: none in the local Trellis board.
-- Working tree handoff: follow-up optimization work has continued through `AIS-RLS-108`. `server.js` has route modules for credits, settings, announcements, images, images-generate, and the admin API now lives under `src/routes/admin/*` with legacy admin route files removed. `src/mysql-store.js` now uses `storeExportGroups` plus a programmatic facade builder that throws on duplicate exported names and preserves 139+ public store methods. `public/app-auth.js` is a real `AppModules.auth` controller module covering login, registration, account menu, CSRF, and My Works behavior; `public/app-settings.js` is a real `AppModules.settings` controller module covering the i18n dictionary, language toggle binding, preference helpers, and text matching. Reward-related UI remains split into `public/app-reward-policy.js`, `public/app-credits-detail.js`, and `public/admin-settings.js`; `AIS-RLS-098` promoted the reviewed visual baselines in `docs/mobile-qa/baseline-local/`; `AIS-RLS-099` added ESLint 9, Prettier, `syntax:check`, `lint:fix`, `format:check`, and `npm run check` (rules are currently all `warn` — to be tightened before CI lands); `AIS-RLS-100` moved `/api/checkin` and `/api/credits/detail` into `src/routes/credits.js`; `AIS-RLS-101` verified `/api/settings` and `/api/growth` ownership in `src/routes/settings-public.js`; `AIS-RLS-102` verified `/api/announcements*` and `/api/stats/today` ownership in `src/routes/announcements.js`; `AIS-RLS-103` verified `/api/images/history` and `/api/images/bulk` ownership in `src/routes/images.js`; `AIS-RLS-104` aligned `/api/images/generate`, `/api/images/edit`, and generation request polling/cancel endpoints under `src/routes/images-generate.js`; `AIS-RLS-106` tightened mysql-store facade smoke coverage for export count and collision detection; `AIS-RLS-107` landed app-auth extraction and aligned public smoke coverage; `AIS-RLS-108` landed app-settings extraction and aligned module/theme/public smoke coverage.
+- Working tree handoff: follow-up optimization work has continued through `AIS-RLS-109`. `server.js` has route modules for credits, settings, announcements, images, images-generate, and the admin API now lives under `src/routes/admin/*` with legacy admin route files removed. `src/mysql-store.js` now uses `storeExportGroups` plus a programmatic facade builder that throws on duplicate exported names and preserves 139+ public store methods. `public/app-auth.js` is a real `AppModules.auth` controller module covering login, registration, account menu, CSRF, and My Works behavior; `public/app-settings.js` is a real `AppModules.settings` controller module covering the i18n dictionary, language toggle binding, preference helpers, and text matching. Reward-related UI remains split into `public/app-reward-policy.js`, `public/app-credits-detail.js`, and `public/admin-settings.js`; `AIS-RLS-098` promoted the reviewed visual baselines in `docs/mobile-qa/baseline-local/`; `AIS-RLS-099` added ESLint 9, Prettier, `syntax:check`, `lint:fix`, `format:check`, and `npm run check` (rules are currently all `warn` — to be tightened in `AIS-RLS-130`); `AIS-RLS-100` moved `/api/checkin` and `/api/credits/detail` into `src/routes/credits.js`; `AIS-RLS-101` verified `/api/settings` and `/api/growth` ownership in `src/routes/settings-public.js`; `AIS-RLS-102` verified `/api/announcements*` and `/api/stats/today` ownership in `src/routes/announcements.js`; `AIS-RLS-103` verified `/api/images/history` and `/api/images/bulk` ownership in `src/routes/images.js`; `AIS-RLS-104` aligned `/api/images/generate`, `/api/images/edit`, and generation request polling/cancel endpoints under `src/routes/images-generate.js`; `AIS-RLS-106` tightened mysql-store facade smoke coverage for export count and collision detection; `AIS-RLS-107` landed app-auth extraction and aligned public smoke coverage; `AIS-RLS-108` landed app-settings extraction and aligned module/theme/public smoke coverage; `AIS-RLS-109` added the GitHub Actions CI check workflow and verified the pushed run is green.
 
 ## Completed Milestones
 
@@ -47,19 +48,19 @@ This is the current handoff entry point for project progress. Older planning doc
 | `AIS-RLS-061` - `AIS-RLS-069` | Done | Queue recovery, provider diagnostics/capabilities, Agent workspace, creative route unification. |
 | `AIS-RLS-070` - `AIS-RLS-079` | Done | CSS tokens, CSS split, dark mode, admin/app module split, backend/store split, frontend build tooling, visual polish. |
 | `AIS-RLS-080` - `AIS-RLS-093` | Done | Responsive polish, frontend guardrails, route/store extraction, accessibility, onboarding, prompt library, admin shell, performance budget, visual regression QA harness. |
-| `AIS-RLS-094` - `AIS-RLS-108` | Done | Phase A documentation/baseline cleanup, visual baseline promotion, lint/check tooling foundation, first Phase B route extractions for credits, public settings/growth, public announcements/stats, image history/bulk operations, image generation/edit endpoints, admin route business-domain split, mysql-store facade programmatic aggregation, app-auth controller extraction, and app-settings controller extraction. |
+| `AIS-RLS-094` - `AIS-RLS-109` | Done | Phase A documentation/baseline cleanup, visual baseline promotion, lint/check tooling foundation, first Phase B route extractions for credits, public settings/growth, public announcements/stats, image history/bulk operations, image generation/edit endpoints, admin route business-domain split, mysql-store facade programmatic aggregation, app-auth controller extraction, app-settings controller extraction, and GitHub Actions CI workflow. |
 
 ## Backlog Milestones (Planned)
 
 | Range | Status | Scope |
 | --- | --- | --- |
-| `AIS-RLS-109` - `AIS-RLS-146` | Ready / blocked by dependency | Follow-up Optimization Plan plus visual redesign tasks. Next audited sequence is `AIS-RLS-109`; newly added follow-ups include `AIS-RLS-130` ESLint tightening, `AIS-RLS-131` docs expansion, and `AIS-RLS-132` premium polish CSS split. |
+| `AIS-RLS-110` - `AIS-RLS-146` | Ready / blocked by dependency | Follow-up Optimization Plan plus visual redesign tasks. Next audited sequence is `AIS-RLS-110`; newly added follow-ups include `AIS-RLS-130` ESLint tightening, `AIS-RLS-131` docs expansion, and `AIS-RLS-132` premium polish CSS split. |
 
 ## Active Task
 
 | Task | Status | What Is Implemented | Remaining Closure |
 | --- | --- | --- | --- |
-| None | Done | Local Trellis board has no active tasks after `AIS-RLS-108`. `AIS-RLS-108` passed `node --check public/app.js`, `node --check public/app-settings.js`, `node --check scripts/smoke/check-public-api.mjs`, `npm run smoke:public-app-module-split`, `npm run smoke:theme-mobile-nav`, `npm run smoke:frontend-boundaries`, `npm run check`, container module/theme/frontend-boundary/public smokes, and online `npm run smoke:public -- https://<host>`. | Next audited item is `AIS-RLS-109` CI workflow. Rewrite it from requirements; do not blindly add the archived draft. |
+| None | Done | Local Trellis board has no active tasks after `AIS-RLS-109`. `AIS-RLS-109` passed `Test-Path .github/workflows/check.yml`, `npm run check`, `npm test --if-present`, `git diff --check`, and the pushed GitHub Actions run for `987ab86` completed with `success`. | Next audited item is `AIS-RLS-110` CSS bundle merge. |
 
 ## Documentation Notes
 
@@ -79,6 +80,7 @@ This is the current handoff entry point for project progress. Older planning doc
 4. `AIS-RLS-106` mysql-store facade rewrite is complete. If store export regressions appear, compare against release record `2026-05-25 AIS-RLS-106 MySQL Store Facade Release` and the private deployment log entry 40.
 5. `AIS-RLS-107` app-auth split is complete. If auth/account regressions appear, compare against release record `2026-05-25 AIS-RLS-107 App Auth Split Release` and the private deployment log entry 41.
 6. `AIS-RLS-108` app-settings split is complete. If settings/i18n/theme regressions appear, compare against release record `2026-05-25 AIS-RLS-108 App Settings Split Release` and the private deployment log entry 42.
-7. Continue with `AIS-RLS-109` (CI workflow — draft is at `archive/codex-handoff-20260524/.github/workflows/check.yml`, must be rewritten with `npm ci`, pinned Node `20.20.2`, and `npm test --if-present`; the MySQL service block is unnecessary for `npm run check`).
-8. For new work, run the release smoke subset relevant to the touched domains before deployment, and follow `docs/private/DEVELOPMENT_GUIDE.md` §2 ~ §7 for the full close-out loop (commit → push → server deploy → online smoke → public release record → private deployment record → `task.py finish`). One task per close-out — do not batch.
-9. Use `git archive HEAD` for production source bundles when deploying committed work; it avoids stale local tar artifacts and excludes private/untracked files by default.
+7. `AIS-RLS-109` GitHub Actions CI workflow is complete. If CI behavior regresses, compare against release record `2026-05-25 AIS-RLS-109 GitHub Actions CI Release`; this task was `deployment_required=false`, so no server backup was created.
+8. Continue with `AIS-RLS-110` CSS bundle merge.
+9. For new work, run the release smoke subset relevant to the touched domains before deployment, and follow `docs/private/DEVELOPMENT_GUIDE.md` §2 ~ §7 for the full close-out loop (commit → push → server deploy → online smoke → public release record → private deployment record → `task.py finish`). One task per close-out — do not batch.
+10. Use `git archive HEAD` for production source bundles when deploying committed work; it avoids stale local tar artifacts and excludes private/untracked files by default.

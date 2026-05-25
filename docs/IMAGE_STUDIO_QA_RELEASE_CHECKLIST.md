@@ -196,6 +196,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for this task. The local full public smoke remains dependent on local MySQL credentials and was not treated as an app-settings regression.
 - Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`fc93f17` settings-in-`app.js` baseline if settings/i18n/theme behavior regresses.
 
+### 2026-05-25 AIS-RLS-109 GitHub Actions CI Release
+
+- Task covered: `AIS-RLS-109` Add GitHub Actions CI check workflow.
+- Commit covered: `987ab86`.
+- Files changed: `.github/workflows/check.yml`.
+- CI coverage: workflow runs on `push` and `pull_request` to `main`, uses Node `20.20.2`, installs with `npm ci`, runs `npm run check`, and runs `npm test --if-present`. It intentionally does not start a MySQL service because the current check gate is database-free.
+- Local checks: `Test-Path .github/workflows/check.yml` returned `True`; `npm run check`, `npm test --if-present`, and `git diff --check` passed. `npm run check` still reports existing ESLint warnings because the current lint rules are warning-level until `AIS-RLS-130`.
+- GitHub Actions: workflow run for `987ab86c1dd43e5c0b44cea8a53cf0ff59061b43` completed with `success`.
+- Deployment note: `deployment_required=false`; no server rebuild, upload package, or production container restart was required for this CI-only task.
+- Known blockers: the acceptance item for a deliberately broken PR was not executed against the live repository; the workflow command set is expected to fail on syntax errors through `npm run syntax:check`, and the pushed workflow itself has a successful GitHub Actions run.
+- Rollback target: remove `.github/workflows/check.yml` or revert `987ab86` if CI blocks unexpectedly.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
