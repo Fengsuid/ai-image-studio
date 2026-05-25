@@ -9,6 +9,9 @@ import path from "node:path";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 const cssEntry = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8");
+const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
+const adminHtml = fs.readFileSync(path.join(rootDir, "public/admin.html"), "utf8");
+const serverJs = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const cssImportPaths = [...cssEntry.matchAll(/@import\s+url\("([^"]+)"\);/g)].map((match) => match[1]);
 const cssModules = cssImportPaths.map((importPath) => {
   assert(importPath.startsWith("/css/"), `styles.css import should stay under /css: ${importPath}`);
@@ -24,6 +27,28 @@ const css = [
   ...cssModules
 ].join("\n");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
+const vendorFontsDir = path.join(rootDir, "public/vendor/fonts");
+const vendorIconsDir = path.join(rootDir, "public/vendor/icons");
+
+function collectPublicSourceFiles(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const absolutePath = path.join(dir, entry.name);
+    const relativePath = path.relative(path.join(rootDir, "public"), absolutePath).replace(/\\/g, "/");
+    if (entry.isDirectory()) {
+      if (relativePath === "dist" || relativePath === "vendor") continue;
+      files.push(...collectPublicSourceFiles(absolutePath));
+      continue;
+    }
+    if (/\.(?:html|js|css)$/.test(entry.name)) files.push(absolutePath);
+  }
+  return files;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 assert(cssImportPaths.length >= 12, "styles.css should import split CSS modules");
 assert(!cssEntry.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@import\s+url\("[^"]+"\);\s*/g, "").trim(), "styles.css should remain an import-only compatibility entry");
@@ -73,5 +98,53 @@ assert.equal(
 
 assert(css.includes("@media (prefers-reduced-motion: reduce)"), "motion polish must respect reduced motion");
 assert(!app.includes("ripple-wave"), "AIS-RLS-070 should avoid decorative JS growth in app.js");
+[
+  "geist-latin.woff2",
+  "geist-latin-ext.woff2",
+  "instrument-serif-latin.woff2",
+  "instrument-serif-latin-ext.woff2",
+  "instrument-serif-italic-latin.woff2",
+  "instrument-serif-italic-latin-ext.woff2"
+].forEach((fileName) => {
+  assert(fs.existsSync(path.join(vendorFontsDir, fileName)), `self-hosted font missing: ${fileName}`);
+});
+const remixiconCssPath = path.join(vendorIconsDir, "remixicon.min.css");
+const remixiconCompatCssPath = path.join(vendorIconsDir, "remixicon-compat.css");
+assert(fs.existsSync(path.join(vendorIconsDir, "remixicon.woff2")), "self-hosted Remixicon font missing");
+assert(fs.existsSync(remixiconCssPath), "self-hosted Remixicon CSS missing");
+assert(fs.existsSync(remixiconCompatCssPath), "self-hosted Remixicon compatibility CSS missing");
+assert(css.includes("@font-face"), "typography CSS must declare local @font-face rules");
+assert(css.includes("/vendor/fonts/geist-latin.woff2"), "typography CSS must point Geist at /vendor/fonts");
+assert(css.includes("/vendor/fonts/instrument-serif-latin.woff2"), "typography CSS must point Instrument Serif at /vendor/fonts");
+assert(adminHtml.includes("/vendor/icons/remixicon.min.css"), "admin shell must load local Remixicon CSS");
+assert(adminHtml.includes("/vendor/icons/remixicon-compat.css"), "admin shell must load local Remixicon compatibility CSS");
+assert(!/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(`${indexHtml}\n${adminHtml}`), "HTML must not reference font or icon CDNs");
+assert(serverJs.includes("\"font-src 'self'\""), "CSP font-src must be self-only");
+assert(!/font-src[^"]*(?:fonts\.gstatic|cdn\.jsdelivr)/.test(serverJs), "CSP font-src must not allow external font CDNs");
+assert(!/style-src[^"]*(?:fonts\.googleapis|cdn\.jsdelivr)/.test(serverJs), "CSP style-src must not allow external style CDNs");
+const iconCss = `${fs.readFileSync(remixiconCssPath, "utf8")}\n${fs.readFileSync(remixiconCompatCssPath, "utf8")}`;
+assert(iconCss.includes("/vendor/icons/remixicon.woff2"), "Remixicon CSS must use an absolute self-hosted font URL");
+[
+  "ri-image-close-line",
+  "ri-image-edit-2-line",
+  "ri-image-spark-line",
+  "ri-image-warning-line",
+  "ri-sliders-3-line",
+  "ri-sliders-line",
+  "ri-sync-warning-line"
+].forEach((iconClass) => {
+  assert(iconCss.includes(`.${iconClass}:before`) || iconCss.includes(`.${iconClass}:before,`), `Remixicon compatibility CSS missing ${iconClass}`);
+});
+const usedIconClasses = new Set();
+for (const filePath of collectPublicSourceFiles(path.join(rootDir, "public"))) {
+  const source = fs.readFileSync(filePath, "utf8");
+  for (const match of source.matchAll(/\bri-[a-z0-9-]+\b/g)) usedIconClasses.add(match[0]);
+}
+for (const iconClass of usedIconClasses) {
+  assert(
+    new RegExp(`\\.${escapeRegExp(iconClass)}:before`).test(iconCss),
+    `self-hosted Remixicon CSS missing used icon class ${iconClass}`
+  );
+}
 
 console.log("[css-visual-polish-smoke] OK: CSS tokens and motion polish are present");

@@ -34,13 +34,19 @@ assert(buildScript.includes("buildCssBundle"), "build script must build the hash
 assert(buildScript.includes("buildJsAssets"), "build script must build hashed JS assets");
 assert(checkScript.includes("frontendBuildManifest"), "frontend check must validate source manifest");
 assert(builtJs.includes("register(\"build\", manifest)"), "built JS must register AppModules.build");
-assert(builtJson.version === "20260525-js-bundle-v1", "built manifest version mismatch");
+assert(builtJson.version === "20260525-self-host-assets-v1", "built manifest version mismatch");
 assert(/^\/dist\/app\.[a-f0-9]{12}\.css$/.test(cssBundleEntry), "built manifest must expose hashed CSS bundle entry");
 assert(fs.existsSync(cssBundlePath), "built manifest CSS bundle file must exist");
+const cssBundle = fs.existsSync(cssBundlePath) ? fs.readFileSync(cssBundlePath, "utf8") : "";
 assert(
-  createHash("sha256").update(fs.readFileSync(cssBundlePath)).digest("hex").slice(0, 12) === builtJson.css?.hash,
+  createHash("sha256").update(cssBundle).digest("hex").slice(0, 12) === builtJson.css?.hash,
   "built manifest CSS hash must match file content"
 );
+assert(cssBundle.includes("/vendor/fonts/geist-latin.woff2"), "CSS bundle must self-host Geist font files");
+assert(cssBundle.includes("/vendor/fonts/instrument-serif-latin.woff2"), "CSS bundle must self-host Instrument Serif font files");
+assert(cssBundle.includes("font-family:remixicon"), "CSS bundle must include local Remixicon icon rules");
+assert(cssBundle.includes("/vendor/icons/remixicon.woff2"), "CSS bundle must self-host Remixicon font files");
+assert(cssBundle.includes(".ri-image-spark-line:before"), "CSS bundle must include project Remixicon compatibility aliases");
 assert(/^\/dist\/app\.[a-f0-9]{12}\.js$/.test(appJsEntry), "built manifest must expose hashed app.js entry");
 assert(jsAssets.length >= 30, "built manifest must include hashed JS asset entries");
 for (const asset of jsAssets) {
@@ -56,6 +62,7 @@ for (const asset of jsAssets) {
 assert(indexHtml.includes(`href="${cssBundleEntry}"`), "public index must load the manifest CSS bundle");
 assert(indexHtml.includes(`src="${appJsEntry}"`), "public index must load hashed app.js");
 assert(!indexHtml.includes("?v="), "public index must not use manual query-string cache busting");
+assert(!/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(indexHtml), "public index must not load font or icon CDNs");
 assert(!indexHtml.includes('href="/styles.css'), "public index must not load styles.css directly");
 assert(indexHtml.indexOf(appModulesEntry) < indexHtml.indexOf("/frontend-build-manifest.js"), "frontend manifest must load after app-modules.js");
 assert(indexHtml.indexOf("/frontend-build-manifest.js") < indexHtml.indexOf(appJsEntry), "frontend manifest must load before app.js");

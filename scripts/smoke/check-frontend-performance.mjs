@@ -24,7 +24,8 @@ const budgets = {
   "public/app-prompt-library.js": 35000,
   "public/admin-shell-polish.js": 12000,
   nonCanvasInitialJs: 450000,
-  initialCss: 270000,
+  // AIS-RLS-112 moves the icon CSS from CDN into the single local bundle.
+  initialCss: 285000,
   cssModule: 16000,
   htmlInlineJson: 5000
 };

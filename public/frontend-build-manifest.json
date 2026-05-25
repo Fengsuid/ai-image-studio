@@ -1,5 +1,5 @@
 {
-  "version": "20260525-js-bundle-v1",
+  "version": "20260525-self-host-assets-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -19,11 +19,13 @@
       "/mobile-home.css",
       "/mobile-editor.css"
     ],
-    "entry": "/dist/app.79f33e4aba9c.css",
-    "file": "/dist/app.79f33e4aba9c.css",
-    "hash": "79f33e4aba9c",
-    "bytes": 267595,
+    "entry": "/dist/app.e28f2f83f29f.css",
+    "file": "/dist/app.e28f2f83f29f.css",
+    "hash": "e28f2f83f29f",
+    "bytes": 276257,
     "sources": [
+      "/vendor/icons/remixicon.min.css",
+      "/vendor/icons/remixicon-compat.css",
       "/css/00-tokens.css",
       "/css/00-theme.css",
       "/css/01-reset.css",

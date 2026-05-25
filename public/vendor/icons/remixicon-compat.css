@@ -1,0 +1,25 @@
+/* Project-local Remixicon aliases for icon names used before self-hosting. */
+.ri-image-close-line:before {
+  content: "\ee4b";
+}
+
+.ri-image-edit-2-line:before {
+  content: "\ee49";
+}
+
+.ri-image-spark-line:before {
+  content: "\f57b";
+}
+
+.ri-image-warning-line:before {
+  content: "\eca1";
+}
+
+.ri-sliders-3-line:before,
+.ri-sliders-line:before {
+  content: "\f405";
+}
+
+.ri-sync-warning-line:before {
+  content: "\ea1d";
+}

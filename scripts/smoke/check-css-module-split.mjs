@@ -80,6 +80,8 @@ assert.match(manifest.css?.hash || "", /^[a-f0-9]{12}$/, "frontend build manifes
 assert.equal(manifest.css?.file, localStylesheets[0], "frontend build manifest CSS file must match public index");
 
 const expectedSourcePaths = [
+  "/vendor/icons/remixicon.min.css",
+  "/vendor/icons/remixicon-compat.css",
   ...imported.map((file) => `/css/${file}`),
   "/mobile-gallery.css",
   "/mobile.css",

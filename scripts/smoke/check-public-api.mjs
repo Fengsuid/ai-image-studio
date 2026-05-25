@@ -114,6 +114,10 @@ async function checkHomeResources() {
   const home = await fetchText("/", "text/html,*/*");
   assert(home.status === 200, `/ status=${home.status}`);
   assert(home.headers.get("content-security-policy-report-only"), "/ missing CSP Report-Only header");
+  assert(!home.headers.get("content-security-policy-report-only").includes("fonts.googleapis.com"), "/ CSP should not allow Google Fonts");
+  assert(!home.headers.get("content-security-policy-report-only").includes("fonts.gstatic.com"), "/ CSP should not allow Google font assets");
+  assert(!home.headers.get("content-security-policy-report-only").includes("cdn.jsdelivr.net"), "/ CSP should not allow jsDelivr font/icon assets");
+  assert(home.headers.get("content-security-policy-report-only").includes("font-src 'self'"), "/ CSP font-src should be self-only");
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
   assert(home.headers.get("cache-control") === "no-store", "/ HTML must be no-store");
   assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.css/.test(home.body), "/ missing hashed CSS bundle reference");
@@ -121,6 +125,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && !/\/mobile(?:-[a-z]+)?\.css/.test(home.body), "/ should not load legacy mobile CSS directly");
   assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.js/.test(home.body), "/ missing hashed app.js reference");
   assert(typeof home.body === "string" && !home.body.includes("?v="), "/ should not use manual query-string cache busting");
+  assert(typeof home.body === "string" && !/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(home.body), "/ should not reference external font or icon CDNs");
   for (const fileName of [
     "canvas-layout.js",
     "canvas-edges.js",
@@ -211,6 +216,21 @@ async function checkHomeResources() {
   assert(style.body.includes("home-reduced-motion"), `${stylePath} should include home reduced motion fallback`);
   assert(style.body.includes("prompt-library-card"), `${stylePath} should style prompt library cards`);
   assert(style.body.includes("prompt-library-state"), `${stylePath} should style prompt library states`);
+  assert(style.body.includes("/vendor/fonts/geist-latin.woff2"), `${stylePath} should self-host Geist`);
+  assert(style.body.includes("/vendor/fonts/instrument-serif-latin.woff2"), `${stylePath} should self-host Instrument Serif`);
+  assert(style.body.includes("font-family:remixicon"), `${stylePath} should include local Remixicon icon rules`);
+
+  for (const fontPath of [
+    "/vendor/fonts/geist-latin.woff2",
+    "/vendor/fonts/instrument-serif-latin.woff2",
+    "/vendor/icons/remixicon.woff2"
+  ]) {
+    log(`HEAD ${fontPath}`);
+    const font = await fetchHead(fontPath, "font/woff2,*/*");
+    assert(font.status === 200, `${fontPath} status=${font.status}`);
+    assert((font.headers.get("cache-control") || "").includes("max-age=31536000"), `${fontPath} should use long-lived cache`);
+    assert((font.headers.get("cache-control") || "").includes("immutable"), `${fontPath} should use immutable cache`);
+  }
 
   log(`GET ${homeOnboardingPath}`);
   const homeOnboarding = await fetchText(homeOnboardingPath, "application/javascript,*/*");

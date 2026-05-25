@@ -9,6 +9,10 @@ const LEGACY_MOBILE_CSS = [
   "mobile-home.css",
   "mobile-editor.css"
 ];
+const VENDOR_CSS = [
+  "vendor/icons/remixicon.min.css",
+  "vendor/icons/remixicon-compat.css"
+];
 
 function publicPathFor(relativePath) {
   return `/${relativePath.replace(/\\/g, "/").replace(/^public\//, "")}`;
@@ -24,6 +28,7 @@ async function cssSources(root) {
   const styles = await readText(stylesPath);
   const moduleFiles = [...styles.matchAll(PUBLIC_CSS_IMPORT_RE)].map((match) => match[1]);
   const sources = [
+    ...VENDOR_CSS.map((fileName) => path.join("public", fileName)),
     ...moduleFiles.map((fileName) => path.join("public", "css", fileName)),
     ...LEGACY_MOBILE_CSS.map((fileName) => path.join("public", fileName))
   ];
