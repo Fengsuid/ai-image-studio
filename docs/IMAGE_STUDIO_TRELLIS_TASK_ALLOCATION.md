@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
 日期：2026-05-20
-状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-25，`AIS-RLS-110` 已完成）。
+状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-25，`AIS-RLS-111` 已完成）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -33,7 +33,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-111` Emit content-hashed JS bundles and remove manual ?v= query strings | Frontend | `AIS-RLS-110` 已完成，继续推进 JS bundle hash；需先确认并行 slice agent 是否已推送会影响构建入口的变更 |
+| 1 | `AIS-RLS-112` Self-host Geist + Instrument Serif + Remixicon under /vendor/ | Frontend | `AIS-RLS-111` 已完成，继续推进第三方字体/图标本地化；需保留 hashed asset cache 策略 |
 
 ## 3. 全量 Trellis 任务表
 
@@ -143,7 +143,8 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Done | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |
 | `AIS-RLS-109` | Add GitHub Actions CI check workflow | Done | P1 | Platform | Post-Release Phase B | `AIS-RLS-107`, `AIS-RLS-108` |
 | `AIS-RLS-110` | Merge public/css/*.css into content-hashed single bundle | Done | P1 | Frontend | Post-Release Phase C | `AIS-RLS-109` |
-| `AIS-RLS-111` | Emit content-hashed JS bundles and remove manual ?v= query strings | Ready | P1 | Frontend | Post-Release Phase C | `AIS-RLS-110` |
+| `AIS-RLS-111` | Emit content-hashed JS bundles and remove manual ?v= query strings | Done | P1 | Frontend | Post-Release Phase C | `AIS-RLS-110` |
+| `AIS-RLS-112` | Self-host Geist + Instrument Serif + Remixicon under /vendor/ | Ready | P1 | Frontend | Post-Release Phase C | `AIS-RLS-111` |
 | `AIS-RLS-130` | Tighten ESLint rules from warn to CI-blocking errors | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-099` |
 | `AIS-RLS-131` | Expand CHANGELOG and CONTRIBUTING into usable project docs | Ready | P3 | Documentation | Post-Release Phase C | `AIS-RLS-096` |
 | `AIS-RLS-132` | Split and land premium polish theme CSS safely | Ready | P2 | Frontend | Post-Release Phase C | `AIS-RLS-098`, `AIS-RLS-110` |

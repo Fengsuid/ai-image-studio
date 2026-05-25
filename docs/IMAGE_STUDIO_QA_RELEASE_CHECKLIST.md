@@ -221,6 +221,19 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for the CSS bundle release. Server disk remained high at 87% used after deployment, so future tasks should avoid unnecessary backups and clean old artifacts if usage rises.
 - Rollback target: revert `489a9a6`, or change `public/index.html` back to `/styles.css` plus the legacy mobile CSS links and remove the manifest CSS fields if the bundle regresses.
 
+### 2026-05-25 AIS-RLS-111 JS Bundle Hash Release
+
+- Task covered: `AIS-RLS-111` Emit content-hashed JS bundles and remove manual `?v=` query strings.
+- Commit covered: `ae6cf24`.
+- Files changed: `scripts/frontend/js-bundle.mjs`, `scripts/frontend/build-public-modules.mjs`, `public/dist/*.js`, `public/index.html`, `server.js`, frontend build manifest files, frontend/public smoke scripts, and version config.
+- Frontend coverage: `npm run frontend:build` now copies the public homepage JS files into `public/dist/<name>.<hash>.js`, updates public `index.html` to load hashed JS assets, removes manual `?v=` query strings from public homepage scripts, keeps `/frontend-build-manifest.js` as a query-free compatibility manifest, and records all JS asset mappings/hashes in `public/frontend-build-manifest.json` and `.js`.
+- Cache coverage: server static handling now returns `Cache-Control: public, max-age=31536000, immutable` for `/dist/*.<hash>.js` and `/dist/*.<hash>.css`, while HTML remains `Cache-Control: no-store`.
+- Local checks: `node --check scripts/frontend/js-bundle.mjs`, `node --check scripts/frontend/build-public-modules.mjs`, `node --check scripts/smoke/check-public-api.mjs`, `npm run frontend:build` twice, `npm run smoke:frontend-build-tooling`, `npm run smoke:css-module-split`, `npm run smoke:frontend-performance`, `npm run smoke:gallery-leaderboard-sidebar`, `npm run smoke:public-app-module-split`, `npm run check`, privacy scan, and `git diff --check` passed. Local `npm run smoke:public` was deferred to production because local MySQL credentials still block `node server.js`.
+- Online smoke: external `npm run smoke:public -- https://<host>` passed and fetched `/dist/app.68e80b1aa603.js`; external `/api/version` reports `20260525-js-bundle-v1`; container checks confirmed `/` has `Cache-Control: no-store`, `/dist/app.68e80b1aa603.js` has `max-age=31536000, immutable`, and `/dist/app.79f33e4aba9c.css` has `max-age=31536000, immutable`.
+- Deployment note: the first `scp` upload timed out and left an invalid partial archive; the package was retransmitted, then file count and SHA256 were verified before deployment. No database schema or data changes were made.
+- Known blockers: none for the JS hash release. The generated manifest increases measured non-canvas initial JS to `443890` bytes, still under the updated 450 KB smoke budget.
+- Rollback target: revert `ae6cf24`, or change public `index.html` scripts back to root JS files with manual query strings and restore normal static asset cache headers if hashed JS serving regresses.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
