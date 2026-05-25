@@ -1,6 +1,7 @@
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY packages ./packages
 RUN npm ci --omit=dev
 
 FROM node:20-bookworm-slim AS canvas-v2-build
@@ -24,6 +25,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json server.js ./
 COPY src ./src
 COPY public ./public
+COPY packages ./packages
 COPY apps/canvas-v2 ./apps/canvas-v2
 COPY apps/agent-workspace ./apps/agent-workspace
 COPY scripts ./scripts
