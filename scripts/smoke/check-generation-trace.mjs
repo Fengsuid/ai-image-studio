@@ -13,7 +13,7 @@ const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
 const adminRoute = fs.readFileSync(path.join(rootDir, "src/routes/admin/generations.js"), "utf8");
 const imagesGenerateRoute = fs.readFileSync(path.join(rootDir, "src/routes/images-generate.js"), "utf8");
-const agentGenerationService = fs.readFileSync(path.join(rootDir, "src/agent-generation-service.js"), "utf8");
+const agentGenerationService = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
 const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
 const trace = require(path.join(rootDir, "src/generation-trace-service.js"));
 

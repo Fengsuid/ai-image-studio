@@ -16,7 +16,7 @@ const packageJson = JSON.parse(read("package.json"));
 const routeFiles = {
   auth: read("src/routes/auth.js"),
   health: read("src/routes/health.js"),
-  agentSessions: read("src/routes/agent-sessions.js"),
+  agentSessions: read("packages/agent-core/src/routes.js"),
   images: read("src/routes/images.js"),
   imagesGenerate: read("src/routes/images-generate.js"),
   prompts: read("src/routes/prompts.js"),
@@ -52,7 +52,7 @@ assert(!routeFiles.auth.includes("return sendJson("), "src/routes/auth.js handle
 assert(!routeFiles.auth.includes("return sendNoContent("), "src/routes/auth.js handlers must explicitly return true after sendNoContent");
 assert((routeFiles.auth.match(/return true;/g) || []).length >= 4, "src/routes/auth.js must stop route fallthrough after handled auth responses");
 assert(routeFiles.health.includes("createHealthRoute") && routeFiles.health.includes("module.exports"), "src/routes/health.js must export createHealthRoute");
-assert(routeFiles.agentSessions.includes("createAgentSessionRoute") && routeFiles.agentSessions.includes("module.exports"), "src/routes/agent-sessions.js must export createAgentSessionRoute");
+assert(routeFiles.agentSessions.includes("createAgentSessionRoute") && routeFiles.agentSessions.includes("module.exports"), "packages/agent-core/src/routes.js must export createAgentSessionRoute");
 
 const splitRoutes = [
   {

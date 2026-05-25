@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "AI image generation studio with prompt gallery, image editing, public square, credits, and admin operations.",
   "main": "server.js",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "author": "Fengsuid and Codex",
   "contributors": [
     {

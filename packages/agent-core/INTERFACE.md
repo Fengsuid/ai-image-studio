@@ -1,7 +1,7 @@
 # Agent Core — Interface Contract
 
 更新日期：2026-05-25
-版本：v0.0.0（pre-extract）→ 抽取后从 v1.0.0 起算
+版本：v1.0.0（首次发布，AIS-RLS-148 抽取完成）
 路径：`packages/agent-core/`
 范围：Agent 功能后端切片（generation-service + planner + routes + session-store）
 
@@ -113,7 +113,7 @@
 
 ## 5. 事件契约
 
-- 计划生成：`POST /plan` → 内部使用 `buildAgentPlan` / `summarizeAgentPlan`（来自 `src/agent-planner.js`，将迁到 `packages/agent-core/src/planner.js`）
+- 计划生成：`POST /plan` → 内部使用 `buildAgentPlan` / `summarizeAgentPlan`（位于 `packages/agent-core/src/planner.js`）
 - 批量执行：`POST /generate` → 内部走 `generateAgentBatch` → `enqueueGenerationJob` → `runQueuedTextGeneration`
 - 导出画布：`POST /export-canvas` → 内部走 `exportAgentCanvas`，最终写入 `canvas_projects` 表（**跨 slice**：调用主项目 store 的 canvas 写入方法）
 
@@ -142,8 +142,8 @@ agent slice 自跑：
 
 ```
 cd packages/agent-core
-npm run check
-npm run test           # vitest 单测（planner 优先级 P0）
+npm run check          # node --check 全量源文件语法
+npm run test           # node:test planner 单测（5 用例 P0）
 ```
 
 主项目 CI 引用：
@@ -160,6 +160,6 @@ npm run test           # vitest 单测（planner 优先级 P0）
 
 ## 9. 变更日志
 
-- 2026-05-25 v1.0.1（草案）：修正子应用路径为 `apps/agent-workspace/`（已存在）；license 为 `UNLICENSED`，不强制 AGPL；补完现有 agent smokes 清单
-- 2026-05-25 v1.0.0（草案）：初版冻结草案，待 `AIS-RLS-148`（slice 抽取）完成后正式发布 v1.0.0
+- 2026-05-25 v1.0.0（首次发布，AIS-RLS-148）：从 `src/agent-*` 与 `src/routes/agent-sessions.js`、`src/stores/agent-session-store.js` 抽取实体到 `packages/agent-core/`；DDL 迁至 `schema/001-003`；`server.js` 与 `src/mysql-store.js` 通过 `@ai-image-studio/agent-core` 消费；`createGenerationService` / `createRoutes` / `createSessionStore` / `applySchema` / `buildAgentPlan` / `summarizeAgentPlan` 为公开导出；HTTP 前缀与 store 契约保持不变
+- 2026-05-25 v1.0.1（草案，已并入 v1.0.0）：修正子应用路径为 `apps/agent-workspace/`（已存在）；license 为 `UNLICENSED`，不强制 AGPL；补完现有 agent smokes 清单
 

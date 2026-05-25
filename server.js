@@ -46,8 +46,9 @@ const {
   normalizeProviderMapping,
   runProviderMappingRequest
 } = require("./src/provider-mapping");
-const { createAgentGenerationService } = require("./src/agent-generation-service");
-const { createAgentSessionRoute } = require("./src/routes/agent-sessions");
+const agentCore = require("@ai-image-studio/agent-core");
+const createAgentGenerationService = agentCore.createGenerationService;
+const createAgentSessionRoute = agentCore.createRoutes;
 const { createAuthRoute } = require("./src/routes/auth");
 const { createHealthRoute } = require("./src/routes/health");
 const { createImagesRoute } = require("./src/routes/images");

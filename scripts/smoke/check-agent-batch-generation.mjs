@@ -147,8 +147,8 @@ async function cleanup() {
 function staticChecks() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
   const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
-  const route = fs.readFileSync(path.join(rootDir, "src/routes/agent-sessions.js"), "utf8");
-  const service = fs.readFileSync(path.join(rootDir, "src/agent-generation-service.js"), "utf8");
+  const route = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
+  const service = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
   const api = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
   const app = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
 

@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const { buildAgentPlan } = require("../../src/agent-planner.js");
+const { buildAgentPlan } = require("@ai-image-studio/agent-core");
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const argBase = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "";
 const baseUrl = (process.env.BASE_URL || argBase || "http://127.0.0.1:3000").replace(/\/+$/, "");
@@ -161,8 +161,8 @@ function staticChecks() {
   const mobileCss = fs.readFileSync(path.join(rootDir, "public/mobile.css"), "utf8");
   const appSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
   const apiSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
-  const plannerSource = fs.readFileSync(path.join(rootDir, "src/agent-planner.js"), "utf8");
-  const routeSource = fs.readFileSync(path.join(rootDir, "src/routes/agent-sessions.js"), "utf8");
+  const plannerSource = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/planner.js"), "utf8");
+  const routeSource = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
   const indexHtml = fs.readFileSync(path.join(rootDir, "public/agent/index.html"), "utf8");
 
   assert.equal(packageJson.scripts["agent:check"], "npm run check --prefix apps/agent-workspace", "root agent:check script missing");
