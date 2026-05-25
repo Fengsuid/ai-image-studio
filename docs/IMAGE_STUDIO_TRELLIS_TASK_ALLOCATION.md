@@ -137,7 +137,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 | Task | Title | Status | Priority | Lane | Milestone | Dependencies |
 | --- | --- | --- | --- | --- | --- | --- |
-| `AIS-RLS-105` | Split src/routes/admin.js into src/routes/admin/* by business domain | Active | P1 | Platform | Post-Release Phase B | `AIS-RLS-100` |
+| `AIS-RLS-105` | Split src/routes/admin.js into src/routes/admin/* by business domain | Done | P1 | Platform | Post-Release Phase B | `AIS-RLS-100` |
 | `AIS-RLS-106` | Convert mysql-store.js facade to programmatic re-export with collision check | Ready | P1 | Platform | Post-Release Phase B | None |
 | `AIS-RLS-107` | Extract app.js auth/account/csrf into public/app-auth.js | Ready | P1 | Frontend | Post-Release Phase B | None |
 | `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Ready | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |

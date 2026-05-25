@@ -148,6 +148,18 @@ Record the outcome in the relevant development document or release note before m
 - Online validation: after deployment verify `/api/version`, `/canvas-v2`, `/canvas-v2/projects/<id>`, Canvas v2 static assets, `npm run smoke:public -- <origin>`, `npm run smoke:canvas-v2 -- <origin>`, `npm run smoke:canvas-v2:generation`, `npm run smoke:canvas-v2:entry`, gallery-to-canvas smoke, and the retired domain 410 response.
 - Rollback point: record the pushed Git commit and deployment package version for every Canvas v2 release. Prefer code rollback or `CANVAS_ENTRY_MODE=legacy` for UI regressions; database rollback is only needed for destructive schema/data changes.
 
+### 2026-05-25 AIS-RLS-105 Admin Route Split Release
+
+- Task covered: `AIS-RLS-105` Split `src/routes/admin.js` into `src/routes/admin/*` by business domain.
+- Commits covered: `b0043f0`, `8bfdc4b`.
+- Files changed: `src/routes/admin/*`, `server.js`, admin/backend smoke scripts, `src/stores/prompt-store.js`, API reference, and Trellis allocation docs.
+- Backend coverage: deleted legacy `src/routes/admin.js`, `src/routes/admin-users.js`, and `src/routes/admin-announcements.js`; new admin domains are `announcements`, `diagnostics`, `generations`, `moderation`, `prompt-sources`, `public-images`, `settings`, `users`, plus `index.js` aggregation. Each backend admin subfile is under 400 lines.
+- Local checks: `node --check server.js`, `node --check src/routes/admin/*.js`, `node --check src/stores/prompt-store.js`, `npm run check`, `npm run smoke:admin-module-split`, `npm run smoke:server-route-boundary-split`, `npm run smoke:admin-generation-diagnostics`, `npm run smoke:public-reward-policy`, `npm run smoke:generation-trace`, `npm run smoke:mysql-store-domain-split`, `git diff --check`, and privacy scan passed. Local `smoke:auth-admin` and `smoke:moderation-withdrawal` were blocked before deployment by missing local admin/MySQL credentials.
+- Online smoke: container `npm run smoke:auth-admin -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` and `npm run smoke:gallery-images -- https://<host>` passed; `/api/version` reports `20260525-admin-route-split-v1`.
+- Deployment note: the production source tree initially retained stale legacy admin files because the package was extracted over an existing directory; those files were removed before the final rebuild, and the final container confirms only `src/routes/admin/*` remains.
+- Known blockers: `smoke:moderation-withdrawal` still fails in production when the current public unpublish policy returns `409 publicUnpublishDisabled`; this is a policy/state mismatch outside the admin route split and is not treated as an AIS-RLS-105 regression.
+- Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`b0043f0` route baseline if admin endpoints regress.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
