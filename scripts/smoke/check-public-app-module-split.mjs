@@ -18,6 +18,7 @@ function scriptPosition(html, scriptName) {
 
 const indexHtml = read("public/index.html");
 const appJs = read("public/app.js");
+const appAuthJs = read("public/app-auth.js");
 const packageJson = JSON.parse(read("package.json"));
 
 const moduleScripts = [
@@ -43,7 +44,7 @@ const moduleSourceChecks = {
   "public/app-session.js": ['register("session"', "renderImageSessions"],
   "public/app-generation.js": ['register("generation"', "renderResultActions"],
   "public/app-gallery.js": ['register("gallery"', "renderLeaderboard"],
-  "public/app-auth.js": ['register("auth"'],
+  "public/app-auth.js": ['register("auth"', "createAuthController", "bindAccountEvents", "openMyWorksModal", "X-CSRF-Token"],
   "public/app-settings.js": ['register("settings"']
 };
 
@@ -59,8 +60,15 @@ assert(appJs.includes("window.AppModules?.generation?.renderResultActions"), "ap
 assert(appJs.includes("window.AppModules?.gallery?.renderLeaderboard"), "app.js should delegate leaderboard rendering through AppModules.gallery");
 assert(appJs.includes("window.AppModules?.gallery?.createTagViewModel"), "app.js should delegate tag view models through AppModules.gallery");
 assert(appJs.includes("window.AppModules?.gallery?.createDetailMedia"), "app.js should delegate detail media through AppModules.gallery");
-assert(appJs.includes('window.AppModules?.register?.("auth"'), "app.js should register auth module bridge");
+assert(appJs.includes("window.AppModules?.auth?.create"), "app.js should initialize auth through AppModules.auth.create");
+assert(appJs.includes("requireAuthController().bindAccountEvents"), "app.js should delegate account event binding through AppModules.auth");
+assert(appJs.includes('window.AppModules?.register?.("auth", controller)'), "app.js should publish the initialized auth controller");
 assert(appJs.includes('window.AppModules?.register?.("settings"'), "app.js should register settings module bridge");
+assert(!appJs.includes("id=\"authForm\""), "app.js should not render auth form markup directly");
+assert(!appJs.includes("works-bulk-actions"), "app.js should not render My Works bulk action markup directly");
+assert(appAuthJs.includes("id=\"authForm\""), "app-auth.js should own auth form markup");
+assert(appAuthJs.includes("works-bulk-actions"), "app-auth.js should own My Works markup");
+assert(appJs.split(/\r?\n/).length <= 6700, "app.js should stay below the AIS-RLS-107 line-count budget");
 
 assert(
   packageJson.scripts?.["smoke:public-app-module-split"] === "node scripts/smoke/check-public-app-module-split.mjs",
