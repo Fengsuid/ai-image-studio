@@ -208,6 +208,19 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: the acceptance item for a deliberately broken PR was not executed against the live repository; the workflow command set is expected to fail on syntax errors through `npm run syntax:check`, and the pushed workflow itself has a successful GitHub Actions run.
 - Rollback target: remove `.github/workflows/check.yml` or revert `987ab86` if CI blocks unexpectedly.
 
+### 2026-05-25 AIS-RLS-110 CSS Bundle Merge Release
+
+- Task covered: `AIS-RLS-110` Merge `public/css/*.css` into content-hashed single bundle.
+- Commit covered: `489a9a6`.
+- Files changed: `scripts/frontend/css-bundle.mjs`, `scripts/frontend/build-public-modules.mjs`, `src/frontend/app-build-manifest.mjs`, generated `public/dist/app.a4dfaf24076c.css`, `public/index.html`, frontend build manifest files, CSS/public smoke scripts, and version config.
+- Frontend coverage: `npm run frontend:build` now emits `public/dist/app.<hash>.css`, records the CSS hash/source list in `public/frontend-build-manifest.json` and `.js`, keeps `public/styles.css` as the compatibility import entry, and changes the public homepage from five local CSS links plus imports to one local hashed CSS bundle link. `/admin` intentionally keeps `/styles.css` for compatibility.
+- Local checks: `node --check scripts/frontend/css-bundle.mjs`, `node --check scripts/frontend/build-public-modules.mjs`, `node --check scripts/smoke/check-css-module-split.mjs`, `node --check scripts/smoke/check-frontend-build-tooling.mjs`, `npm run frontend:build`, `Test-Path public/dist/app.*.css`, `npm run smoke:css-module-split`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-performance`, `npm run smoke:gallery-leaderboard-sidebar`, `npm run check`, JSON parse check, and `git diff --check` passed.
+- Local blocked checks: full local `npm run smoke:public` was blocked by local MySQL `root@localhost` credential mismatch. `npm run smoke:visual-regression` ran with Edge CDP and produced diffs against the existing local baseline; manual review showed the deltas were from existing icon/fixture baseline drift rather than missing bundled CSS, and it was not promoted as a new baseline.
+- Online smoke: deployment package hash and file count matched locally and on server; container local `/api/version` and external `/api/version` report `20260525-css-bundle-v1`; container CSS fetch returned `200` for `/dist/app.a4dfaf24076c.css`; external `npm run smoke:public -- https://<host>` passed and verified the public home CSS bundle plus admin `/styles.css` compatibility path.
+- Deployment note: server `.env` initially kept the previous `APP_VERSION`, so it was updated to `20260525-css-bundle-v1` and the app container was restarted. No database schema or data changes were made.
+- Known blockers: none for the CSS bundle release. Server disk remained high at 87% used after deployment, so future tasks should avoid unnecessary backups and clean old artifacts if usage rises.
+- Rollback target: revert `489a9a6`, or change `public/index.html` back to `/styles.css` plus the legacy mobile CSS links and remove the manifest CSS fields if the bundle regresses.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
