@@ -7,6 +7,15 @@ assert.match(frontendBuildManifest.version, /^\d{8}-[a-z0-9-]+-v\d+$/);
 assert.equal(frontendBuildManifest.sourceRoot, "src/frontend");
 assert.ok(Array.isArray(frontendBuildManifest.outputs));
 assert.ok(frontendBuildManifest.outputs.length > 0);
+assert.equal(frontendBuildManifest.css?.bundler, "scripts/frontend/css-bundle.mjs");
+assert.equal(frontendBuildManifest.css?.entryPattern, "/dist/app.<hash>.css");
+assert.equal(frontendBuildManifest.css?.compatibilityEntry, "/styles.css");
+assert.deepEqual(frontendBuildManifest.css?.legacyMobileSources, [
+  "/mobile-gallery.css",
+  "/mobile.css",
+  "/mobile-home.css",
+  "/mobile-editor.css"
+]);
 
 for (const output of frontendBuildManifest.outputs) {
   assert.match(output.source, /^src\/frontend\//);

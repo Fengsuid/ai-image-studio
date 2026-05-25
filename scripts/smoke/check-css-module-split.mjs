@@ -9,8 +9,12 @@ import path from "node:path";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cssDir = path.join(rootDir, "public/css");
 const stylesPath = path.join(rootDir, "public/styles.css");
+const indexPath = path.join(rootDir, "public/index.html");
+const manifestPath = path.join(rootDir, "public/frontend-build-manifest.json");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 const styles = fs.readFileSync(stylesPath, "utf8");
+const indexHtml = fs.readFileSync(indexPath, "utf8");
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
 assert.equal(
   packageJson.scripts["smoke:css-module-split"],
@@ -51,8 +55,46 @@ for (const file of cssFiles) {
   assert(content.trim().startsWith("/*"), `${file} should start with a module header comment`);
 }
 
-const imported = [...styles.matchAll(/@import url\(\"\/css\/([^\"]+\.css)\"\);/g)].map((match) => match[1]);
+const imported = [...styles.matchAll(/@import url\("\/css\/([^"]+\.css)"\);/g)].map((match) => match[1]);
 assert.equal(imported.length, cssFiles.length, "styles.css import count must match public/css files");
 assert.deepEqual([...imported].sort(), cssFiles, "styles.css imports must match public/css files");
 
-console.log(`[css-module-split-smoke] OK: ${cssFiles.length} CSS modules imported from styles.css`);
+function stylesheetHrefs(html) {
+  return [...html.matchAll(/<link\b[^>]*>/g)]
+    .map((match) => match[0])
+    .filter((tag) => /\brel="stylesheet"/.test(tag))
+    .map((tag) => tag.match(/\bhref="([^"]+)"/)?.[1])
+    .filter(Boolean);
+}
+
+const localStylesheets = stylesheetHrefs(indexHtml).filter((href) => href.startsWith("/"));
+assert.equal(localStylesheets.length, 1, "public index must load exactly one local stylesheet");
+assert.match(localStylesheets[0], /^\/dist\/app\.[a-f0-9]{12}\.css$/, "public index must load the hashed CSS bundle");
+assert(!localStylesheets.includes("/styles.css"), "public index must not load styles.css directly");
+assert(!localStylesheets.some((href) => /^\/mobile(?:-[a-z]+)?\.css/.test(href)), "public index must not load legacy mobile CSS directly");
+
+const bundlePath = path.join(rootDir, "public", localStylesheets[0].slice(1));
+assert(fs.existsSync(bundlePath), `hashed CSS bundle missing: ${localStylesheets[0]}`);
+assert.equal(manifest.css?.entry, localStylesheets[0], "frontend build manifest CSS entry must match public index");
+assert.match(manifest.css?.hash || "", /^[a-f0-9]{12}$/, "frontend build manifest must include CSS hash");
+assert.equal(manifest.css?.file, localStylesheets[0], "frontend build manifest CSS file must match public index");
+
+const expectedSourcePaths = [
+  ...imported.map((file) => `/css/${file}`),
+  "/mobile-gallery.css",
+  "/mobile.css",
+  "/mobile-home.css",
+  "/mobile-editor.css"
+];
+assert.deepEqual(manifest.css?.sources, expectedSourcePaths, "frontend build manifest CSS sources must preserve cascade order");
+
+const bundle = fs.readFileSync(bundlePath, "utf8");
+assert(!/@import\s/.test(bundle), "hashed CSS bundle must not contain @import rules");
+for (const publicPath of expectedSourcePaths) {
+  const sourceComment = `/* public/${publicPath.slice(1)} */`;
+  assert(bundle.includes(sourceComment), `hashed CSS bundle missing source section ${sourceComment}`);
+}
+
+console.log(
+  `[css-module-split-smoke] OK: ${cssFiles.length} CSS modules bundled into ${localStylesheets[0]}`
+);

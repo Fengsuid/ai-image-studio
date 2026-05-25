@@ -13,6 +13,7 @@ const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const leaderboard = fs.readFileSync(path.join(rootDir, "public/gallery-leaderboard.js"), "utf8");
 const css = readPublicCssWithImports(rootDir);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
+const galleryRoute = fs.readFileSync(path.join(rootDir, "src/routes/gallery.js"), "utf8");
 
 assert(app.includes("gallery-main-grid"), "library cards must be wrapped separately from the leaderboard");
 assert(app.includes("ImageStudioGalleryLeaderboard"), "app.js must delegate leaderboard rendering to a focused module");
@@ -22,11 +23,11 @@ assert(!app.includes("bindGalleryLeaderboardControls(elements.promptGrid);"), "l
 assert(indexHtml.includes("/gallery-leaderboard.js"), "index.html must load gallery-leaderboard.js before app.js");
 assert(indexHtml.indexOf("/gallery-leaderboard.js") < indexHtml.indexOf("/app.js"), "gallery-leaderboard.js must load before app.js");
 assert(indexHtml.includes("/gallery-leaderboard.js?v=20260521-leaderboard-top-v5"), "leaderboard module must have a fresh cache-busting version");
-const stylesVersion = indexHtml.match(/\/styles\.css\?v=([^"]+)/)?.[1] || "";
 const appVersion = indexHtml.match(/\/app\.js\?v=([^"]+)/)?.[1] || "";
-assert(stylesVersion, "styles bundle must have a cache-busting version");
+const cssBundle = indexHtml.match(/href="(\/dist\/app\.[a-f0-9]{12}\.css)"/)?.[1] || "";
+assert(cssBundle, "index.html must load the hashed CSS bundle");
+assert(!indexHtml.includes("/styles.css"), "index.html must not load styles.css directly");
 assert(appVersion, "app bundle must have a cache-busting version");
-assert.equal(stylesVersion, appVersion, "styles bundle must match the app cache-busting version");
 assert(leaderboard.includes("ImageStudioGalleryLeaderboard"), "leaderboard module must register a global helper");
 assert(leaderboard.includes("<aside class=\"gallery-leaderboard"), "leaderboard must render as a navigation/sidebar aside");
 assert(leaderboard.includes("const MAX_LEADERBOARD_ITEMS = 99;"), "leaderboard page must expose up to 99 ranked items");
@@ -43,7 +44,7 @@ assert(app.includes('galleryLeaderboardRange: "all"'), "leaderboard must default
 assert(app.includes("const GALLERY_LEADERBOARD_LIMIT = 99;"), "leaderboard API requests must ask for up to 99 items");
 assert(app.includes("limit: String(GALLERY_LEADERBOARD_LIMIT)"), "leaderboard API limit must use the shared 99-item cap");
 assert(server.includes("const GALLERY_LEADERBOARD_LIMIT_MAX = 99;"), "leaderboard API must cap responses at 99 items");
-assert(server.includes("sanitizePositiveInt(url.searchParams.get(\"limit\"), 30, GALLERY_LEADERBOARD_LIMIT_MAX)"), "leaderboard API must use the 99-item cap");
+assert(galleryRoute.includes("sanitizePositiveInt(url.searchParams.get(\"limit\"), 30, GALLERY_LEADERBOARD_LIMIT_MAX)"), "leaderboard API must use the 99-item cap");
 assert(app.includes("openSquarePreviewById(id);"), "leaderboard gallery cards must fall back to API detail loading");
 assert(app.includes("getPromptById(id) || findPromptLikeItem(id)"), "leaderboard prompt cards must open from leaderboard cache before prompt library finishes loading");
 assert(app.includes('elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");'), "setView must always sync leaderboard visibility");

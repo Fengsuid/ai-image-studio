@@ -109,7 +109,9 @@ async function checkHomeResources() {
   assert(home.status === 200, `/ status=${home.status}`);
   assert(home.headers.get("content-security-policy-report-only"), "/ missing CSP Report-Only header");
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
-  assert(typeof home.body === "string" && home.body.includes("/styles.css"), "/ missing styles.css reference");
+  assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.css/.test(home.body), "/ missing hashed CSS bundle reference");
+  assert(typeof home.body === "string" && !home.body.includes("/styles.css"), "/ should not load styles.css directly");
+  assert(typeof home.body === "string" && !/\/mobile(?:-[a-z]+)?\.css/.test(home.body), "/ should not load legacy mobile CSS directly");
   assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-layout.js"), "/ missing canvas-layout.js reference");
   assert(typeof home.body === "string" && home.body.includes("/canvas-edges.js"), "/ missing canvas-edges.js reference");
@@ -135,7 +137,7 @@ async function checkHomeResources() {
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
 
-  const styleMatch = home.body.match(/href="([^"]*\/styles\.css[^"]*)"/);
+  const styleMatch = home.body.match(/href="([^"]*\/dist\/app\.[a-f0-9]{12}\.css)"/);
   const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
   const canvasLayoutMatch = home.body.match(/src="([^"]*\/canvas-layout\.js[^"]*)"/);
   const canvasEdgesMatch = home.body.match(/src="([^"]*\/canvas-edges\.js[^"]*)"/);
@@ -157,7 +159,7 @@ async function checkHomeResources() {
   const promptLibraryMatch = home.body.match(/src="([^"]*\/app-prompt-library\.js[^"]*)"/);
   const appAuthMatch = home.body.match(/src="([^"]*\/app-auth\.js[^"]*)"/);
   const appSettingsMatch = home.body.match(/src="([^"]*\/app-settings\.js[^"]*)"/);
-  const stylePath = styleMatch?.[1] || "/styles.css";
+  const stylePath = styleMatch?.[1] || "/dist/app.missing.css";
   const appPath = appMatch?.[1] || "/app.js";
   const canvasLayoutPath = canvasLayoutMatch?.[1] || "/canvas-layout.js";
   const canvasEdgesPath = canvasEdgesMatch?.[1] || "/canvas-edges.js";
@@ -179,15 +181,10 @@ async function checkHomeResources() {
   const promptLibraryPath = promptLibraryMatch?.[1] || "/app-prompt-library.js";
   const appAuthPath = appAuthMatch?.[1] || "/app-auth.js";
   const appSettingsPath = appSettingsMatch?.[1] || "/app-settings.js";
-  const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
   const appAuthVersion = new URL(appAuthPath, baseUrl).searchParams.get("v");
   const appSettingsVersion = new URL(appSettingsPath, baseUrl).searchParams.get("v");
-  assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
   assert(appVersion && appVersion.length > 0, "/ app.js should include cache-busting version");
-  if (styleVersion && appVersion) {
-    assert(styleVersion === appVersion, `/ app.js/styles.css version mismatch (${appVersion} vs ${styleVersion})`);
-  }
   if (appAuthVersion && appVersion) {
     assert(appAuthVersion === appVersion, `/ app-auth.js/app.js version mismatch (${appAuthVersion} vs ${appVersion})`);
   }
@@ -199,6 +196,7 @@ async function checkHomeResources() {
   const style = await fetchCssWithImports(stylePath);
   assert(style.status === 200, `${stylePath} status=${style.status}`);
   assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
+  assert(!/@import\s/.test(style.body), `${stylePath} should be a resolved CSS bundle without @import`);
   assert(style.body.includes("admin-overview-hero"), `${stylePath} should style admin dashboard overview hero`);
   assert(style.body.includes("admin-quick-links"), `${stylePath} should style admin dashboard quick links`);
   assert(style.body.includes("admin-issue-list"), `${stylePath} should style admin dashboard issue list`);

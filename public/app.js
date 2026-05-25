@@ -3688,7 +3688,7 @@ function openImageZoomModal({ imageUrl = "", prompt = "", title = "" } = {}) {
     <section class="modal image-zoom-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title || text("worksOpenDetail"))}">
       <button class="image-zoom-close" type="button" aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
       <div class="image-zoom-stage" ${imageFallbackContainerAttrs()}>
-        <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} loading="eager" decoding="async" alt="${escapeHtml(truncate(prompt || title || "", 100))}">
+        <img src="${escapeHtml(imageUrl)}" ${imageFallbackImgAttrs()} loading="eager" decoding="async" fetchpriority="high" alt="${escapeHtml(truncate(prompt || title || "", 100))}">
       </div>
       <footer class="image-zoom-footer">
         <p>${escapeHtml(prompt || title || "")}</p><div class="image-zoom-actions">

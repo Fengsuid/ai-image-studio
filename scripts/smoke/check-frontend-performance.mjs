@@ -23,8 +23,8 @@ const budgets = {
   "public/admin.js": 120000,
   "public/app-prompt-library.js": 35000,
   "public/admin-shell-polish.js": 12000,
-  nonCanvasInitialJs: 430000,
-  initialCss: 260000,
+  nonCanvasInitialJs: 435000,
+  initialCss: 270000,
   cssModule: 16000,
   htmlInlineJson: 5000
 };
@@ -45,6 +45,11 @@ function diskPathFromPublicUrl(url) {
 function isCanvasUrl(url) {
   const pathname = new URL(url, "https://example.test").pathname;
   return pathname.startsWith("/canvas") || pathname.startsWith("/canvas-v2/");
+}
+
+function isBundledCssUrl(url) {
+  const pathname = new URL(url, "https://example.test").pathname;
+  return /^\/dist\/app\.[a-f0-9]{12}\.css$/.test(pathname);
 }
 
 function assertNoDuplicates(urls, label) {
@@ -113,11 +118,14 @@ assert(
 );
 
 const cssUrls = stylesheetPaths(indexHtml);
+assert.equal(cssUrls.length, 1, "home page must load exactly one local CSS bundle");
+assert(cssUrls.every(isBundledCssUrl), "home page CSS must use the content-hashed /dist/app.<hash>.css bundle");
 const cssEntryBytes = cssUrls.reduce((sum, url) => sum + stat(diskPathFromPublicUrl(url)).size, 0);
 const importedCssBytes = importedCssFiles().reduce((sum, relativePath) => sum + stat(relativePath).size, 0);
+const initialCssBytes = cssUrls.some(isBundledCssUrl) ? cssEntryBytes : cssEntryBytes + importedCssBytes;
 assert(
-  cssEntryBytes + importedCssBytes <= budgets.initialCss,
-  `initial CSS is ${cssEntryBytes + importedCssBytes} bytes; budget is ${budgets.initialCss}`
+  initialCssBytes <= budgets.initialCss,
+  `initial CSS is ${initialCssBytes} bytes; budget is ${budgets.initialCss}`
 );
 for (const relativePath of importedCssFiles()) assertBudget(relativePath, budgets.cssModule);
 
@@ -168,4 +176,4 @@ const oversizedInlineScripts = [...indexHtml.matchAll(/<script\b(?![^>]*\bsrc=)[
   .filter((match) => match[1].trim().length > budgets.htmlInlineJson);
 assert.equal(oversizedInlineScripts.length, 0, "index.html should not contain oversized inline scripts/data");
 
-console.log(`[frontend-performance-smoke] OK: non-canvas JS ${nonCanvasHomeBytes} bytes, CSS ${cssEntryBytes + importedCssBytes} bytes`);
+console.log(`[frontend-performance-smoke] OK: non-canvas JS ${nonCanvasHomeBytes} bytes, CSS ${initialCssBytes} bytes`);

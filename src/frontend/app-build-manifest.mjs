@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260523-frontend-tooling-v1";
+export const FRONTEND_BUILD_VERSION = "20260525-css-bundle-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -11,6 +11,17 @@ export const frontendBuildManifest = Object.freeze({
       global: "window.AppModules.build"
     }
   ],
+  css: {
+    bundler: "scripts/frontend/css-bundle.mjs",
+    entryPattern: "/dist/app.<hash>.css",
+    compatibilityEntry: "/styles.css",
+    legacyMobileSources: [
+      "/mobile-gallery.css",
+      "/mobile.css",
+      "/mobile-home.css",
+      "/mobile-editor.css"
+    ]
+  },
   compatibility: {
     mode: "plain-script-fallback",
     requiresAppModules: true
