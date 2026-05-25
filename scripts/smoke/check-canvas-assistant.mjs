@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import canvasAssistant from "../../src/canvas-assistant.js";
+import canvasAssistant from "../../packages/canvas-core/src/assistant.js";
 
 const canvas = {
   id: "can_assistant_module",

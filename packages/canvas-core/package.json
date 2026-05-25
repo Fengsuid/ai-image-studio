@@ -1,0 +1,26 @@
+{
+  "name": "@ai-image-studio/canvas-core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Canvas backend slice (service + routes + store + assistant + import-export) for ai-image-studio.",
+  "license": "AGPL-3.0-or-later",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./schema/*": "./schema/*"
+  },
+  "files": [
+    "src",
+    "schema",
+    "LICENSE.md",
+    "INTERFACE.md"
+  ],
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}

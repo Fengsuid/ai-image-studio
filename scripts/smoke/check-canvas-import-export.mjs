@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Verifies canvas JSON import/export schema behavior without requiring a browser.
 
-import canvasImportExport from "../../src/canvas-import-export.js";
+import canvasImportExport from "../../packages/canvas-core/src/import-export.js";
 
 const failures = [];
 

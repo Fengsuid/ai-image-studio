@@ -20,7 +20,7 @@ const routeFiles = {
   images: read("src/routes/images.js"),
   imagesGenerate: read("src/routes/images-generate.js"),
   prompts: read("src/routes/prompts.js"),
-  canvases: read("src/routes/canvases.js"),
+  canvases: read("packages/canvas-core/src/routes.js"),
   admin: read("src/routes/admin/index.js"),
   credits: read("src/routes/credits.js"),
   settingsPublic: read("src/routes/settings-public.js"),
@@ -53,6 +53,19 @@ assert(!routeFiles.auth.includes("return sendNoContent("), "src/routes/auth.js h
 assert((routeFiles.auth.match(/return true;/g) || []).length >= 4, "src/routes/auth.js must stop route fallthrough after handled auth responses");
 assert(routeFiles.health.includes("createHealthRoute") && routeFiles.health.includes("module.exports"), "src/routes/health.js must export createHealthRoute");
 assert(routeFiles.agentSessions.includes("createAgentSessionRoute") && routeFiles.agentSessions.includes("module.exports"), "packages/agent-core/src/routes.js must export createAgentSessionRoute");
+
+assert(server.includes('require("@ai-image-studio/canvas-core")'), "server.js must require @ai-image-studio/canvas-core");
+assert(server.includes("const handleCanvasesRoute = canvasCore.createRoutes({"), "server.js must create handleCanvasesRoute via canvasCore.createRoutes");
+assert(server.includes("if (await handleCanvasesRoute(req, res, url)) return;"), "server.js must mount handleCanvasesRoute");
+assert(routeFiles.canvases.includes("createRoutes") && routeFiles.canvases.includes("module.exports"), "packages/canvas-core/src/routes.js must export createRoutes");
+for (const endpoint of ["/api/canvases", "/api/canvases/templates"]) {
+  assert(routeFiles.canvases.includes(endpoint), `packages/canvas-core/src/routes.js must own ${endpoint}`);
+  assert(!server.includes(`url.pathname === "${endpoint}"`), `server.js should not directly branch on ${endpoint}`);
+}
+assert(!routeFiles.canvases.includes("return sendJson("), "packages/canvas-core/src/routes.js handlers must explicitly return true after sendJson");
+assert(!routeFiles.canvases.includes("return sendNoContent("), "packages/canvas-core/src/routes.js handlers must explicitly return true after sendNoContent");
+assert(routeFiles.canvases.includes("return false;"), "packages/canvas-core/src/routes.js must fall through with return false");
+assert(!routeFiles.canvases.includes('require("mysql2/promise")'), "packages/canvas-core/src/routes.js must not open mysql2 connections directly");
 
 const splitRoutes = [
   {
@@ -93,16 +106,6 @@ const splitRoutes = [
       "/api/prompts",
       "/api/tags",
       "/api/prompt-categories"
-    ]
-  },
-  {
-    key: "canvases",
-    requirePath: 'require("./src/routes/canvases")',
-    factory: "createCanvasesRoute",
-    handle: "handleCanvasesRoute",
-    endpoints: [
-      "/api/canvases",
-      "/api/canvases/templates"
     ]
   },
   {

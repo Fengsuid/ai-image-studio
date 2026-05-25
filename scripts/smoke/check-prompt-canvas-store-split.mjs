@@ -7,7 +7,7 @@ const root = process.cwd();
 const files = {
   mysqlStore: path.join(root, "src", "mysql-store.js"),
   promptStore: path.join(root, "src", "stores", "prompt-store.js"),
-  canvasStore: path.join(root, "src", "stores", "canvas-store.js")
+  canvasStore: path.join(root, "packages", "canvas-core", "src", "store.js")
 };
 
 const source = Object.fromEntries(
@@ -37,7 +37,9 @@ function lineNumbersMatching(text, pattern) {
 }
 
 assertIncludes(source.mysqlStore, 'const createPromptStore = require("./stores/prompt-store");', "mysql-store");
-assertIncludes(source.mysqlStore, 'const createCanvasStore = require("./stores/canvas-store");', "mysql-store");
+assertIncludes(source.mysqlStore, 'const canvasCore = require("@ai-image-studio/canvas-core");', "mysql-store");
+assertIncludes(source.mysqlStore, "const { createCanvasStore } = canvasCore;", "mysql-store");
+assertIncludes(source.mysqlStore, "await canvasCore.applySchema(db);", "mysql-store");
 assertIncludes(source.mysqlStore, "const promptStore = createPromptStore({ getPool, toIso });", "mysql-store");
 assertIncludes(source.mysqlStore, "const canvasStore = createCanvasStore({ getPool, toIso, mapGeneration });", "mysql-store");
 
@@ -82,20 +84,31 @@ for (const pattern of [
   assertExcludes(source.mysqlStore, pattern, "mysql-store");
 }
 
-const schemaRanges = [
-  [650, 780],
-  [1080, 1310]
+const promptSchemaRanges = [
+  [1040, 1300]
 ];
-const rootPromptCanvasTableRefs = lineNumbersMatching(
+const rootPromptTableRefs = lineNumbersMatching(
   source.mysqlStore,
-  /\b(canvas_projects|canvas_generation_links|prompts|prompt_sources|prompt_sync_runs|prompt_likes|prompt_duplicate_candidates|prompt_audit_records)\b/
-);
-for (const line of rootPromptCanvasTableRefs) {
+  /\b(prompts|prompt_sources|prompt_sync_runs|prompt_likes|prompt_duplicate_candidates|prompt_audit_records)\b/
+).filter((lineNumber) => {
+  const line = source.mysqlStore.split(/\r?\n/)[lineNumber - 1] || "";
+  return !/label:\s*"prompts"/.test(line);
+});
+for (const line of rootPromptTableRefs) {
   assert(
-    schemaRanges.some(([start, end]) => line >= start && line <= end),
-    `mysql-store prompt/canvas table reference at line ${line} should stay in schema/migration ranges`
+    promptSchemaRanges.some(([start, end]) => line >= start && line <= end),
+    `mysql-store prompt table reference at line ${line} should stay in schema/migration ranges`
   );
 }
+
+const canvasTableRefsInMysqlStore = lineNumbersMatching(
+  source.mysqlStore,
+  /\b(canvas_projects|canvas_generation_links)\b/
+);
+assert(
+  canvasTableRefsInMysqlStore.length === 0,
+  `mysql-store should not reference canvas_projects/canvas_generation_links any more — found at lines ${canvasTableRefsInMysqlStore.join(", ")}`
+);
 
 for (const needle of [
   "function createPromptStore({ getPool, toIso })",
@@ -120,6 +133,10 @@ for (const needle of [
 ]) {
   assertIncludes(source.canvasStore, needle, "canvas-store");
 }
+
+assertIncludes(source.canvasStore, "module.exports = {", "canvas-store named exports");
+assertIncludes(source.canvasStore, "createCanvasStore", "canvas-store named exports");
+assertIncludes(source.canvasStore, "SPDX-License-Identifier: AGPL-3.0-or-later", "canvas-store AGPL header");
 
 for (const [label, text] of Object.entries({ promptStore: source.promptStore, canvasStore: source.canvasStore })) {
   assertExcludes(text, /require\(["']mysql2\/promise["']\)/, label);

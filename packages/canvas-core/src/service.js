@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 "use strict";
 
-const canvasAssistant = require("./canvas-assistant");
-const canvasImportExport = require("./canvas-import-export");
+const canvasAssistant = require("./assistant");
+const canvasImportExport = require("./import-export");
 
 const CANVAS_PRIVATE_KEYS = new Set([
   "userId",
@@ -38,7 +39,7 @@ const CANVAS_GENERATION_REFERENCE_KEYS = new Set([
   "originGalleryId"
 ]);
 
-function createCanvasService({
+function createService({
   store,
   httpError,
   randomId,
@@ -522,10 +523,15 @@ function createCanvasService({
     get,
     update,
     remove,
-    generate
+    generate,
+    cleanCanvasProjectInput,
+    canvasImageReference,
+    isCanvasReferenceAlwaysPublic,
+    canvasGenerationPlan
   };
 }
 
 module.exports = {
-  createCanvasService
+  createService,
+  createCanvasService: createService
 };

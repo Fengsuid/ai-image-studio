@@ -190,5 +190,6 @@ npm run test           # vitest 单测（service / import-export 纯函数）
 
 ## 10. 变更日志
 
+- 2026-05-25 v1.0.0：AIS-RLS-147 完成 canvas 后端 slice 抽取；`src/canvas-service.js`、`src/canvas-assistant.js`、`src/canvas-import-export.js`、`src/routes/canvases.js`、`src/stores/canvas-store.js` 与 `src/mysql-store.js` 原 canvas DDL 块整体迁入 `packages/canvas-core/`；`server.js` 通过 `require("@ai-image-studio/canvas-core")` 装配 `createService`/`createRoutes`，`src/mysql-store.js` 通过 `canvasCore.createCanvasStore` + `canvasCore.applySchema(db)` 接入；HTTP 前缀 `/api/canvases/*` 保持冻结；新增 vitest 套件 27 条与 `npm run --workspace @ai-image-studio/canvas-core check` 语法门禁。
 - 2026-05-25 v1.0.0（草案）：初版冻结草案，待 `AIS-RLS-147`（slice 抽取）完成后正式发布 v1.0.0
 

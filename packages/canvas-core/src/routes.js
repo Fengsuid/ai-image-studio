@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 "use strict";
 
 // Owns canvas workspace routes:
 // GET/POST /api/canvases, GET /api/canvases/templates,
 // GET/PATCH/DELETE /api/canvases/:id,
 // GET /api/canvases/:id/export, POST /api/canvases/:id/import|assistant|duplicate|generate.
-function createCanvasesRoute({
+function createRoutes({
   canvasService,
   sendJson,
   readJsonBody,
@@ -113,4 +114,7 @@ function createCanvasesRoute({
   };
 }
 
-module.exports = { createCanvasesRoute };
+module.exports = {
+  createRoutes,
+  createCanvasesRoute: createRoutes
+};

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 "use strict";
 
 function createCanvasStore({ getPool, toIso, mapGeneration }) {
@@ -264,4 +265,6 @@ function createCanvasStore({ getPool, toIso, mapGeneration }) {
   };
 }
 
-module.exports = createCanvasStore;
+module.exports = {
+  createCanvasStore
+};

@@ -32,7 +32,7 @@ loadEnvFile(path.join(ROOT_DIR, ".env"));
 const { createMySQLStore } = require("./src/mysql-store");
 const store = createMySQLStore();
 const promptReview = require("./src/prompt-review-service");
-const { createCanvasService } = require("./src/canvas-service");
+const canvasCore = require("@ai-image-studio/canvas-core");
 const promptSourceSync = require("./src/prompt-source-sync");
 const {
   buildStartupRecoveryPatch,
@@ -54,7 +54,6 @@ const { createHealthRoute } = require("./src/routes/health");
 const { createImagesRoute } = require("./src/routes/images");
 const { createGalleryRoute } = require("./src/routes/gallery");
 const { createPromptsRoute } = require("./src/routes/prompts");
-const { createCanvasesRoute } = require("./src/routes/canvases");
 const { createAdminRoute } = require("./src/routes/admin");
 const { createCreditsRoute } = require("./src/routes/credits");
 const { createSettingsPublicRoute } = require("./src/routes/settings-public");
@@ -109,7 +108,7 @@ const {
   enforceGenerationRate
 } = createAppAuth({ httpError, PUBLIC_WITHDRAWAL_WINDOW_HOURS });
 
-const canvasService = createCanvasService({
+const canvasService = canvasCore.createService({
   store,
   httpError,
   randomId,
@@ -363,7 +362,7 @@ const handlePromptsRoute = createPromptsRoute({
   TAG_SLUG_PATTERN
 });
 
-const handleCanvasesRoute = createCanvasesRoute({
+const handleCanvasesRoute = canvasCore.createRoutes({
   canvasService,
   sendJson,
   readJsonBody,

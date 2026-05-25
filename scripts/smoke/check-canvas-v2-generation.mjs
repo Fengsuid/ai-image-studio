@@ -12,7 +12,7 @@ import {
 import { generateCanvasOutput } from "../../apps/canvas-v2/src/adapters/ai-image-studio-api.js";
 
 const require = createRequire(import.meta.url);
-const { createCanvasService } = require("../../src/canvas-service.js");
+const { createService: createCanvasService } = require("@ai-image-studio/canvas-core");
 
 const user = { id: "usr_canvas_v2_generation", role: "user", status: "active", credits: 50 };
 const persistedCanvas = {

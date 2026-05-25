@@ -8,7 +8,8 @@ const { normalizeTraceLevel, safeJsonSummary } = require("./generation-trace-ser
 const agentCore = require("@ai-image-studio/agent-core");
 const createAgentSessionStore = agentCore.createSessionStore;
 const createAdminStore = require("./stores/admin-store");
-const createCanvasStore = require("./stores/canvas-store");
+const canvasCore = require("@ai-image-studio/canvas-core");
+const { createCanvasStore } = canvasCore;
 const createGalleryStore = require("./stores/gallery-store");
 const createGenerationStore = require("./stores/generation-store");
 const createPromptStore = require("./stores/prompt-store");
@@ -742,48 +743,7 @@ async function runMigrations() {
     await db.query("ALTER TABLE generations ADD COLUMN like_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER duration_ms");
   }
 
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS canvas_projects (
-      id VARCHAR(32) NOT NULL PRIMARY KEY,
-      user_id VARCHAR(32) NOT NULL,
-      title VARCHAR(160) NOT NULL,
-      description VARCHAR(1000) NOT NULL DEFAULT '',
-      cover_url VARCHAR(500) NOT NULL DEFAULT '',
-      visibility VARCHAR(16) NOT NULL DEFAULT 'private',
-      is_template TINYINT(1) NOT NULL DEFAULT 0,
-      data_json LONGTEXT NOT NULL,
-      node_count INT UNSIGNED NOT NULL DEFAULT 0,
-      edge_count INT UNSIGNED NOT NULL DEFAULT 0,
-      status VARCHAR(16) NOT NULL DEFAULT 'active',
-      created_at DATETIME(3) NOT NULL,
-      updated_at DATETIME(3) NOT NULL,
-      INDEX idx_canvas_projects_user_updated (user_id, updated_at),
-      INDEX idx_canvas_projects_visibility_updated (visibility, updated_at),
-      INDEX idx_canvas_projects_template_updated (is_template, updated_at),
-      INDEX idx_canvas_projects_status_updated (status, updated_at),
-      CONSTRAINT fk_canvas_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  `);
-  const [canvasTemplateColumns] = await db.execute("SHOW COLUMNS FROM canvas_projects LIKE 'is_template'");
-  if (!canvasTemplateColumns.length) {
-    await db.query("ALTER TABLE canvas_projects ADD COLUMN is_template TINYINT(1) NOT NULL DEFAULT 0 AFTER visibility");
-  }
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS canvas_generation_links (
-      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-      canvas_id VARCHAR(32) NOT NULL,
-      generation_id VARCHAR(32) NOT NULL,
-      output_node_id VARCHAR(160) NOT NULL DEFAULT '',
-      config_node_id VARCHAR(160) NOT NULL DEFAULT '',
-      created_at DATETIME(3) NOT NULL,
-      UNIQUE KEY uniq_canvas_generation_link (canvas_id, generation_id),
-      INDEX idx_canvas_generation_links_canvas (canvas_id),
-      INDEX idx_canvas_generation_links_generation (generation_id),
-      CONSTRAINT fk_canvas_generation_links_canvas FOREIGN KEY (canvas_id) REFERENCES canvas_projects(id) ON DELETE CASCADE,
-      CONSTRAINT fk_canvas_generation_links_generation FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  `);
+  await canvasCore.applySchema(db);
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_daily_usage (
