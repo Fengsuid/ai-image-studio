@@ -160,6 +160,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: `smoke:moderation-withdrawal` still fails in production when the current public unpublish policy returns `409 publicUnpublishDisabled`; this is a policy/state mismatch outside the admin route split and is not treated as an AIS-RLS-105 regression.
 - Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`b0043f0` route baseline if admin endpoints regress.
 
+### 2026-05-25 AIS-RLS-106 MySQL Store Facade Release
+
+- Task covered: `AIS-RLS-106` Convert `src/mysql-store.js` facade to programmatic re-export with collision check.
+- Commit covered: `74babe1`.
+- Files changed: `src/mysql-store.js`, `scripts/smoke/check-mysql-store-domain-split.mjs`, and `src/config/app-settings.js`.
+- Backend coverage: `createMySQLStore()` now builds the public store facade from ordered export groups through a single builder, preserves the existing 139+ exported methods, and throws a named `Store export collision` error when two groups expose the same method name.
+- Local checks: `node --check src/mysql-store.js`, `node --check src/config/app-settings.js`, `node --check scripts/smoke/check-mysql-store-domain-split.mjs`, `npm run smoke:mysql-store-domain-split`, `npm run check`, `git diff --check`, staged private-doc scan, and privacy scan passed. Local `npm run smoke:public` was skipped after it failed to connect to `http://localhost:3000` because no local app server was running.
+- Online smoke: container `npm run smoke:mysql-store-domain-split -- http://127.0.0.1:3000` passed; container `npm run smoke:public -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260525-mysql-store-facade-v1`.
+- Deployment note: the deployment used a `git archive HEAD` package and a lightweight server backup for the touched source files plus environment file to reduce disk usage. No database schema or data changes were made.
+- Known blockers: none for this task. Gallery image smoke was not repeated because this change is a backend facade-only refactor and public API smoke already covered the public gallery list endpoint.
+- Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`74babe1` manual facade baseline if store exports regress.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.

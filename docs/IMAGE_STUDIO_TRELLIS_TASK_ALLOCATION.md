@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
 日期：2026-05-20
-状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-24）。
+状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-25，`AIS-RLS-106` 已完成）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -29,11 +29,11 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 ## 2. 当前优先执行
 
-当前真实 Trellis 中没有 `backlog` 任务，只有 1 张 `active` 卡：
+当前真实 Trellis 中没有 `active` 任务；按 2026-05-25 审核顺序，下一个应执行任务为：
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-093` Visual regression QA harness for polished frontend | Platform/QA | 前端 polish 已完成，需要截图回归脚本、baseline 策略和发布前视觉检查闭环 |
+| 1 | `AIS-RLS-107` Extract app.js auth/account/csrf into public/app-auth.js | Frontend | `AIS-RLS-106` 已完成，继续按审核顺序推进 app-auth 实体化；不要跳到 `AIS-RLS-109` |
 
 ## 3. 全量 Trellis 任务表
 
@@ -138,7 +138,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | Task | Title | Status | Priority | Lane | Milestone | Dependencies |
 | --- | --- | --- | --- | --- | --- | --- |
 | `AIS-RLS-105` | Split src/routes/admin.js into src/routes/admin/* by business domain | Done | P1 | Platform | Post-Release Phase B | `AIS-RLS-100` |
-| `AIS-RLS-106` | Convert mysql-store.js facade to programmatic re-export with collision check | Ready | P1 | Platform | Post-Release Phase B | None |
+| `AIS-RLS-106` | Convert mysql-store.js facade to programmatic re-export with collision check | Done | P1 | Platform | Post-Release Phase B | None |
 | `AIS-RLS-107` | Extract app.js auth/account/csrf into public/app-auth.js | Ready | P1 | Frontend | Post-Release Phase B | None |
 | `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Ready | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |
 | `AIS-RLS-109` | Add GitHub Actions CI check workflow | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-107`, `AIS-RLS-108` |
