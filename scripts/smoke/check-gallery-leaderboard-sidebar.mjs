@@ -15,19 +15,25 @@ const css = readPublicCssWithImports(rootDir);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const galleryRoute = fs.readFileSync(path.join(rootDir, "src/routes/gallery.js"), "utf8");
 
+function scriptPosition(scriptName) {
+  const plainIndex = indexHtml.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return indexHtml.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
+
 assert(app.includes("gallery-main-grid"), "library cards must be wrapped separately from the leaderboard");
 assert(app.includes("ImageStudioGalleryLeaderboard"), "app.js must delegate leaderboard rendering to a focused module");
 assert(app.includes("renderLeaderboardPage"), "app.js must render the standalone leaderboard page");
 assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "library view must not inline the leaderboard beside cards");
 assert(!app.includes("bindGalleryLeaderboardControls(elements.promptGrid);"), "library view must not bind leaderboard controls inside the gallery grid");
-assert(indexHtml.includes("/gallery-leaderboard.js"), "index.html must load gallery-leaderboard.js before app.js");
-assert(indexHtml.indexOf("/gallery-leaderboard.js") < indexHtml.indexOf("/app.js"), "gallery-leaderboard.js must load before app.js");
-assert(indexHtml.includes("/gallery-leaderboard.js?v=20260521-leaderboard-top-v5"), "leaderboard module must have a fresh cache-busting version");
-const appVersion = indexHtml.match(/\/app\.js\?v=([^"]+)/)?.[1] || "";
+assert(scriptPosition("gallery-leaderboard.js") >= 0, "index.html must load gallery-leaderboard.js before app.js");
+assert(scriptPosition("gallery-leaderboard.js") < scriptPosition("app.js"), "gallery-leaderboard.js must load before app.js");
+assert(/\/dist\/gallery-leaderboard\.[a-f0-9]{12}\.js/.test(indexHtml), "leaderboard module must use a content-hashed asset");
 const cssBundle = indexHtml.match(/href="(\/dist\/app\.[a-f0-9]{12}\.css)"/)?.[1] || "";
 assert(cssBundle, "index.html must load the hashed CSS bundle");
 assert(!indexHtml.includes("/styles.css"), "index.html must not load styles.css directly");
-assert(appVersion, "app bundle must have a cache-busting version");
+assert(/\/dist\/app\.[a-f0-9]{12}\.js/.test(indexHtml), "app bundle must use a content-hashed asset");
 assert(leaderboard.includes("ImageStudioGalleryLeaderboard"), "leaderboard module must register a global helper");
 assert(leaderboard.includes("<aside class=\"gallery-leaderboard"), "leaderboard must render as a navigation/sidebar aside");
 assert(leaderboard.includes("const MAX_LEADERBOARD_ITEMS = 99;"), "leaderboard page must expose up to 99 ranked items");

@@ -47,7 +47,13 @@ async function cleanPreviousBundles(distDir, currentFileName) {
   const entries = await fs.readdir(distDir, { withFileTypes: true });
   await Promise.all(entries
     .filter((entry) => entry.isFile() && /^app\.[a-f0-9]{12}\.css$/.test(entry.name) && entry.name !== currentFileName)
-    .map((entry) => fs.unlink(path.join(distDir, entry.name))));
+    .map(async (entry) => {
+      try {
+        await fs.rm(path.join(distDir, entry.name), { force: true });
+      } catch (error) {
+        console.warn(`[frontend-build] could not remove stale CSS bundle ${entry.name}: ${error.message}`);
+      }
+    }));
 }
 
 async function updateIndexStyles(root, cssEntry) {

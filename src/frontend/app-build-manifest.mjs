@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260525-css-bundle-v1";
+export const FRONTEND_BUILD_VERSION = "20260525-js-bundle-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -21,6 +21,11 @@ export const frontendBuildManifest = Object.freeze({
       "/mobile-home.css",
       "/mobile-editor.css"
     ]
+  },
+  js: {
+    bundler: "scripts/frontend/js-bundle.mjs",
+    entryPattern: "/dist/<name>.<hash>.js",
+    compatibilityManifest: "/frontend-build-manifest.js"
   },
   compatibility: {
     mode: "plain-script-fallback",

@@ -95,8 +95,11 @@ function assert(condition, message) {
 }
 
 function scriptPosition(html, scriptName) {
-  const index = html.indexOf(`/${scriptName}`);
-  return index >= 0 ? index : -1;
+  const plainIndex = html.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const hashed = html.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`));
+  return hashed?.index ?? -1;
 }
 
 function checkFileBudget(relativePath, budget) {

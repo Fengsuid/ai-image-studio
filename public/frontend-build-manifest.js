@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260525-css-bundle-v1",
+  "version": "20260525-js-bundle-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/mobile-home.css",
       "/mobile-editor.css"
     ],
-    "entry": "/dist/app.a4dfaf24076c.css",
-    "file": "/dist/app.a4dfaf24076c.css",
-    "hash": "a4dfaf24076c",
-    "bytes": 264942,
+    "entry": "/dist/app.79f33e4aba9c.css",
+    "file": "/dist/app.79f33e4aba9c.css",
+    "hash": "79f33e4aba9c",
+    "bytes": 267595,
     "sources": [
       "/css/00-tokens.css",
       "/css/00-theme.css",
@@ -64,6 +64,286 @@
       "/mobile.css",
       "/mobile-home.css",
       "/mobile-editor.css"
+    ]
+  },
+  "js": {
+    "bundler": "scripts/frontend/js-bundle.mjs",
+    "entryPattern": "/dist/<name>.<hash>.js",
+    "compatibilityManifest": "/frontend-build-manifest.js",
+    "assets": [
+      {
+        "source": "/cache-db.js",
+        "entry": "/dist/cache-db.ae569d64f1c3.js",
+        "fileName": "cache-db.ae569d64f1c3.js",
+        "hash": "ae569d64f1c3",
+        "bytes": 12943
+      },
+      {
+        "source": "/canvas-store.js",
+        "entry": "/dist/canvas-store.8d8e0e8718c0.js",
+        "fileName": "canvas-store.8d8e0e8718c0.js",
+        "hash": "8d8e0e8718c0",
+        "bytes": 613
+      },
+      {
+        "source": "/canvas-nodes.js",
+        "entry": "/dist/canvas-nodes.706af9f36d61.js",
+        "fileName": "canvas-nodes.706af9f36d61.js",
+        "hash": "706af9f36d61",
+        "bytes": 3284
+      },
+      {
+        "source": "/canvas-geometry.js",
+        "entry": "/dist/canvas-geometry.f44f836d8906.js",
+        "fileName": "canvas-geometry.f44f836d8906.js",
+        "hash": "f44f836d8906",
+        "bytes": 2741
+      },
+      {
+        "source": "/canvas-layout.js",
+        "entry": "/dist/canvas-layout.32f8dfd483da.js",
+        "fileName": "canvas-layout.32f8dfd483da.js",
+        "hash": "32f8dfd483da",
+        "bytes": 1012
+      },
+      {
+        "source": "/canvas-edges.js",
+        "entry": "/dist/canvas-edges.7b28186bbfd9.js",
+        "fileName": "canvas-edges.7b28186bbfd9.js",
+        "hash": "7b28186bbfd9",
+        "bytes": 3551
+      },
+      {
+        "source": "/canvas-workflows.js",
+        "entry": "/dist/canvas-workflows.b442f911fe51.js",
+        "fileName": "canvas-workflows.b442f911fe51.js",
+        "hash": "b442f911fe51",
+        "bytes": 2226
+      },
+      {
+        "source": "/canvas-minimap.js",
+        "entry": "/dist/canvas-minimap.1df55f120014.js",
+        "fileName": "canvas-minimap.1df55f120014.js",
+        "hash": "1df55f120014",
+        "bytes": 5579
+      },
+      {
+        "source": "/canvas-selection.js",
+        "entry": "/dist/canvas-selection.72e704bccf88.js",
+        "fileName": "canvas-selection.72e704bccf88.js",
+        "hash": "72e704bccf88",
+        "bytes": 3730
+      },
+      {
+        "source": "/canvas-history.js",
+        "entry": "/dist/canvas-history.22cffcd9a287.js",
+        "fileName": "canvas-history.22cffcd9a287.js",
+        "hash": "22cffcd9a287",
+        "bytes": 4237
+      },
+      {
+        "source": "/canvas-io.js",
+        "entry": "/dist/canvas-io.7aeb42b15328.js",
+        "fileName": "canvas-io.7aeb42b15328.js",
+        "hash": "7aeb42b15328",
+        "bytes": 2605
+      },
+      {
+        "source": "/canvas-assistant.js",
+        "entry": "/dist/canvas-assistant.6b597fe946a9.js",
+        "fileName": "canvas-assistant.6b597fe946a9.js",
+        "hash": "6b597fe946a9",
+        "bytes": 8811
+      },
+      {
+        "source": "/canvas-toolbar.js",
+        "entry": "/dist/canvas-toolbar.01b2fb721aa3.js",
+        "fileName": "canvas-toolbar.01b2fb721aa3.js",
+        "hash": "01b2fb721aa3",
+        "bytes": 3736
+      },
+      {
+        "source": "/canvas-inspector.js",
+        "entry": "/dist/canvas-inspector.53f0f0c1c369.js",
+        "fileName": "canvas-inspector.53f0f0c1c369.js",
+        "hash": "53f0f0c1c369",
+        "bytes": 5807
+      },
+      {
+        "source": "/canvas-market.js",
+        "entry": "/dist/canvas-market.36ad457f37b8.js",
+        "fileName": "canvas-market.36ad457f37b8.js",
+        "hash": "36ad457f37b8",
+        "bytes": 8494
+      },
+      {
+        "source": "/canvas.js",
+        "entry": "/dist/canvas.e3695c050b27.js",
+        "fileName": "canvas.e3695c050b27.js",
+        "hash": "e3695c050b27",
+        "bytes": 44477
+      },
+      {
+        "source": "/gallery-normalize.js",
+        "entry": "/dist/gallery-normalize.1e62c7dde54b.js",
+        "fileName": "gallery-normalize.1e62c7dde54b.js",
+        "hash": "1e62c7dde54b",
+        "bytes": 7951
+      },
+      {
+        "source": "/gallery-leaderboard.js",
+        "entry": "/dist/gallery-leaderboard.f10d23253986.js",
+        "fileName": "gallery-leaderboard.f10d23253986.js",
+        "hash": "f10d23253986",
+        "bytes": 4919
+      },
+      {
+        "source": "/prompt-cover-fallback.js",
+        "entry": "/dist/prompt-cover-fallback.dac424712442.js",
+        "fileName": "prompt-cover-fallback.dac424712442.js",
+        "hash": "dac424712442",
+        "bytes": 6021
+      },
+      {
+        "source": "/editor-image-import.js",
+        "entry": "/dist/editor-image-import.7e10335698b9.js",
+        "fileName": "editor-image-import.7e10335698b9.js",
+        "hash": "7e10335698b9",
+        "bytes": 1625
+      },
+      {
+        "source": "/image-session-list.js",
+        "entry": "/dist/image-session-list.234728cc4ed0.js",
+        "fileName": "image-session-list.234728cc4ed0.js",
+        "hash": "234728cc4ed0",
+        "bytes": 2376
+      },
+      {
+        "source": "/render-stamp.js",
+        "entry": "/dist/render-stamp.9655460e0f69.js",
+        "fileName": "render-stamp.9655460e0f69.js",
+        "hash": "9655460e0f69",
+        "bytes": 1355
+      },
+      {
+        "source": "/generation-result-actions.js",
+        "entry": "/dist/generation-result-actions.69c32a535ed2.js",
+        "fileName": "generation-result-actions.69c32a535ed2.js",
+        "hash": "69c32a535ed2",
+        "bytes": 3580
+      },
+      {
+        "source": "/gallery-detail-media.js",
+        "entry": "/dist/gallery-detail-media.e694d271eb4f.js",
+        "fileName": "gallery-detail-media.e694d271eb4f.js",
+        "hash": "e694d271eb4f",
+        "bytes": 3176
+      },
+      {
+        "source": "/gallery-tag-view-model.js",
+        "entry": "/dist/gallery-tag-view-model.aacf99963ab3.js",
+        "fileName": "gallery-tag-view-model.aacf99963ab3.js",
+        "hash": "aacf99963ab3",
+        "bytes": 1771
+      },
+      {
+        "source": "/reference-images.js",
+        "entry": "/dist/reference-images.30727c5bc84d.js",
+        "fileName": "reference-images.30727c5bc84d.js",
+        "hash": "30727c5bc84d",
+        "bytes": 1860
+      },
+      {
+        "source": "/theme-mobile-nav.js",
+        "entry": "/dist/theme-mobile-nav.41e4889e0ad6.js",
+        "fileName": "theme-mobile-nav.41e4889e0ad6.js",
+        "hash": "41e4889e0ad6",
+        "bytes": 4198
+      },
+      {
+        "source": "/home-onboarding.js",
+        "entry": "/dist/home-onboarding.905b04bb602a.js",
+        "fileName": "home-onboarding.905b04bb602a.js",
+        "hash": "905b04bb602a",
+        "bytes": 3270
+      },
+      {
+        "source": "/frontend-performance.js",
+        "entry": "/dist/frontend-performance.673efd78fc70.js",
+        "fileName": "frontend-performance.673efd78fc70.js",
+        "hash": "673efd78fc70",
+        "bytes": 5719
+      },
+      {
+        "source": "/app-modules.js",
+        "entry": "/dist/app-modules.f8d21d428e20.js",
+        "fileName": "app-modules.f8d21d428e20.js",
+        "hash": "f8d21d428e20",
+        "bytes": 385
+      },
+      {
+        "source": "/app-prompt-library.js",
+        "entry": "/dist/app-prompt-library.6ae0ad00120a.js",
+        "fileName": "app-prompt-library.6ae0ad00120a.js",
+        "hash": "6ae0ad00120a",
+        "bytes": 23592
+      },
+      {
+        "source": "/app-session.js",
+        "entry": "/dist/app-session.3d6bee719e4f.js",
+        "fileName": "app-session.3d6bee719e4f.js",
+        "hash": "3d6bee719e4f",
+        "bytes": 444
+      },
+      {
+        "source": "/app-generation.js",
+        "entry": "/dist/app-generation.279061955f6e.js",
+        "fileName": "app-generation.279061955f6e.js",
+        "hash": "279061955f6e",
+        "bytes": 462
+      },
+      {
+        "source": "/app-gallery.js",
+        "entry": "/dist/app-gallery.d2afc94adde2.js",
+        "fileName": "app-gallery.d2afc94adde2.js",
+        "hash": "d2afc94adde2",
+        "bytes": 758
+      },
+      {
+        "source": "/app-reward-policy.js",
+        "entry": "/dist/app-reward-policy.0343d7e432d1.js",
+        "fileName": "app-reward-policy.0343d7e432d1.js",
+        "hash": "0343d7e432d1",
+        "bytes": 2654
+      },
+      {
+        "source": "/app-credits-detail.js",
+        "entry": "/dist/app-credits-detail.1f5a49b4517b.js",
+        "fileName": "app-credits-detail.1f5a49b4517b.js",
+        "hash": "1f5a49b4517b",
+        "bytes": 6285
+      },
+      {
+        "source": "/app-auth.js",
+        "entry": "/dist/app-auth.765708a23b4d.js",
+        "fileName": "app-auth.765708a23b4d.js",
+        "hash": "765708a23b4d",
+        "bytes": 36104
+      },
+      {
+        "source": "/app-settings.js",
+        "entry": "/dist/app-settings.a1ee4b890112.js",
+        "fileName": "app-settings.a1ee4b890112.js",
+        "hash": "a1ee4b890112",
+        "bytes": 32510
+      },
+      {
+        "source": "/app.js",
+        "entry": "/dist/app.68e80b1aa603.js",
+        "fileName": "app.68e80b1aa603.js",
+        "hash": "68e80b1aa603",
+        "bytes": 268564
+      }
     ]
   },
   "compatibility": {

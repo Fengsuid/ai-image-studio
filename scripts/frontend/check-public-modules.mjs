@@ -16,6 +16,9 @@ assert.deepEqual(frontendBuildManifest.css?.legacyMobileSources, [
   "/mobile-home.css",
   "/mobile-editor.css"
 ]);
+assert.equal(frontendBuildManifest.js?.bundler, "scripts/frontend/js-bundle.mjs");
+assert.equal(frontendBuildManifest.js?.entryPattern, "/dist/<name>.<hash>.js");
+assert.equal(frontendBuildManifest.js?.compatibilityManifest, "/frontend-build-manifest.js");
 
 for (const output of frontendBuildManifest.outputs) {
   assert.match(output.source, /^src\/frontend\//);

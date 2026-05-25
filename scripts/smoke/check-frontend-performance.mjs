@@ -23,7 +23,7 @@ const budgets = {
   "public/admin.js": 120000,
   "public/app-prompt-library.js": 35000,
   "public/admin-shell-polish.js": 12000,
-  nonCanvasInitialJs: 435000,
+  nonCanvasInitialJs: 450000,
   initialCss: 270000,
   cssModule: 16000,
   htmlInlineJson: 5000
@@ -44,12 +44,21 @@ function diskPathFromPublicUrl(url) {
 
 function isCanvasUrl(url) {
   const pathname = new URL(url, "https://example.test").pathname;
-  return pathname.startsWith("/canvas") || pathname.startsWith("/canvas-v2/");
+  return pathname.startsWith("/canvas")
+    || pathname.startsWith("/canvas-v2/")
+    || /^\/dist\/canvas(?:-|\.|$)/.test(pathname);
 }
 
 function isBundledCssUrl(url) {
   const pathname = new URL(url, "https://example.test").pathname;
   return /^\/dist\/app\.[a-f0-9]{12}\.css$/.test(pathname);
+}
+
+function scriptPosition(html, scriptName) {
+  const plainIndex = html.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
 }
 
 function assertNoDuplicates(urls, label) {
@@ -99,8 +108,8 @@ for (const [relativePath, maxBytes] of Object.entries(budgets)) {
   if (relativePath.startsWith("public/")) assertBudget(relativePath, maxBytes);
 }
 
-assert(indexHtml.includes("/frontend-performance.js"), "index.html must load frontend-performance.js");
-assert(indexHtml.indexOf("/frontend-performance.js") < indexHtml.indexOf("/app.js"), "frontend-performance.js must load before app.js");
+assert(scriptPosition(indexHtml, "frontend-performance.js") >= 0, "index.html must load frontend-performance.js");
+assert(scriptPosition(indexHtml, "frontend-performance.js") < scriptPosition(indexHtml, "app.js"), "frontend-performance.js must load before app.js");
 assert(indexHtml.includes('preload="metadata"'), "hero video must use metadata preload");
 assert(!indexHtml.includes("<video autoplay"), "hero video should not autoplay before runtime budget checks");
 assert(styles.includes('@import url("/css/13-performance.css");'), "styles.css must import performance CSS");

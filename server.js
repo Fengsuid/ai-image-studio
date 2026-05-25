@@ -3532,9 +3532,15 @@ async function serveStatic(req, res, url) {
     if (!stat.isFile()) throw new Error("not a file");
     const extension = path.extname(absolutePath).toLowerCase();
     const bytes = await fs.readFile(absolutePath);
+    const immutableAsset = pathname.startsWith("/dist/")
+      && /\.[a-f0-9]{12}\.(?:css|js)$/i.test(path.basename(pathname));
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
-      "Cache-Control": extension === ".html" ? "no-store" : "public, max-age=3600"
+      "Cache-Control": extension === ".html"
+        ? "no-store"
+        : immutableAsset
+          ? "public, max-age=31536000, immutable"
+          : "public, max-age=3600"
     }));
     res.end(bytes);
   } catch {

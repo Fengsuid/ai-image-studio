@@ -103,62 +103,74 @@ function assert(condition, message) {
   return true;
 }
 
+function publicScriptMatch(html, fileName) {
+  const stem = fileName.replace(/\.js$/, "");
+  const escapedStem = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html.match(new RegExp(`src="([^"]*(?:/dist/${escapedStem}\\.[a-f0-9]{12}\\.js|/${escapedStem}\\.js)[^"]*)"`));
+}
+
 async function checkHomeResources() {
   log("GET /");
   const home = await fetchText("/", "text/html,*/*");
   assert(home.status === 200, `/ status=${home.status}`);
   assert(home.headers.get("content-security-policy-report-only"), "/ missing CSP Report-Only header");
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
+  assert(home.headers.get("cache-control") === "no-store", "/ HTML must be no-store");
   assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.css/.test(home.body), "/ missing hashed CSS bundle reference");
   assert(typeof home.body === "string" && !home.body.includes("/styles.css"), "/ should not load styles.css directly");
   assert(typeof home.body === "string" && !/\/mobile(?:-[a-z]+)?\.css/.test(home.body), "/ should not load legacy mobile CSS directly");
-  assert(typeof home.body === "string" && home.body.includes("/app.js"), "/ missing app.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-layout.js"), "/ missing canvas-layout.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-edges.js"), "/ missing canvas-edges.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-minimap.js"), "/ missing canvas-minimap.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-history.js"), "/ missing canvas-history.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-selection.js"), "/ missing canvas-selection.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-io.js"), "/ missing canvas-io.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-assistant.js"), "/ missing canvas-assistant.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-toolbar.js"), "/ missing canvas-toolbar.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/canvas-inspector.js"), "/ missing canvas-inspector.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/gallery-normalize.js"), "/ missing gallery-normalize.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/gallery-leaderboard.js"), "/ missing gallery-leaderboard.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/gallery-detail-media.js"), "/ missing gallery-detail-media.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/gallery-tag-view-model.js"), "/ missing gallery-tag-view-model.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/generation-result-actions.js"), "/ missing generation-result-actions.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/reference-images.js"), "/ missing reference-images.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/home-onboarding.js"), "/ missing home-onboarding.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/frontend-performance.js"), "/ missing frontend-performance.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/app-prompt-library.js"), "/ missing app-prompt-library.js reference");
-  assert(typeof home.body === "string" && home.body.includes("/app-auth.js"), "/ missing app-auth.js reference");
+  assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.js/.test(home.body), "/ missing hashed app.js reference");
+  assert(typeof home.body === "string" && !home.body.includes("?v="), "/ should not use manual query-string cache busting");
+  for (const fileName of [
+    "canvas-layout.js",
+    "canvas-edges.js",
+    "canvas-minimap.js",
+    "canvas-history.js",
+    "canvas-selection.js",
+    "canvas-io.js",
+    "canvas-assistant.js",
+    "canvas-toolbar.js",
+    "canvas-inspector.js",
+    "gallery-normalize.js",
+    "gallery-leaderboard.js",
+    "gallery-detail-media.js",
+    "gallery-tag-view-model.js",
+    "generation-result-actions.js",
+    "reference-images.js",
+    "home-onboarding.js",
+    "frontend-performance.js",
+    "app-prompt-library.js",
+    "app-auth.js"
+  ]) {
+    assert(publicScriptMatch(home.body, fileName), `/ missing ${fileName} reference`);
+  }
   assert(typeof home.body === "string" && home.body.includes("hero-pathway"), "/ missing home hero pathway");
   assert(typeof home.body === "string" && home.body.includes("homeDiscovery"), "/ missing home prompt discovery");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
   assert(home.body.includes('name="twitter:card"'), "/ missing Twitter card metadata");
 
   const styleMatch = home.body.match(/href="([^"]*\/dist\/app\.[a-f0-9]{12}\.css)"/);
-  const appMatch = home.body.match(/src="([^"]*\/app\.js[^"]*)"/);
-  const canvasLayoutMatch = home.body.match(/src="([^"]*\/canvas-layout\.js[^"]*)"/);
-  const canvasEdgesMatch = home.body.match(/src="([^"]*\/canvas-edges\.js[^"]*)"/);
-  const minimapMatch = home.body.match(/src="([^"]*\/canvas-minimap\.js[^"]*)"/);
-  const canvasHistoryMatch = home.body.match(/src="([^"]*\/canvas-history\.js[^"]*)"/);
-  const canvasSelectionMatch = home.body.match(/src="([^"]*\/canvas-selection\.js[^"]*)"/);
-  const canvasIoMatch = home.body.match(/src="([^"]*\/canvas-io\.js[^"]*)"/);
-  const canvasAssistantMatch = home.body.match(/src="([^"]*\/canvas-assistant\.js[^"]*)"/);
-  const canvasToolbarMatch = home.body.match(/src="([^"]*\/canvas-toolbar\.js[^"]*)"/);
-  const canvasInspectorMatch = home.body.match(/src="([^"]*\/canvas-inspector\.js[^"]*)"/);
-  const galleryModelMatch = home.body.match(/src="([^"]*\/gallery-normalize\.js[^"]*)"/);
-  const galleryLeaderboardMatch = home.body.match(/src="([^"]*\/gallery-leaderboard\.js[^"]*)"/);
-  const galleryDetailMediaMatch = home.body.match(/src="([^"]*\/gallery-detail-media\.js[^"]*)"/);
-  const galleryTagViewModelMatch = home.body.match(/src="([^"]*\/gallery-tag-view-model\.js[^"]*)"/);
-  const generationResultActionsMatch = home.body.match(/src="([^"]*\/generation-result-actions\.js[^"]*)"/);
-  const referenceImagesMatch = home.body.match(/src="([^"]*\/reference-images\.js[^"]*)"/);
-  const homeOnboardingMatch = home.body.match(/src="([^"]*\/home-onboarding\.js[^"]*)"/);
-  const frontendPerformanceMatch = home.body.match(/src="([^"]*\/frontend-performance\.js[^"]*)"/);
-  const promptLibraryMatch = home.body.match(/src="([^"]*\/app-prompt-library\.js[^"]*)"/);
-  const appAuthMatch = home.body.match(/src="([^"]*\/app-auth\.js[^"]*)"/);
-  const appSettingsMatch = home.body.match(/src="([^"]*\/app-settings\.js[^"]*)"/);
+  const appMatch = publicScriptMatch(home.body, "app.js");
+  const canvasLayoutMatch = publicScriptMatch(home.body, "canvas-layout.js");
+  const canvasEdgesMatch = publicScriptMatch(home.body, "canvas-edges.js");
+  const minimapMatch = publicScriptMatch(home.body, "canvas-minimap.js");
+  const canvasHistoryMatch = publicScriptMatch(home.body, "canvas-history.js");
+  const canvasSelectionMatch = publicScriptMatch(home.body, "canvas-selection.js");
+  const canvasIoMatch = publicScriptMatch(home.body, "canvas-io.js");
+  const canvasAssistantMatch = publicScriptMatch(home.body, "canvas-assistant.js");
+  const canvasToolbarMatch = publicScriptMatch(home.body, "canvas-toolbar.js");
+  const canvasInspectorMatch = publicScriptMatch(home.body, "canvas-inspector.js");
+  const galleryModelMatch = publicScriptMatch(home.body, "gallery-normalize.js");
+  const galleryLeaderboardMatch = publicScriptMatch(home.body, "gallery-leaderboard.js");
+  const galleryDetailMediaMatch = publicScriptMatch(home.body, "gallery-detail-media.js");
+  const galleryTagViewModelMatch = publicScriptMatch(home.body, "gallery-tag-view-model.js");
+  const generationResultActionsMatch = publicScriptMatch(home.body, "generation-result-actions.js");
+  const referenceImagesMatch = publicScriptMatch(home.body, "reference-images.js");
+  const homeOnboardingMatch = publicScriptMatch(home.body, "home-onboarding.js");
+  const frontendPerformanceMatch = publicScriptMatch(home.body, "frontend-performance.js");
+  const promptLibraryMatch = publicScriptMatch(home.body, "app-prompt-library.js");
+  const appAuthMatch = publicScriptMatch(home.body, "app-auth.js");
+  const appSettingsMatch = publicScriptMatch(home.body, "app-settings.js");
   const stylePath = styleMatch?.[1] || "/dist/app.missing.css";
   const appPath = appMatch?.[1] || "/app.js";
   const canvasLayoutPath = canvasLayoutMatch?.[1] || "/canvas-layout.js";
@@ -181,20 +193,15 @@ async function checkHomeResources() {
   const promptLibraryPath = promptLibraryMatch?.[1] || "/app-prompt-library.js";
   const appAuthPath = appAuthMatch?.[1] || "/app-auth.js";
   const appSettingsPath = appSettingsMatch?.[1] || "/app-settings.js";
-  const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
-  const appAuthVersion = new URL(appAuthPath, baseUrl).searchParams.get("v");
-  const appSettingsVersion = new URL(appSettingsPath, baseUrl).searchParams.get("v");
-  assert(appVersion && appVersion.length > 0, "/ app.js should include cache-busting version");
-  if (appAuthVersion && appVersion) {
-    assert(appAuthVersion === appVersion, `/ app-auth.js/app.js version mismatch (${appAuthVersion} vs ${appVersion})`);
-  }
-  if (appSettingsVersion && appVersion) {
-    assert(appSettingsVersion === appVersion, `/ app-settings.js/app.js version mismatch (${appSettingsVersion} vs ${appVersion})`);
-  }
+  assert(/^\/dist\/app\.[a-f0-9]{12}\.js$/.test(new URL(appPath, baseUrl).pathname), "/ app.js should use content-hashed dist path");
+  assert(/^\/dist\/app-auth\.[a-f0-9]{12}\.js$/.test(new URL(appAuthPath, baseUrl).pathname), "/ app-auth.js should use content-hashed dist path");
+  assert(/^\/dist\/app-settings\.[a-f0-9]{12}\.js$/.test(new URL(appSettingsPath, baseUrl).pathname), "/ app-settings.js should use content-hashed dist path");
 
   log(`GET ${stylePath}`);
   const style = await fetchCssWithImports(stylePath);
   assert(style.status === 200, `${stylePath} status=${style.status}`);
+  assert((style.headers.get("cache-control") || "").includes("max-age=31536000"), `${stylePath} should use long-lived cache`);
+  assert((style.headers.get("cache-control") || "").includes("immutable"), `${stylePath} should use immutable cache`);
   assert(style.body.length > 1000, `${stylePath} unexpectedly small`);
   assert(!/@import\s/.test(style.body), `${stylePath} should be a resolved CSS bundle without @import`);
   assert(style.body.includes("admin-overview-hero"), `${stylePath} should style admin dashboard overview hero`);
@@ -242,6 +249,8 @@ async function checkHomeResources() {
   log(`GET ${appPath}`);
   const app = await fetchText(appPath, "application/javascript,*/*");
   assert(app.status === 200, `${appPath} status=${app.status}`);
+  assert((app.headers.get("cache-control") || "").includes("max-age=31536000"), `${appPath} should use long-lived cache`);
+  assert((app.headers.get("cache-control") || "").includes("immutable"), `${appPath} should use immutable cache`);
   assert(app.body.length > 1000, `${appPath} unexpectedly small`);
   assert(app.body.includes("/api/version"), `${appPath} should request /api/version`);
   assert(app.body.includes("/api/images/requests/active"), `${appPath} should resume active generation requests`);
@@ -357,7 +366,7 @@ async function checkHomeResources() {
   assert(referenceImages.body.includes("filesToReferences"), `${referenceImagesPath} should read multiple reference files`);
   assert(referenceImages.body.includes("revokeReferences"), `${referenceImagesPath} should release reference object URLs`);
   assert(referenceImages.body.includes("normalizeLimit"), `${referenceImagesPath} should clamp configurable reference limits`);
-  log("/ resources ok:", "asset version", appVersion || "none");
+  log("/ resources ok:", "hashed app asset", appPath);
 }
 
 async function checkAdminResources() {

@@ -4,12 +4,14 @@ import path from "node:path";
 import process from "node:process";
 import { frontendBuildManifest } from "../../src/frontend/app-build-manifest.mjs";
 import { buildCssBundle } from "./css-bundle.mjs";
+import { buildJsAssets } from "./js-bundle.mjs";
 
 const root = process.cwd();
 const publicDir = path.join(root, "public");
 const jsonPath = path.join(publicDir, "frontend-build-manifest.json");
 const jsPath = path.join(publicDir, "frontend-build-manifest.js");
 const cssBundle = await buildCssBundle({ root });
+const jsBundle = await buildJsAssets({ root });
 const buildManifest = {
   ...frontendBuildManifest,
   css: {
@@ -19,6 +21,11 @@ const buildManifest = {
     hash: cssBundle.hash,
     bytes: cssBundle.bytes,
     sources: cssBundle.sources.map((source) => source.publicPath)
+  },
+  js: {
+    ...frontendBuildManifest.js,
+    compatibilityManifest: jsBundle.compatibilityManifest,
+    assets: jsBundle.assets
   }
 };
 const manifestJson = JSON.stringify(buildManifest, null, 2);
@@ -43,5 +50,5 @@ await fs.writeFile(jsonPath, `${manifestJson}\n`, "utf8");
 await fs.writeFile(jsPath, script, "utf8");
 
 console.log(
-  `[frontend-build] wrote ${path.relative(root, jsPath)}, ${path.relative(root, jsonPath)} and ${cssBundle.entry}`
+  `[frontend-build] wrote ${path.relative(root, jsPath)}, ${path.relative(root, jsonPath)}, ${cssBundle.entry} and ${jsBundle.assets.length} hashed JS assets`
 );
