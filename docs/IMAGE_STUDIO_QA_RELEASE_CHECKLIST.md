@@ -172,6 +172,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for this task. Gallery image smoke was not repeated because this change is a backend facade-only refactor and public API smoke already covered the public gallery list endpoint.
 - Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`74babe1` manual facade baseline if store exports regress.
 
+### 2026-05-25 AIS-RLS-107 App Auth Split Release
+
+- Task covered: `AIS-RLS-107` Extract `public/app.js` auth/account/CSRF logic into `public/app-auth.js`.
+- Commits covered: `f449a01`, `f3e2ece`.
+- Files changed: `public/app-auth.js`, `public/app.js`, `public/index.html`, `src/config/app-settings.js`, `scripts/smoke/check-public-app-module-split.mjs`, `scripts/smoke/check-user-flow-polish.mjs`, and `scripts/smoke/check-public-api.mjs`.
+- Frontend coverage: `public/app-auth.js` is now a real 690-line auth controller module registered through `AppModules.auth`; `public/app.js` delegates auth/account/CSRF/My Works behavior to that module and is reduced to 6623 lines, below the AIS-RLS-107 limit.
+- Local checks: `node --check public/app.js`, `node --check public/app-auth.js`, `node --check scripts/smoke/check-public-api.mjs`, `npm run smoke:public-app-module-split`, `npm run smoke:user-flow-polish`, `npm run smoke:frontend-boundaries`, `npm run check`, and `git diff --check` passed. Local `npm run smoke:public` was skipped after it failed to connect to `http://localhost:3000` because no local app server was running.
+- Online smoke: container `npm run smoke:public-app-module-split`, container `npm run smoke:user-flow-polish`, container `npm run smoke:frontend-boundaries`, container `npm run smoke:public -- http://127.0.0.1:3000`, and external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260525-app-auth-split-v1`.
+- Deployment note: the deployment used a `git archive HEAD` package; a follow-up lightweight sync updated the public smoke expectation after the second commit. No database schema or data changes were made.
+- Known blockers: none for this task. The initial local `smoke:public` connection failure was an environment issue, not an app-auth regression.
+- Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`f449a01` auth-in-`app.js` baseline if auth/account behavior regresses.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
