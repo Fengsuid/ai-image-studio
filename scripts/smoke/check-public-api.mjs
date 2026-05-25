@@ -156,6 +156,7 @@ async function checkHomeResources() {
   const frontendPerformanceMatch = home.body.match(/src="([^"]*\/frontend-performance\.js[^"]*)"/);
   const promptLibraryMatch = home.body.match(/src="([^"]*\/app-prompt-library\.js[^"]*)"/);
   const appAuthMatch = home.body.match(/src="([^"]*\/app-auth\.js[^"]*)"/);
+  const appSettingsMatch = home.body.match(/src="([^"]*\/app-settings\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const canvasLayoutPath = canvasLayoutMatch?.[1] || "/canvas-layout.js";
@@ -177,9 +178,11 @@ async function checkHomeResources() {
   const frontendPerformancePath = frontendPerformanceMatch?.[1] || "/frontend-performance.js";
   const promptLibraryPath = promptLibraryMatch?.[1] || "/app-prompt-library.js";
   const appAuthPath = appAuthMatch?.[1] || "/app-auth.js";
+  const appSettingsPath = appSettingsMatch?.[1] || "/app-settings.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
   const appAuthVersion = new URL(appAuthPath, baseUrl).searchParams.get("v");
+  const appSettingsVersion = new URL(appSettingsPath, baseUrl).searchParams.get("v");
   assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
   assert(appVersion && appVersion.length > 0, "/ app.js should include cache-busting version");
   if (styleVersion && appVersion) {
@@ -187,6 +190,9 @@ async function checkHomeResources() {
   }
   if (appAuthVersion && appVersion) {
     assert(appAuthVersion === appVersion, `/ app-auth.js/app.js version mismatch (${appAuthVersion} vs ${appVersion})`);
+  }
+  if (appSettingsVersion && appVersion) {
+    assert(appSettingsVersion === appVersion, `/ app-settings.js/app.js version mismatch (${appSettingsVersion} vs ${appVersion})`);
   }
 
   log(`GET ${stylePath}`);
@@ -227,6 +233,13 @@ async function checkHomeResources() {
   assert(appAuth.status === 200, `${appAuthPath} status=${appAuth.status}`);
   assert(appAuth.body.includes("createAuthController"), `${appAuthPath} should register the auth controller factory`);
   assert(appAuth.body.includes("publicTagsForKind(selectedKinds[0]"), `${appAuthPath} should preserve kind tags in bulk publish`);
+
+  log(`GET ${appSettingsPath}`);
+  const appSettings = await fetchText(appSettingsPath, "application/javascript,*/*");
+  assert(appSettings.status === 200, `${appSettingsPath} status=${appSettings.status}`);
+  assert(appSettings.body.includes("createSettingsController"), `${appSettingsPath} should register the settings controller factory`);
+  assert(appSettings.body.includes("bindLanguageToggle"), `${appSettingsPath} should own language toggle binding`);
+  assert(appSettings.body.includes("safeStorageWrite(\"lang\""), `${appSettingsPath} should persist language preference changes`);
 
   log(`GET ${appPath}`);
   const app = await fetchText(appPath, "application/javascript,*/*");

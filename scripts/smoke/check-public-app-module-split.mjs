@@ -19,6 +19,7 @@ function scriptPosition(html, scriptName) {
 const indexHtml = read("public/index.html");
 const appJs = read("public/app.js");
 const appAuthJs = read("public/app-auth.js");
+const appSettingsJs = read("public/app-settings.js");
 const packageJson = JSON.parse(read("package.json"));
 
 const moduleScripts = [
@@ -45,7 +46,7 @@ const moduleSourceChecks = {
   "public/app-generation.js": ['register("generation"', "renderResultActions"],
   "public/app-gallery.js": ['register("gallery"', "renderLeaderboard"],
   "public/app-auth.js": ['register("auth"', "createAuthController", "bindAccountEvents", "openMyWorksModal", "X-CSRF-Token"],
-  "public/app-settings.js": ['register("settings"']
+  "public/app-settings.js": ['register("settings"', "createSettingsController", "bindLanguageToggle", "readPreference", "writePreference"]
 };
 
 for (const [relativePath, snippets] of Object.entries(moduleSourceChecks)) {
@@ -63,12 +64,18 @@ assert(appJs.includes("window.AppModules?.gallery?.createDetailMedia"), "app.js 
 assert(appJs.includes("window.AppModules?.auth?.create"), "app.js should initialize auth through AppModules.auth.create");
 assert(appJs.includes("requireAuthController().bindAccountEvents"), "app.js should delegate account event binding through AppModules.auth");
 assert(appJs.includes('window.AppModules?.register?.("auth", controller)'), "app.js should publish the initialized auth controller");
-assert(appJs.includes('window.AppModules?.register?.("settings"'), "app.js should register settings module bridge");
+assert(appJs.includes("window.AppModules?.settings?.create"), "app.js should initialize settings through AppModules.settings.create");
+assert(appJs.includes('window.AppModules?.register?.("settings"'), "app.js should publish the initialized settings controller");
+assert(appJs.includes("requireSettingsController().bindLanguageToggle"), "app.js should delegate language toggle binding through AppModules.settings");
 assert(!appJs.includes("id=\"authForm\""), "app.js should not render auth form markup directly");
 assert(!appJs.includes("works-bulk-actions"), "app.js should not render My Works bulk action markup directly");
+assert(!appJs.includes("const i18n ="), "app.js should not own the i18n dictionary directly");
 assert(appAuthJs.includes("id=\"authForm\""), "app-auth.js should own auth form markup");
 assert(appAuthJs.includes("works-bulk-actions"), "app-auth.js should own My Works markup");
-assert(appJs.split(/\r?\n/).length <= 6700, "app.js should stay below the AIS-RLS-107 line-count budget");
+assert(appSettingsJs.includes("const i18n ="), "app-settings.js should own the i18n dictionary");
+assert(appSettingsJs.includes("safeStorageWrite(\"lang\""), "app-settings.js should persist language preferences");
+assert(appJs.split(/\r?\n/).length <= 6200, "app.js should stay below the AIS-RLS-108 line-count budget");
+assert(appSettingsJs.split(/\r?\n/).length >= 300, "app-settings.js should be a real module, not a bridge stub");
 
 assert(
   packageJson.scripts?.["smoke:public-app-module-split"] === "node scripts/smoke/check-public-app-module-split.mjs",
