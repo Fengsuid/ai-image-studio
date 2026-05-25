@@ -101,12 +101,13 @@
 
 | 类目 | 路径 | 产出 |
 | --- | --- | --- |
-| 子应用源码 | `apps/agent/src/`（任务 149 后） | agent feature agent |
-| 构建产物（JS） | `public/agent/assets/main.<hash>.js`（149 后） | build |
+| 子应用源码 | `apps/agent-workspace/src/`（已存在） | agent feature agent |
+| 构建产物（JS） | `public/agent/assets/main.<hash>.js` | build |
 | 构建产物（CSS） | `public/agent/assets/styles.<hash>.css` | build |
 | HTML 入口 | `public/agent/index.html` | build |
+| 子应用 license | `apps/agent-workspace/package.json` 当前为 `UNLICENSED` | — |
 
-任务 149 之前：`public/agent/` 直接持有产物，无独立源码目录。149 完成后切换为 build 模式。
+> **注意**：与画布 slice 不同，agent 子应用 `apps/agent-workspace/` 当前 license 为 `UNLICENSED`（可能是闭源 add-on 预留）。`packages/agent-core/` 后端 slice 抽取时**不强制 AGPL header**，沿用主项目现行约定。任务 149 不是"创建子应用"，而是"规范化已存在的 apps/agent-workspace/ 与 packages/agent-core/ 后端的对接"。
 
 ---
 
@@ -147,17 +148,18 @@ npm run test           # vitest 单测（planner 优先级 P0）
 
 主项目 CI 引用：
 
-- 现有：`smoke:agent-workspace`
+- 现有（已注册）：`smoke:agent-workspace`、`smoke:agent-session-api`、`smoke:agent-batch-generation`、`smoke:agent-export-canvas`
 - 新增（任务 152）：
   - `smoke:agent-planner-flow`（P0）
   - `smoke:agent-credit-per-step`（P0）
   - `smoke:agent-retry`
   - `smoke:agent-resume`
-  - `smoke:agent-batch-export`
+  - `smoke:agent-batch-export`（注：与现有 `smoke:agent-batch-generation` 区分；新 smoke 测端到端 + canvas 导出闭环）
 
 ---
 
 ## 9. 变更日志
 
+- 2026-05-25 v1.0.1（草案）：修正子应用路径为 `apps/agent-workspace/`（已存在）；license 为 `UNLICENSED`，不强制 AGPL；补完现有 agent smokes 清单
 - 2026-05-25 v1.0.0（草案）：初版冻结草案，待 `AIS-RLS-148`（slice 抽取）完成后正式发布 v1.0.0
 
