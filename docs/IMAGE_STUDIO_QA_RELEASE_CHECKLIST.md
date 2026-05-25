@@ -234,6 +234,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for the JS hash release. The generated manifest increases measured non-canvas initial JS to `443890` bytes, still under the updated 450 KB smoke budget.
 - Rollback target: revert `ae6cf24`, or change public `index.html` scripts back to root JS files with manual query strings and restore normal static asset cache headers if hashed JS serving regresses.
 
+### 2026-05-25 AIS-RLS-147+148 Slice 化首批部署
+
+- Tasks covered: `AIS-RLS-147` Canvas backend slice extraction and `AIS-RLS-148` Agent backend slice extraction.
+- Commits covered: `4b16f4d`, `3271734`, `48c3893`, `a27aa9c`.
+- Files changed: `packages/agent-core/*`, `packages/canvas-core/*`, `server.js` wiring, `src/mysql-store.js` schema/store exports, related smoke scripts, `Dockerfile`, workspace package metadata, and version config.
+- Slice coverage: agent and canvas backend code now live behind `@ai-image-studio/agent-core` and `@ai-image-studio/canvas-core` package entrypoints. Legacy `src/agent-*`, `src/canvas-*`, `src/routes/agent-sessions.js`, `src/routes/canvases.js`, and matching legacy store files were removed, while the main app imports the package facades instead of local god-file style modules.
+- Docker coverage: production image now copies `packages/` before runtime startup, which is required for workspace package resolution after the agent/canvas slice extraction.
+- Local checks: `packages/canvas-core npm run check`, `packages/canvas-core npx vitest run`, `packages/agent-core npm run check`, `packages/agent-core npm run test`, `node --check server.js`, `npm run smoke:canvas-v2:static`, `npm run smoke:canvas-v2:editor`, `npm run smoke:canvas-v2:generation`, `npm run smoke:agent-workspace`, `npm run smoke:canvas-history`, `npm run smoke:canvas-assistant`, `npm run smoke:canvas-import-export`, `npm run smoke:canvas-selection`, `npm run smoke:prompt-canvas-store-split`, and `npm run smoke:server-route-boundary-split` passed.
+- Online smoke: deployment package size, entry count, and SHA256 matched locally and on server; container and external `/api/version` report `20260525-slice-extraction-v1`; external `npm run smoke:public -- https://<host>` passed; container `smoke:public`, `smoke:canvas-v2:generation`, `smoke:agent-workspace`, `smoke:canvas-assistant`, `smoke:canvas-import-export`, `smoke:server-route-boundary-split`, and package resolution checks passed.
+- Known blockers: local MySQL credentials still block the four canvas API smokes that need DB-backed local startup, so those were covered in the deployed container instead. `smoke:canvas-module-boundaries`, `smoke:canvas-layout-edges`, and `smoke:canvas-v2:entry` remain known pre-existing `AIS-RLS-111` content-hash cleanup gaps, not slice extraction regressions.
+- Rollback target: revert `a27aa9c`, `3271734`, and `4b16f4d` if the slice extraction regresses; keep or re-apply `48c3893` when any workspace package remains required by the production image.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.
