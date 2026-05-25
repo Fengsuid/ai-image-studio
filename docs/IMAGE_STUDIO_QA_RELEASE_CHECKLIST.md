@@ -184,6 +184,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for this task. The initial local `smoke:public` connection failure was an environment issue, not an app-auth regression.
 - Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`f449a01` auth-in-`app.js` baseline if auth/account behavior regresses.
 
+### 2026-05-25 AIS-RLS-108 App Settings Split Release
+
+- Task covered: `AIS-RLS-108` Extract `public/app.js` i18n/theme/prefs logic into `public/app-settings.js`.
+- Commit covered: `fc93f17`.
+- Files changed: `public/app-settings.js`, `public/app.js`, `public/index.html`, `src/config/app-settings.js`, `scripts/smoke/check-public-app-module-split.mjs`, `scripts/smoke/check-theme-mobile-nav.mjs`, and `scripts/smoke/check-public-api.mjs`.
+- Frontend coverage: `public/app-settings.js` is now a real settings controller module registered through `AppModules.settings`; it owns the i18n dictionary, text/local helpers, language toggle binding, preference read/write helpers, and text matching helper. `public/app.js` delegates settings/i18n/theme preference behavior to that module and is reduced to 5929 lines, below the AIS-RLS-108 limit.
+- Local checks: `node --check public/app.js`, `node --check public/app-settings.js`, `node --check scripts/smoke/check-public-api.mjs`, `npm run smoke:public-app-module-split`, `npm run smoke:theme-mobile-nav`, `npm run smoke:frontend-boundaries`, `npm run check`, and `git diff --check` passed. Local `npm run smoke:public` was blocked by the local MySQL `root@localhost` credential mismatch, not by application syntax.
+- Online smoke: container `npm run smoke:public-app-module-split`, container `npm run smoke:theme-mobile-nav`, container `npm run smoke:frontend-boundaries`, container `npm run smoke:public -- http://127.0.0.1:3000`, and external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260525-app-settings-split-v1`.
+- Deployment note: the deployment used a small package containing only the six changed files. The server `.env` still had `APP_VERSION=20260525-app-auth-split-v1` after the first restart, so it was corrected to `20260525-app-settings-split-v1` and the app container was restarted. No database schema or data changes were made.
+- Known blockers: none for this task. The local full public smoke remains dependent on local MySQL credentials and was not treated as an app-settings regression.
+- Rollback target: use the latest pre-deploy server backup recorded in the private deployment document, or code rollback to the pre-`fc93f17` settings-in-`app.js` baseline if settings/i18n/theme behavior regresses.
+
 ### 2026-05-21 Canvas v2 Phase 1 Release
 
 - Tasks covered: `AIS-RLS-048`, `AIS-RLS-049`, `AIS-RLS-050`, `AIS-RLS-051`, `AIS-RLS-052`, `AIS-RLS-053`, `AIS-RLS-054`.

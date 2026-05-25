@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
 日期：2026-05-20
-状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-25，`AIS-RLS-107` 已完成）。
+状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-25，`AIS-RLS-108` 已完成）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -33,7 +33,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-108` Extract app.js i18n/theme/prefs into public/app-settings.js | Frontend | `AIS-RLS-107` 已完成，继续按审核顺序推进 app-settings 实体化；不要跳到 `AIS-RLS-109` |
+| 1 | `AIS-RLS-109` Add GitHub Actions CI check workflow | Platform | `AIS-RLS-108` 已完成，继续按审核顺序推进 CI workflow；不要直接复用 `archive/` 草稿 |
 
 ## 3. 全量 Trellis 任务表
 
@@ -140,7 +140,7 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-105` | Split src/routes/admin.js into src/routes/admin/* by business domain | Done | P1 | Platform | Post-Release Phase B | `AIS-RLS-100` |
 | `AIS-RLS-106` | Convert mysql-store.js facade to programmatic re-export with collision check | Done | P1 | Platform | Post-Release Phase B | None |
 | `AIS-RLS-107` | Extract app.js auth/account/csrf into public/app-auth.js | Done | P1 | Frontend | Post-Release Phase B | None |
-| `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Ready | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |
+| `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Done | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |
 | `AIS-RLS-109` | Add GitHub Actions CI check workflow | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-107`, `AIS-RLS-108` |
 | `AIS-RLS-130` | Tighten ESLint rules from warn to CI-blocking errors | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-099` |
 | `AIS-RLS-131` | Expand CHANGELOG and CONTRIBUTING into usable project docs | Ready | P3 | Documentation | Post-Release Phase C | `AIS-RLS-096` |
