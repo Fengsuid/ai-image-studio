@@ -133,6 +133,19 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-092` | Frontend performance and bundle budget optimization | Done | P2 | Frontend/Performance | M11 Frontend QA | `AIS-RLS-077`, `AIS-RLS-081`, `AIS-RLS-088` |
 | `AIS-RLS-093` | Visual regression QA harness for polished frontend | Done | P2 | Platform/QA | M11 Frontend QA | `AIS-RLS-088`, `AIS-RLS-089`, `AIS-RLS-090`, `AIS-RLS-091`, `AIS-RLS-092` |
 
+## 3.1 Follow-Up Optimization Backlog
+
+| Task | Title | Status | Priority | Lane | Milestone | Dependencies |
+| --- | --- | --- | --- | --- | --- | --- |
+| `AIS-RLS-105` | Split src/routes/admin.js into src/routes/admin/* by business domain | Active | P1 | Platform | Post-Release Phase B | `AIS-RLS-100` |
+| `AIS-RLS-106` | Convert mysql-store.js facade to programmatic re-export with collision check | Ready | P1 | Platform | Post-Release Phase B | None |
+| `AIS-RLS-107` | Extract app.js auth/account/csrf into public/app-auth.js | Ready | P1 | Frontend | Post-Release Phase B | None |
+| `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Ready | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |
+| `AIS-RLS-109` | Add GitHub Actions CI check workflow | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-107`, `AIS-RLS-108` |
+| `AIS-RLS-130` | Tighten ESLint rules from warn to CI-blocking errors | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-099` |
+| `AIS-RLS-131` | Expand CHANGELOG and CONTRIBUTING into usable project docs | Ready | P3 | Documentation | Post-Release Phase C | `AIS-RLS-096` |
+| `AIS-RLS-132` | Split and land premium polish theme CSS safely | Ready | P2 | Frontend | Post-Release Phase C | `AIS-RLS-098`, `AIS-RLS-110` |
+
 ## 4. 历史 T 编号映射
 
 | 历史编号 | 设计任务 | Trellis 主卡 | 看板处理 |

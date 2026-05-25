@@ -21,11 +21,21 @@ const routeFiles = {
   imagesGenerate: read("src/routes/images-generate.js"),
   prompts: read("src/routes/prompts.js"),
   canvases: read("src/routes/canvases.js"),
-  admin: read("src/routes/admin.js"),
+  admin: read("src/routes/admin/index.js"),
   credits: read("src/routes/credits.js"),
   settingsPublic: read("src/routes/settings-public.js"),
   announcements: read("src/routes/announcements.js")
 };
+const adminDomainFiles = [
+  "announcements.js",
+  "diagnostics.js",
+  "generations.js",
+  "moderation.js",
+  "prompt-sources.js",
+  "public-images.js",
+  "settings.js",
+  "users.js"
+].map((file) => read(`src/routes/admin/${file}`));
 
 assert(server.includes('require("./src/routes/auth")'), "server.js must require src/routes/auth");
 assert(server.includes("const handleAuthRoute = createAuthRoute({"), "server.js must create handleAuthRoute");
@@ -105,7 +115,9 @@ const splitRoutes = [
       "/api/admin/providers",
       "/api/admin/generations",
       "/api/admin/public-images",
-      "/api/admin/prompt-sources"
+      "/api/admin/prompt-sources",
+      "/api/admin/announcements",
+      "/api/admin/users"
     ]
   },
   {
@@ -158,8 +170,12 @@ for (const route of splitRoutes) {
   assert(!routeFile.includes("return sendNoContent("), `src/routes/${route.key}.js handlers must explicitly return true after sendNoContent`);
   assert(routeFile.includes("return false;"), `src/routes/${route.key}.js must fall through with return false`);
   for (const endpoint of route.endpoints) {
-    assert(routeFile.includes(endpoint), `src/routes/${route.key}.js must own ${endpoint}`);
     assert(!server.includes(`url.pathname === "${endpoint}"`), `server.js should not directly branch on ${endpoint}`);
+    if (route.key === "admin") {
+      assert(adminDomainFiles.some((content) => content.includes(endpoint)), `src/routes/admin/* must own ${endpoint}`);
+    } else {
+      assert(routeFile.includes(endpoint), `src/routes/${route.key}.js must own ${endpoint}`);
+    }
   }
   for (const fragment of route.fragments || []) {
     assert(routeFile.includes(fragment), `src/routes/${route.key}.js must include ${fragment}`);
@@ -169,7 +185,7 @@ for (const route of splitRoutes) {
   }
   assert(!routeFile.includes('require("mysql2/promise")'), `src/routes/${route.key}.js must not open mysql2 connections directly`);
   assert(!routeFile.includes("require('mysql2/promise')"), `src/routes/${route.key}.js must not open mysql2 connections directly`);
-  if (!route.allowLocalRequires) {
+  if (route.key !== "admin" && !route.allowLocalRequires) {
     assert(!/\brequire\s*\(/.test(routeFile), `src/routes/${route.key}.js must stay dependency-injected and avoid local require cycles`);
   }
 }

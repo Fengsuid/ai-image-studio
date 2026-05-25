@@ -10,7 +10,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.
 const read = (relativePath) => fs.readFileSync(path.join(rootDir, relativePath), "utf8");
 
 const server = read("server.js");
-const adminRoute = read("src/routes/admin.js");
+const adminRoute = read("src/routes/admin/generations.js");
 const generationStore = read("src/stores/generation-store.js");
 const adminHtml = read("public/admin.html");
 const admin = read("public/admin.js");

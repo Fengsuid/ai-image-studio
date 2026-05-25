@@ -55,8 +55,6 @@ const { createGalleryRoute } = require("./src/routes/gallery");
 const { createPromptsRoute } = require("./src/routes/prompts");
 const { createCanvasesRoute } = require("./src/routes/canvases");
 const { createAdminRoute } = require("./src/routes/admin");
-const { createAdminAnnouncementsRoute } = require("./src/routes/admin-announcements");
-const { createAdminUsersRoute } = require("./src/routes/admin-users");
 const { createCreditsRoute } = require("./src/routes/credits");
 const { createSettingsPublicRoute } = require("./src/routes/settings-public");
 const { createAnnouncementsRoute } = require("./src/routes/announcements");
@@ -374,20 +372,6 @@ const handleCanvasesRoute = createCanvasesRoute({
   sanitizePositiveInt
 });
 
-
-const handleAdminAnnouncementsRoute = createAdminAnnouncementsRoute({
-  getCurrentUser, ensureAuthenticated, ensureAdmin, sanitizePositiveInt, sendJson,
-  store, readJsonBody, cleanAnnouncementInput, randomId, writeAdminAudit, httpError
-});
-
-const handleAdminUsersRoute = createAdminUsersRoute({
-  getCurrentUser, ensureAuthenticated, ensureAdmin, sanitizePositiveInt, sendJson,
-  store, readJsonBody, httpError, writeAdminAudit, requireEmail, requirePassword,
-  temporaryPassword, hashPassword, serializeUser, normalizeEmail, randomId,
-  promptReview, reviewPendingPromptDuplicates, callOpenAITextResponses,
-  notifyWithdrawalDecision, notifyModerationOutcome, generationResponse,
-  sourceImageUrlForGeneration, sourceImageAuditFields
-});
 
 const handleAdminRoute = createAdminRoute({
   store,
@@ -3258,8 +3242,6 @@ async function routeApi(req, res, url) {
 
   if (await handleCanvasesRoute(req, res, url)) return;
 
-  if (await handleAdminAnnouncementsRoute(req, res, url)) return;
-  if (await handleAdminUsersRoute(req, res, url)) return;
   if (await handleAdminRoute(req, res, url)) return;
   if (await handleCreditsRoute(req, res, url)) return;
   if (await handleSettingsPublicRoute(req, res, url)) return;

@@ -2,7 +2,11 @@
 
 This document provides a reference for the REST API endpoints, grouped by their corresponding route files in `src/routes/*`.
 
-## `src/routes/admin.js`
+## `src/routes/admin/*`
+
+The admin API is split by business domain under `src/routes/admin/`.
+
+### `src/routes/admin/prompt-sources.js`
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -10,6 +14,11 @@ This document provides a reference for the REST API endpoints, grouped by their 
 | POST | `/api/admin/prompt-sources` | Create a new prompt source. |
 | PATCH | `/api/admin/prompt-sources/:id` | Update an existing prompt source. |
 | POST | `/api/admin/prompt-sources/:id/sync` | Run synchronization for a prompt source. |
+
+### `src/routes/admin/settings.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
 | GET | `/api/admin/settings` | Get admin settings. |
 | PATCH | `/api/admin/settings` | Update admin settings. |
 | GET | `/api/admin/providers` | List model providers. |
@@ -19,15 +28,41 @@ This document provides a reference for the REST API endpoints, grouped by their 
 | DELETE | `/api/admin/providers/:id` | Delete a provider config. |
 | POST | `/api/admin/providers/:id/test` | Test a provider's connection and mapping. |
 | POST | `/api/admin/providers/:id/set-default` | Set a provider as the default. |
+
+### `src/routes/admin/diagnostics.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
 | GET | `/api/admin/rum` | Get Real User Monitoring (RUM) summary and events. |
+
+### `src/routes/admin/announcements.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
 | GET | `/api/admin/announcements` | List announcements. |
 | POST | `/api/admin/announcements` | Create an announcement. |
 | POST | `/api/admin/announcements/:id/(publish\|archive\|withdraw)` | Perform an action on an announcement. |
 | GET | `/api/admin/announcements/:id` | Get announcement details. |
 | PATCH | `/api/admin/announcements/:id` | Update an announcement. |
 | DELETE | `/api/admin/announcements/:id` | Delete a draft announcement. |
+
+### `src/routes/admin/users.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
 | GET | `/api/admin/users` | List users. |
+| POST | `/api/admin/users` | Create a user. |
 | POST | `/api/admin/users/bulk` | Bulk update users' status or credits. |
+| GET | `/api/admin/users/:id/credit-ledger` | View credit transactions for a user. |
+| GET | `/api/admin/users/:id/reward-ledger` | View reward history for a user. |
+| POST | `/api/admin/users/:id/reset-password` | Reset a user's password. |
+| PATCH | `/api/admin/users/:id` | Update a user profile, role, status, or credits. |
+| GET | `/api/admin/users/:id/generations` | View a user's generations. |
+
+### `src/routes/admin/moderation.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
 | GET | `/api/admin/credit-ledger` | View credit transactions. |
 | GET | `/api/admin/reward-ledger` | View reward history. |
 | GET | `/api/admin/audit-logs` | View admin audit logs. |
@@ -42,6 +77,23 @@ This document provides a reference for the REST API endpoints, grouped by their 
 | POST | `/api/admin/prompt-duplicates/scan` | Trigger a scan for prompt duplicates. |
 | POST | `/api/admin/prompt-duplicates/:id/ai-review` | Trigger AI review for a duplicate candidate. |
 | PATCH | `/api/admin/prompt-duplicates/:id` | Manually review/resolve a duplicate candidate. |
+
+### `src/routes/admin/generations.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/admin/generations` | List generation requests with filters. |
+| GET | `/api/admin/generations/:id` | Get generation request diagnostics and trace events. |
+| POST | `/api/admin/generations/:id/(retry\|cancel\|mark-failed\|copy-error)` | Apply an admin action to a generation request. |
+
+### `src/routes/admin/public-images.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/admin/public-images` | List public images for moderation review. |
+| GET | `/api/admin/gallery-file-checks` | List gallery file health checks. |
+| POST | `/api/admin/gallery-file-checks/run` | Run gallery file health checks. |
+| GET | `/api/admin/gallery-like-anomalies` | List gallery like anomalies. |
 
 ## `src/routes/agent-sessions.js`
 

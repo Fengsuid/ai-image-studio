@@ -11,7 +11,7 @@ const read = (file) => fs.readFileSync(path.join(rootDir, file), "utf8");
 
 const server = read("server.js");
 const mysqlStore = read("src/mysql-store.js");
-const adminRoute = read("src/routes/admin.js");
+const adminRoute = read("src/routes/admin/settings.js");
 const userStore = read("src/stores/user-store.js");
 const app = read("public/app.js");
 const admin = read("public/admin.js");

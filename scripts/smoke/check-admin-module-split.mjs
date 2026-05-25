@@ -14,6 +14,18 @@ const users = read("public/admin-users.js");
 const providers = read("public/admin-providers.js");
 const gallery = read("public/admin-gallery.js");
 const packageJson = JSON.parse(read("package.json"));
+const server = read("server.js");
+const adminRouteDir = path.join(rootDir, "src/routes/admin");
+const backendModules = [
+  "announcements.js",
+  "diagnostics.js",
+  "generations.js",
+  "moderation.js",
+  "prompt-sources.js",
+  "public-images.js",
+  "settings.js",
+  "users.js"
+];
 
 assert.equal(packageJson.scripts["smoke:admin-module-split"], "node scripts/smoke/check-admin-module-split.mjs", "package.json must expose smoke:admin-module-split");
 for (const file of ["admin-overview.js", "admin-users.js", "admin-providers.js", "admin-gallery.js"]) {
@@ -38,5 +50,20 @@ for (const [name, content] of [["overview", overview], ["users", users], ["provi
 }
 assert(gallery.includes("window.AdminModules.squareReview"), "gallery module must register squareReview");
 assert(gallery.includes("window.AdminModules.galleryFiles"), "gallery module must register galleryFiles");
+assert(!fs.existsSync(path.join(rootDir, "src/routes/admin.js")), "legacy src/routes/admin.js must be deleted");
+assert(!fs.existsSync(path.join(rootDir, "src/routes/admin-users.js")), "legacy src/routes/admin-users.js must be deleted");
+assert(!fs.existsSync(path.join(rootDir, "src/routes/admin-announcements.js")), "legacy src/routes/admin-announcements.js must be deleted");
+assert(server.includes('require("./src/routes/admin")'), "server.js must mount the admin directory index");
+assert(!server.includes("handleAdminUsersRoute"), "server.js must not mount legacy admin-users separately");
+assert(!server.includes("handleAdminAnnouncementsRoute"), "server.js must not mount legacy admin-announcements separately");
+
+for (const file of ["index.js", ...backendModules]) {
+  const fullPath = path.join(adminRouteDir, file);
+  assert(fs.existsSync(fullPath), `src/routes/admin/${file} must exist`);
+  const content = fs.readFileSync(fullPath, "utf8");
+  const lineCount = content.split(/\r?\n/).length;
+  assert(lineCount <= 400, `src/routes/admin/${file} must be <= 400 lines, got ${lineCount}`);
+  assert(content.includes("module.exports"), `src/routes/admin/${file} must export its route factory`);
+}
 
 console.log("[admin-module-split-smoke] OK");

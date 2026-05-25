@@ -11,7 +11,9 @@ const require = createRequire(import.meta.url);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
-const adminRoute = fs.readFileSync(path.join(rootDir, "src/routes/admin.js"), "utf8");
+const adminRoute = fs.readFileSync(path.join(rootDir, "src/routes/admin/generations.js"), "utf8");
+const imagesGenerateRoute = fs.readFileSync(path.join(rootDir, "src/routes/images-generate.js"), "utf8");
+const agentGenerationService = fs.readFileSync(path.join(rootDir, "src/agent-generation-service.js"), "utf8");
 const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
 const trace = require(path.join(rootDir, "src/generation-trace-service.js"));
 
@@ -61,7 +63,7 @@ for (const stage of [
   "credit_refunded",
   "failed"
 ]) {
-  assert(server.includes(`"${stage}"`), `server must trace ${stage}`);
+  assert([server, imagesGenerateRoute, agentGenerationService].some((content) => content.includes(`"${stage}"`)), `generation services must trace ${stage}`);
 }
 
 assert(server.includes("createAdminRoute"), "server must mount the admin route module");
