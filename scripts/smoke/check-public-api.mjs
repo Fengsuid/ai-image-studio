@@ -129,6 +129,7 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && home.body.includes("/home-onboarding.js"), "/ missing home-onboarding.js reference");
   assert(typeof home.body === "string" && home.body.includes("/frontend-performance.js"), "/ missing frontend-performance.js reference");
   assert(typeof home.body === "string" && home.body.includes("/app-prompt-library.js"), "/ missing app-prompt-library.js reference");
+  assert(typeof home.body === "string" && home.body.includes("/app-auth.js"), "/ missing app-auth.js reference");
   assert(typeof home.body === "string" && home.body.includes("hero-pathway"), "/ missing home hero pathway");
   assert(typeof home.body === "string" && home.body.includes("homeDiscovery"), "/ missing home prompt discovery");
   assert(home.body.includes('property="og:title"'), "/ missing OG title metadata");
@@ -154,6 +155,7 @@ async function checkHomeResources() {
   const homeOnboardingMatch = home.body.match(/src="([^"]*\/home-onboarding\.js[^"]*)"/);
   const frontendPerformanceMatch = home.body.match(/src="([^"]*\/frontend-performance\.js[^"]*)"/);
   const promptLibraryMatch = home.body.match(/src="([^"]*\/app-prompt-library\.js[^"]*)"/);
+  const appAuthMatch = home.body.match(/src="([^"]*\/app-auth\.js[^"]*)"/);
   const stylePath = styleMatch?.[1] || "/styles.css";
   const appPath = appMatch?.[1] || "/app.js";
   const canvasLayoutPath = canvasLayoutMatch?.[1] || "/canvas-layout.js";
@@ -174,12 +176,17 @@ async function checkHomeResources() {
   const homeOnboardingPath = homeOnboardingMatch?.[1] || "/home-onboarding.js";
   const frontendPerformancePath = frontendPerformanceMatch?.[1] || "/frontend-performance.js";
   const promptLibraryPath = promptLibraryMatch?.[1] || "/app-prompt-library.js";
+  const appAuthPath = appAuthMatch?.[1] || "/app-auth.js";
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
   const appVersion = new URL(appPath, baseUrl).searchParams.get("v");
+  const appAuthVersion = new URL(appAuthPath, baseUrl).searchParams.get("v");
   assert(styleVersion && styleVersion.length > 0, "/ styles.css should include cache-busting version");
   assert(appVersion && appVersion.length > 0, "/ app.js should include cache-busting version");
   if (styleVersion && appVersion) {
     assert(styleVersion === appVersion, `/ app.js/styles.css version mismatch (${appVersion} vs ${styleVersion})`);
+  }
+  if (appAuthVersion && appVersion) {
+    assert(appAuthVersion === appVersion, `/ app-auth.js/app.js version mismatch (${appAuthVersion} vs ${appVersion})`);
   }
 
   log(`GET ${stylePath}`);
@@ -215,6 +222,12 @@ async function checkHomeResources() {
   assert(promptLibrary.body.includes("renderLibraryState"), `${promptLibraryPath} should render loading/empty/error states`);
   assert(promptLibrary.body.includes("renderPromptDetailModal"), `${promptLibraryPath} should render prompt detail modal`);
 
+  log(`GET ${appAuthPath}`);
+  const appAuth = await fetchText(appAuthPath, "application/javascript,*/*");
+  assert(appAuth.status === 200, `${appAuthPath} status=${appAuth.status}`);
+  assert(appAuth.body.includes("createAuthController"), `${appAuthPath} should register the auth controller factory`);
+  assert(appAuth.body.includes("publicTagsForKind(selectedKinds[0]"), `${appAuthPath} should preserve kind tags in bulk publish`);
+
   log(`GET ${appPath}`);
   const app = await fetchText(appPath, "application/javascript,*/*");
   assert(app.status === 200, `${appPath} status=${app.status}`);
@@ -226,7 +239,6 @@ async function checkHomeResources() {
   assert(app.body.includes("providerCapabilities"), `${appPath} should read provider capability flags`);
   assert(app.body.includes("function isImageToImageItem"), `${appPath} should classify image-to-image works from source metadata`);
   assert(app.body.includes("window.history.replaceState(route"), `${appPath} should close modal routes without adding history entries`);
-  assert(app.body.includes("publicTagsForKind(selectedKinds[0]"), `${appPath} should preserve kind tags in bulk publish`);
   assert(app.body.includes("referenceRequestPayload"), `${appPath} should build reference image payloads`);
   assert(app.body.includes("referenceImages"), `${appPath} should send multi-reference images to image edit requests`);
   assert(app.body.includes("maxReferenceImages"), `${appPath} should read configurable reference image limits`);
