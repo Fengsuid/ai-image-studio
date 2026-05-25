@@ -1009,7 +1009,7 @@ function createPromptStore({ getPool, toIso }) {
       `SELECT id, title, prompt, status, normalized_hash, simhash
          FROM prompts
         WHERE id <> ? AND normalized_hash <> '' AND simhash <> ''
-        ORDER BY id ASC
+        ORDER BY id DESC
         LIMIT ${normalizedLimit}`,
       [id]
     );
