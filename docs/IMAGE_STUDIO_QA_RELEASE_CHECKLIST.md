@@ -285,6 +285,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for AIS-RLS-115 after local visual regression, container public smoke, and external public smoke passed. The three hashed-entry canvas smoke failures listed in §9.1 remain known pre-existing `AIS-RLS-111` cleanup items and were not part of this animation-library release gate.
 - Rollback target: revert `457954a`, restore the previous hashed CSS bundle and the prior scattered animation definitions, then redeploy from the latest pre-AIS-RLS-115 package or Git baseline recorded in the private deployment log if shared animation utilities regress.
 
+### 2026-05-26 AIS-RLS-116 Unified List Skeleton Release
+
+- Task covered: `AIS-RLS-116` Unify list skeletons via `.anim-shimmer` and `renderSkeleton` helper.
+- Commit covered: `944613c`.
+- Files changed: `public/app.js`, `public/css/04-components-skeleton.css`, `public/styles.css`, generated `public/dist/app.6a49a8e41627.css`, generated `public/dist/app.51be80b67385.js`, frontend build manifest files, `public/index.html`, `scripts/smoke/check-skeleton-coverage.mjs`, `src/config/app-settings.js`, and `src/frontend/app-build-manifest.mjs`.
+- Frontend coverage: public list loading now renders a shared skeleton before history/session, prompt library, recent gallery, and leaderboard fetches; bootstrap pre-renders initial list skeletons so Slow 3G does not show empty list areas before auth/network calls complete. The skeleton module uses the existing `.anim-shimmer` utility from the shared animation library.
+- Local checks: `node --check public\app.js`, `node --check scripts\smoke\check-skeleton-coverage.mjs`, `node scripts\smoke\check-skeleton-coverage.mjs`, `npm run frontend:build`, `npm run smoke:css-module-split`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-boundaries`, `npm run smoke:frontend-performance`, `npm run smoke:visual-regression`, `node --check server.js`, `node --check public\admin.js`, `git diff --check`, and staged privacy scan passed. Local `npm run smoke:public` was blocked by missing local MySQL credentials before deployment.
+- Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000` passed; container `node scripts/smoke/check-skeleton-coverage.mjs` passed; external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260526-unified-skeleton-v1`; root HTML loads `/dist/app.6a49a8e41627.css` and `/dist/app.51be80b67385.js`.
+- Deployment note: the deployment package was generated with `git archive HEAD`, uploaded as the standard update archive, verified by local and server size plus SHA256 before extraction, then deployed with `APP_VERSION=20260526-unified-skeleton-v1`. No database schema or data changes were made.
+- Known blockers: no AIS-RLS-116 regressions found. The three hashed-entry canvas smoke failures listed in §9.1 remain known pre-existing `AIS-RLS-111` cleanup items and were not part of this skeleton release gate.
+- Rollback target: revert `944613c`, restore the previous hashed CSS/JS bundle references, and redeploy from the latest pre-AIS-RLS-116 package or Git baseline recorded in the private deployment log if list loading or skeleton rendering regresses.
+
 ### 2026-05-25 AIS-RLS-147+148 Slice 化首批部署
 
 - Tasks covered: `AIS-RLS-147` Canvas backend slice extraction and `AIS-RLS-148` Agent backend slice extraction.
