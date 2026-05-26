@@ -56,7 +56,8 @@ function createImagesGenerateRoute({
 
   const requestStatusMatch = url.pathname.match(/^\/api\/images\/requests\/([^/]+)$/);
   if (requestStatusMatch && req.method === "GET") {
-    return sendGenerationRequestStatus(req, res, requestStatusMatch[1]);
+    await sendGenerationRequestStatus(req, res, requestStatusMatch[1]);
+    return true;
   }
 
     if (requestStatusMatch && req.method === "POST") {
@@ -67,7 +68,8 @@ function createImagesGenerateRoute({
       throw httpError("Generation request not found", 404);
     }
     if (!["pending", "running"].includes(request.status)) {
-      return sendGenerationRequestStatus(req, res, request.id);
+      await sendGenerationRequestStatus(req, res, request.id);
+      return true;
     }
     const queued = cancelQueuedGenerationJob(request.id);
     if (queued) {
@@ -84,7 +86,8 @@ function createImagesGenerateRoute({
         data: { stage: "queue" }
       });
     }
-    return sendGenerationRequestStatus(req, res, request.id);
+    await sendGenerationRequestStatus(req, res, request.id);
+    return true;
   }
 
   if (req.method === "POST" && url.pathname === "/api/images/generate") {
@@ -320,7 +323,7 @@ function createImagesGenerateRoute({
         if (!res.writableEnded) {
           try { res.end(); } catch { /* ignore */ }
         }
-        return;
+        return true;
       }
       throw error;
     } finally {
@@ -576,7 +579,7 @@ function createImagesGenerateRoute({
         if (!res.writableEnded) {
           try { res.end(); } catch { /* ignore */ }
         }
-        return;
+        return true;
       }
       throw error;
     } finally {
