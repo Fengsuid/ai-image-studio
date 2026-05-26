@@ -478,3 +478,30 @@ Record the outcome in the relevant development document or release note before m
 - Deployment note: no runtime code changed in this release-record commit, and the 152 test scripts were already included in the later AIS-RLS-116 deployment archive because `944613c` descends from `9af483a`; `APP_VERSION` remains `20260526-unified-skeleton-v1` and does not require a bump.
 - Known blockers: none for AIS-RLS-152. The retry/resume and per-step refund TODO logs are expected AIS-RLS-155 follow-up contracts, not 152 regressions.
 - Rollback target: revert `9af483a` only if the new agent vitest or smoke scripts need to be removed; no production runtime rollback is required for this light closure.
+
+### 2026-05-26 AIS-RLS-153 Canvas Slice 5 Smokes Release
+
+- Task covered: `AIS-RLS-153` Canvas 5 new smokes plus canvas-core service/reference/import-export tests.
+- Commits covered: `a7e564e test(canvas-slice): add 5 smokes + vitest coverage for canvas slice (AIS-RLS-153)` and `80821d9 chore: bump canvas slice smokes version (AIS-RLS-153)`.
+- Files changed: canvas-v2 source/scripts SPDX and touch handling, `packages/canvas-core/tests/*`, five `scripts/smoke/check-canvas-*.mjs` files, root `package.json`, and APP_VERSION/build manifest files.
+- Test coverage: `packages/canvas-core npm run test` passed 53 tests across service, references, and import-export round-trip coverage.
+- Local checks: `npm run frontend:build`, `npm run check`, `npm run smoke:canvas-license-headers`, `npm run smoke:canvas-touch-gestures`, `npm run smoke:canvas-v2-token-bridge`, and `git diff --check` passed; Vitest needed a non-sandbox rerun after Windows `spawn EPERM`.
+- Deployment package: `git archive HEAD` at `80821d9`, 240,991,311 bytes, 1,799 entries, SHA256 `E4EA2C177C77703861CFBB7F96DB0F51693BA74DBA9A25D2E35E88E8F7D6A275`, verified after chunked upload and remote assembly.
+- Online version: container and external `/api/version` report `20260526-canvas-slice-smokes-v1`; app container is running and MySQL is healthy.
+- Canvas smoke: container `smoke:canvas-concurrent-save` passed with coherent last-write-wins state; container `smoke:canvas-large-project` passed with 500 nodes / 1000 edges round-tripped; container `smoke:canvas-touch-gestures`, `smoke:canvas-license-headers`, and `smoke:canvas-v2-token-bridge` passed.
+- External smoke: external `npm run smoke:public -- https://<host>` passed; local post-deploy runs of the three static canvas smokes passed; external Canvas v2 HTML resolves hashed assets `/canvas-v2/assets/styles.a2df3f25df73.css` and `/canvas-v2/assets/main.eafbdce70e52.js`.
+- Deployment note: Docker build succeeded and deployed `APP_VERSION=20260526-canvas-slice-smokes-v1`; server disk usage stayed about 81% with about 11 GB free after temporary upload chunks were removed.
+- Known blockers: no AIS-RLS-153 smoke blockers remain. One immediate post-deploy app restart logged `ERR_HTTP_HEADERS_SENT`; it was traced to the pre-existing generation status route returning a falsey value after writing a response and was fixed in the follow-up Generation Status Route Fix release below.
+- Rollback target: revert `80821d9` to restore the previous version marker, revert `a7e564e` only if the new canvas smoke/test additions or touch/SPDX changes regress, then redeploy the last known-good archive.
+
+### 2026-05-26 Generation Status Route Fix Release
+
+- Issue covered: home text-to-image cards could show `Request failed` shortly after generation started because `/api/images/requests/:id` polling responses fell through to the API 404 fallback after already writing JSON.
+- Commits covered: `48587c8 fix: stop generation status route double responses` and `90b4e71 chore: bump generation status route fix version`.
+- Files changed: `src/routes/images-generate.js`, `src/config/app-settings.js`, `src/frontend/app-build-manifest.mjs`, and generated frontend build manifest files.
+- Root cause: `sendGenerationRequestStatus()` writes the response but returns no truthy handled flag; route branches that returned it directly made `routeApi()` continue to `sendError(404)`, causing `ERR_HTTP_HEADERS_SENT` and app restarts during status polling.
+- Fix coverage: status GET, cancel POST, already-terminal request POST, and aborted synchronous generation branches now return `true` to the route dispatcher after writing or ending the response.
+- Local checks: `node --check src\routes\images-generate.js`, a focused status-handler Node probe, `npm run check`, `npm run smoke:generation-queue-recovery`, `npm run smoke:server-route-boundary-split`, `npm run smoke:frontend-build-tooling`, and `git diff --check` passed. `smoke:generation-flicker` remains blocked by an unrelated stale static assertion about composer mount reuse.
+- Deployment note: the fix was deployed as an emergency small-file hot patch from pushed commits after large archive upload instability; `/api/version` reports `20260526-generation-status-route-fix-v1`.
+- Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; repeated generation-status probes returned `200`; app restart count stayed `0`; recent logs contain no `ERR_HTTP_HEADERS_SENT`.
+- Rollback target: revert `90b4e71` and `48587c8`, then redeploy the prior release only if generation status polling regresses in a different way.
