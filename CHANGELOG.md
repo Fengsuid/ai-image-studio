@@ -1,7 +1,66 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable public-facing changes to this project are documented here. Entries focus on user-visible behavior and omit private deployment details.
 
-## [20260524-user-flow-polish-v1]
+## 2026-05-26 - AIS-RLS-116 Unified List Skeletons
+
 ### Added
+
+- Added consistent loading skeletons for image history, generation sessions, prompt library, public gallery, and gallery leaderboard lists.
+- Added a shared skeleton style module so list loading states use the same shimmer behavior across the public app.
+
+### Changed
+
+- List views now show structured placeholders before network responses arrive, reducing blank states on slow connections.
+
+## 2026-05-26 - AIS-RLS-115 Shared Animation Library
+
+### Added
+
+- Added a shared animation utility library for common fades, slides, shimmer, pulse, scale, and float effects.
+- Added reduced-motion handling for shared animation helpers so motion-sensitive users get a calmer interface.
+
+### Changed
+
+- Reused shared animation helpers in loading and interaction states instead of scattering one-off animation rules.
+
+## 2026-05-26 - AIS-RLS-114 Mobile CSS Consolidation
+
+### Changed
+
+- Consolidated legacy mobile styles into the modular public CSS structure.
+- Kept the public page on a single bundled stylesheet path while preserving mobile layout behavior.
+
+### Fixed
+
+- Removed duplicated legacy mobile stylesheet entry points from the public loading path.
+- Clarified known hashed-asset smoke limitations in public release notes so mobile CSS regressions are easier to triage.
+
+## 2026-05-25 to 2026-05-26 - AIS-RLS-112 and AIS-RLS-113 CDN Domain Reduction
+
+### Added
+
+- Added local font, icon, hero video, and hero poster assets for the public experience.
+- Added slow-connection behavior that avoids eager hero video loading when the network is constrained.
+
+### Changed
+
+- Replaced external font, icon, and hero media dependencies with local assets in the first-visit public page path.
+- Tightened public asset loading so the first screen depends less on third-party availability.
+
+## 2026-05-25 - AIS-RLS-111 Hashed Public Bundles
+
+### Changed
+
+- Switched public JavaScript assets to content-hashed bundle names for safer browser caching.
+- Updated public asset discovery to use the generated frontend build manifest.
+
+### Fixed
+
+- Updated public smoke coverage to recognize hashed JavaScript and stylesheet assets.
+
+## 2026-05-24 - User Flow Polish
+
+### Added
+
 - Initial user flow polish.
