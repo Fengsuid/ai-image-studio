@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260526-generation-status-route-fix-v1";
+export const FRONTEND_BUILD_VERSION = "20260526-generic-prompt-fix-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

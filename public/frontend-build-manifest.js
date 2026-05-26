@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260526-generation-status-route-fix-v1",
+  "version": "20260526-generic-prompt-fix-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {

@@ -63,6 +63,7 @@ const { createSessionMiddleware } = require("./src/middleware/session");
 const { createCsrfMiddleware } = require("./src/middleware/csrf");
 const { createAppAuth } = require("./src/middleware/app-auth");
 const { buildCreativeRouteForGeneration, scrubRouteValue } = require("./src/creative-route");
+const { normalizeTextToImagePrompt } = require("./src/generation-prompt");
 
 const {
   PUBLIC_DIR,
@@ -449,7 +450,7 @@ const handleAnnouncementsRoute = createAnnouncementsRoute({
 const handleImagesGenerateRoute = createImagesGenerateRoute({
   getCurrentUser, ensureAuthenticated, store, requestStatusPayload, sendJson,
   sendGenerationRequestStatus, httpError, cancelQueuedGenerationJob, traceGeneration,
-  enforceGenerationRate, readJsonBody, cleanPrompt, sanitizePositiveInt,
+  enforceGenerationRate, readJsonBody, cleanPrompt, normalizeTextToImagePrompt, sanitizePositiveInt,
   normalizeGenerationCost, DEFAULT_MODEL, sanitizeGenerationTitle, normalizeImageSize,
   choose, sanitizeConversationRoute, normalizePublishPublicTags, PUBLIC_KIND_TAGS,
   auditPayload, randomId, safeJsonSummary, getClientIp, getUserAgent,

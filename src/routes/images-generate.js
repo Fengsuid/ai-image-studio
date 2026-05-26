@@ -13,6 +13,7 @@ function createImagesGenerateRoute({
   enforceGenerationRate,
   readJsonBody,
   cleanPrompt,
+  normalizeTextToImagePrompt = (prompt) => prompt,
   sanitizePositiveInt,
   normalizeGenerationCost,
   DEFAULT_MODEL,
@@ -96,7 +97,9 @@ function createImagesGenerateRoute({
     enforceGenerationRate(current.user.id);
 
     const body = await readJsonBody(req);
+    const auditId = randomId("req_");
     const prompt = cleanPrompt(body.prompt);
+    const providerPrompt = normalizeTextToImagePrompt(prompt, { seed: auditId });
     const settings = await store.getSettings();
 
     const user = await store.getUserById(current.user.id);
@@ -140,18 +143,18 @@ function createImagesGenerateRoute({
     }
     const openaiRequest = {
       model: request.model,
-      prompt: request.prompt,
+      prompt: providerPrompt,
       n: request.n,
       size: request.size,
       quality: request.quality,
       background: request.background,
       output_format: request.output_format
     };
-    const auditId = randomId("req_");
     const requestStartedAt = Date.now();
     const isAsyncGeneration = body.async === true;
     const requestedParams = safeJsonSummary({
       prompt: body.prompt,
+      providerPrompt: providerPrompt === prompt ? undefined : providerPrompt,
       title: body.title,
       n: body.n,
       size: body.size,
