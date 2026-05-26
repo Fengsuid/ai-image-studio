@@ -466,3 +466,15 @@ Record the outcome in the relevant development document or release note before m
   - `npm run smoke:public -- https://<host>`
   - the smallest authenticated smoke that covers the failing area
 - Record the rollback commit/backup id, reason, and follow-up fix task.
+
+### 2026-05-26 AIS-RLS-152 Agent Vitest + 5 Smokes Release
+
+- Task covered: `AIS-RLS-152` Agent planner vitest coverage plus five agent smoke scripts.
+- Commit covered: `9af483a test: agent vitest + 5 smokes (AIS-RLS-152)`.
+- Files changed: 9 files, covering root `package.json`, `packages/agent-core/package.json`, `packages/agent-core/scripts/run-tests.mjs`, `packages/agent-core/tests/planner.test.mjs`, and five `scripts/smoke/check-agent-*.mjs` files.
+- Test coverage: `packages/agent-core npm run test -- --coverage` passed 13 tests; `packages/agent-core/src/planner.js` reports 100% line, branch, and function coverage.
+- Smoke coverage: added `smoke:agent-planner-flow`, `smoke:agent-credit-per-step`, `smoke:agent-retry`, `smoke:agent-resume`, and `smoke:agent-batch-export`.
+- Container smoke: `smoke:agent-retry` and `smoke:agent-resume` passed as static AIS-RLS-155 forward-compat checks; `smoke:agent-planner-flow`, `smoke:agent-credit-per-step`, and `smoke:agent-batch-export` passed against the deployed container with admin credentials and MySQL cleanup enabled.
+- Deployment note: no runtime code changed in this release-record commit, and the 152 test scripts were already included in the later AIS-RLS-116 deployment archive because `944613c` descends from `9af483a`; `APP_VERSION` remains `20260526-unified-skeleton-v1` and does not require a bump.
+- Known blockers: none for AIS-RLS-152. The retry/resume and per-step refund TODO logs are expected AIS-RLS-155 follow-up contracts, not 152 regressions.
+- Rollback target: revert `9af483a` only if the new agent vitest or smoke scripts need to be removed; no production runtime rollback is required for this light closure.
