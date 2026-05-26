@@ -1,5 +1,5 @@
 {
-  "version": "20260526-mobile-css-consolidate-v1",
+  "version": "20260526-animations-library-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.cbb1404428fe.css",
-    "file": "/dist/app.cbb1404428fe.css",
-    "hash": "cbb1404428fe",
-    "bytes": 274901,
+    "entry": "/dist/app.4e610beebc07.css",
+    "file": "/dist/app.4e610beebc07.css",
+    "hash": "4e610beebc07",
+    "bytes": 278377,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

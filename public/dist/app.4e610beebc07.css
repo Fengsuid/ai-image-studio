@@ -11137,38 +11137,7 @@ button.tag-chip.active {
   }
 }
 
-/* AIS-RLS-070: visual tokens, motion primitives and low-risk polish.
-   Keep this block isolated until styles.css is split into public/css modules. */
-@keyframes ais-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes ais-slide-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes ais-scale-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes ais-pop {
-  0% { transform: scale(0.9); }
-  58% { transform: scale(1.06); }
-  100% { transform: scale(1); }
-}
-
-@keyframes ais-shimmer {
-  from { background-position: -420px 0; }
-  to { background-position: 420px 0; }
-}
-
-@keyframes ais-progress-flow {
-  from { background-position: 0% 50%; }
-  to { background-position: 200% 50%; }
-}
+/* Shared ais-* keyframes live in 12-animations.css. */
 
 .animate-fade-in {
   animation: ais-fade-in var(--dur-base) ease both;
@@ -11527,8 +11496,255 @@ button.tag-chip.active {
 }
 
 /* public/css/12-animations.css */
-/* AIS-RLS-071 semantic placeholder.
-   Existing keyframes remain in order-preserving split chunks; AIS-RLS-072+ can move them here safely. */
+/* AIS-RLS-115 shared animation primitives and utility classes.
+   Keep reusable keyframes here so feature modules can reference one motion library. */
+
+:root {
+  --anim-duration-fast: var(--dur-fast, 140ms);
+  --anim-duration-base: var(--dur-base, 220ms);
+  --anim-duration-slow: var(--dur-slow, 320ms);
+  --anim-duration-loop: 1600ms;
+  --anim-distance-sm: 8px;
+  --anim-distance-md: 14px;
+  --anim-scale-soft: 0.96;
+  --anim-shimmer-size: 840px 100%;
+  --anim-ease-standard: var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  --anim-ease-bounce: var(--ease-bounce, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@keyframes ais-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ais-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--anim-slide-distance, var(--anim-distance-md)));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ais-shimmer {
+  from {
+    background-position: -420px 0;
+  }
+
+  to {
+    background-position: 420px 0;
+  }
+}
+
+@keyframes ais-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes ais-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--anim-scale-from, var(--anim-scale-soft)));
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ais-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes ais-pop {
+  0% {
+    transform: scale(0.9);
+  }
+
+  58% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ais-progress-flow {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+.anim-fade-in {
+  animation: ais-fade-in var(--anim-duration-base) ease both;
+}
+
+.anim-slide-up {
+  --anim-slide-distance: var(--anim-distance-sm);
+  animation: ais-slide-up var(--anim-duration-slow) var(--anim-ease-standard) both;
+}
+
+.anim-shimmer {
+  background:
+    linear-gradient(
+      90deg,
+      var(--surface-muted, var(--surface, #f8fafc)) 0%,
+      var(--surface-elevated, var(--surface-raised, #ffffff)) 50%,
+      var(--surface-muted, var(--surface, #f8fafc)) 100%
+    );
+  background-size: 200% 100%;
+  animation: ais-shimmer 1.4s linear infinite;
+}
+
+.anim-pulse {
+  animation: ais-pulse var(--anim-duration-loop) ease-in-out infinite;
+}
+
+.anim-scale-in {
+  animation: ais-scale-in 200ms var(--anim-ease-standard) both;
+}
+
+.anim-float {
+  animation: ais-float 3.2s ease-in-out infinite;
+}
+
+.anim-pop {
+  animation: ais-pop var(--anim-duration-slow) var(--anim-ease-bounce) both;
+}
+
+.anim-progress-flow {
+  animation: ais-progress-flow 1.8s linear infinite;
+}
+
+.anim-once {
+  animation-iteration-count: 1;
+}
+
+.anim-loop {
+  animation-iteration-count: infinite;
+}
+
+.anim-paused {
+  animation-play-state: paused;
+}
+
+.anim-running {
+  animation-play-state: running;
+}
+
+.anim-fast {
+  animation-duration: var(--anim-duration-fast);
+}
+
+.anim-base {
+  animation-duration: var(--anim-duration-base);
+}
+
+.anim-slow {
+  animation-duration: var(--anim-duration-slow);
+}
+
+.anim-delay-1 {
+  animation-delay: 80ms;
+}
+
+.anim-delay-2 {
+  animation-delay: 160ms;
+}
+
+.anim-delay-3 {
+  animation-delay: 240ms;
+}
+
+.anim-fill-both {
+  animation-fill-mode: both;
+}
+
+.anim-fill-forwards {
+  animation-fill-mode: forwards;
+}
+
+.anim-ease-out {
+  animation-timing-function: var(--anim-ease-standard);
+}
+
+.anim-ease-bounce {
+  animation-timing-function: var(--anim-ease-bounce);
+}
+
+.anim-origin-top {
+  transform-origin: center top;
+}
+
+.anim-origin-center {
+  transform-origin: center;
+}
+
+.animate-fade-in {
+  animation: ais-fade-in var(--dur-base, 220ms) ease both;
+}
+
+.animate-slide-up {
+  animation: ais-slide-up var(--dur-base, 220ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+.animate-scale-in {
+  animation: ais-scale-in var(--dur-base, 220ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+.animate-pop-in {
+  animation: ais-pop var(--dur-slow, 320ms) var(--ease-bounce, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-in,
+  .anim-slide-up,
+  .anim-shimmer,
+  .anim-pulse,
+  .anim-scale-in,
+  .anim-float,
+  .anim-pop,
+  .anim-progress-flow,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-pop-in {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+    animation-iteration-count: 1;
+  }
+
+  .anim-shimmer {
+    background-position: 0 0;
+  }
+}
 
 /* public/css/12-visual-polish.css */
 /* AIS-RLS-078 shared visual system polish.

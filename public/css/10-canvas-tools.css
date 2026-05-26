@@ -250,38 +250,7 @@
   }
 }
 
-/* AIS-RLS-070: visual tokens, motion primitives and low-risk polish.
-   Keep this block isolated until styles.css is split into public/css modules. */
-@keyframes ais-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes ais-slide-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes ais-scale-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes ais-pop {
-  0% { transform: scale(0.9); }
-  58% { transform: scale(1.06); }
-  100% { transform: scale(1); }
-}
-
-@keyframes ais-shimmer {
-  from { background-position: -420px 0; }
-  to { background-position: 420px 0; }
-}
-
-@keyframes ais-progress-flow {
-  from { background-position: 0% 50%; }
-  to { background-position: 200% 50%; }
-}
+/* Shared ais-* keyframes live in 12-animations.css. */
 
 .animate-fade-in {
   animation: ais-fade-in var(--dur-base) ease both;
