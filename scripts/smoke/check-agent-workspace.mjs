@@ -158,7 +158,7 @@ function staticChecks() {
   const dockerfile = readOptionalText(path.join(rootDir, "Dockerfile"));
   const dockerignore = readOptionalText(path.join(rootDir, ".dockerignore"));
   const home = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
-  const mobileCss = fs.readFileSync(path.join(rootDir, "public/mobile.css"), "utf8");
+  const mobileCss = fs.readFileSync(path.join(rootDir, "public/css/11-mobile-shell.css"), "utf8");
   const appSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
   const apiSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
   const plannerSource = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/planner.js"), "utf8");

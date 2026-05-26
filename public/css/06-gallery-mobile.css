@@ -1,3 +1,6 @@
+/* Mobile gallery, leaderboard, and square preview overrides.
+   Migrated from public/mobile-gallery.css for AIS-RLS-114. */
+
 .library-mobile-leaderboard {
   display: none;
 }

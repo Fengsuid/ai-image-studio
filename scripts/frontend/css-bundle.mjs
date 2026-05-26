@@ -3,12 +3,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const PUBLIC_CSS_IMPORT_RE = /@import\s+url\("\/css\/([^"]+\.css)"\);/g;
-const LEGACY_MOBILE_CSS = [
-  "mobile-gallery.css",
-  "mobile.css",
-  "mobile-home.css",
-  "mobile-editor.css"
-];
 const VENDOR_CSS = [
   "vendor/icons/remixicon.min.css",
   "vendor/icons/remixicon-compat.css"
@@ -29,8 +23,7 @@ async function cssSources(root) {
   const moduleFiles = [...styles.matchAll(PUBLIC_CSS_IMPORT_RE)].map((match) => match[1]);
   const sources = [
     ...VENDOR_CSS.map((fileName) => path.join("public", fileName)),
-    ...moduleFiles.map((fileName) => path.join("public", "css", fileName)),
-    ...LEGACY_MOBILE_CSS.map((fileName) => path.join("public", fileName))
+    ...moduleFiles.map((fileName) => path.join("public", "css", fileName))
   ];
   return sources.map((relativePath) => ({
     relativePath,

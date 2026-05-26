@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260525-self-host-assets-v1";
+export const FRONTEND_BUILD_VERSION = "20260526-mobile-css-consolidate-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -15,11 +15,14 @@ export const frontendBuildManifest = Object.freeze({
     bundler: "scripts/frontend/css-bundle.mjs",
     entryPattern: "/dist/app.<hash>.css",
     compatibilityEntry: "/styles.css",
-    legacyMobileSources: [
-      "/mobile-gallery.css",
-      "/mobile.css",
-      "/mobile-home.css",
-      "/mobile-editor.css"
+    mobileModuleSources: [
+      "/css/06-gallery-mobile.css",
+      "/css/11-mobile-shell.css",
+      "/css/05-home-mobile.css",
+      "/css/07-editor-mobile.css",
+      "/css/07-editor-mobile-works.css",
+      "/css/07-editor-mobile-detail.css",
+      "/css/07-editor-mobile-narrow.css"
     ]
   },
   js: {

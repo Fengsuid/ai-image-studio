@@ -1,3 +1,6 @@
+/* Mobile home hero, composer, and recent-work layout overrides.
+   Migrated from public/mobile-home.css for AIS-RLS-114. */
+
 @media (max-width: 768px) {
   .hero {
     min-height: calc(100svh - var(--mobile-topbar-h));

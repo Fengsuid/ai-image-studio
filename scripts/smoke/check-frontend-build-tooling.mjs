@@ -13,6 +13,7 @@ function assert(condition, message) {
 }
 
 const source = read("src/frontend/app-build-manifest.mjs");
+const sourceVersion = source.match(/FRONTEND_BUILD_VERSION\s*=\s*"([^"]+)"/)?.[1] || "";
 const buildScript = read("scripts/frontend/build-public-modules.mjs");
 const checkScript = read("scripts/frontend/check-public-modules.mjs");
 const builtJs = read("public/frontend-build-manifest.js");
@@ -34,7 +35,7 @@ assert(buildScript.includes("buildCssBundle"), "build script must build the hash
 assert(buildScript.includes("buildJsAssets"), "build script must build hashed JS assets");
 assert(checkScript.includes("frontendBuildManifest"), "frontend check must validate source manifest");
 assert(builtJs.includes("register(\"build\", manifest)"), "built JS must register AppModules.build");
-assert(builtJson.version === "20260525-self-host-assets-v1", "built manifest version mismatch");
+assert(builtJson.version === sourceVersion, "built manifest version mismatch");
 assert(/^\/dist\/app\.[a-f0-9]{12}\.css$/.test(cssBundleEntry), "built manifest must expose hashed CSS bundle entry");
 assert(fs.existsSync(cssBundlePath), "built manifest CSS bundle file must exist");
 const cssBundle = fs.existsSync(cssBundlePath) ? fs.readFileSync(cssBundlePath, "utf8") : "";

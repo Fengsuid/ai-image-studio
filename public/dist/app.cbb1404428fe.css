@@ -11700,7 +11700,10 @@ button.tag-chip.active {
   }
 }
 
-/* public/mobile-gallery.css */
+/* public/css/06-gallery-mobile.css */
+/* Mobile gallery, leaderboard, and square preview overrides.
+   Migrated from public/mobile-gallery.css for AIS-RLS-114. */
+
 .library-mobile-leaderboard {
   display: none;
 }
@@ -12138,7 +12141,10 @@ button.tag-chip.active {
   }
 }
 
-/* public/mobile.css */
+/* public/css/11-mobile-shell.css */
+/* Global mobile shell, topbar, composer, and shared touch rules.
+   Migrated from public/mobile.css for AIS-RLS-114. */
+
 :root {
   --mobile-page-pad: 16px;
   --mobile-page-pad-sm: 12px;
@@ -12561,7 +12567,10 @@ button.tag-chip.active {
   }
 }
 
-/* public/mobile-home.css */
+/* public/css/05-home-mobile.css */
+/* Mobile home hero, composer, and recent-work layout overrides.
+   Migrated from public/mobile-home.css for AIS-RLS-114. */
+
 @media (max-width: 768px) {
   .hero {
     min-height: calc(100svh - var(--mobile-topbar-h));
@@ -12684,7 +12693,10 @@ button.tag-chip.active {
   }
 }
 
-/* public/mobile-editor.css */
+/* public/css/07-editor-mobile.css */
+/* Mobile image editor and my-works layout overrides.
+   Migrated from public/mobile-editor.css for AIS-RLS-114. */
+
 .works-mobile-hint {
   display: none;
 }
@@ -13093,6 +13105,13 @@ button.tag-chip.active {
     background: linear-gradient(90deg, #2563eb, #0f766e);
   }
 
+}
+
+/* public/css/07-editor-mobile-works.css */
+/* Mobile my-works card carousel overrides.
+   Split from public/css/07-editor-mobile.css for AIS-RLS-114. */
+
+@media (max-width: 768px) {
   .works-grid {
     display: flex;
     gap: 14px;
@@ -13209,7 +13228,13 @@ button.tag-chip.active {
     border-radius: 12px;
     font-size: 12px;
   }
+}
 
+/* public/css/07-editor-mobile-detail.css */
+/* Mobile my-works detail drawer overrides.
+   Split from public/css/07-editor-mobile.css for AIS-RLS-114. */
+
+@media (max-width: 768px) {
   .works-detail-backdrop {
     z-index: 92;
   }
@@ -13288,6 +13313,10 @@ button.tag-chip.active {
     padding: 12px;
   }
 }
+
+/* public/css/07-editor-mobile-narrow.css */
+/* Narrow-phone image editor and my-works refinements.
+   Split from public/css/07-editor-mobile.css for AIS-RLS-114. */
 
 @media (max-width: 430px) {
   #editorView {

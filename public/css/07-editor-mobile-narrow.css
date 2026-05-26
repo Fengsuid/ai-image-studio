@@ -1,0 +1,83 @@
+/* Narrow-phone image editor and my-works refinements.
+   Split from public/css/07-editor-mobile.css for AIS-RLS-114. */
+
+@media (max-width: 430px) {
+  #editorView {
+    padding-left: var(--mobile-page-pad-sm);
+    padding-right: var(--mobile-page-pad-sm);
+  }
+
+  #editorView .editor-workspace,
+  #editorView .editor-canvas-area {
+    min-height: calc(100svh - 164px);
+  }
+
+  #editorView .editor-canvas-area {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  #editorView .editor-upload-card {
+    min-height: 196px;
+  }
+
+  #editorView .editor-publish-panel {
+    grid-template-columns: 1fr;
+  }
+
+  #editorView .editor-prompt-bar {
+    left: 8px;
+    right: 8px;
+    grid-template-columns: 40px minmax(0, 1fr) 84px;
+  }
+
+  #editorView .editor-prompt-bar button[type="submit"] {
+    min-width: 84px;
+  }
+
+  #editorView .editor-image-frame,
+  #editorView .editor-image-scaler img {
+    max-width: calc(100vw - 44px);
+    max-height: calc(100svh - 430px);
+  }
+
+  .works-modal.works-workspace {
+    padding-left: var(--mobile-page-pad-sm);
+    padding-right: var(--mobile-page-pad-sm);
+  }
+
+  .works-modal .close-modal,
+  .works-detail-close {
+    right: var(--mobile-page-pad-sm);
+  }
+
+  .works-bulk-actions,
+  .works-detail-actions {
+    left: var(--mobile-page-pad-sm);
+    right: var(--mobile-page-pad-sm);
+  }
+
+  .works-bulk-actions {
+    left: var(--mobile-page-pad-sm);
+    right: var(--mobile-page-pad-sm);
+    bottom: calc(var(--mobile-bottom-bar-h) + env(safe-area-inset-bottom) + 6px);
+  }
+
+  .work-card {
+    flex-basis: min(82vw, 330px);
+  }
+
+  .works-grid {
+    padding-right: 9vw;
+  }
+
+  .works-bulk-actions button {
+    min-width: 76px;
+  }
+
+  .works-detail-stage,
+  .works-detail-body {
+    padding-left: var(--mobile-page-pad-sm);
+    padding-right: var(--mobile-page-pad-sm);
+  }
+}

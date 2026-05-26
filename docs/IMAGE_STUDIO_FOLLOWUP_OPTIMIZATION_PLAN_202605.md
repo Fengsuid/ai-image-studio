@@ -1366,6 +1366,20 @@ function maskEmail(email) {
 - Baseline 数：`ls docs/mobile-qa/baseline-local/*.png | wc -l`。
 - 矛盾点：`grep "☐ 待做" docs/*.md | grep -v archive | wc -l`。
 
+### 9.1 Known pre-existing smoke failures（暂不修，避免误读为回归）
+
+以下 3 个 smoke 因硬编码 `/canvas.js`、`/canvas-nodes.js`、`app.js?v=` 等旧入口路径，自 AIS-RLS-111 引入 content-hashed bundle 后持续 fail，与 147 / 148 slice 抽取无关。审计已连续 3 次（首审 / 再审 / follow-up）记录但暂不修复，主控决策保持现状，后续若再需清代则单开 hashed-entry-smoke-migration 任务。
+
+| smoke | 失败原因 | 引入时间 | 解耦验证 |
+| --- | --- | --- | --- |
+| `smoke:canvas-module-boundaries` | 检查硬编码 `/canvas.js`、`/canvas-nodes.js` 路径，而 manifest 改为 hashed bundle | AIS-RLS-111 落地后 | 在 147 抽取前已 fail |
+| `smoke:canvas-layout-edges` | 同上，未读 `public/frontend-build-manifest.json` | AIS-RLS-111 落地后 | 同上 |
+| `smoke:canvas-v2:entry` | 检查 `app.js?v=` 查询串，已被 content-hashed 替代 | AIS-RLS-111 落地后 | 同上 |
+
+**审计 / 部署阅读规则**：本期任何 release record 看到上述三项 fail，**默认归入 known-pre-existing**，不计入"本次部署引入的回归"。若同时还有其他 canvas smoke fail，则必须独立分析。
+
+未来若决定清代，建议任务编号 `AIS-RLS-160 hashed-entry-smoke-migration`，把三个 smoke 改为读 `public/frontend-build-manifest.json` 解析 hashed entry。
+
 ---
 
 ## 10. 与 DEVELOPMENT_GUIDE 的衔接说明

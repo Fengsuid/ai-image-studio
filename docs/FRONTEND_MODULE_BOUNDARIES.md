@@ -52,11 +52,11 @@ Use the existing CSS split:
 | Shared cards, forms, modals, controls | `public/css/04-*.css` |
 | Home and composer refinements | `public/css/05-*.css` |
 | Gallery, detail modal, leaderboard | `public/css/06-*.css` |
-| Image editor | `public/css/07-editor.css` and `public/mobile-editor.css` |
-| Chat workspace | `public/css/08-chat.css` and `public/mobile.css` |
+| Image editor | `public/css/07-editor.css`, `public/css/07-editor-mobile*.css` |
+| Chat workspace | `public/css/08-chat.css`, `public/css/11-mobile-shell.css` |
 | Admin | `public/css/09-*.css` |
 | Canvas | `public/css/10-*.css` |
-| Mobile bottom nav and global mobile overrides | `public/css/11-mobile.css`, `public/mobile*.css` |
+| Mobile bottom nav and global mobile overrides | `public/css/11-mobile.css`, `public/css/11-mobile-shell.css` |
 | Motion and visual polish | `public/css/12-*.css` |
 
 Avoid dumping view-specific rules into shared component files unless the selector is reused across multiple views.

@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260525-self-host-assets-v1",
+  "version": "20260526-mobile-css-consolidate-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -16,16 +16,19 @@
     "bundler": "scripts/frontend/css-bundle.mjs",
     "entryPattern": "/dist/app.<hash>.css",
     "compatibilityEntry": "/styles.css",
-    "legacyMobileSources": [
-      "/mobile-gallery.css",
-      "/mobile.css",
-      "/mobile-home.css",
-      "/mobile-editor.css"
+    "mobileModuleSources": [
+      "/css/06-gallery-mobile.css",
+      "/css/11-mobile-shell.css",
+      "/css/05-home-mobile.css",
+      "/css/07-editor-mobile.css",
+      "/css/07-editor-mobile-works.css",
+      "/css/07-editor-mobile-detail.css",
+      "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.962e3323cd2a.css",
-    "file": "/dist/app.962e3323cd2a.css",
-    "hash": "962e3323cd2a",
-    "bytes": 273837,
+    "entry": "/dist/app.cbb1404428fe.css",
+    "file": "/dist/app.cbb1404428fe.css",
+    "hash": "cbb1404428fe",
+    "bytes": 274901,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -62,10 +65,13 @@
       "/css/12-animations.css",
       "/css/12-visual-polish.css",
       "/css/13-performance.css",
-      "/mobile-gallery.css",
-      "/mobile.css",
-      "/mobile-home.css",
-      "/mobile-editor.css"
+      "/css/06-gallery-mobile.css",
+      "/css/11-mobile-shell.css",
+      "/css/05-home-mobile.css",
+      "/css/07-editor-mobile.css",
+      "/css/07-editor-mobile-works.css",
+      "/css/07-editor-mobile-detail.css",
+      "/css/07-editor-mobile-narrow.css"
     ]
   },
   "js": {

@@ -1,3 +1,6 @@
+/* Global mobile shell, topbar, composer, and shared touch rules.
+   Migrated from public/mobile.css for AIS-RLS-114. */
+
 :root {
   --mobile-page-pad: 16px;
   --mobile-page-pad-sm: 12px;

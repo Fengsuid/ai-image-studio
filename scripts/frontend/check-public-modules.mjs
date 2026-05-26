@@ -10,11 +10,14 @@ assert.ok(frontendBuildManifest.outputs.length > 0);
 assert.equal(frontendBuildManifest.css?.bundler, "scripts/frontend/css-bundle.mjs");
 assert.equal(frontendBuildManifest.css?.entryPattern, "/dist/app.<hash>.css");
 assert.equal(frontendBuildManifest.css?.compatibilityEntry, "/styles.css");
-assert.deepEqual(frontendBuildManifest.css?.legacyMobileSources, [
-  "/mobile-gallery.css",
-  "/mobile.css",
-  "/mobile-home.css",
-  "/mobile-editor.css"
+assert.deepEqual(frontendBuildManifest.css?.mobileModuleSources, [
+  "/css/06-gallery-mobile.css",
+  "/css/11-mobile-shell.css",
+  "/css/05-home-mobile.css",
+  "/css/07-editor-mobile.css",
+  "/css/07-editor-mobile-works.css",
+  "/css/07-editor-mobile-detail.css",
+  "/css/07-editor-mobile-narrow.css"
 ]);
 assert.equal(frontendBuildManifest.js?.bundler, "scripts/frontend/js-bundle.mjs");
 assert.equal(frontendBuildManifest.js?.entryPattern, "/dist/<name>.<hash>.js");

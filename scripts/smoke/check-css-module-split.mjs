@@ -30,12 +30,19 @@ const required = [
   "03-layout.css",
   "04-components.css",
   "05-home.css",
+  "05-home-mobile.css",
   "06-gallery.css",
+  "06-gallery-mobile.css",
   "07-editor.css",
+  "07-editor-mobile.css",
+  "07-editor-mobile-works.css",
+  "07-editor-mobile-detail.css",
+  "07-editor-mobile-narrow.css",
   "08-chat.css",
   "09-admin.css",
   "10-canvas.css",
   "11-mobile.css",
+  "11-mobile-shell.css",
   "12-animations.css"
 ];
 for (const file of required) {
@@ -82,11 +89,7 @@ assert.equal(manifest.css?.file, localStylesheets[0], "frontend build manifest C
 const expectedSourcePaths = [
   "/vendor/icons/remixicon.min.css",
   "/vendor/icons/remixicon-compat.css",
-  ...imported.map((file) => `/css/${file}`),
-  "/mobile-gallery.css",
-  "/mobile.css",
-  "/mobile-home.css",
-  "/mobile-editor.css"
+  ...imported.map((file) => `/css/${file}`)
 ];
 assert.deepEqual(manifest.css?.sources, expectedSourcePaths, "frontend build manifest CSS sources must preserve cascade order");
 
