@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { documentBounds, edgePath, minimapNodeRect, nodeSize, viewportRect } from "./geometry.js";
 import { fieldSpecsForNode, nodeSummary, nodeTypeLabel, supportedNodeTypes, upstreamNodeIds } from "./model.js";
 

@@ -192,6 +192,7 @@ body {
   position: relative;
   min-height: 540px;
   overflow: hidden;
+  touch-action: none;
   border: 1px solid rgba(76, 56, 34, 0.14);
   border-radius: 24px;
   background:

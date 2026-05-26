@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { normalizeCanvasDocument, CANVAS_V1_SCHEMA } from "../../adapters/canvas-schema.js";
 
 export function parseImportedJson(text) {

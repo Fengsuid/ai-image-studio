@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { createEmptyCanvasDocument } from "../adapters/canvas-schema.js";
 import { renderEditor } from "../editor/view.js";
 

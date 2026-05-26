@@ -79,6 +79,50 @@ describe("cleanCanvasProjectInput", () => {
     expect(() => service.cleanCanvasProjectInput({ title: "Test", edgeCount: -1 })).toThrow(/non-negative/i);
     expect(() => service.cleanCanvasProjectInput({ title: "Test", nodeCount: -1 })).toThrow(/non-negative/i);
   });
+
+  it("rejects NaN nodeCount/edgeCount", () => {
+    expect(() => service.cleanCanvasProjectInput({ title: "Test", nodeCount: "abc" })).toThrow(/non-negative/i);
+    expect(() => service.cleanCanvasProjectInput({ title: "Test", edgeCount: NaN })).toThrow(/non-negative/i);
+  });
+
+  it("floors fractional nodeCount/edgeCount", () => {
+    const cleaned = service.cleanCanvasProjectInput({ title: "Test", nodeCount: 12.9, edgeCount: 7.4 });
+    expect(cleaned.nodeCount).toBe(12);
+    expect(cleaned.edgeCount).toBe(7);
+  });
+
+  it("trims and clips description to 1000 chars", () => {
+    const long = "Y".repeat(2000);
+    const cleaned = service.cleanCanvasProjectInput({ title: "Test", description: `   ${long}   ` });
+    expect(cleaned.description.length).toBe(1000);
+  });
+
+  it("clips coverUrl to 500 chars and accepts the cover alias", () => {
+    const long = "https://cdn.example.com/" + "z".repeat(600);
+    const cleaned = service.cleanCanvasProjectInput({ title: "Test", cover: long });
+    expect(cleaned.coverUrl.length).toBe(500);
+  });
+
+  it("normalizes isTemplate to a boolean", () => {
+    expect(service.cleanCanvasProjectInput({ title: "Test", isTemplate: 1 }).isTemplate).toBe(true);
+    expect(service.cleanCanvasProjectInput({ title: "Test", isTemplate: 0 }).isTemplate).toBe(false);
+    expect(service.cleanCanvasProjectInput({ title: "Test" }).isTemplate).toBe(false);
+  });
+
+  it("accepts the data alias for dataJson", () => {
+    const cleaned = service.cleanCanvasProjectInput({ title: "Test", data: { foo: 1 } });
+    expect(cleaned.dataJson).toEqual({ foo: 1 });
+  });
+
+  it("defaults dataJson to an empty object", () => {
+    const cleaned = service.cleanCanvasProjectInput({ title: "Test" });
+    expect(cleaned.dataJson).toEqual({});
+  });
+
+  it("allows partial patches to update only nodeCount", () => {
+    const cleaned = service.cleanCanvasProjectInput({ nodeCount: 5 }, { partial: true });
+    expect(cleaned).toEqual({ nodeCount: 5 });
+  });
 });
 
 describe("canReadCanvas / canManageCanvas", () => {

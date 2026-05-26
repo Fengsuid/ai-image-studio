@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { mkdir, readFile, rm, writeFile, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { dirname, extname, join, posix, relative } from "node:path";

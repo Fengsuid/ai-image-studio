@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { connectNodes, updateNodeField } from "../../editor/model.js";
 
 export function generationRequestForOutput(canvasDocument, outputNodeId) {

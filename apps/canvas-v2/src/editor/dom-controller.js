@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { clampZoom, screenToCanvas, zoomViewportAt } from "./geometry.js";
 import {
   appendNode,
@@ -63,6 +64,7 @@ export function installEditorController(root, api) {
     const resize = event.target.closest("[data-canvas-node-resize]");
     const nodeElement = event.target.closest("[data-canvas-node-id]");
     const stage = event.target.closest("[data-canvas-stage]");
+    const pointerInfo = { pointerId: event.pointerId, pointerType: event.pointerType };
     if (resize instanceof HTMLElement) {
       startResize(event, resize, gesture, api);
     } else if (nodeElement instanceof HTMLElement && nodeElement.dataset.canvasNodeId) {
@@ -71,6 +73,7 @@ export function installEditorController(root, api) {
     } else if (stage instanceof HTMLElement && !event.target.closest("[data-canvas-minimap]")) {
       startStageGesture(event, stage, gesture, api);
     }
+    if (gesture.current) Object.assign(gesture.current, pointerInfo);
   };
 
   const onPointerMove = (event) => {

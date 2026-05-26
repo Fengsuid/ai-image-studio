@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 const MAX_HISTORY = 60;
 
 export function createHistory(initialDocument) {

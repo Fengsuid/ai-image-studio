@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 2.5;
 

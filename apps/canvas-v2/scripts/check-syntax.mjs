@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";

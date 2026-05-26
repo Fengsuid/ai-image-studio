@@ -74,4 +74,39 @@ describe("isCanvasReferenceAlwaysPublic", () => {
     expect(service.isCanvasReferenceAlwaysPublic("/api/images/gen_abc/file")).toBe(false);
     expect(service.isCanvasReferenceAlwaysPublic("/api/images/gen_abc/source-file")).toBe(false);
   });
+
+  it("rejects upload paths and bare ids that may require permission checks", () => {
+    expect(service.isCanvasReferenceAlwaysPublic("/uploads/abc.png")).toBe(false);
+    expect(service.isCanvasReferenceAlwaysPublic("gen_abc")).toBe(false);
+    expect(service.isCanvasReferenceAlwaysPublic("img_abc")).toBe(false);
+  });
+
+  it("is case-insensitive for the https?:// and /api/prompt-images/ prefixes", () => {
+    expect(service.isCanvasReferenceAlwaysPublic("HTTPS://cdn.example.com/x.png")).toBe(true);
+    expect(service.isCanvasReferenceAlwaysPublic("/API/prompt-images/abc.png")).toBe(true);
+  });
+
+  it("treats unknown/relative paths as gated by default", () => {
+    expect(service.isCanvasReferenceAlwaysPublic("../etc/passwd")).toBe(false);
+    expect(service.isCanvasReferenceAlwaysPublic("javascript:alert(1)")).toBe(false);
+  });
+});
+
+describe("canvasImageReference edge cases", () => {
+  const service = makeService();
+
+  it("returns empty kind for paths missing the file/source-file segment", () => {
+    expect(service.canvasImageReference("/api/images/gen_abc")).toEqual({ id: "", kind: "" });
+    expect(service.canvasImageReference("/api/images/gen_abc/thumbnail")).toEqual({ id: "", kind: "" });
+  });
+
+  it("coerces non-string inputs to empty references", () => {
+    expect(service.canvasImageReference(undefined)).toEqual({ id: "", kind: "" });
+    expect(service.canvasImageReference(123)).toEqual({ id: "", kind: "" });
+    expect(service.canvasImageReference({})).toEqual({ id: "", kind: "" });
+  });
+
+  it("trims surrounding whitespace before matching", () => {
+    expect(service.canvasImageReference("  /api/images/gen_ws/file  ")).toEqual({ id: "gen_ws", kind: "file" });
+  });
 });

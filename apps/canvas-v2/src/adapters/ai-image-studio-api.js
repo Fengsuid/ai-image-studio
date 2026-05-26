@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 export class ApiError extends Error {
   constructor(message, status, payload) {
     super(message);
