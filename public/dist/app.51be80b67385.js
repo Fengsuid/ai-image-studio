@@ -493,6 +493,32 @@ function escapeHtml(value = "") {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+function renderSkeleton(container, { rows = 3, variant = "card", label = "" } = {}) {
+  if (!container) return;
+  const count = Math.max(1, Number(rows) || 3);
+  const safeVariant = ["card", "compact", "rank"].includes(variant) ? variant : "card";
+  const statusLabel = label || (state.lang === "zh" ? "内容加载中" : "Loading content");
+  container.innerHTML = `
+    <div class="skeleton-list skeleton-list-${safeVariant}" role="status" aria-live="polite" aria-label="${escapeHtml(statusLabel)}" data-skeleton-list="${safeVariant}">
+      ${Array.from({ length: count }).map(() => `
+        <div class="skeleton-card skeleton-card-${safeVariant} anim-shimmer" aria-hidden="true">
+          <div class="skeleton-thumb anim-shimmer"></div>
+          <div class="skeleton-copy">
+            <div class="skeleton-line anim-shimmer"></div>
+            <div class="skeleton-line short anim-shimmer"></div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+function renderInitialListSkeletons() {
+  renderSkeleton(elements.imageSessionList, { rows: 4, variant: "compact", label: text("historySession") });
+  renderSkeleton(elements.historyList, { rows: 3, variant: "card", label: text("history") });
+  renderSkeleton(elements.recentMasonry, { rows: 6, variant: "card", label: text("recentCreations") });
+  renderSkeleton(elements.promptGrid, { rows: 6, variant: "card", label: text("promptLibrary") });
+  renderSkeleton(elements.leaderboardPage, { rows: 5, variant: "rank", label: text("galleryLeaderboard") });
+}
 function imageVariantUrl(url, variant = "thumb") {
   if (!url || /^(data:|blob:)/i.test(url)) return url || "";
   const joiner = url.includes("?") ? "&" : "?";
@@ -2474,6 +2500,8 @@ async function loadHistory() {
     state.history = [];
     return;
   }
+  renderSkeleton(elements.historyList, { rows: 3, variant: "card", label: text("history") });
+  renderSkeleton(elements.imageSessionList, { rows: 4, variant: "compact", label: text("historySession") });
   try {
     const data = await api("/api/images/history?includeArchived=1&limit=200");
     state.history = [...(data.generations || [])]
@@ -3223,17 +3251,19 @@ function renderLibrary() {
   }) || "";
   const cardsHtml = visible.map(promptCardHtml).join("")
     + (visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : "");
-  elements.promptGrid.innerHTML = state.promptLoading
-    ? (module?.renderLibraryState?.({ type: "loading", ctx }) || `<div class="empty-message">${text("loadingPrompts")}</div>`)
-    : filtered.length
-      ? `${sourceNotice}<div class="gallery-main-grid">${cardsHtml}</div>`
-      : selectedInfo
-        ? `${sourceNotice}${emptyTagMessageHtml(selectedInfo)}`
-        : `${sourceNotice}${module?.renderLibraryState?.({
-          type: state.promptLibraryMeta?.permissionDenied ? "permission" : state.promptLibraryMeta?.offline ? "offline" : state.promptLibraryMeta?.error ? "error" : "empty",
-          title: text("noResults"),
-          ctx
-        }) || `<div class="empty-message">${text("noResults")}</div>`}`;
+  if (state.promptLoading) {
+    renderSkeleton(elements.promptGrid, { rows: 6, variant: "card", label: text("promptLibrary") });
+  } else {
+    elements.promptGrid.innerHTML = filtered.length
+        ? `${sourceNotice}<div class="gallery-main-grid">${cardsHtml}</div>`
+        : selectedInfo
+          ? `${sourceNotice}${emptyTagMessageHtml(selectedInfo)}`
+          : `${sourceNotice}${module?.renderLibraryState?.({
+            type: state.promptLibraryMeta?.permissionDenied ? "permission" : state.promptLibraryMeta?.offline ? "offline" : state.promptLibraryMeta?.error ? "error" : "empty",
+            title: text("noResults"),
+            ctx
+          }) || `<div class="empty-message">${text("noResults")}</div>`}`;
+  }
   const statsTarget = $(".library-stats", elements.libraryView);
   if (statsTarget) statsTarget.remove();
   const sortTarget = $(".library-sort", elements.libraryView);
@@ -4802,6 +4832,7 @@ async function loadPromptLibrary() {
     offline: navigator.onLine === false,
     permissionDenied: false
   };
+  renderSkeleton(elements.promptGrid, { rows: 6, variant: "card", label: text("promptLibrary") });
   if (state.view === "library") renderLibrary();
   let items = [];
   let usedFallback = false;
@@ -4984,6 +5015,7 @@ async function loadTags() {
   }
 }
 async function loadPublicGallery() {
+  renderSkeleton(elements.recentMasonry, { rows: 6, variant: "card", label: text("recentCreations") });
   try {
     const data = await api("/api/images/public?limit=120");
     state.publicGallery = uniqueGalleryEntries((data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" })));
@@ -4994,6 +5026,7 @@ async function loadPublicGallery() {
 async function loadGalleryLeaderboard() {
   state.galleryLeaderboardLoading = true;
   const requestKey = galleryLeaderboardRequestKey();
+  renderSkeleton(elements.leaderboardPage, { rows: 5, variant: "rank", label: text("galleryLeaderboard") });
   try {
     const params = new URLSearchParams({
       range: state.galleryLeaderboardRange || "all",
@@ -5756,6 +5789,7 @@ async function bootstrap() {
   state.librarySearch = initialRoute.librarySearch || "";
   state.librarySort = initialRoute.librarySort || "hot";
   renderAll();
+  renderInitialListSkeletons();
   replaceRoute(initialRoute);
   try {
     const data = await api("/api/auth/me");

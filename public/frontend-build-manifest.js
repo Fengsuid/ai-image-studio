@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260526-animations-library-v1",
+  "version": "20260526-unified-skeleton-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.4e610beebc07.css",
-    "file": "/dist/app.4e610beebc07.css",
-    "hash": "4e610beebc07",
-    "bytes": 278377,
+    "entry": "/dist/app.6a49a8e41627.css",
+    "file": "/dist/app.6a49a8e41627.css",
+    "hash": "6a49a8e41627",
+    "bytes": 279514,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -39,6 +39,7 @@
       "/css/03-layout.css",
       "/css/03-layout-shell.css",
       "/css/04-components.css",
+      "/css/04-components-skeleton.css",
       "/css/04-components-cards.css",
       "/css/04-components-modals.css",
       "/css/04-components-forms.css",
@@ -347,10 +348,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.91dbb3bce4aa.js",
-        "fileName": "app.91dbb3bce4aa.js",
-        "hash": "91dbb3bce4aa",
-        "bytes": 268147
+        "entry": "/dist/app.51be80b67385.js",
+        "fileName": "app.51be80b67385.js",
+        "hash": "51be80b67385",
+        "bytes": 270686
       }
     ]
   },

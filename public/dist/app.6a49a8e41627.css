@@ -2931,6 +2931,69 @@ html.theme-transitioning *::after {
   animation-delay: 0.12s;
 }
 
+/* public/css/04-components-skeleton.css */
+/* Unified loading skeletons for AIS-RLS-116. */
+
+.skeleton-list {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+}
+
+.skeleton-list-card {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.skeleton-list-compact,
+.skeleton-list-rank {
+  grid-template-columns: 1fr;
+}
+
+.skeleton-card {
+  min-height: 126px;
+  border: 1px solid rgba(226, 232, 240, 0.76);
+  border-radius: 22px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+}
+
+.skeleton-card-compact,
+.skeleton-card-rank {
+  min-height: 74px;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+}
+
+.skeleton-thumb {
+  min-height: 84px;
+  border-radius: 16px;
+}
+
+.skeleton-card-compact .skeleton-thumb,
+.skeleton-card-rank .skeleton-thumb {
+  width: 56px;
+  min-height: 56px;
+}
+
+.skeleton-copy {
+  display: grid;
+  gap: 9px;
+  align-content: center;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 13px;
+  border-radius: 999px;
+}
+
+.skeleton-line.short {
+  width: 62%;
+}
+
 /* public/css/04-components-cards.css */
 /* Split from public/styles.css for AIS-RLS-071.
    Order chunk 7 of 22; keep import order stable until semantic CSS modules are refined. */
