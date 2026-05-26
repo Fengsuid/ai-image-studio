@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260526-unified-skeleton-v1",
+  "version": "20260526-canvas-slice-smokes-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
