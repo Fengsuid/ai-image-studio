@@ -247,6 +247,20 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: no self-host asset blocker remained after `48c3893`. Server disk was still around 87% used, so this release intentionally avoided a full source backup.
 - Rollback target: revert `705d5ef` and `10d2ad3`, or temporarily restore the previous external font/icon links and CSP allowances if local vendor asset serving regresses. Keep or re-apply `48c3893` when workspace packages remain required in the production image.
 
+### 2026-05-26 AIS-RLS-113 Hero Video Local Asset Release
+
+- Task covered: `AIS-RLS-113` Localize hero video and tighten CSP `media-src` to self.
+- Commit covered: `c9e8b6e`.
+- Files changed: `public/index.html`, `public/hero/*`, `public/frontend-performance.js`, `public/css/13-performance.css`, `server.js`, `src/config/app-settings.js`, `scripts/smoke/check-frontend-performance.mjs`, `scripts/smoke/check-public-api.mjs`, `public/dist/*`, and frontend build manifest files.
+- Frontend coverage: the homepage hero video now uses `/hero/hero.mp4` with `/hero/hero-poster.webp`, keeps static HTML preload at `none`, and removes the previous remote MP4 dependency.
+- Runtime coverage: frontend performance gating disables hero video loading for reduced motion, Save-Data, low device class, and `slow-2g`/`2g` connection hints.
+- Server coverage: static serving now includes `video/mp4`, immutable cache headers for `/hero/*.mp4|webp`, direct 404s for missing `/hero/*` assets, and report-only CSP `media-src 'self'`.
+- Local checks: `npm run frontend:build`, `node --check server.js`, `node --check public/frontend-performance.js`, `node --check scripts/smoke/check-frontend-performance.mjs`, `node --check scripts/smoke/check-public-api.mjs`, `npm run smoke:frontend-performance`, `npm run smoke:frontend-build-tooling`, `npm run smoke:css-visual-polish`, `npm run smoke:visual-regression`, `npm run check`, `git diff --check`, and staged privacy scan passed. Local `npm run smoke:public` was blocked by local MySQL credentials and covered in the deployed container.
+- Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260526-hero-video-local-v1`; `/hero/hero.mp4` returns `200 video/mp4` with immutable cache; `/hero/hero-poster.webp` returns `200 image/webp` with immutable cache; root CSP includes `media-src 'self'` and does not allow remote HTTPS media.
+- Deployment note: the deployment package was generated with `git archive HEAD`, uploaded as the standard update archive, verified by size, entry count, and SHA256 before extraction, and deployed without database schema or data changes. The release intentionally skipped a full source backup because server disk usage remained around 87%.
+- Known blockers: none for the localized hero asset after container and external smoke passed. Local full public smoke remains blocked by the existing local MySQL credential mismatch, not by this change.
+- Rollback target: revert `c9e8b6e` and redeploy the previous hashed frontend bundle if local hero media serving or CSP media policy regresses.
+
 ### 2026-05-25 AIS-RLS-147+148 Slice 化首批部署
 
 - Tasks covered: `AIS-RLS-147` Canvas backend slice extraction and `AIS-RLS-148` Agent backend slice extraction.
