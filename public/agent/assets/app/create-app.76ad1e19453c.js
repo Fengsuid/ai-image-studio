@@ -8,7 +8,7 @@ import {
   getAgentSession,
   getCurrentAuth,
   listAgentSessions
-} from "../adapters/ai-image-studio-api.a4f6d22e306f.js";
+} from "../adapters/ai-image-studio-api.f694012d6d44.js";
 import {
   getAgentSessionSnapshot,
   putAgentSessionSnapshot

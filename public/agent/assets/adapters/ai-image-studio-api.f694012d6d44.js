@@ -69,6 +69,21 @@ export function getAgentSession(sessionId) {
   return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}`);
 }
 
+export function updateAgentSession(sessionId, patch) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}`, jsonRequest("PATCH", patch));
+}
+
+export function deleteAgentSession(sessionId) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+    parseJson: false
+  });
+}
+
+export function appendAgentMessage(sessionId, payload) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/messages`, jsonRequest("POST", payload));
+}
+
 export function createAgentPlan(sessionId, payload) {
   return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/plan`, jsonRequest("POST", payload));
 }
