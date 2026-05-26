@@ -273,6 +273,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: external `npm run smoke:visual-regression -- https://<host>` repeatedly navigated Chrome to `chrome-error://chromewebdata/` for every scenario, producing selector-missing diffs unrelated to deployed DOM/CSS; the same local visual regression passed before deployment, and external `smoke:mobile-layout` passed against the deployed site. The three canvas hashed-entry smoke failures listed in §9.1 remain known pre-existing `AIS-RLS-111` cleanup items, not AIS-RLS-114 regressions.
 - Rollback target: revert `b885bf1`, restore the previous hashed CSS bundle and legacy root-level mobile CSS sources, then redeploy from the latest pre-AIS-RLS-114 backup recorded in the private deployment log if mobile styling or CSS bundling regresses.
 
+### 2026-05-26 AIS-RLS-115 Shared Animation CSS Library Release
+
+- Task covered: `AIS-RLS-115` Populate `12-animations.css` with shared keyframes and utility classes.
+- Commit covered: `457954a`.
+- Files changed: `public/css/12-animations.css`, `public/css/10-canvas-tools.css`, generated `public/dist/app.4e610beebc07.css`, frontend build manifest files, `public/index.html`, `src/config/app-settings.js`, and `src/frontend/app-build-manifest.mjs`.
+- Frontend coverage: `12-animations.css` now contains the shared `ais-fade-in`, `ais-slide-up`, `ais-shimmer`, `ais-pulse`, `ais-scale-in`, and `ais-float` keyframes plus `.anim-*` utility classes and `prefers-reduced-motion` handling. Duplicate generic `ais-*` keyframes were removed from `10-canvas-tools.css`, leaving only single-digit non-library keyframes outside `12-animations.css`.
+- Local checks: `npm run frontend:build`, `npm run smoke:css-module-split`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-boundaries`, `npm run smoke:css-visual-polish`, `npm run smoke:frontend-performance`, `npm run smoke:visual-regression`, and `git diff --check` for AIS-RLS-115 files passed. Local acceptance checks confirmed `12-animations.css` is over 3 KB, includes all required animation names and `.anim-*` utilities, and leaves 7 `@keyframes` outside `12-animations.css`.
+- Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260526-animations-library-v1`; server source contains `public/css/12-animations.css` at 4663 bytes and serves `/dist/app.4e610beebc07.css`.
+- Deployment note: the deployment package was generated with `git archive HEAD`, uploaded as the standard update archive, verified by local and server size, entry count, and SHA256 before extraction, then deployed after clearing `public/dist` and updating `APP_VERSION=20260526-animations-library-v1`. No database schema or data changes were made. Server disk cleanup pruned Docker builder cache after deployment, reducing disk usage from about 89% to about 79%.
+- Known blockers: none for AIS-RLS-115 after local visual regression, container public smoke, and external public smoke passed. The three hashed-entry canvas smoke failures listed in §9.1 remain known pre-existing `AIS-RLS-111` cleanup items and were not part of this animation-library release gate.
+- Rollback target: revert `457954a`, restore the previous hashed CSS bundle and the prior scattered animation definitions, then redeploy from the latest pre-AIS-RLS-115 package or Git baseline recorded in the private deployment log if shared animation utilities regress.
+
 ### 2026-05-25 AIS-RLS-147+148 Slice 化首批部署
 
 - Tasks covered: `AIS-RLS-147` Canvas backend slice extraction and `AIS-RLS-148` Agent backend slice extraction.
