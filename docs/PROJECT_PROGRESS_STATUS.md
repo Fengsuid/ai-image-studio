@@ -1,9 +1,11 @@
 # Project Progress Status
 
-Updated: 2026-05-25
+Updated: 2026-05-26
 
 This is the current handoff entry point for project progress. Older planning documents keep historical design detail, but this file reflects the local Trellis board, Git state, and current working tree.
 
+> **2026-05-26 Documentation Lane Update** — `AIS-RLS-131` expanded the public changelog and contributor guide, and `AIS-RLS-128` adds the roadmap Mermaid gantt in `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md` §6.1. Runtime and deployment details remain in their dedicated release/checklist documents.
+>
 > **2026-05-25 Handoff Note** — read before resuming work.
 >
 > The previous Codex session (`019e5a5e-651d-7c31-a9c0-11f4bfdb63d9`) was audited and reconciled on 2026-05-25. Full record: `docs/private/CODEX_SESSION_AUDIT_20260524_019e5a5e.md`. Key items the next agent must respect:
@@ -25,16 +27,27 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction, CI check workflow, CSS bundle merge, and JS content-hash assets have been verified through `AIS-RLS-111`.
+- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction, CI check workflow, CSS/JS content-hash assets, CDN-domain reduction, mobile CSS consolidation, shared animations, unified skeletons, documentation expansion, and slice smoke work have been tracked through `AIS-RLS-131` plus the `AIS-RLS-147` ~ `AIS-RLS-153` lane.
 
 ## Current Summary
 
-- Trellis total: 177 tasks.
-- Done: 142 tasks.
-- Active: none.
-- Remaining ready/blocked tasks: 35 tasks in the local Trellis board as of this update (`AIS-RLS-112` to `AIS-RLS-146`, with dependency blocks on several later cards).
-- Current active work: none in the local Trellis board.
-- Working tree handoff: follow-up optimization work has continued through `AIS-RLS-111`. `server.js` has route modules for credits, settings, announcements, images, images-generate, and the admin API now lives under `src/routes/admin/*` with legacy admin route files removed. `src/mysql-store.js` now uses `storeExportGroups` plus a programmatic facade builder that throws on duplicate exported names and preserves 139+ public store methods. `public/app-auth.js` is a real `AppModules.auth` controller module covering login, registration, account menu, CSRF, and My Works behavior; `public/app-settings.js` is a real `AppModules.settings` controller module covering the i18n dictionary, language toggle binding, preference helpers, and text matching. Reward-related UI remains split into `public/app-reward-policy.js`, `public/app-credits-detail.js`, and `public/admin-settings.js`; `AIS-RLS-098` promoted the reviewed visual baselines in `docs/mobile-qa/baseline-local/`; `AIS-RLS-099` added ESLint 9, Prettier, `syntax:check`, `lint:fix`, `format:check`, and `npm run check` (rules are currently all `warn` — to be tightened in `AIS-RLS-130`); `AIS-RLS-100` moved `/api/checkin` and `/api/credits/detail` into `src/routes/credits.js`; `AIS-RLS-101` verified `/api/settings` and `/api/growth` ownership in `src/routes/settings-public.js`; `AIS-RLS-102` verified `/api/announcements*` and `/api/stats/today` ownership in `src/routes/announcements.js`; `AIS-RLS-103` verified `/api/images/history` and `/api/images/bulk` ownership in `src/routes/images.js`; `AIS-RLS-104` aligned `/api/images/generate`, `/api/images/edit`, and generation request polling/cancel endpoints under `src/routes/images-generate.js`; `AIS-RLS-106` tightened mysql-store facade smoke coverage for export count and collision detection; `AIS-RLS-107` landed app-auth extraction and aligned public smoke coverage; `AIS-RLS-108` landed app-settings extraction and aligned module/theme/public smoke coverage; `AIS-RLS-109` added the GitHub Actions CI check workflow and verified the pushed run is green; `AIS-RLS-110` added a frontend CSS bundler, generated `public/dist/app.a4dfaf24076c.css`, and changed the public homepage to a single local hashed CSS bundle while keeping `styles.css` for compatibility; `AIS-RLS-111` added content-hashed JS assets under `public/dist`, removed public homepage script query strings, and added immutable cache headers for hashed dist assets.
+- Trellis total: 191 tasks.
+- Done after `AIS-RLS-128` close-out: 154 tasks.
+- Review: 1 task (`AIS-RLS-153`).
+- Ready: 29 tasks in the local board, including product Phase D, platform hardening, documentation/spec work, visual redesign, and hashed-entry smoke migration.
+- Blocked: 7 tasks in the local board (`AIS-RLS-151`, `AIS-RLS-154` ~ `AIS-RLS-159`).
+- Working tree handoff: follow-up optimization work has continued through `AIS-RLS-116` for the B/C deployment single-entry lane, `AIS-RLS-131` for public docs, and `AIS-RLS-147` ~ `AIS-RLS-153` for canvas/agent slice extraction plus smoke coverage. `AIS-RLS-117` remains the next runtime refactor in the original lazy-load chain; `AIS-RLS-129` remains the next documentation feature-spec task in this side lane.
+
+## AIS-RLS-100~159 Status Snapshot
+
+| Group | Board status | Count | Tasks |
+| --- | --- | ---: | --- |
+| Route/store/app/build/docs completed | Done | 24 | `AIS-RLS-100` ~ `AIS-RLS-116`, `AIS-RLS-128`, `AIS-RLS-131`, `AIS-RLS-147` ~ `AIS-RLS-150`, `AIS-RLS-152` |
+| Product/platform/docs/visual queue | Ready | 28 | `AIS-RLS-117` ~ `AIS-RLS-127`, `AIS-RLS-129`, `AIS-RLS-130`, `AIS-RLS-132` ~ `AIS-RLS-146` |
+| Canvas smoke closure | Review | 1 | `AIS-RLS-153` |
+| Slice/storage/archive follow-ups | Blocked | 7 | `AIS-RLS-151`, `AIS-RLS-154` ~ `AIS-RLS-159` |
+
+Dependency note: Trellis `status=ready` is not identical to startable work. `AIS-RLS-122`, `AIS-RLS-126`, and `AIS-RLS-134` ~ `AIS-RLS-146` still have explicit dependency gates even though their board status is `ready`.
 
 ## Completed Milestones
 
@@ -50,19 +63,24 @@ This is the current handoff entry point for project progress. Older planning doc
 | `AIS-RLS-061` - `AIS-RLS-069` | Done | Queue recovery, provider diagnostics/capabilities, Agent workspace, creative route unification. |
 | `AIS-RLS-070` - `AIS-RLS-079` | Done | CSS tokens, CSS split, dark mode, admin/app module split, backend/store split, frontend build tooling, visual polish. |
 | `AIS-RLS-080` - `AIS-RLS-093` | Done | Responsive polish, frontend guardrails, route/store extraction, accessibility, onboarding, prompt library, admin shell, performance budget, visual regression QA harness. |
-| `AIS-RLS-094` - `AIS-RLS-111` | Done | Phase A documentation/baseline cleanup, visual baseline promotion, lint/check tooling foundation, first Phase B route extractions for credits, public settings/growth, public announcements/stats, image history/bulk operations, image generation/edit endpoints, admin route business-domain split, mysql-store facade programmatic aggregation, app-auth controller extraction, app-settings controller extraction, GitHub Actions CI workflow, Phase C CSS bundle merge, and public JS content-hash assets. |
+| `AIS-RLS-094` - `AIS-RLS-116` | Done | Phase A documentation/baseline cleanup, lint/check tooling foundation, route/store/app extraction, GitHub Actions CI, CSS/JS content-hash assets, local font/icon/hero media assets, mobile CSS consolidation, shared animations, and unified list skeletons. |
+| `AIS-RLS-128`, `AIS-RLS-131` | Done | Roadmap dependency graph, public changelog expansion, and contributor guide expansion. |
+| `AIS-RLS-147` - `AIS-RLS-150`, `AIS-RLS-152` | Done | Canvas/agent backend slice extraction, agent workspace normalization, slice interface contracts, and agent smoke coverage. |
+| `AIS-RLS-153` | Review | Canvas smoke coverage closure awaiting final review state. |
 
 ## Backlog Milestones (Planned)
 
 | Range | Status | Scope |
 | --- | --- | --- |
-| `AIS-RLS-112` - `AIS-RLS-146` | Ready / blocked by dependency | Follow-up Optimization Plan plus visual redesign tasks. Next audited sequence is `AIS-RLS-112`; newly added follow-ups include `AIS-RLS-130` ESLint tightening, `AIS-RLS-131` docs expansion, and `AIS-RLS-132` premium polish CSS split. |
+| `AIS-RLS-117` - `AIS-RLS-127` | Ready / dependency-gated | Lazy loading, CSP enforcement, admin email masking, product Phase D features, test expansion, accessibility, frontend error monitoring, and database health checks. |
+| `AIS-RLS-129` - `AIS-RLS-146` | Ready / dependency-gated | Phase D feature specs, ESLint tightening, premium polish split, and visual redesign Phase 1~14. |
+| `AIS-RLS-151`, `AIS-RLS-154` - `AIS-RLS-159` | Blocked | Token bridge, canvas/agent feature completion, storage optimization, migration consolidation, and Canvas v1 archive. |
 
 ## Active Task
 
 | Task | Status | What Is Implemented | Remaining Closure |
 | --- | --- | --- | --- |
-| None | Done | Local Trellis board has no active tasks after `AIS-RLS-111`. `AIS-RLS-111` passed local frontend build/smoke/check gates and external production `npm run smoke:public -- https://<host>` after deployment. | Next audited item is `AIS-RLS-112` self-host fonts/icons. |
+| None | Done | Documentation lane closes `AIS-RLS-128` with the Mermaid roadmap graph and status snapshot. Runtime work has already advanced beyond `AIS-RLS-116` in Trellis, while `AIS-RLS-153` remains in review. | Next documentation lane item is `AIS-RLS-129`; next original runtime chain item remains `AIS-RLS-117`. |
 
 ## Documentation Notes
 

@@ -1239,6 +1239,35 @@ function maskEmail(email) {
 | C — 性能 / 美观 / 安全切硬 | 4-6 周 | C1-C8 = P1-2 / P1-7 / P2-* / P0-1 | 与 B 并行末段 |
 | D — 产品功能 + 长期 | 季度 | D1-D6 = P3-1 衍生 + 单测 + CI 扩展 | 阶段 C 完成后 |
 
+```mermaid
+gantt
+    title Follow-up Optimization Roadmap (AIS-RLS-094~159)
+    dateFormat  YYYY-MM-DD
+    axisFormat  %m-%d
+
+    section A 文档对齐
+    A 起点：094 维护文档重写           :done, a094, 2026-05-24, 1d
+    A 收口：095~099 基线 / lint / CI   :done, a095, 2026-05-24, 2d
+
+    section B 代码拆分与工具链
+    B1：100~104 路由拆分               :done, b100, 2026-05-25, 1d
+    B2：105~109 admin/store/app/CI     :done, b105, 2026-05-25, 1d
+    B3：110~116 部署单入口收敛         :done, b110, 2026-05-25, 2d
+
+    section C Slice 抽取与 smoke
+    C1：147+148 backend slice 抽取      :done, c147, 2026-05-25, 2d
+    C2：149 agent workspace 对接        :done, c149, 2026-05-26, 1d
+    C3：152 agent smoke closure         :done, c152, 2026-05-26, 1d
+    C4：153 canvas smoke closure        :active, c153, 2026-05-26, 2d
+
+    section B/C 并行窗口
+    110~116 与 147~148 并行推进         :milestone, bcparallel, 2026-05-25, 1d
+
+    section D 产品功能与视觉重设计
+    D1：120~122 多候选 / 参考图 / 作品库 :d120, 2026-06-03, 10d
+    D2：132~142 视觉重设计主链          :d132, after d120, 20d
+```
+
 ### 6.2 Trellis 任务卡模板（直接复制）
 
 ```json
