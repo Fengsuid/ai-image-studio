@@ -10,12 +10,14 @@
 }
 
 .performance-low .hero-video-layer video,
+.performance-slow-connection .hero-video-layer video,
 .performance-save-data .hero-video-layer video,
 .performance-reduced-motion .hero-video-layer video {
   display: none;
 }
 
 .performance-low :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading),
+.performance-slow-connection :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading),
 .performance-save-data :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading),
 .performance-reduced-motion :is(.skeleton, .image-skeleton, .generation-card.loading, .work-card.loading) {
   animation: none !important;

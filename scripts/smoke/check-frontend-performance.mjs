@@ -111,9 +111,14 @@ for (const [relativePath, maxBytes] of Object.entries(budgets)) {
 
 assert(scriptPosition(indexHtml, "frontend-performance.js") >= 0, "index.html must load frontend-performance.js");
 assert(scriptPosition(indexHtml, "frontend-performance.js") < scriptPosition(indexHtml, "app.js"), "frontend-performance.js must load before app.js");
-assert(indexHtml.includes('preload="metadata"'), "hero video must use metadata preload");
+assert(indexHtml.includes('preload="none"'), "hero video must avoid eager preload in static HTML");
+assert(indexHtml.includes('poster="/hero/hero-poster.webp"'), "hero video must expose the local poster fallback");
+assert(indexHtml.includes('src="/hero/hero.mp4"'), "hero video must use the local MP4 asset");
+assert(!/cloudfront\.net|https:\/\/[^"]+\.mp4/.test(indexHtml), "hero video must not depend on remote media");
 assert(!indexHtml.includes("<video autoplay"), "hero video should not autoplay before runtime budget checks");
 assert(styles.includes('@import url("/css/13-performance.css");'), "styles.css must import performance CSS");
+assert(stat("public/hero/hero.mp4").size < 2 * 1024 * 1024, "hero MP4 must stay under 2 MB");
+assert(stat("public/hero/hero-poster.webp").size < 60 * 1024, "hero poster must stay under 60 KB");
 
 const homeScripts = scriptPaths(indexHtml);
 const adminScripts = scriptPaths(adminHtml);
@@ -144,6 +149,8 @@ for (const token of [
   "MutationObserver",
   "requestIdleCallback",
   "saveData",
+  "slow-2g",
+  "effectiveType",
   "prefers-reduced-motion",
   "fetchpriority",
   "shouldDisableHeroVideo",
@@ -165,6 +172,7 @@ for (const token of [
 for (const selector of [
   ".perf-observed",
   ".performance-low",
+  ".performance-slow-connection",
   ".performance-save-data",
   ".performance-reduced-motion",
   "@media (prefers-reduced-motion: reduce)"

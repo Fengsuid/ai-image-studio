@@ -118,6 +118,8 @@ async function checkHomeResources() {
   assert(!home.headers.get("content-security-policy-report-only").includes("fonts.gstatic.com"), "/ CSP should not allow Google font assets");
   assert(!home.headers.get("content-security-policy-report-only").includes("cdn.jsdelivr.net"), "/ CSP should not allow jsDelivr font/icon assets");
   assert(home.headers.get("content-security-policy-report-only").includes("font-src 'self'"), "/ CSP font-src should be self-only");
+  assert(home.headers.get("content-security-policy-report-only").includes("media-src 'self'"), "/ CSP media-src should be self-only");
+  assert(!home.headers.get("content-security-policy-report-only").includes("media-src 'self' https:"), "/ CSP media-src must not allow remote HTTPS media");
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
   assert(home.headers.get("cache-control") === "no-store", "/ HTML must be no-store");
   assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.css/.test(home.body), "/ missing hashed CSS bundle reference");
@@ -126,6 +128,10 @@ async function checkHomeResources() {
   assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.js/.test(home.body), "/ missing hashed app.js reference");
   assert(typeof home.body === "string" && !home.body.includes("?v="), "/ should not use manual query-string cache busting");
   assert(typeof home.body === "string" && !/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(home.body), "/ should not reference external font or icon CDNs");
+  assert(typeof home.body === "string" && home.body.includes('src="/hero/hero.mp4"'), "/ should reference local hero video");
+  assert(typeof home.body === "string" && home.body.includes('poster="/hero/hero-poster.webp"'), "/ should reference local hero poster");
+  assert(typeof home.body === "string" && home.body.includes('preload="none"'), "/ hero video should not preload on static HTML");
+  assert(typeof home.body === "string" && !/cloudfront\.net|https:\/\/[^"]+\.mp4/.test(home.body), "/ should not reference remote hero video");
   for (const fileName of [
     "canvas-layout.js",
     "canvas-edges.js",
@@ -232,6 +238,18 @@ async function checkHomeResources() {
     assert((font.headers.get("cache-control") || "").includes("immutable"), `${fontPath} should use immutable cache`);
   }
 
+  for (const [assetPath, contentType] of [
+    ["/hero/hero.mp4", "video/mp4"],
+    ["/hero/hero-poster.webp", "image/webp"]
+  ]) {
+    log(`HEAD ${assetPath}`);
+    const asset = await fetchHead(assetPath, `${contentType},*/*`);
+    assert(asset.status === 200, `${assetPath} status=${asset.status}`);
+    assert((asset.headers.get("content-type") || "").includes(contentType), `${assetPath} content-type should be ${contentType}`);
+    assert((asset.headers.get("cache-control") || "").includes("max-age=31536000"), `${assetPath} should use long-lived cache`);
+    assert((asset.headers.get("cache-control") || "").includes("immutable"), `${assetPath} should use immutable cache`);
+  }
+
   log(`GET ${homeOnboardingPath}`);
   const homeOnboarding = await fetchText(homeOnboardingPath, "application/javascript,*/*");
   assert(homeOnboarding.status === 200, `${homeOnboardingPath} status=${homeOnboarding.status}`);
@@ -244,6 +262,8 @@ async function checkHomeResources() {
   assert(frontendPerformance.body.includes("ImageStudioPerformance"), `${frontendPerformancePath} should register frontend performance helper`);
   assert(frontendPerformance.body.includes("IntersectionObserver"), `${frontendPerformancePath} should defer card/image work with IntersectionObserver`);
   assert(frontendPerformance.body.includes("shouldDisableHeroVideo"), `${frontendPerformancePath} should gate hero video for low-power devices`);
+  assert(frontendPerformance.body.includes("slow-2g"), `${frontendPerformancePath} should disable hero video on slow-2g`);
+  assert(frontendPerformance.body.includes('video.preload = "none"'), `${frontendPerformancePath} should avoid video loading when disabled`);
 
   log(`GET ${promptLibraryPath}`);
   const promptLibrary = await fetchText(promptLibraryPath, "application/javascript,*/*");

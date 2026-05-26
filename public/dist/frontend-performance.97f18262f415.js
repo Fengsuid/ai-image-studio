@@ -18,6 +18,10 @@
     return Boolean(connection?.saveData);
   }
 
+  function slowConnectionEnabled() {
+    return ["slow-2g", "2g"].includes(String(connection?.effectiveType || "").toLowerCase());
+  }
+
   function lowDeviceClass() {
     const memory = Number(global.navigator?.deviceMemory || 0);
     const cores = Number(global.navigator?.hardwareConcurrency || 0);
@@ -25,12 +29,13 @@
   }
 
   function isLowPowerMode() {
-    return prefersReducedMotion() || saveDataEnabled() || lowDeviceClass();
+    return prefersReducedMotion() || saveDataEnabled() || slowConnectionEnabled() || lowDeviceClass();
   }
 
   function setFlags() {
     root.classList.toggle("performance-reduced-motion", prefersReducedMotion());
     root.classList.toggle("performance-save-data", saveDataEnabled());
+    root.classList.toggle("performance-slow-connection", slowConnectionEnabled());
     root.classList.toggle("performance-low", isLowPowerMode());
   }
 
@@ -78,7 +83,7 @@
   }
 
   function shouldDisableHeroVideo() {
-    return prefersReducedMotion() || saveDataEnabled() || lowDeviceClass();
+    return prefersReducedMotion() || saveDataEnabled() || slowConnectionEnabled() || lowDeviceClass();
   }
 
   function shouldAvoidHeroWatchdog() {
@@ -107,9 +112,12 @@
   function applyHeroVideoBudget(scope = doc) {
     const video = scope.querySelector?.(".hero-video-layer video") || doc.querySelector(".hero-video-layer video");
     if (!video) return;
-    video.preload = "metadata";
     video.removeAttribute("autoplay");
-    if (!shouldDisableHeroVideo()) return;
+    if (!shouldDisableHeroVideo()) {
+      video.preload = "metadata";
+      return;
+    }
+    video.preload = "none";
     video.pause();
     if (!patchedHeroVideos.has(video)) {
       patchedHeroVideos.set(video, video.play?.bind(video));

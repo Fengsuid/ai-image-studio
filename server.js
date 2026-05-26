@@ -94,6 +94,7 @@ const mimeTypes = new Map([
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
   [".webp", "image/webp"],
+  [".mp4", "video/mp4"],
   [".svg", "image/svg+xml; charset=utf-8"],
   [".ico", "image/x-icon"]
 ]);
@@ -469,7 +470,7 @@ const securityHeaders = {
   "Content-Security-Policy-Report-Only": [
     "default-src 'self'",
     "img-src 'self' data: blob: https:",
-    "media-src 'self' https:",
+    "media-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "script-src 'self'",
@@ -3534,7 +3535,8 @@ async function serveStatic(req, res, url) {
     const bytes = await fs.readFile(absolutePath);
     const immutableAsset = (pathname.startsWith("/dist/")
       && /\.[a-f0-9]{12}\.(?:css|js)$/i.test(path.basename(pathname)))
-      || (pathname.startsWith("/vendor/") && /\.(?:css|woff2)$/i.test(path.basename(pathname)));
+      || (pathname.startsWith("/vendor/") && /\.(?:css|woff2)$/i.test(path.basename(pathname)))
+      || (pathname.startsWith("/hero/") && /\.(?:mp4|webp)$/i.test(path.basename(pathname)));
     res.writeHead(200, withSecurityHeaders({
       "Content-Type": mimeTypes.get(extension) || "application/octet-stream",
       "Cache-Control": extension === ".html"
@@ -3571,7 +3573,8 @@ async function serveStatic(req, res, url) {
     }
     if (
       pathname.startsWith("/prompt-thumbs/") ||
-      /\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i.test(pathname)
+      pathname.startsWith("/hero/") ||
+      /\.(?:avif|gif|ico|jpe?g|mp4|png|svg|webp)$/i.test(pathname)
     ) {
       return sendError(res, 404, "Static asset not found");
     }
