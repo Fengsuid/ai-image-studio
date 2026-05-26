@@ -78,6 +78,28 @@
     return Array.isArray(prompt.tags) ? prompt.tags : [prompt.tag].filter(Boolean);
   }
 
+  const FALLBACK_PROMPTS = [
+    ["product", "ri-shopping-bag-3-line", ["高端产品图", "Premium Product Shot"], ["一张高端无线充电器产品摄影，哑光黑色机身，柔和棚拍灯光，浅灰背景，精致阴影，商业广告质感，超清细节", "A premium product photo of a matte black wireless charger, soft studio lighting, light gray background, refined shadows, commercial advertising style, ultra-detailed"], "linear-gradient(135deg, #0f172a, #64748b)"],
+    ["poster", "ri-layout-4-line", ["活动海报", "Event Poster"], ["未来感 AI 创作活动海报，干净排版，强烈视觉焦点，黑白主调点缀电光蓝，高级平面设计，适合社交媒体", "A futuristic AI creativity event poster, clean typography, strong focal point, black and white palette with electric blue accents, premium graphic design"], "linear-gradient(135deg, #111827, #2563eb)"],
+    ["photo", "ri-camera-lens-line", ["生活方式摄影", "Lifestyle Photo"], ["清晨咖啡桌上的极简工作场景，笔记本电脑、手机和一束花，自然窗光，温暖但不过度复古，真实摄影质感", "A minimal morning workspace on a coffee table with laptop, phone, and flowers, natural window light, warm but modern, realistic photography"], "linear-gradient(135deg, #0f766e, #f59e0b)"],
+    ["character", "ri-user-smile-line", ["角色设定", "Character Design"], ["一位未来城市中的年轻发明家角色设定，全身像，功能性服装，背包设备，清晰轮廓，电影概念艺术风格", "A young inventor in a future city, full-body character design, functional clothing, backpack device, clean silhouette, cinematic concept art"], "linear-gradient(135deg, #7c3aed, #ec4899)"],
+    ["ui", "ri-window-line", ["应用界面概念", "App Interface Concept"], ["一款 AI 图片生成应用的移动端界面概念，白色玻璃拟态卡片，底部输入框，图片瀑布流，现代 iOS 风格，高级 UI 截图", "A mobile interface concept for an AI image generation app, white glass cards, bottom composer, image feed, modern iOS style, polished UI screenshot"], "linear-gradient(135deg, #38bdf8, #6366f1)"],
+    ["illustration", "ri-brush-line", ["童书插画", "Storybook Illustration"], ["温柔的童书插画，一只纸船漂在星光河流上，柔软笔触，梦幻但清晰，留白充足，适合封面", "A gentle storybook illustration of a paper boat floating on a starlit river, soft brushwork, dreamy but clear, generous negative space, cover art"], "linear-gradient(135deg, #8b5cf6, #fbbf24)"]
+  ];
+
+  function fallbackPrompts(ctx = {}) {
+    const langIndex = ctx.state?.lang === "en" || ctx.lang === "en" ? 1 : 0;
+    return FALLBACK_PROMPTS.map(([tag, icon, title, prompt, colors], index) => ({
+      id: index + 1,
+      tag,
+      tags: [tag],
+      icon,
+      title: title[langIndex],
+      prompt: prompt[langIndex],
+      colors
+    }));
+  }
+
   function sourceHost(value = "") {
     if (!value) return "";
     try {
@@ -386,7 +408,8 @@
     renderLibraryState,
     renderEmptyTagState,
     renderSourceNotice,
-    renderPromptDetailModal
+    renderPromptDetailModal,
+    fallbackPrompts
   };
 
   global.ImageStudioPromptLibrary = Object.freeze(api);

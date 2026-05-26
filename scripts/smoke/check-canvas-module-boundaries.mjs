@@ -9,6 +9,8 @@ import path from "node:path";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
+const buildManifest = JSON.parse(fs.readFileSync(path.join(rootDir, "public/frontend-build-manifest.json"), "utf8"));
+const lazyCanvasScripts = buildManifest.js?.lazyRoutes?.canvas?.scripts || [];
 const modules = [
   { file: "canvas-layout.js", marker: "root.layout", exportName: "layout" },
   { file: "canvas-edges.js", marker: "root.edges", exportName: "edges", deps: ["canvas-nodes.js", "canvas-geometry.js"] },
@@ -16,8 +18,9 @@ const modules = [
   { file: "canvas-inspector.js", marker: "root.inspector", exportName: "inspector" }
 ];
 
-const canvasScriptIndex = indexHtml.indexOf("/canvas.js");
-assert(canvasScriptIndex > 0, "index.html must reference /canvas.js");
+const canvasScriptIndex = lazyCanvasScripts.indexOf("/canvas.js");
+assert(canvasScriptIndex > 0, "frontend manifest canvas lazy route must reference /canvas.js");
+assert(!indexHtml.includes("/canvas.js"), "index.html must lazy-load /canvas.js through app-router");
 
 const sandbox = {
   window: { ImageStudioCanvas: {} },
@@ -35,9 +38,9 @@ for (const dep of ["canvas-nodes.js", "canvas-geometry.js"]) {
 
 for (const module of modules) {
   const src = `/${module.file}`;
-  const scriptIndex = indexHtml.indexOf(src);
-  assert(scriptIndex > 0, `index.html must reference ${src}`);
-  assert(scriptIndex < canvasScriptIndex, `${src} must load before /canvas.js`);
+  const scriptIndex = lazyCanvasScripts.indexOf(src);
+  assert(scriptIndex > 0, `frontend manifest canvas lazy route must reference ${src}`);
+  assert(scriptIndex < canvasScriptIndex, `${src} must load before /canvas.js in the lazy route`);
 
   const code = fs.readFileSync(path.join(rootDir, "public", module.file), "utf8");
   assert(code.includes(module.marker), `${module.file} must register ${module.marker}`);

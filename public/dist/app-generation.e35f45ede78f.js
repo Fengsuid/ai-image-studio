@@ -1,0 +1,1 @@
+(function(e){"use strict";const r=e.AppModules?.register||((n,t)=>(e.AppModules=e.AppModules||{},e.AppModules[n]=t,t));function i(n={}){return e.ImageStudioGenerationResultActions?.render?.(n)||""}r("generation",{renderResultActions:i})})(window);

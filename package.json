@@ -22,7 +22,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check \"{src,public,scripts}/**/*.{js,mjs,css}\"",
-    "syntax:check": "node --check server.js && node --check public/app.js && node --check public/admin.js",
+    "syntax:check": "node --check server.js && node --check public/app-router.js && node --check public/app.js && node --check public/admin.js",
     "check": "npm run syntax:check && npm run lint && npm run smoke:frontend-boundaries && npm run smoke:frontend-build-tooling",
     "canvas:v2:install": "npm install --prefix apps/canvas-v2",
     "canvas:v2:check": "npm run check --prefix apps/canvas-v2",
@@ -118,6 +118,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "esbuild": "^0.21.5",
     "eslint": "^9.39.4",
     "globals": "^17.6.0",
     "prettier": "^3.8.3"

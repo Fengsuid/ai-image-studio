@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260526-generic-prompt-fix-v1",
+  "version": "20260527-lazy-route-loader-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -79,279 +79,426 @@
     "bundler": "scripts/frontend/js-bundle.mjs",
     "entryPattern": "/dist/<name>.<hash>.js",
     "compatibilityManifest": "/frontend-build-manifest.js",
+    "lazyRoutes": {
+      "admin": {
+        "entry": "/admin.js",
+        "scripts": [
+          "/admin-generation-diagnostics.js",
+          "/admin-overview.js",
+          "/admin-users.js",
+          "/admin-providers.js",
+          "/admin-gallery.js",
+          "/admin-settings.js",
+          "/admin-shell-polish.js",
+          "/admin.js"
+        ]
+      },
+      "canvas": {
+        "entry": "/canvas.js",
+        "scripts": [
+          "/cache-db.js",
+          "/canvas-store.js",
+          "/canvas-nodes.js",
+          "/canvas-geometry.js",
+          "/canvas-layout.js",
+          "/canvas-edges.js",
+          "/canvas-workflows.js",
+          "/canvas-minimap.js",
+          "/canvas-selection.js",
+          "/canvas-history.js",
+          "/canvas-io.js",
+          "/canvas-assistant.js",
+          "/canvas-toolbar.js",
+          "/canvas-inspector.js",
+          "/canvas-market.js",
+          "/canvas.js"
+        ]
+      }
+    },
     "assets": [
       {
         "source": "/cache-db.js",
-        "entry": "/dist/cache-db.99371f753a3d.js",
-        "fileName": "cache-db.99371f753a3d.js",
-        "hash": "99371f753a3d",
-        "bytes": 12585
-      },
-      {
-        "source": "/canvas-store.js",
-        "entry": "/dist/canvas-store.1cf902df1827.js",
-        "fileName": "canvas-store.1cf902df1827.js",
-        "hash": "1cf902df1827",
-        "bytes": 590
-      },
-      {
-        "source": "/canvas-nodes.js",
-        "entry": "/dist/canvas-nodes.32dba5093bad.js",
-        "fileName": "canvas-nodes.32dba5093bad.js",
-        "hash": "32dba5093bad",
-        "bytes": 3201
-      },
-      {
-        "source": "/canvas-geometry.js",
-        "entry": "/dist/canvas-geometry.b7cb6e6ee549.js",
-        "fileName": "canvas-geometry.b7cb6e6ee549.js",
-        "hash": "b7cb6e6ee549",
-        "bytes": 2666
-      },
-      {
-        "source": "/canvas-layout.js",
-        "entry": "/dist/canvas-layout.e33b2e874aab.js",
-        "fileName": "canvas-layout.e33b2e874aab.js",
-        "hash": "e33b2e874aab",
-        "bytes": 982
-      },
-      {
-        "source": "/canvas-edges.js",
-        "entry": "/dist/canvas-edges.91c942cdf88f.js",
-        "fileName": "canvas-edges.91c942cdf88f.js",
-        "hash": "91c942cdf88f",
-        "bytes": 3451
-      },
-      {
-        "source": "/canvas-workflows.js",
-        "entry": "/dist/canvas-workflows.bd604d0a3e08.js",
-        "fileName": "canvas-workflows.bd604d0a3e08.js",
-        "hash": "bd604d0a3e08",
-        "bytes": 2155
-      },
-      {
-        "source": "/canvas-minimap.js",
-        "entry": "/dist/canvas-minimap.4c90f27b19c5.js",
-        "fileName": "canvas-minimap.4c90f27b19c5.js",
-        "hash": "4c90f27b19c5",
-        "bytes": 5464
-      },
-      {
-        "source": "/canvas-selection.js",
-        "entry": "/dist/canvas-selection.c3fa573f59bc.js",
-        "fileName": "canvas-selection.c3fa573f59bc.js",
-        "hash": "c3fa573f59bc",
-        "bytes": 3612
-      },
-      {
-        "source": "/canvas-history.js",
-        "entry": "/dist/canvas-history.6c9bb97ea191.js",
-        "fileName": "canvas-history.6c9bb97ea191.js",
-        "hash": "6c9bb97ea191",
-        "bytes": 4098
-      },
-      {
-        "source": "/canvas-io.js",
-        "entry": "/dist/canvas-io.288398b429f6.js",
-        "fileName": "canvas-io.288398b429f6.js",
-        "hash": "288398b429f6",
-        "bytes": 2522
-      },
-      {
-        "source": "/canvas-assistant.js",
-        "entry": "/dist/canvas-assistant.348a84502255.js",
-        "fileName": "canvas-assistant.348a84502255.js",
-        "hash": "348a84502255",
-        "bytes": 8576
-      },
-      {
-        "source": "/canvas-toolbar.js",
-        "entry": "/dist/canvas-toolbar.be54b8689891.js",
-        "fileName": "canvas-toolbar.be54b8689891.js",
-        "hash": "be54b8689891",
-        "bytes": 3647
-      },
-      {
-        "source": "/canvas-inspector.js",
-        "entry": "/dist/canvas-inspector.0be3a2046a53.js",
-        "fileName": "canvas-inspector.0be3a2046a53.js",
-        "hash": "0be3a2046a53",
-        "bytes": 5711
-      },
-      {
-        "source": "/canvas-market.js",
-        "entry": "/dist/canvas-market.7a7038f493ec.js",
-        "fileName": "canvas-market.7a7038f493ec.js",
-        "hash": "7a7038f493ec",
-        "bytes": 8297
-      },
-      {
-        "source": "/canvas.js",
-        "entry": "/dist/canvas.00162b39b08b.js",
-        "fileName": "canvas.00162b39b08b.js",
-        "hash": "00162b39b08b",
-        "bytes": 43261
+        "entry": "/dist/cache-db.7fb6d9be5a85.js",
+        "fileName": "cache-db.7fb6d9be5a85.js",
+        "hash": "7fb6d9be5a85",
+        "bytes": 6299,
+        "lazy": false
       },
       {
         "source": "/gallery-normalize.js",
-        "entry": "/dist/gallery-normalize.382dc2e2bc1a.js",
-        "fileName": "gallery-normalize.382dc2e2bc1a.js",
-        "hash": "382dc2e2bc1a",
-        "bytes": 7781
+        "entry": "/dist/gallery-normalize.0a422a234db3.js",
+        "fileName": "gallery-normalize.0a422a234db3.js",
+        "hash": "0a422a234db3",
+        "bytes": 3910,
+        "lazy": false
       },
       {
         "source": "/gallery-leaderboard.js",
-        "entry": "/dist/gallery-leaderboard.262487e08077.js",
-        "fileName": "gallery-leaderboard.262487e08077.js",
-        "hash": "262487e08077",
-        "bytes": 4808
+        "entry": "/dist/gallery-leaderboard.718f18567f86.js",
+        "fileName": "gallery-leaderboard.718f18567f86.js",
+        "hash": "718f18567f86",
+        "bytes": 3396,
+        "lazy": false
       },
       {
         "source": "/prompt-cover-fallback.js",
-        "entry": "/dist/prompt-cover-fallback.82cfaa310007.js",
-        "fileName": "prompt-cover-fallback.82cfaa310007.js",
-        "hash": "82cfaa310007",
-        "bytes": 5896
+        "entry": "/dist/prompt-cover-fallback.85ff23aeb1f6.js",
+        "fileName": "prompt-cover-fallback.85ff23aeb1f6.js",
+        "hash": "85ff23aeb1f6",
+        "bytes": 4204,
+        "lazy": false
       },
       {
         "source": "/editor-image-import.js",
-        "entry": "/dist/editor-image-import.16fa7738eeb1.js",
-        "fileName": "editor-image-import.16fa7738eeb1.js",
-        "hash": "16fa7738eeb1",
-        "bytes": 1582
+        "entry": "/dist/editor-image-import.4e887d9302f5.js",
+        "fileName": "editor-image-import.4e887d9302f5.js",
+        "hash": "4e887d9302f5",
+        "bytes": 918,
+        "lazy": false
       },
       {
         "source": "/image-session-list.js",
-        "entry": "/dist/image-session-list.9342ee01c223.js",
-        "fileName": "image-session-list.9342ee01c223.js",
-        "hash": "9342ee01c223",
-        "bytes": 2326
+        "entry": "/dist/image-session-list.46cac225779b.js",
+        "fileName": "image-session-list.46cac225779b.js",
+        "hash": "46cac225779b",
+        "bytes": 1606,
+        "lazy": false
       },
       {
         "source": "/render-stamp.js",
-        "entry": "/dist/render-stamp.e2f8a5c802ef.js",
-        "fileName": "render-stamp.e2f8a5c802ef.js",
-        "hash": "e2f8a5c802ef",
-        "bytes": 1311
+        "entry": "/dist/render-stamp.7dd51900bd69.js",
+        "fileName": "render-stamp.7dd51900bd69.js",
+        "hash": "7dd51900bd69",
+        "bytes": 772,
+        "lazy": false
       },
       {
         "source": "/generation-result-actions.js",
-        "entry": "/dist/generation-result-actions.e0f284bbbdcb.js",
-        "fileName": "generation-result-actions.e0f284bbbdcb.js",
-        "hash": "e0f284bbbdcb",
-        "bytes": 3523
+        "entry": "/dist/generation-result-actions.9c8eb70a2cc8.js",
+        "fileName": "generation-result-actions.9c8eb70a2cc8.js",
+        "hash": "9c8eb70a2cc8",
+        "bytes": 2780,
+        "lazy": false
       },
       {
         "source": "/gallery-detail-media.js",
-        "entry": "/dist/gallery-detail-media.fde42fddab51.js",
-        "fileName": "gallery-detail-media.fde42fddab51.js",
-        "hash": "fde42fddab51",
-        "bytes": 3084
+        "entry": "/dist/gallery-detail-media.1fb06c259865.js",
+        "fileName": "gallery-detail-media.1fb06c259865.js",
+        "hash": "1fb06c259865",
+        "bytes": 1805,
+        "lazy": false
       },
       {
         "source": "/gallery-tag-view-model.js",
-        "entry": "/dist/gallery-tag-view-model.5e80aa7dfdda.js",
-        "fileName": "gallery-tag-view-model.5e80aa7dfdda.js",
-        "hash": "5e80aa7dfdda",
-        "bytes": 1703
+        "entry": "/dist/gallery-tag-view-model.c571728e3020.js",
+        "fileName": "gallery-tag-view-model.c571728e3020.js",
+        "hash": "c571728e3020",
+        "bytes": 1033,
+        "lazy": false
       },
       {
         "source": "/reference-images.js",
-        "entry": "/dist/reference-images.8744ba40b43a.js",
-        "fileName": "reference-images.8744ba40b43a.js",
-        "hash": "8744ba40b43a",
-        "bytes": 1798
+        "entry": "/dist/reference-images.fb72af7c8010.js",
+        "fileName": "reference-images.fb72af7c8010.js",
+        "hash": "fb72af7c8010",
+        "bytes": 896,
+        "lazy": false
       },
       {
         "source": "/theme-mobile-nav.js",
-        "entry": "/dist/theme-mobile-nav.559adf7e6634.js",
-        "fileName": "theme-mobile-nav.559adf7e6634.js",
-        "hash": "559adf7e6634",
-        "bytes": 4068
+        "entry": "/dist/theme-mobile-nav.a80b4458e5a9.js",
+        "fileName": "theme-mobile-nav.a80b4458e5a9.js",
+        "hash": "a80b4458e5a9",
+        "bytes": 2297,
+        "lazy": false
       },
       {
         "source": "/home-onboarding.js",
-        "entry": "/dist/home-onboarding.905b04bb602a.js",
-        "fileName": "home-onboarding.905b04bb602a.js",
-        "hash": "905b04bb602a",
-        "bytes": 3270
+        "entry": "/dist/home-onboarding.90c9c7e9081c.js",
+        "fileName": "home-onboarding.90c9c7e9081c.js",
+        "hash": "90c9c7e9081c",
+        "bytes": 2081,
+        "lazy": false
       },
       {
         "source": "/frontend-performance.js",
-        "entry": "/dist/frontend-performance.97f18262f415.js",
-        "fileName": "frontend-performance.97f18262f415.js",
-        "hash": "97f18262f415",
-        "bytes": 6006
+        "entry": "/dist/frontend-performance.fe1903333b62.js",
+        "fileName": "frontend-performance.fe1903333b62.js",
+        "hash": "fe1903333b62",
+        "bytes": 3148,
+        "lazy": false
       },
       {
         "source": "/app-modules.js",
-        "entry": "/dist/app-modules.3d39777d1fb8.js",
-        "fileName": "app-modules.3d39777d1fb8.js",
-        "hash": "3d39777d1fb8",
-        "bytes": 371
+        "entry": "/dist/app-modules.62d2be8eccda.js",
+        "fileName": "app-modules.62d2be8eccda.js",
+        "hash": "62d2be8eccda",
+        "bytes": 177,
+        "lazy": false
       },
       {
         "source": "/app-prompt-library.js",
-        "entry": "/dist/app-prompt-library.6ae0ad00120a.js",
-        "fileName": "app-prompt-library.6ae0ad00120a.js",
-        "hash": "6ae0ad00120a",
-        "bytes": 23592
+        "entry": "/dist/app-prompt-library.cac1d1f4ba3d.js",
+        "fileName": "app-prompt-library.cac1d1f4ba3d.js",
+        "hash": "cac1d1f4ba3d",
+        "bytes": 19907,
+        "lazy": false
+      },
+      {
+        "source": "/app-router.js",
+        "entry": "/dist/app-router.a96a869ea14a.js",
+        "fileName": "app-router.a96a869ea14a.js",
+        "hash": "a96a869ea14a",
+        "bytes": 3029,
+        "lazy": false
       },
       {
         "source": "/app-session.js",
-        "entry": "/dist/app-session.cb246caa103c.js",
-        "fileName": "app-session.cb246caa103c.js",
-        "hash": "cb246caa103c",
-        "bytes": 427
+        "entry": "/dist/app-session.f114f9b43f24.js",
+        "fileName": "app-session.f114f9b43f24.js",
+        "hash": "f114f9b43f24",
+        "bytes": 233,
+        "lazy": false
       },
       {
         "source": "/app-generation.js",
-        "entry": "/dist/app-generation.03f335bee962.js",
-        "fileName": "app-generation.03f335bee962.js",
-        "hash": "03f335bee962",
-        "bytes": 445
+        "entry": "/dist/app-generation.e35f45ede78f.js",
+        "fileName": "app-generation.e35f45ede78f.js",
+        "hash": "e35f45ede78f",
+        "bytes": 248,
+        "lazy": false
       },
       {
         "source": "/app-gallery.js",
-        "entry": "/dist/app-gallery.2f99cf34d026.js",
-        "fileName": "app-gallery.2f99cf34d026.js",
-        "hash": "2f99cf34d026",
-        "bytes": 731
+        "entry": "/dist/app-gallery.1371dffd2dc6.js",
+        "fileName": "app-gallery.1371dffd2dc6.js",
+        "hash": "1371dffd2dc6",
+        "bytes": 430,
+        "lazy": false
       },
       {
         "source": "/app-reward-policy.js",
-        "entry": "/dist/app-reward-policy.86bc4a4e0ce4.js",
-        "fileName": "app-reward-policy.86bc4a4e0ce4.js",
-        "hash": "86bc4a4e0ce4",
-        "bytes": 2606
+        "entry": "/dist/app-reward-policy.033f4a267aaa.js",
+        "fileName": "app-reward-policy.033f4a267aaa.js",
+        "hash": "033f4a267aaa",
+        "bytes": 1723,
+        "lazy": false
       },
       {
         "source": "/app-credits-detail.js",
-        "entry": "/dist/app-credits-detail.205196ebb46c.js",
-        "fileName": "app-credits-detail.205196ebb46c.js",
-        "hash": "205196ebb46c",
-        "bytes": 6150
+        "entry": "/dist/app-credits-detail.267a79f09a4b.js",
+        "fileName": "app-credits-detail.267a79f09a4b.js",
+        "hash": "267a79f09a4b",
+        "bytes": 4674,
+        "lazy": false
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.48a7630b8ff5.js",
-        "fileName": "app-auth.48a7630b8ff5.js",
-        "hash": "48a7630b8ff5",
-        "bytes": 35385
+        "entry": "/dist/app-auth.a38ad60f2384.js",
+        "fileName": "app-auth.a38ad60f2384.js",
+        "hash": "a38ad60f2384",
+        "bytes": 23710,
+        "lazy": false
       },
       {
         "source": "/app-settings.js",
-        "entry": "/dist/app-settings.93ea62051bd6.js",
-        "fileName": "app-settings.93ea62051bd6.js",
-        "hash": "93ea62051bd6",
-        "bytes": 32364
+        "entry": "/dist/app-settings.1ad926522c95.js",
+        "fileName": "app-settings.1ad926522c95.js",
+        "hash": "1ad926522c95",
+        "bytes": 25730,
+        "lazy": false
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.51be80b67385.js",
-        "fileName": "app.51be80b67385.js",
-        "hash": "51be80b67385",
-        "bytes": 270686
+        "entry": "/dist/app.a15abd933f85.js",
+        "fileName": "app.a15abd933f85.js",
+        "hash": "a15abd933f85",
+        "bytes": 178784,
+        "lazy": false
+      },
+      {
+        "source": "/admin-generation-diagnostics.js",
+        "entry": "/dist/admin-generation-diagnostics.7ba211447e61.js",
+        "fileName": "admin-generation-diagnostics.7ba211447e61.js",
+        "hash": "7ba211447e61",
+        "bytes": 9188,
+        "lazy": true
+      },
+      {
+        "source": "/admin-overview.js",
+        "entry": "/dist/admin-overview.3861bc9a98dc.js",
+        "fileName": "admin-overview.3861bc9a98dc.js",
+        "hash": "3861bc9a98dc",
+        "bytes": 4542,
+        "lazy": true
+      },
+      {
+        "source": "/admin-users.js",
+        "entry": "/dist/admin-users.7a5d66103f61.js",
+        "fileName": "admin-users.7a5d66103f61.js",
+        "hash": "7a5d66103f61",
+        "bytes": 3578,
+        "lazy": true
+      },
+      {
+        "source": "/admin-providers.js",
+        "entry": "/dist/admin-providers.2312ce413dc9.js",
+        "fileName": "admin-providers.2312ce413dc9.js",
+        "hash": "2312ce413dc9",
+        "bytes": 2234,
+        "lazy": true
+      },
+      {
+        "source": "/admin-gallery.js",
+        "entry": "/dist/admin-gallery.987b128da76b.js",
+        "fileName": "admin-gallery.987b128da76b.js",
+        "hash": "987b128da76b",
+        "bytes": 3565,
+        "lazy": true
+      },
+      {
+        "source": "/admin-settings.js",
+        "entry": "/dist/admin-settings.47a5cd502709.js",
+        "fileName": "admin-settings.47a5cd502709.js",
+        "hash": "47a5cd502709",
+        "bytes": 3659,
+        "lazy": true
+      },
+      {
+        "source": "/admin-shell-polish.js",
+        "entry": "/dist/admin-shell-polish.80df19608b8c.js",
+        "fileName": "admin-shell-polish.80df19608b8c.js",
+        "hash": "80df19608b8c",
+        "bytes": 4033,
+        "lazy": true
+      },
+      {
+        "source": "/admin.js",
+        "entry": "/dist/admin.e5b890e37ca0.js",
+        "fileName": "admin.e5b890e37ca0.js",
+        "hash": "e5b890e37ca0",
+        "bytes": 81953,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-store.js",
+        "entry": "/dist/canvas-store.341c29113a54.js",
+        "fileName": "canvas-store.341c29113a54.js",
+        "hash": "341c29113a54",
+        "bytes": 353,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-nodes.js",
+        "entry": "/dist/canvas-nodes.393a54ffbbf7.js",
+        "fileName": "canvas-nodes.393a54ffbbf7.js",
+        "hash": "393a54ffbbf7",
+        "bytes": 2063,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-geometry.js",
+        "entry": "/dist/canvas-geometry.f47c60239634.js",
+        "fileName": "canvas-geometry.f47c60239634.js",
+        "hash": "f47c60239634",
+        "bytes": 1291,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-layout.js",
+        "entry": "/dist/canvas-layout.ae978c88f99a.js",
+        "fileName": "canvas-layout.ae978c88f99a.js",
+        "hash": "ae978c88f99a",
+        "bytes": 551,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-edges.js",
+        "entry": "/dist/canvas-edges.093c06109a2c.js",
+        "fileName": "canvas-edges.093c06109a2c.js",
+        "hash": "093c06109a2c",
+        "bytes": 1755,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-workflows.js",
+        "entry": "/dist/canvas-workflows.96332964c5d2.js",
+        "fileName": "canvas-workflows.96332964c5d2.js",
+        "hash": "96332964c5d2",
+        "bytes": 1034,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-minimap.js",
+        "entry": "/dist/canvas-minimap.5642d63458cf.js",
+        "fileName": "canvas-minimap.5642d63458cf.js",
+        "hash": "5642d63458cf",
+        "bytes": 3168,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-selection.js",
+        "entry": "/dist/canvas-selection.f946be66da06.js",
+        "fileName": "canvas-selection.f946be66da06.js",
+        "hash": "f946be66da06",
+        "bytes": 1871,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-history.js",
+        "entry": "/dist/canvas-history.d56d37f6ed67.js",
+        "fileName": "canvas-history.d56d37f6ed67.js",
+        "hash": "d56d37f6ed67",
+        "bytes": 1989,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-io.js",
+        "entry": "/dist/canvas-io.c91475c44c29.js",
+        "fileName": "canvas-io.c91475c44c29.js",
+        "hash": "c91475c44c29",
+        "bytes": 1498,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-assistant.js",
+        "entry": "/dist/canvas-assistant.27ba371fcb20.js",
+        "fileName": "canvas-assistant.27ba371fcb20.js",
+        "hash": "27ba371fcb20",
+        "bytes": 5223,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-toolbar.js",
+        "entry": "/dist/canvas-toolbar.8669ddb922ec.js",
+        "fileName": "canvas-toolbar.8669ddb922ec.js",
+        "hash": "8669ddb922ec",
+        "bytes": 2308,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-inspector.js",
+        "entry": "/dist/canvas-inspector.b5edcb984a94.js",
+        "fileName": "canvas-inspector.b5edcb984a94.js",
+        "hash": "b5edcb984a94",
+        "bytes": 4253,
+        "lazy": true
+      },
+      {
+        "source": "/canvas-market.js",
+        "entry": "/dist/canvas-market.5bfc2216bf68.js",
+        "fileName": "canvas-market.5bfc2216bf68.js",
+        "hash": "5bfc2216bf68",
+        "bytes": 5306,
+        "lazy": true
+      },
+      {
+        "source": "/canvas.js",
+        "entry": "/dist/canvas.39943e4b91aa.js",
+        "fileName": "canvas.39943e4b91aa.js",
+        "hash": "39943e4b91aa",
+        "bytes": 23711,
+        "lazy": true
       }
     ]
   },

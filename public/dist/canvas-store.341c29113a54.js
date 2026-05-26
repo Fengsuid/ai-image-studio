@@ -1,0 +1,1 @@
+(function(r){"use strict";const n=r.ImageStudioCanvas||(r.ImageStudioCanvas={});function t(e){return String(e||"").trim()}function a(e={}){return{id:t(e.id),title:String(e.title||"").trim()||"Untitled canvas",nodes:Array.isArray(e.nodes)?e.nodes:[],edges:Array.isArray(e.edges)?e.edges:[]}}n.store={normalizeProjectId:t,createProjectState:a}})(window);

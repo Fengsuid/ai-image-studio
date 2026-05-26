@@ -10,15 +10,18 @@ import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
+const buildManifest = JSON.parse(fs.readFileSync(path.join(rootDir, "public/frontend-build-manifest.json"), "utf8"));
+const lazyCanvasScripts = buildManifest.js?.lazyRoutes?.canvas?.scripts || [];
 const styles = readPublicCssWithImports(rootDir);
 const canvas = fs.readFileSync(path.join(rootDir, "public/canvas.js"), "utf8");
 
 const required = ["/canvas-nodes.js", "/canvas-geometry.js", "/canvas-layout.js", "/canvas-edges.js", "/canvas.js"];
 for (const src of required) {
-  assert(indexHtml.includes(src), `index.html must reference ${src}`);
+  assert(lazyCanvasScripts.includes(src), `frontend manifest canvas lazy route must reference ${src}`);
 }
-assert(indexHtml.indexOf("/canvas-layout.js") < indexHtml.indexOf("/canvas.js"), "canvas-layout.js must load before canvas.js");
-assert(indexHtml.indexOf("/canvas-edges.js") < indexHtml.indexOf("/canvas.js"), "canvas-edges.js must load before canvas.js");
+assert(!indexHtml.includes("/canvas.js"), "index.html must lazy-load canvas.js through app-router");
+assert(lazyCanvasScripts.indexOf("/canvas-layout.js") < lazyCanvasScripts.indexOf("/canvas.js"), "canvas-layout.js must load before canvas.js");
+assert(lazyCanvasScripts.indexOf("/canvas-edges.js") < lazyCanvasScripts.indexOf("/canvas.js"), "canvas-edges.js must load before canvas.js");
 
 assert(styles.includes("width: min(1540px, calc(100vw - 32px));"), "canvas view must use the wide workbench layout");
 assert(styles.includes("grid-template-columns: minmax(176px, 220px) minmax(520px, 1fr) minmax(240px, 300px);"), "workspace must reserve board and inspector columns");

@@ -15,6 +15,8 @@ const generationStore = read("src/stores/generation-store.js");
 const adminHtml = read("public/admin.html");
 const admin = read("public/admin.js");
 const diagnostics = read("public/admin-generation-diagnostics.js");
+const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
+const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
 const packageJson = JSON.parse(read("package.json"));
 
 assert.equal(packageJson.scripts["smoke:admin-generation-diagnostics"], "node scripts/smoke/check-admin-generation-diagnostics.mjs", "smoke script missing");
@@ -49,8 +51,10 @@ for (const token of [
   assert(generationStore.includes(token), `generation store filter missing ${token}`);
 }
 
-assert(adminHtml.includes("/admin-generation-diagnostics.js"), "admin page must load diagnostics module before admin.js");
-assert(adminHtml.indexOf("/admin-generation-diagnostics.js") < adminHtml.indexOf("/admin.js"), "diagnostics module must load before admin.js");
+assert(adminHtml.includes("/app-router.js"), "admin page must load app-router.js");
+assert(!adminHtml.includes("/admin.js"), "admin page must lazy-load admin.js through app-router");
+assert(lazyAdminScripts.includes("/admin-generation-diagnostics.js"), "admin lazy route must load diagnostics module before admin.js");
+assert(lazyAdminScripts.indexOf("/admin-generation-diagnostics.js") < lazyAdminScripts.indexOf("/admin.js"), "diagnostics module must load before admin.js");
 assert(admin.includes("generationDiagnosticsQuery"), "admin.js must query diagnostics filters");
 assert(admin.includes("AdminModules?.generationDiagnostics"), "admin.js must delegate to diagnostics module");
 assert(admin.includes("module.renderDrawer"), "request drawer must delegate diagnostics rendering");

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import * as esbuild from "esbuild";
 
 const LOCAL_SCRIPT_RE = /[ ]{4}<script src="([^"]+\.js(?:\?v=[^"]*)?)" defer><\/script>/g;
 const HASHED_JS_RE = /^(.+)\.[a-f0-9]{12}\.js$/;
@@ -24,6 +25,18 @@ async function readText(filePath) {
   return fs.readFile(filePath, "utf8");
 }
 
+async function bundledScript(content, sourceFileName) {
+  const result = await esbuild.transform(content, {
+    loader: "js",
+    minify: true,
+    legalComments: "none",
+    target: "es2020",
+    charset: "utf8",
+    sourcefile: sourceFileName
+  });
+  return result.code;
+}
+
 async function publicIndexScripts(root) {
   const indexPath = path.join(root, "public", "index.html");
   const html = await readText(indexPath);
@@ -31,16 +44,32 @@ async function publicIndexScripts(root) {
   for (const match of html.matchAll(LOCAL_SCRIPT_RE)) {
     const publicPath = cleanScriptPath(match[1]);
     if (!publicPath.startsWith("/") || publicPath === COMPAT_MANIFEST_SCRIPT) continue;
-    const sourceFileName = sourceFileNameFromPath(publicPath);
-    scripts.push({
-      sourceFileName,
-      sourcePublicPath: `/${sourceFileName}`,
-      sourceRelativePath: path.join("public", sourceFileName),
-      sourceAbsolutePath: path.join(root, "public", sourceFileName),
-      originalSrc: match[1]
-    });
+    scripts.push(scriptDescriptor(root, publicPath, { originalSrc: match[1] }));
   }
   return { html, indexPath, scripts };
+}
+
+function scriptDescriptor(root, publicPath, { originalSrc = publicPath, lazy = false } = {}) {
+  const cleanPath = cleanScriptPath(publicPath);
+  const sourceFileName = sourceFileNameFromPath(cleanPath);
+  return {
+    sourceFileName,
+    sourcePublicPath: `/${sourceFileName}`,
+    sourceRelativePath: path.join("public", sourceFileName),
+    sourceAbsolutePath: path.join(root, "public", sourceFileName),
+    originalSrc,
+    lazy
+  };
+}
+
+function uniqueScripts(scripts) {
+  const bySource = new Map();
+  for (const script of scripts) {
+    if (!bySource.has(script.sourcePublicPath)) {
+      bySource.set(script.sourcePublicPath, script);
+    }
+  }
+  return Array.from(bySource.values());
 }
 
 async function cleanPreviousJsAssets(distDir, currentFileNames) {
@@ -63,25 +92,29 @@ function replaceScriptTags(html, assetsBySource) {
   });
 }
 
-export async function buildJsAssets({ root = process.cwd() } = {}) {
+export async function buildJsAssets({ root = process.cwd(), lazySources = [] } = {}) {
   const distDir = path.join(root, "public", "dist");
   await fs.mkdir(distDir, { recursive: true });
 
-  const { html, indexPath, scripts } = await publicIndexScripts(root);
+  const { html, indexPath, scripts: indexScripts } = await publicIndexScripts(root);
+  const lazyScripts = lazySources.map((source) => scriptDescriptor(root, source, { lazy: true }));
+  const scripts = uniqueScripts([...indexScripts, ...lazyScripts]);
   const assets = [];
   for (const script of scripts) {
     const content = await readText(script.sourceAbsolutePath);
-    const hash = createHash("sha256").update(content).digest("hex").slice(0, 12);
+    const bundled = await bundledScript(content, script.sourceFileName);
+    const hash = createHash("sha256").update(bundled).digest("hex").slice(0, 12);
     const stem = path.basename(script.sourceFileName, ".js");
     const fileName = `${stem}.${hash}.js`;
     const relativePath = path.join("public", "dist", fileName);
-    await fs.writeFile(path.join(root, relativePath), content, "utf8");
+    await fs.writeFile(path.join(root, relativePath), bundled, "utf8");
     assets.push({
       source: script.sourcePublicPath,
       entry: publicPathFor(relativePath),
       fileName,
       hash,
-      bytes: Buffer.byteLength(content)
+      bytes: Buffer.byteLength(bundled),
+      lazy: Boolean(script.lazy)
     });
   }
 

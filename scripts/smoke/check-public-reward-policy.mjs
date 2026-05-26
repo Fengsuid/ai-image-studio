@@ -19,7 +19,16 @@ const adminSettings = read("public/admin-settings.js");
 const html = read("public/index.html");
 const adminHtml = read("public/admin.html");
 const rewardPolicy = read("public/app-reward-policy.js");
+const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
+const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
 const pkg = JSON.parse(read("package.json"));
+
+function scriptPosition(htmlSource, scriptName) {
+  const plainIndex = htmlSource.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return htmlSource.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
 
 for (const field of [
   "first_public_reward_credit",
@@ -40,8 +49,9 @@ assert(userStore.includes("Public reward hold elapsed"), "reward ledger note mus
 assert(adminSettings.includes('name="firstPublicRewardCredit"'), "admin settings module must expose reward credit input");
 assert(adminSettings.includes('name="publicRewardHoldMinutes"'), "admin settings module must expose reward hold minutes input");
 assert(adminSettings.includes('name="publicUnpublishAllowed"'), "admin settings module must expose user unpublish toggle");
-assert(html.includes("app-reward-policy.js"), "index must load app reward policy module");
-assert(adminHtml.includes("admin-settings.js"), "admin must load settings module");
+assert(scriptPosition(html, "app-reward-policy.js") >= 0, "index must load app reward policy module");
+assert(adminHtml.includes("app-router.js"), "admin must load app-router module");
+assert(lazyAdminScripts.includes("/admin-settings.js"), "admin lazy route must load settings module");
 assert(rewardPolicy.includes("ImageStudioRewardPolicy"), "reward policy module must register global helper");
 assert(admin.includes('renderAdminModule("settings")'), "admin settings page must render through AdminModules.settings");
 assert(app.includes("ImageStudioRewardPolicy?.confirmPublish"), "publish flow must confirm reward/no-unpublish policy before publishing");

@@ -1316,12 +1316,14 @@ function providerDrawer(provider = {}) {
 }
 
 async function userDrawer(user) {
-  const [creditLedger, rewardLedger] = await Promise.all([
+  const [creditLedger, rewardLedger, userGenerations] = await Promise.all([
     api(`/api/admin/users/${encodeURIComponent(user.id)}/credit-ledger?limit=80`),
-    api(`/api/admin/users/${encodeURIComponent(user.id)}/reward-ledger?limit=80`)
+    api(`/api/admin/users/${encodeURIComponent(user.id)}/reward-ledger?limit=80`),
+    api(`/api/admin/users/${encodeURIComponent(user.id)}/generations?includeArchived=1&limit=80`)
   ]);
   const ledgerRows = creditLedger.ledger || [];
   const rewardRows = rewardLedger.rewards || [];
+  const generationRows = userGenerations.generations || [];
   const firstPublicReward = user.firstPublicRewardStatus && user.firstPublicRewardStatus !== "none"
     ? `${user.firstPublicRewardStatus} · ${fmtNumber(user.firstPublicRewardAmount)} · ${user.firstPublicRewardGenerationId || "-"}`
     : "未发放";
@@ -1351,6 +1353,18 @@ async function userDrawer(user) {
         ${rewardRows.map((item) => `
           <div><strong>${escapeHtml(item.rewardType)}</strong><span>${escapeHtml(item.status)} · ${fmtNumber(item.amount)}</span><small>${fmtDate(item.awardedAt || item.createdAt)}</small></div>
         `).join("") || "<p>暂无奖励流水</p>"}
+      </div>
+    </section>
+    <section class="admin-ledger-section">
+      <h3>用户作品与会话</h3>
+      <div class="admin-mini-table">
+        ${generationRows.map((item) => `
+          <div>
+            <strong>${escapeHtml(item.title || item.id)}</strong>
+            <span>${escapeHtml(item.prompt || "-")}</span>
+            <small>${escapeHtml(item.id)} · ${fmtDate(item.createdAt)} · ${item.isPublic ? "公开" : "私有"}${item.archived ? " · 已归档" : ""}</small>
+          </div>
+        `).join("") || "<p>暂无生成作品</p>"}
       </div>
     </section>
   `);

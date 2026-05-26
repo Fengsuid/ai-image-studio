@@ -19,6 +19,7 @@ const budgets = {
 const requiredAppScripts = [
   "app-modules.js",
   "frontend-build-manifest.js",
+  "app-router.js",
   "app-session.js",
   "app-generation.js",
   "app-gallery.js",
@@ -28,13 +29,39 @@ const requiredAppScripts = [
 ];
 
 const requiredAdminScripts = [
-  "admin-generation-diagnostics.js",
-  "admin-overview.js",
-  "admin-users.js",
-  "admin-providers.js",
-  "admin-gallery.js",
-  "admin-settings.js",
-  "admin.js"
+  "app-modules.js",
+  "frontend-build-manifest.js",
+  "app-router.js"
+];
+
+const requiredLazyAdminScripts = [
+  "/admin-generation-diagnostics.js",
+  "/admin-overview.js",
+  "/admin-users.js",
+  "/admin-providers.js",
+  "/admin-gallery.js",
+  "/admin-settings.js",
+  "/admin-shell-polish.js",
+  "/admin.js"
+];
+
+const requiredLazyCanvasScripts = [
+  "/cache-db.js",
+  "/canvas-store.js",
+  "/canvas-nodes.js",
+  "/canvas-geometry.js",
+  "/canvas-layout.js",
+  "/canvas-edges.js",
+  "/canvas-workflows.js",
+  "/canvas-minimap.js",
+  "/canvas-selection.js",
+  "/canvas-history.js",
+  "/canvas-io.js",
+  "/canvas-assistant.js",
+  "/canvas-toolbar.js",
+  "/canvas-inspector.js",
+  "/canvas-market.js",
+  "/canvas.js"
 ];
 
 const requiredCssModules = [
@@ -190,8 +217,19 @@ checkFileBudget("public/styles.css", budgets["public/styles.css"]);
 
 const indexHtml = read("public/index.html");
 const adminHtml = read("public/admin.html");
+const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 checkOrderedScripts(indexHtml, requiredAppScripts, "public/index.html");
 checkOrderedScripts(adminHtml, requiredAdminScripts, "public/admin.html");
+assert(scriptPosition(indexHtml, "canvas.js") < 0, "public/index.html must lazy-load canvas.js through app-router");
+assert(scriptPosition(adminHtml, "admin.js") < 0, "public/admin.html must lazy-load admin.js through app-router");
+assert(
+  JSON.stringify(buildManifest.js?.lazyRoutes?.admin?.scripts || []) === JSON.stringify(requiredLazyAdminScripts),
+  "frontend manifest must preserve admin lazy route script order"
+);
+assert(
+  JSON.stringify(buildManifest.js?.lazyRoutes?.canvas?.scripts || []) === JSON.stringify(requiredLazyCanvasScripts),
+  "frontend manifest must preserve canvas lazy route script order"
+);
 
 checkModuleRegistration("public/app-session.js", "AppModules", ["session"]);
 checkModuleRegistration("public/app-generation.js", "AppModules", ["generation"]);

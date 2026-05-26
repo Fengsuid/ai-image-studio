@@ -6,7 +6,7 @@
     <title>ai-image-studio Admin</title>
     <link href="/vendor/icons/remixicon.min.css" rel="stylesheet">
     <link href="/vendor/icons/remixicon-compat.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260524-admin-settings-cleanup-v1">
+    <link rel="stylesheet" href="/styles.css?v=20260527-lazy-route-loader-v1">
   </head>
   <body class="admin-body">
     <div id="adminApp" class="admin-shell" data-admin-page="overview">
@@ -46,13 +46,8 @@
     </div>
     <div id="adminConfirmLayer" class="admin-confirm-layer hidden" aria-live="polite" aria-hidden="true"></div>
     <div id="adminToastLayer" class="toast-layer" role="status" aria-live="polite" aria-atomic="true"></div>
-    <script src="/admin-generation-diagnostics.js?v=20260523-generation-diagnostics-v1" defer></script>
-    <script src="/admin-overview.js?v=20260523-admin-module-split-v1" defer></script>
-    <script src="/admin-users.js?v=20260523-admin-module-split-v1" defer></script>
-    <script src="/admin-providers.js?v=20260523-admin-module-split-v1" defer></script>
-    <script src="/admin-gallery.js?v=20260523-admin-module-split-v1" defer></script>
-    <script src="/admin-settings.js?v=20260524-admin-settings-cleanup-v1" defer></script>
-    <script src="/admin-shell-polish.js?v=20260523-admin-shell-polish-v1" defer></script>
-    <script src="/admin.js?v=20260524-admin-settings-cleanup-v1" defer></script>
+    <script src="/app-modules.js?v=20260527-lazy-route-loader-v1" defer></script>
+    <script src="/frontend-build-manifest.js?v=20260527-lazy-route-loader-v1" defer></script>
+    <script src="/app-router.js?v=20260527-lazy-route-loader-v1" data-route-entry="admin" defer></script>
   </body>
 </html>

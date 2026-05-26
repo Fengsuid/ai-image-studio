@@ -39,7 +39,7 @@ Use `AdminModules` for admin surface area:
 | Generation diagnostics | `public/admin-generation-diagnostics.js` |
 | System settings, reward policy controls, settings submit payload | `public/admin-settings.js` |
 
-`public/admin.html` must load admin modules before `public/admin.js`.
+`public/admin.html` loads `public/app-router.js`; the ordered admin module list lives in `public/frontend-build-manifest.json` under `js.lazyRoutes.admin`, with admin modules before `public/admin.js`.
 
 ## CSS Modules
 

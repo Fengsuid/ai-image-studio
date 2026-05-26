@@ -100,75 +100,6 @@ const state = {
 
 const GALLERY_LEADERBOARD_LIMIT = 99;
 
-const fallbackPrompts = [
-  {
-    id: 1,
-    tag: "product",
-    icon: "ri-shopping-bag-3-line",
-    title: { zh: "高端产品图", en: "Premium Product Shot" },
-    prompt: {
-      zh: "一张高端无线充电器产品摄影，哑光黑色机身，柔和棚拍灯光，浅灰背景，精致阴影，商业广告质感，超清细节",
-      en: "A premium product photo of a matte black wireless charger, soft studio lighting, light gray background, refined shadows, commercial advertising style, ultra-detailed"
-    },
-    colors: "linear-gradient(135deg, #0f172a, #64748b)"
-  },
-  {
-    id: 2,
-    tag: "poster",
-    icon: "ri-layout-4-line",
-    title: { zh: "活动海报", en: "Event Poster" },
-    prompt: {
-      zh: "未来感 AI 创作活动海报，干净排版，强烈视觉焦点，黑白主调点缀电光蓝，高级平面设计，适合社交媒体",
-      en: "A futuristic AI creativity event poster, clean typography, strong focal point, black and white palette with electric blue accents, premium graphic design"
-    },
-    colors: "linear-gradient(135deg, #111827, #2563eb)"
-  },
-  {
-    id: 3,
-    tag: "photo",
-    icon: "ri-camera-lens-line",
-    title: { zh: "生活方式摄影", en: "Lifestyle Photo" },
-    prompt: {
-      zh: "清晨咖啡桌上的极简工作场景，笔记本电脑、手机和一束花，自然窗光，温暖但不过度复古，真实摄影质感",
-      en: "A minimal morning workspace on a coffee table with laptop, phone, and flowers, natural window light, warm but modern, realistic photography"
-    },
-    colors: "linear-gradient(135deg, #0f766e, #f59e0b)"
-  },
-  {
-    id: 4,
-    tag: "character",
-    icon: "ri-user-smile-line",
-    title: { zh: "角色设定", en: "Character Design" },
-    prompt: {
-      zh: "一位未来城市中的年轻发明家角色设定，全身像，功能性服装，背包设备，清晰轮廓，电影概念艺术风格",
-      en: "A young inventor in a future city, full-body character design, functional clothing, backpack device, clean silhouette, cinematic concept art"
-    },
-    colors: "linear-gradient(135deg, #7c3aed, #ec4899)"
-  },
-  {
-    id: 5,
-    tag: "ui",
-    icon: "ri-window-line",
-    title: { zh: "应用界面概念", en: "App Interface Concept" },
-    prompt: {
-      zh: "一款 AI 图片生成应用的移动端界面概念，白色玻璃拟态卡片，底部输入框，图片瀑布流，现代 iOS 风格，高级 UI 截图",
-      en: "A mobile interface concept for an AI image generation app, white glass cards, bottom composer, image feed, modern iOS style, polished UI screenshot"
-    },
-    colors: "linear-gradient(135deg, #38bdf8, #6366f1)"
-  },
-  {
-    id: 6,
-    tag: "illustration",
-    icon: "ri-brush-line",
-    title: { zh: "童书插画", en: "Storybook Illustration" },
-    prompt: {
-      zh: "温柔的童书插画，一只纸船漂在星光河流上，柔软笔触，梦幻但清晰，留白充足，适合封面",
-      en: "A gentle storybook illustration of a paper boat floating on a starlit river, soft brushwork, dreamy but clear, generous negative space, cover art"
-    },
-    colors: "linear-gradient(135deg, #8b5cf6, #fbbf24)"
-  }
-];
-
 const tags = ["all", "square", "ui", "photo", "poster", "portrait", "illustration", "anime", "product", "3d", "landscape", "character", "other", "logo", "fashion", "cyberpunk", "infographic", "food"];
 const tagLabels = {
   zh: {
@@ -399,27 +330,31 @@ function initAuthController() {
 async function api(path, options = {}) {
   return requireAuthController().api(path, options);
 }
-window.ImageStudioCanvas = window.ImageStudioCanvas || {};
-window.ImageStudioCanvas.request = api;
-window.ImageStudioCanvas.setProjectRoute = (projectId) => {
-  state.canvasProjectId = projectId || "";
-  replaceRoute({ canvasProjectId: state.canvasProjectId });
-};
-window.ImageStudioCanvas.publishGeneration = async ({ generationId = "", conversationRoute = [] } = {}) => {
-  if (!state.user) {
-    openAuthModal("login");
-    return;
-  }
-  const data = await api("/api/images/history?includeArchived=1");
-  const generation = (data.generations || []).find((item) => String(item.id) === String(generationId));
-  if (!generation) {
-    showToast(state.lang === "zh" ? "未找到画布生成结果" : "Canvas generation not found", "ri-error-warning-line");
-    return;
-  }
-  const item = generationEntryFromApi(generation, { status: "done" });
-  item.conversation = conversationRoute.length ? conversationRoute : item.conversation || [];
-  openPublishModal(item, Boolean(item.sourceImageUrl || item.sourceImageData || item.sourceFilename));
-};
+function installCanvasBridge() {
+  const canvas = window.ImageStudioCanvas || (window.ImageStudioCanvas = {});
+  canvas.request = api;
+  canvas.setProjectRoute = (projectId) => {
+    state.canvasProjectId = projectId || "";
+    replaceRoute({ canvasProjectId: state.canvasProjectId });
+  };
+  canvas.publishGeneration = async ({ generationId = "", conversationRoute = [] } = {}) => {
+    if (!state.user) {
+      openAuthModal("login");
+      return;
+    }
+    const data = await api("/api/images/history?includeArchived=1");
+    const generation = (data.generations || []).find((item) => String(item.id) === String(generationId));
+    if (!generation) {
+      showToast(state.lang === "zh" ? "未找到画布生成结果" : "Canvas generation not found", "ri-error-warning-line");
+      return;
+    }
+    const item = generationEntryFromApi(generation, { status: "done" });
+    item.conversation = conversationRoute.length ? conversationRoute : item.conversation || [];
+    openPublishModal(item, Boolean(item.sourceImageUrl || item.sourceImageData || item.sourceFilename));
+  };
+  return canvas;
+}
+installCanvasBridge();
 function promptAuditPublishMessage(error) {
   if (error?.details?.requiredMode !== "image-to-image") return error?.message || "";
   return state.lang === "zh"
@@ -1332,9 +1267,18 @@ function renderAll() {
   window.ImageStudioHomeOnboarding?.init?.();
 }
 function renderCanvasShell() {
-  window.ImageStudioCanvas?.renderShell?.({
+  const render = () => window.ImageStudioCanvas?.renderShell?.({
     projectId: state.canvasProjectId,
     elements
+  });
+  if (window.ImageStudioCanvas?.renderShell) {
+    render();
+    return;
+  }
+  const router = window.ImageStudioRouter;
+  if (!router?.ensureCanvas) return;
+  router.ensureCanvas({ elements, navigate }).then(render).catch((error) => {
+    showToast(error?.message || String(error), "ri-error-warning-line");
   });
 }
 function canvasEntryMode() {
@@ -1377,6 +1321,20 @@ function openCanvasProject(projectId = "") {
   }
   navigate("canvas", { scrollTop: true, route: { canvasProjectId: projectId || "" } });
 }
+function insertCanvasPayloadWhenReady(payload = {}, { toast = false } = {}) {
+  const insert = () => {
+    window.ImageStudioCanvas?.insertItem?.(payload);
+    if (toast) showToast(text("addToCanvas"), "ri-node-tree");
+  };
+  const router = window.ImageStudioRouter;
+  if (router?.ensureCanvas) {
+    router.ensureCanvas({ elements, navigate }).then(insert).catch((error) => {
+      showToast(error?.message || String(error), "ri-error-warning-line");
+    });
+    return;
+  }
+  requestAnimationFrame(insert);
+}
 async function openCanvasTargetModal(payload = {}) {
   if (isCanvasEntryHidden()) {
     showToast(state.lang === "zh" ? "画布入口暂未开放" : "Canvas entry is temporarily hidden", "ri-eye-off-line");
@@ -1414,10 +1372,7 @@ async function openCanvasTargetModal(payload = {}) {
       const canvasProjectId = target === "current" && hasCurrentCanvas ? state.canvasProjectId : "new";
       closeModal();
       navigate("canvas", { scrollTop: true, route: { canvasProjectId } });
-      requestAnimationFrame(() => {
-        window.ImageStudioCanvas?.insertItem?.(payload);
-        showToast(text("addToCanvas"), "ri-node-tree");
-      });
+      insertCanvasPayloadWhenReady(payload, { toast: true });
     });
   });
 }
@@ -1434,7 +1389,7 @@ async function openNewCanvasWithPayload(payload = {}) {
   if (mode !== "v2") {
     closeModal();
     navigate("canvas", { scrollTop: true, route: { canvasProjectId: "new" } });
-    requestAnimationFrame(() => window.ImageStudioCanvas?.insertItem?.(payload));
+    insertCanvasPayloadWhenReady(payload);
     return;
   }
   try {
@@ -4242,12 +4197,8 @@ async function submitImageEdit(event) {
   }
 }
 function getPromptSource() {
-  const source = state.promptItems.length ? state.promptItems : fallbackPrompts.map((prompt) => ({
-    ...prompt,
-    title: local(prompt.title),
-    prompt: local(prompt.prompt),
-    tags: [prompt.tag]
-  }));
+  const fallback = promptLibraryModule()?.fallbackPrompts?.(promptLibraryRenderContext()) || [];
+  const source = state.promptItems.length ? state.promptItems : fallback;
   return uniquePromptDisplayItems(source);
 }
 function publicGalleryPromptItems() {
@@ -5405,379 +5356,6 @@ function publicRewardLabel(item) {
 }
 function firstPublicRewardToast(item, fallbackKey = "publishDone") { return item?.publicRewardStatus !== "pending" ? text(fallbackKey) : (window.ImageStudioRewardPolicy?.lockedToast(item, state.settings, state.lang) || text(fallbackKey)); }
 function canUserUnpublishPublicWork() { return state.user?.role === "admin" || Boolean(state.settings?.publicUnpublishAllowed); }
-async function openTagsAdminModal() {
-  if (state.user?.role !== "admin") return;
-  await loadTags();
-  const renderRows = () => {
-    const list = state.tagsLibrary.list || [];
-    const body = $("#tagsAdminBody", elements.modalLayer);
-    if (!body) return;
-    if (!list.length) {
-      body.innerHTML = `<tr><td colspan="6" class="tags-admin-empty">${escapeHtml(text("tagsLibraryEmpty"))}</td></tr>`;
-      return;
-    }
-    body.innerHTML = list.map((tag) => `
-      <tr data-tag-row="${escapeHtml(tag.slug)}">
-        <td>
-          <span class="tag-chip" style="--tag-hue:${tag.hue}">${escapeHtml(tag.slug)}</span>
-          <small style="color:#94a3b8;display:block;margin-top:4px;">${tag.source} · ${escapeHtml(tag.category || "general")}</small>
-          <small style="color:#94a3b8;display:block;margin-top:4px;">${escapeHtml(text("tagsCoverage"))}: ${(tag.promptCount || 0) + (tag.galleryCount || 0)}</small>
-        </td>
-        <td><input data-tag-field="labelZh" value="${escapeHtml(tag.labelZh || "")}" maxlength="48"></td>
-        <td><input data-tag-field="labelEn" value="${escapeHtml(tag.labelEn || "")}" maxlength="48"></td>
-        <td><input data-tag-field="aliases" value="${escapeHtml((tag.aliases || []).join(", "))}" placeholder="alias1, alias2"></td>
-        <td>
-          <select data-tag-field="status">
-            <option value="active"${tag.status !== "hidden" ? " selected" : ""}>${escapeHtml(text("tagsStatusActive"))}</option>
-            <option value="hidden"${tag.status === "hidden" ? " selected" : ""}>${escapeHtml(text("tagsStatusHidden"))}</option>
-          </select>
-          <input data-tag-field="category" value="${escapeHtml(tag.category || "")}" placeholder="分类 slug" maxlength="32">
-          <input data-tag-field="sortOrder" value="${Number(tag.sortOrder || 0)}" type="number" placeholder="sort">
-          <label class="tags-admin-inline"><input data-tag-field="showInFilter" type="checkbox"${tag.showInFilter !== false ? " checked" : ""}> filter</label>
-          <small style="color:#94a3b8;display:block;margin-top:4px;">${escapeHtml(text("tagsUsage"))}: ${tag.usageCount || 0}</small>
-        </td>
-        <td>
-          <button type="button" data-tag-save="${escapeHtml(tag.slug)}">${escapeHtml(text("tagsSaveTag"))}</button>
-          <button type="button" data-tag-merge="${escapeHtml(tag.slug)}">${escapeHtml(text("tagsMerge"))}</button>
-        </td>
-      </tr>
-    `).join("");
-    $$("[data-tag-save]", body).forEach((button) => {
-      button.addEventListener("click", async () => {
-        const slug = button.dataset.tagSave;
-        const row = $(`[data-tag-row="${slug}"]`, body);
-        if (!row) return;
-        const aliasesText = $("[data-tag-field='aliases']", row)?.value || "";
-        const payload = {
-          labelZh: $("[data-tag-field='labelZh']", row)?.value.trim() || "",
-          labelEn: $("[data-tag-field='labelEn']", row)?.value.trim() || "",
-          aliases: aliasesText.split(/[,，\n]+/).map((alias) => alias.trim()).filter(Boolean),
-          status: $("[data-tag-field='status']", row)?.value === "hidden" ? "hidden" : "active",
-          category: $("[data-tag-field='category']", row)?.value.trim() || "",
-          sortOrder: Number($("[data-tag-field='sortOrder']", row)?.value || 0),
-          showInFilter: Boolean($("[data-tag-field='showInFilter']", row)?.checked)
-        };
-        try {
-          await api(`/api/tags/${encodeURIComponent(slug)}`, {
-            method: "PATCH",
-            body: JSON.stringify(payload)
-          });
-          showToast(state.lang === "zh" ? "标签已保存" : "Tag saved", "ri-checkbox-circle-line");
-          await loadTags();
-          renderRows();
-        } catch (error) {
-          showToast(error.message, "ri-error-warning-line");
-        }
-      });
-    });
-    $$("[data-tag-merge]", body).forEach((button) => {
-      button.addEventListener("click", async () => {
-        const sourceSlug = button.dataset.tagMerge;
-        const targetSlug = prompt(state.lang === "zh"
-          ? `把「${sourceSlug}」合并到哪个标签的 slug？`
-          : `Merge "${sourceSlug}" into which slug?`, "");
-        if (!targetSlug) return;
-        try {
-          await api(`/api/tags/${encodeURIComponent(sourceSlug)}/merge`, {
-            method: "POST",
-            body: JSON.stringify({ targetSlug: targetSlug.trim().toLowerCase() })
-          });
-          showToast(state.lang === "zh" ? "已合并" : "Merged", "ri-git-merge-line");
-          await loadTags();
-          renderRows();
-        } catch (error) {
-          showToast(error.message, "ri-error-warning-line");
-        }
-      });
-    });
-  };
-
-  openModal(`
-    <section class="modal admin-modal tags-admin-modal" style="width:min(960px, calc(100vw - 32px));">
-      <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
-      <div class="modal-title">
-        <i class="ri-price-tag-3-line"></i>
-        <h2>${escapeHtml(text("tagsLibraryTitle"))}</h2>
-      </div>
-      <form id="tagsAdminAddForm" class="tags-admin-add">
-        <input id="newTagSlug" placeholder="${escapeHtml(text("tagsSlug"))}" maxlength="48" required>
-        <input id="newTagLabelZh" placeholder="${escapeHtml(text("tagsLabelZh"))}" maxlength="48">
-        <input id="newTagLabelEn" placeholder="${escapeHtml(text("tagsLabelEn"))}" maxlength="48">
-        <input id="newTagAliases" placeholder="${escapeHtml(text("tagsAliases"))} (alias1, alias2)">
-        <button type="submit" class="modal-primary">${escapeHtml(text("tagsAddNew"))}</button>
-      </form>
-      <div class="tags-admin-table-wrap">
-        <table class="tags-admin-table">
-          <thead>
-            <tr>
-              <th>${escapeHtml(text("tagsSlug"))}</th>
-              <th>${escapeHtml(text("tagsLabelZh"))}</th>
-              <th>${escapeHtml(text("tagsLabelEn"))}</th>
-              <th>${escapeHtml(text("tagsAliases"))}</th>
-              <th>${escapeHtml(text("tagsStatus"))}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tagsAdminBody"></tbody>
-        </table>
-      </div>
-    </section>
-  `);
-  renderRows();
-  $("#tagsAdminAddForm", elements.modalLayer)?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const aliasesText = $("#newTagAliases", elements.modalLayer)?.value || "";
-    const payload = {
-      slug: ($("#newTagSlug", elements.modalLayer)?.value || "").trim().toLowerCase(),
-      labelZh: ($("#newTagLabelZh", elements.modalLayer)?.value || "").trim(),
-      labelEn: ($("#newTagLabelEn", elements.modalLayer)?.value || "").trim(),
-      aliases: aliasesText.split(/[,，\n]+/).map((alias) => alias.trim()).filter(Boolean),
-      source: "admin",
-      status: "active"
-    };
-    try {
-      await api("/api/tags", { method: "POST", body: JSON.stringify(payload) });
-      showToast(state.lang === "zh" ? "标签已新建" : "Tag created", "ri-checkbox-circle-line");
-      $("#newTagSlug", elements.modalLayer).value = "";
-      $("#newTagLabelZh", elements.modalLayer).value = "";
-      $("#newTagLabelEn", elements.modalLayer).value = "";
-      $("#newTagAliases", elements.modalLayer).value = "";
-      await loadTags();
-      renderRows();
-    } catch (error) {
-      showToast(error.message, "ri-error-warning-line");
-    }
-  });
-}
-async function openAdminModal() {
-  if (state.user?.role !== "admin") return;
-  openModal(`
-    <section class="modal admin-modal">
-      <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
-      <div class="modal-title">
-        <i class="ri-settings-3-line"></i>
-        <h2>${text("adminTitle")}</h2>
-      </div>
-      <div class="admin-grid">
-        <div class="admin-card">
-          <h3>${text("settings")}</h3>
-          <form id="settingsForm" class="admin-form">
-        <label>${text("apiKey")}<input id="apiKeyInput" type="password" placeholder="Your API key"></label>
-        <label>${text("apiBaseUrl")}<input id="apiBaseUrlInput" placeholder="AI API base URL"></label>
-            <label>${text("model")}<input id="modelInput" placeholder="GPT-IMAGE-2"></label>
-            <label>${text("defaultCredits")}<input id="defaultCreditsInput" type="number" min="0"></label>
-            <label>${text("generationCost")}<input id="generationCreditCostInput" type="number" min="0"></label>
-            <label>${text("maxImages")}<input id="maxImagesInput" type="number" min="1" max="4"></label>
-            <label>${text("contactAdminEmail")}<input id="contactAdminEmailInput" type="email" placeholder="support@example.com"></label>
-            <label class="admin-switch"><input id="allowRegistrationInput" type="checkbox">${text("allowRegistration")}</label>
-            <label class="admin-switch"><input id="requireApprovalInput" type="checkbox">${text("requireApproval")}</label>
-            <button class="modal-primary" type="submit">${text("save")}</button>
-            <button id="clearApiKeyBtn" class="modal-secondary" type="button">${text("clearKey")}</button>
-            <p id="apiKeyMask" style="color:#8b94a1;font-size:12px;margin:0"></p>
-          </form>
-          <div id="adminVersionPanel" class="admin-version" style="margin-top:14px;padding:12px;border-radius:10px;background:#f8fafc;color:#334155;font-size:12px;line-height:1.6;"></div>
-          <button id="openTagsAdminBtn" type="button" class="modal-secondary" style="margin-top:12px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-            <i class="ri-price-tag-3-line"></i>${escapeHtml(text("tagsLibraryTitle"))}
-          </button>
-        </div>
-        <div class="admin-card">
-          <h3>${text("users")}</h3>
-          <div class="users-table-wrap">
-            <table class="users-table">
-              <thead>
-                <tr>
-                  <th>${text("user")}</th>
-                  <th>${text("role")}</th>
-                  <th>${text("status")}</th>
-                  <th>${text("credits")}</th>
-                  <th>+/-</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="usersBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-  `);
-  await loadAdminSettings();
-  await loadUsers();
-  $("#openTagsAdminBtn", elements.modalLayer)?.addEventListener("click", openTagsAdminModal);
-}
-async function loadAdminSettings() {
-  const settings = await api("/api/admin/settings");
-  state.settings = settings;
-  $("#apiBaseUrlInput").value = settings.apiBaseUrl || "";
-  $("#modelInput").value = settings.model || "GPT-IMAGE-2";
-  $("#defaultCreditsInput").value = settings.defaultCredits ?? 10;
-  $("#generationCreditCostInput").value = settings.generationCreditCost ?? 1;
-  $("#maxImagesInput").value = settings.maxImagesPerRequest ?? 1;
-  $("#contactAdminEmailInput").value = settings.contactEmail ?? settings.contactAdminEmail ?? "";
-  $("#allowRegistrationInput").checked = Boolean(settings.allowRegistration);
-  $("#requireApprovalInput").checked = Boolean(settings.requireApproval);
-  $("#apiKeyMask").textContent = settings.apiKeyMask
-    ? `${text("currentKey")}: ${settings.apiKeyMask}`
-    : text("noKey");
-  $("#settingsForm").addEventListener("submit", saveSettings);
-  $("#clearApiKeyBtn").addEventListener("click", clearApiKey);
-  await renderAdminVersionPanel();
-}
-async function renderAdminVersionPanel() {
-  const panel = $("#adminVersionPanel");
-  if (!panel) return;
-  if (!state.versionInfo) {
-    await loadVersion();
-  }
-  const info = state.versionInfo;
-  if (!info) {
-    panel.textContent = state.lang === "zh" ? "暂无版本信息" : "Version info unavailable";
-    return;
-  }
-  const startedLabel = info.startedAt ? new Date(info.startedAt).toLocaleString(state.lang === "zh" ? "zh-CN" : "en-US") : "-";
-  const uptimeSeconds = Number(info.uptimeSeconds || 0);
-  const uptimeText = uptimeSeconds < 60
-    ? `${uptimeSeconds}${text("seconds")}`
-    : uptimeSeconds < 3600
-      ? `${Math.round(uptimeSeconds / 60)} min`
-      : `${(uptimeSeconds / 3600).toFixed(1)} h`;
-  const openaiTimeoutSeconds = Math.round(Number(info.timeoutMs?.openai || 0) / 1000);
-  const downloadTimeoutSeconds = Math.round(Number(info.timeoutMs?.imageDownload || 0) / 1000);
-  panel.innerHTML = `
-    <strong style="display:block;margin-bottom:6px;color:#0f172a;">${escapeHtml(text("versionInfoTitle"))}</strong>
-    <div>${escapeHtml(text("backendVersion"))}: <code>${escapeHtml(info.version || "-")}</code></div>
-    <div>${escapeHtml(text("backendStartedAt"))}: ${escapeHtml(startedLabel)}</div>
-    <div>${escapeHtml(text("backendUptime"))}: ${escapeHtml(uptimeText)}</div>
-    <div>Node: ${escapeHtml(info.node || "-")} · ${escapeHtml(info.platform || "-")}</div>
-    <div>${escapeHtml(text("timeoutOpenAI"))}: ${openaiTimeoutSeconds}${escapeHtml(text("seconds"))} · ${escapeHtml(text("timeoutDownload"))}: ${downloadTimeoutSeconds}${escapeHtml(text("seconds"))}</div>
-  `;
-}
-async function saveSettings(event) {
-  event.preventDefault();
-  const settings = await api("/api/admin/settings", {
-    method: "PATCH",
-    body: JSON.stringify({
-      openaiApiKey: $("#apiKeyInput").value.trim(),
-      apiBaseUrl: $("#apiBaseUrlInput").value.trim(),
-      model: $("#modelInput").value.trim(),
-      defaultCredits: Number($("#defaultCreditsInput").value || 0),
-      generationCreditCost: Number($("#generationCreditCostInput").value || 0),
-      maxImagesPerRequest: Number($("#maxImagesInput").value || 1),
-      contactEmail: $("#contactAdminEmailInput").value.trim(),
-      allowRegistration: $("#allowRegistrationInput").checked,
-      requireApproval: $("#requireApprovalInput").checked
-    })
-  });
-  state.settings = settings;
-  $("#apiKeyInput").value = "";
-  $("#apiKeyMask").textContent = settings.apiKeyMask
-    ? `${text("currentKey")}: ${settings.apiKeyMask}`
-    : text("noKey");
-  showToast(state.lang === "zh" ? "已保存" : "Saved", "ri-checkbox-circle-line");
-  updateNav();
-  syncComposers();
-}
-async function clearApiKey() {
-  const settings = await api("/api/admin/settings", {
-    method: "PATCH",
-    body: JSON.stringify({ clearApiKey: true })
-  });
-  state.settings = settings;
-  $("#apiKeyMask").textContent = text("noKey");
-  showToast(state.lang === "zh" ? "已清除" : "Cleared", "ri-delete-bin-line");
-  updateNav();
-  syncComposers();
-}
-async function loadUsers() {
-  const data = await api("/api/admin/users");
-  const body = $("#usersBody");
-  body.innerHTML = data.users.map((user) => `
-    <tr data-user-id="${user.id}">
-      <td class="user-cell"><strong>${escapeHtml(user.name || user.email)}</strong><span>${escapeHtml(user.email)}</span></td>
-      <td>
-        <select class="role-input" ${user.id === state.user.id ? "disabled" : ""}>
-          <option value="user" ${user.role === "user" ? "selected" : ""}>${text("user")}</option>
-          <option value="admin" ${user.role === "admin" ? "selected" : ""}>${text("adminRole")}</option>
-        </select>
-      </td>
-      <td>
-        <select class="status-input" ${user.id === state.user.id ? "disabled" : ""}>
-          <option value="active" ${user.status === "active" ? "selected" : ""}>${text("active")}</option>
-          <option value="disabled" ${user.status === "disabled" ? "selected" : ""}>${text("disabled")}</option>
-        </select>
-      </td>
-      <td><input class="credits-input" type="number" min="0" value="${Number(user.credits || 0)}"></td>
-      <td><input class="credit-delta-input" type="number" step="1" value="0"></td>
-      <td>
-        <div class="user-action-row">
-          <button class="tiny-button view-user-conversations" type="button"><i class="ri-chat-history-line"></i>${text("viewUserConversations")}</button>
-          <button class="tiny-button save-user" type="button"><i class="ri-save-line"></i>${text("save")}</button>
-        </div>
-      </td>
-    </tr>
-  `).join("");
-  $$(".view-user-conversations", body).forEach((button) => {
-    button.addEventListener("click", () => openUserConversationsModal(button.closest("tr")?.dataset.userId));
-  });
-  $$(".save-user", body).forEach((button) => {
-    button.addEventListener("click", () => saveUser(button.closest("tr")));
-  });
-}
-async function openUserConversationsModal(userId) {
-  if (!userId || state.user?.role !== "admin") return;
-  const data = await api(`/api/admin/users/${encodeURIComponent(userId)}/generations?includeArchived=1&limit=200`);
-  const generations = (data.generations || []).map((generation) => generationEntryFromApi(generation, { status: "done" }));
-  const conversations = generations
-    .filter((item) => item.prompt || item.images?.[0])
-    .map((item) => ({
-      id: item.id,
-      title: item.title || truncate(item.prompt, 42),
-      prompt: item.prompt || "",
-      image: item.images?.[0] || "",
-      route: item.conversation || [],
-      createdAt: item.time || item.createdAt || ""
-    }));
-  openModal(`
-    <section class="modal admin-conversations-modal">
-      <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
-      <div class="modal-title">
-        <i class="ri-chat-history-line"></i>
-        <h2>${escapeHtml(text("userConversationsTitle"))}</h2>
-      </div>
-      <p class="admin-conversations-user">${escapeHtml(data.user?.name || data.user?.email || userId)}</p>
-      <div class="admin-conversation-list">
-        ${conversations.length ? conversations.map((item) => `
-          <article class="admin-conversation-card">
-            ${item.image ? `<img src="${escapeHtml(imageVariantUrl(item.image))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="">` : `<span><i class="ri-image-line"></i></span>`}
-            <div>
-              <strong>${escapeHtml(item.title)}</strong>
-              <small>${escapeHtml(formatDate(item.createdAt))} · ${Number(item.route.length || 1)} ${escapeHtml(text("roundCount"))}</small>
-              <p>${escapeHtml(truncate(item.prompt, 140))}</p>
-            </div>
-          </article>
-        `).join("") : `<div class="session-empty">${escapeHtml(text("emptyWorks"))}</div>`}
-      </div>
-    </section>
-  `);
-}
-async function saveUser(row) {
-  const id = row.dataset.userId;
-  const user = await api(`/api/admin/users/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      role: $(".role-input", row).value,
-      status: $(".status-input", row).value,
-      credits: Number($(".credits-input", row).value || 0),
-      creditDelta: Number($(".credit-delta-input", row).value || 0)
-    })
-  });
-  if (id === state.user.id) {
-    state.user = user.user;
-    setCurrentCacheUser();
-  }
-  showToast(state.lang === "zh" ? "用户已保存" : "User saved", "ri-save-line");
-  updateNav();
-}
 async function bootstrap() {
   setupRumMonitoring();
   renderComposers();
@@ -5879,7 +5457,10 @@ function bindGlobalEvents() {
   elements.openLibraryInlineBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
   elements.openCanvasInlineBtn?.addEventListener("click", openCanvasWorkspace);
   elements.canvasBackHomeBtn?.addEventListener("click", () => navigate("home", { scrollTop: true }));
-  window.ImageStudioCanvas?.bindShellEvents?.({ elements, navigate });
+  window.ImageStudioRouter?.bindCanvasShellEvents?.({ elements, navigate });
+  if (!window.ImageStudioRouter?.bindCanvasShellEvents) {
+    window.ImageStudioCanvas?.bindShellEvents?.({ elements, navigate });
+  }
   elements.notificationBtn?.addEventListener("click", openNotificationsModal);
   requireAuthController().bindAccountEvents();
   requireSettingsController().bindLanguageToggle({ renderAll });

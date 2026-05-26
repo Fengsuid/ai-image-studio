@@ -13,6 +13,8 @@ const packageJson = JSON.parse(read("package.json"));
 const adminHtml = read("public/admin.html");
 const admin = read("public/admin.js");
 const polish = read("public/admin-shell-polish.js");
+const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
+const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
 const styles = read("public/styles.css");
 const adminCss = read("public/css/09-admin.css");
 const shellCss = read("public/css/09-admin-shell-polish.css");
@@ -23,9 +25,11 @@ assert.equal(
   "package.json must expose smoke:admin-shell-polish"
 );
 
-assert(adminHtml.includes("/admin-shell-polish.js"), "admin.html must load admin-shell-polish.js");
+assert(adminHtml.includes("/app-router.js"), "admin.html must load app-router.js");
+assert(!adminHtml.includes("/admin.js"), "admin.html must lazy-load admin.js through app-router");
+assert(lazyAdminScripts.includes("/admin-shell-polish.js"), "admin lazy route must load admin-shell-polish.js");
 assert(
-  adminHtml.indexOf("/admin-shell-polish.js") < adminHtml.indexOf("/admin.js"),
+  lazyAdminScripts.indexOf("/admin-shell-polish.js") < lazyAdminScripts.indexOf("/admin.js"),
   "admin shell polish must load before admin.js"
 );
 assert(styles.includes('@import url("/css/09-admin-shell-polish.css");'), "styles.css must import admin shell polish CSS");

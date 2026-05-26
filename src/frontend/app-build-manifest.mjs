@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260526-generic-prompt-fix-v1";
+export const FRONTEND_BUILD_VERSION = "20260527-lazy-route-loader-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -28,7 +28,43 @@ export const frontendBuildManifest = Object.freeze({
   js: {
     bundler: "scripts/frontend/js-bundle.mjs",
     entryPattern: "/dist/<name>.<hash>.js",
-    compatibilityManifest: "/frontend-build-manifest.js"
+    compatibilityManifest: "/frontend-build-manifest.js",
+    lazyRoutes: {
+      admin: {
+        entry: "/admin.js",
+        scripts: [
+          "/admin-generation-diagnostics.js",
+          "/admin-overview.js",
+          "/admin-users.js",
+          "/admin-providers.js",
+          "/admin-gallery.js",
+          "/admin-settings.js",
+          "/admin-shell-polish.js",
+          "/admin.js"
+        ]
+      },
+      canvas: {
+        entry: "/canvas.js",
+        scripts: [
+          "/cache-db.js",
+          "/canvas-store.js",
+          "/canvas-nodes.js",
+          "/canvas-geometry.js",
+          "/canvas-layout.js",
+          "/canvas-edges.js",
+          "/canvas-workflows.js",
+          "/canvas-minimap.js",
+          "/canvas-selection.js",
+          "/canvas-history.js",
+          "/canvas-io.js",
+          "/canvas-assistant.js",
+          "/canvas-toolbar.js",
+          "/canvas-inspector.js",
+          "/canvas-market.js",
+          "/canvas.js"
+        ]
+      }
+    }
   },
   compatibility: {
     mode: "plain-script-fallback",

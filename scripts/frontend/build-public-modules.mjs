@@ -10,8 +10,10 @@ const root = process.cwd();
 const publicDir = path.join(root, "public");
 const jsonPath = path.join(publicDir, "frontend-build-manifest.json");
 const jsPath = path.join(publicDir, "frontend-build-manifest.js");
+const lazySources = Object.values(frontendBuildManifest.js.lazyRoutes || {})
+  .flatMap((route) => Array.isArray(route?.scripts) ? route.scripts : []);
 const cssBundle = await buildCssBundle({ root });
-const jsBundle = await buildJsAssets({ root });
+const jsBundle = await buildJsAssets({ root, lazySources });
 const buildManifest = {
   ...frontendBuildManifest,
   css: {

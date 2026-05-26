@@ -1,0 +1,8 @@
+(function(){"use strict";const n="imageStudio.homeOnboarding.v1",a="home-reduced-motion";let r=!1;const d={product:"高端产品摄影，干净背景，柔和棚拍灯光，商业广告质感，突出材质细节",poster:"未来感活动海报，强烈视觉焦点，精致排版，适合社交媒体传播",portrait:"电影感人物角色设定，清晰轮廓，富有故事性的服装与环境光",illustration:"温柔细腻的插画场景，丰富层次，柔和笔触，适合封面视觉"};function s(){try{return localStorage.getItem(n)==="seen"}catch{return!0}}function i(){try{localStorage.setItem(n,"seen")}catch{}}function m(){return!!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches}function c(){document.documentElement.classList.toggle(a,m())}function u(t){const e=window.ImageStudioAppActions;if(e?.setDraftPrompt){e.setDraftPrompt(t,{focus:!0});return}const o=document.querySelector("#heroComposerMount .prompt-box");o&&(o.value=t,o.dispatchEvent(new Event("input",{bubbles:!0})),o.focus())}function l(){document.querySelectorAll("[data-home-prompt]").forEach(t=>{t.addEventListener("click",()=>{const e=d[t.dataset.homePrompt]||"";e&&u(e)})})}function p(){const t=document.querySelector("#homeView .hero");if(!t||s())return;const e=document.createElement("aside");e.className="home-onboarding-card",e.setAttribute("role","status"),e.innerHTML=`
+      <div>
+        <span>首次使用</span>
+        <strong>三步开始创作</strong>
+        <p>输入画面描述，按需添加参考图，点击生成。作品会自动保存，公开开关可在生成前调整。</p>
+      </div>
+      <button type="button" data-home-onboarding-close>我知道了</button>
+    `,t.append(e),e.querySelector("[data-home-onboarding-close]")?.addEventListener("click",()=>{i(),e.remove()}),window.setTimeout(()=>{e.isConnected&&(i(),e.remove())},9e3)}function f(){r||(r=!0,c(),window.matchMedia?.("(prefers-reduced-motion: reduce)")?.addEventListener?.("change",c),l(),window.setTimeout(p,420))}window.ImageStudioHomeOnboarding={init:f,fillComposerPrompt:u}})();

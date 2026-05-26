@@ -11,10 +11,14 @@ import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
+const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
+const appSettings = fs.readFileSync(path.join(rootDir, "public/app-settings.js"), "utf8");
 const html = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const styles = readPublicCssWithImports(rootDir);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
+const adminUsersRoute = fs.readFileSync(path.join(rootDir, "src/routes/admin/users.js"), "utf8");
+const tagStore = fs.readFileSync(path.join(rootDir, "src/stores/tag-store.js"), "utf8");
 const syncModule = fs.readFileSync(path.join(rootDir, "src/prompt-source-sync.js"), "utf8");
 const require = createRequire(import.meta.url);
 const {
@@ -22,19 +26,26 @@ const {
   parseAwesomeGptImage2PromptsJson
 } = require(path.join(rootDir, "src/prompt-source-sync.js"));
 
+function scriptPosition(htmlSource, scriptName) {
+  const plainIndex = htmlSource.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return htmlSource.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
+
 assert(html.includes('id="leaderboardView"'), "leaderboard must have an independent page view");
-assert(html.includes("/editor-image-import.js"), "editor paste/drop import module must be loaded separately");
-assert(html.includes("/image-session-list.js"), "session list rendering must be split into its own module");
-assert(html.includes("/render-stamp.js"), "render stamp logic must be split into its own module");
+assert(scriptPosition(html, "editor-image-import.js") >= 0, "editor paste/drop import module must be loaded separately");
+assert(scriptPosition(html, "image-session-list.js") >= 0, "session list rendering must be split into its own module");
+assert(scriptPosition(html, "render-stamp.js") >= 0, "render stamp logic must be split into its own module");
 assert(app.includes('navigate("leaderboard"'), "top-level navigation must open the leaderboard page");
 assert(app.includes("renderLeaderboardPage"), "leaderboard page renderer must be wired");
 assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "gallery must not inline leaderboard beside cards");
 assert(!app.includes("data-open-leaderboard\""), "gallery page must not show the old leaderboard CTA");
 assert(!styles.includes(".leaderboard-cta"), "gallery leaderboard CTA styles must be removed");
 assert(html.includes('data-i18n="galleryLeaderboardPage">点赞排行榜</span>'), "top nav must show the Chinese leaderboard label before i18n hydration");
-assert(app.includes('galleryLeaderboardPage: "点赞排行榜"'), "leaderboard nav label must be Chinese in zh locale");
+assert(appSettings.includes('galleryLeaderboardPage: "点赞排行榜"'), "leaderboard nav label must be Chinese in zh locale");
 assert(styles.includes(".leaderboard-page .gallery-leaderboard"), "leaderboard page styles must be present");
-assert(html.includes("/prompt-cover-fallback.js"), "prompt fallback cover renderer must be loaded separately");
+assert(scriptPosition(html, "prompt-cover-fallback.js") >= 0, "prompt fallback cover renderer must be loaded separately");
 assert(app.includes("ImageStudioPromptCoverFallback"), "prompt cards must use fallback covers when no image exists");
 assert(styles.includes(".prompt-cover-fallback"), "prompt fallback covers must have visible styles");
 assert(styles.includes(".prompt-cover-fallback-image"), "prompt fallback covers must render as image-like covers");
@@ -61,12 +72,12 @@ assert(store.includes("title VARCHAR(160) NOT NULL DEFAULT ''"), "generation tab
 assert(app.includes("publishTitleInput"), "publish modal must expose an image title field");
 assert(app.includes("title: $(\"#publishTitleInput\""), "publish title must be sent to backend");
 
-assert(server.includes("api\\/admin\\/users\\/([^/]+)\\/generations"), "admin user generations endpoint must exist");
+assert(adminUsersRoute.includes("/api/admin/users") && adminUsersRoute.includes("/generations"), "admin user generations endpoint must exist");
 assert(store.includes("async function listGenerationsForUserId"), "admin must use explicit user-scoped generation query");
 assert(!store.includes("user.role === \"admin\"\n      ? `SELECT g.*, u.name AS user_name"), "normal history must not show every user's generations to admins");
-assert(app.includes("openUserConversationsModal"), "user management must expose user conversation review");
+assert(admin.includes("/generations?includeArchived=1&limit=80") && admin.includes("用户作品与会话"), "user management must expose user conversation review");
 
-assert(store.includes("ps_davidwuw_gpt_image2_prompts"), "new davidwuw prompt source seed must exist");
+assert(tagStore.includes("ps_davidwuw_gpt_image2_prompts"), "new davidwuw prompt source seed must exist");
 assert(syncModule.includes("parseAwesomeGptImage2PromptsBackup"), "new prompt source parser must exist");
 assert(syncModule.includes("prompts_backup.md"), "new parser must read prompts_backup.md");
 assert(syncModule.includes("prompts.json"), "new parser must read prompts.json for prompt cover images");

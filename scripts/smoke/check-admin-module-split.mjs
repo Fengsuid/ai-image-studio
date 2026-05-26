@@ -13,6 +13,8 @@ const overview = read("public/admin-overview.js");
 const users = read("public/admin-users.js");
 const providers = read("public/admin-providers.js");
 const gallery = read("public/admin-gallery.js");
+const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
+const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
 const packageJson = JSON.parse(read("package.json"));
 const server = read("server.js");
 const adminRouteDir = path.join(rootDir, "src/routes/admin");
@@ -28,12 +30,14 @@ const backendModules = [
 ];
 
 assert.equal(packageJson.scripts["smoke:admin-module-split"], "node scripts/smoke/check-admin-module-split.mjs", "package.json must expose smoke:admin-module-split");
+assert(adminHtml.includes("/app-router.js"), "admin.html must load app-router.js");
+assert(!adminHtml.includes("/admin.js"), "admin.html must lazy-load admin.js through app-router");
 for (const file of ["admin-overview.js", "admin-users.js", "admin-providers.js", "admin-gallery.js"]) {
-  assert(adminHtml.includes(`/${file}`), `admin.html must load ${file}`);
+  assert(lazyAdminScripts.includes(`/${file}`), `admin lazy route must load ${file}`);
 }
-assert(adminHtml.indexOf("/admin-overview.js") < adminHtml.indexOf("/admin.js"), "overview module must load before admin.js");
-assert(adminHtml.indexOf("/admin-users.js") < adminHtml.indexOf("/admin.js"), "users module must load before admin.js");
-assert(adminHtml.indexOf("/admin-providers.js") < adminHtml.indexOf("/admin.js"), "providers module must load before admin.js");
+assert(lazyAdminScripts.indexOf("/admin-overview.js") < lazyAdminScripts.indexOf("/admin.js"), "overview module must load before admin.js");
+assert(lazyAdminScripts.indexOf("/admin-users.js") < lazyAdminScripts.indexOf("/admin.js"), "users module must load before admin.js");
+assert(lazyAdminScripts.indexOf("/admin-providers.js") < lazyAdminScripts.indexOf("/admin.js"), "providers module must load before admin.js");
 assert(admin.includes("renderAdminModule(\"overview\")"), "admin.js must delegate overview rendering");
 assert(admin.includes("renderAdminModule(\"users\")"), "admin.js must delegate users rendering");
 assert(admin.includes("renderAdminModule(\"providers\")"), "admin.js must delegate provider rendering");

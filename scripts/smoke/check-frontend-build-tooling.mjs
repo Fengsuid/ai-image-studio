@@ -28,6 +28,7 @@ const jsAssets = Array.isArray(builtJson.js?.assets) ? builtJson.js.assets : [];
 const jsAssetBySource = new Map(jsAssets.map((asset) => [asset.source, asset]));
 const appJsEntry = jsAssetBySource.get("/app.js")?.entry || "";
 const appModulesEntry = jsAssetBySource.get("/app-modules.js")?.entry || "";
+const appRouterEntry = jsAssetBySource.get("/app-router.js")?.entry || "";
 
 assert(source.includes("export const frontendBuildManifest"), "frontend source must use standard export");
 assert(buildScript.includes("from \"../../src/frontend/app-build-manifest.mjs\""), "build script must import frontend source module");
@@ -49,6 +50,12 @@ assert(cssBundle.includes("font-family:remixicon"), "CSS bundle must include loc
 assert(cssBundle.includes("/vendor/icons/remixicon.woff2"), "CSS bundle must self-host Remixicon font files");
 assert(cssBundle.includes(".ri-image-spark-line:before"), "CSS bundle must include project Remixicon compatibility aliases");
 assert(/^\/dist\/app\.[a-f0-9]{12}\.js$/.test(appJsEntry), "built manifest must expose hashed app.js entry");
+assert(/^\/dist\/app-router\.[a-f0-9]{12}\.js$/.test(appRouterEntry), "built manifest must expose hashed app-router.js entry");
+assert(Array.isArray(builtJson.js?.lazyRoutes?.admin?.scripts), "built manifest must expose admin lazy route scripts");
+assert(Array.isArray(builtJson.js?.lazyRoutes?.canvas?.scripts), "built manifest must expose canvas lazy route scripts");
+for (const source of [...builtJson.js.lazyRoutes.admin.scripts, ...builtJson.js.lazyRoutes.canvas.scripts]) {
+  assert(jsAssetBySource.has(source), `lazy route source missing hashed asset: ${source}`);
+}
 assert(jsAssets.length >= 30, "built manifest must include hashed JS asset entries");
 for (const asset of jsAssets) {
   assert(/^\/[a-z0-9-]+\.js$/.test(asset.source), `JS asset source must be a root public script: ${asset.source}`);
@@ -62,11 +69,14 @@ for (const asset of jsAssets) {
 }
 assert(indexHtml.includes(`href="${cssBundleEntry}"`), "public index must load the manifest CSS bundle");
 assert(indexHtml.includes(`src="${appJsEntry}"`), "public index must load hashed app.js");
+assert(indexHtml.includes(`src="${appRouterEntry}"`), "public index must load hashed app-router.js");
+assert(!indexHtml.includes("/canvas.js"), "public index must lazy-load legacy canvas instead of direct canvas.js");
 assert(!indexHtml.includes("?v="), "public index must not use manual query-string cache busting");
 assert(!/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(indexHtml), "public index must not load font or icon CDNs");
 assert(!indexHtml.includes('href="/styles.css'), "public index must not load styles.css directly");
 assert(indexHtml.indexOf(appModulesEntry) < indexHtml.indexOf("/frontend-build-manifest.js"), "frontend manifest must load after app-modules.js");
-assert(indexHtml.indexOf("/frontend-build-manifest.js") < indexHtml.indexOf(appJsEntry), "frontend manifest must load before app.js");
+assert(indexHtml.indexOf("/frontend-build-manifest.js") < indexHtml.indexOf(appRouterEntry), "app-router must load after the frontend manifest");
+assert(indexHtml.indexOf(appRouterEntry) < indexHtml.indexOf(appJsEntry), "app-router must load before app.js");
 assert(packageJson.scripts?.["frontend:check"] === "node scripts/frontend/check-public-modules.mjs", "package.json must expose frontend:check");
 assert(packageJson.scripts?.["frontend:build"] === "node scripts/frontend/build-public-modules.mjs", "package.json must expose frontend:build");
 assert(packageJson.scripts?.["smoke:frontend-build-tooling"] === "node scripts/smoke/check-frontend-build-tooling.mjs", "package.json must expose smoke:frontend-build-tooling");

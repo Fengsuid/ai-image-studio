@@ -22,6 +22,34 @@ assert.deepEqual(frontendBuildManifest.css?.mobileModuleSources, [
 assert.equal(frontendBuildManifest.js?.bundler, "scripts/frontend/js-bundle.mjs");
 assert.equal(frontendBuildManifest.js?.entryPattern, "/dist/<name>.<hash>.js");
 assert.equal(frontendBuildManifest.js?.compatibilityManifest, "/frontend-build-manifest.js");
+assert.deepEqual(frontendBuildManifest.js?.lazyRoutes?.admin?.scripts, [
+  "/admin-generation-diagnostics.js",
+  "/admin-overview.js",
+  "/admin-users.js",
+  "/admin-providers.js",
+  "/admin-gallery.js",
+  "/admin-settings.js",
+  "/admin-shell-polish.js",
+  "/admin.js"
+]);
+assert.deepEqual(frontendBuildManifest.js?.lazyRoutes?.canvas?.scripts, [
+  "/cache-db.js",
+  "/canvas-store.js",
+  "/canvas-nodes.js",
+  "/canvas-geometry.js",
+  "/canvas-layout.js",
+  "/canvas-edges.js",
+  "/canvas-workflows.js",
+  "/canvas-minimap.js",
+  "/canvas-selection.js",
+  "/canvas-history.js",
+  "/canvas-io.js",
+  "/canvas-assistant.js",
+  "/canvas-toolbar.js",
+  "/canvas-inspector.js",
+  "/canvas-market.js",
+  "/canvas.js"
+]);
 
 for (const output of frontendBuildManifest.outputs) {
   assert.match(output.source, /^src\/frontend\//);

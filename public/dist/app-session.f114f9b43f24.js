@@ -1,0 +1,1 @@
+(function(e){"use strict";const i=e.AppModules?.register||((s,n)=>(e.AppModules=e.AppModules||{},e.AppModules[s]=n,n));function r(s={}){return e.ImageStudioSessionList?.render?.(s)||""}i("session",{renderImageSessions:r})})(window);

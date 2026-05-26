@@ -14,12 +14,21 @@ function read(relativePath) {
 
 const cacheDb = read("public/cache-db.js");
 const indexHtml = read("public/index.html");
+const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 const app = read("public/app.js");
+const appAuth = read("public/app-auth.js");
 const canvas = read("public/canvas.js");
 const agentApp = read("apps/agent-workspace/src/app/create-app.js");
 const agentCache = read("apps/agent-workspace/src/adapters/cache-db.js");
 const agentBuild = read("apps/agent-workspace/scripts/build.mjs");
 const packageJson = JSON.parse(read("package.json"));
+
+function scriptPosition(html, scriptName) {
+  const plainIndex = html.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
 
 assert.equal(packageJson.scripts["smoke:indexeddb-cache-static"], "node scripts/smoke/check-indexeddb-cache-static.mjs", "root smoke script missing");
 
@@ -52,10 +61,13 @@ assert(cacheDb.includes("data:|blob:"), "blob/data URL guard missing");
 assert(cacheDb.includes("lastAccessedAt"), "LRU access timestamp missing");
 assert(cacheDb.includes("DEFAULT_MAX_BYTES"), "capacity limit missing");
 
-const cacheScriptIndex = indexHtml.indexOf("/cache-db.js");
+const cacheScriptIndex = scriptPosition(indexHtml, "cache-db.js");
+const appScriptIndex = scriptPosition(indexHtml, "app.js");
+const lazyCanvasScripts = buildManifest.js?.lazyRoutes?.canvas?.scripts || [];
 assert(cacheScriptIndex > -1, "index.html must load cache-db.js");
-assert(cacheScriptIndex < indexHtml.indexOf("/canvas.js"), "cache-db.js must load before canvas.js");
-assert(cacheScriptIndex < indexHtml.indexOf("/app.js"), "cache-db.js must load before app.js");
+assert(lazyCanvasScripts.indexOf("/cache-db.js") > -1, "canvas lazy route must include cache-db.js");
+assert(lazyCanvasScripts.indexOf("/cache-db.js") < lazyCanvasScripts.indexOf("/canvas.js"), "cache-db.js must load before lazy canvas.js");
+assert(cacheScriptIndex < appScriptIndex, "cache-db.js must load before app.js");
 
 assert(app.includes("gallery:${cleanId}:detail"), "gallery detail JSON snapshot key missing");
 assert(app.includes("image:generation:${cleanId}:thumb"), "gallery thumbnail cache key missing");
@@ -64,8 +76,8 @@ assert(app.includes("gallery-thumb-refresh"), "gallery must refresh thumbnail ca
 assert(app.includes("cacheImageElement"), "gallery must save loaded thumbnails");
 assert(app.includes("cachePreUploadImageMetadata"), "pre-upload metadata cache missing");
 assert(app.includes("SHA-256"), "pre-upload metadata must include SHA-256 hashing");
-assert(app.includes("clearUserCache"), "logout cache clear missing");
-assert(app.includes("setCurrentCacheUser(null)"), "logout must clear current cache user");
+assert(appAuth.includes("clearUserCache"), "logout cache clear missing");
+assert(appAuth.includes("setCurrentCacheUser(null)"), "logout must clear current cache user");
 assert(!/putJsonSnapshot\([^)]*password/i.test(app), "app must not cache passwords");
 assert(!/putJsonSnapshot\([^)]*apiKey/i.test(app), "app must not cache API keys");
 
