@@ -261,6 +261,18 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for the localized hero asset after container and external smoke passed. Local full public smoke remains blocked by the existing local MySQL credential mismatch, not by this change.
 - Rollback target: revert `c9e8b6e` and redeploy the previous hashed frontend bundle if local hero media serving or CSP media policy regresses.
 
+### 2026-05-26 AIS-RLS-114 Mobile CSS Consolidation Release
+
+- Task covered: `AIS-RLS-114` Consolidate mobile CSS files into `public/css/*` under build.
+- Commit covered: `b885bf1`.
+- Files changed: root-level `public/mobile*.css` moved into `public/css/*mobile*.css`, `public/styles.css`, `scripts/frontend/css-bundle.mjs`, frontend build manifest files, generated `public/dist/app.cbb1404428fe.css`, mobile/frontend smoke scripts, version config, and frontend boundary docs. This commit also appended `IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md` §9.1 to mark three pre-existing hashed-entry smoke failures per audit.
+- Frontend coverage: the public homepage still loads one content-hashed CSS bundle, but the bundle sources now include the mobile modules through `public/styles.css` imports instead of legacy root-level `mobile.css`, `mobile-home.css`, `mobile-gallery.css`, and `mobile-editor.css` append logic. `07-editor-mobile.css` was split into smaller focused modules to keep each mobile CSS file below the 500-line guardrail.
+- Local checks: `npm run frontend:build`, `npm run smoke:css-module-split`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-boundaries`, `npm run smoke:mobile-route-modal-behavior`, `npm run smoke:mobile-layout`, `npm run smoke:visual-regression`, `npm run smoke:css-visual-polish`, `npm run smoke:frontend-performance`, `npm run check`, `git diff --check`, line-count check for `public/css/*mobile*.css`, root `public/mobile*.css` absence check, and staged privacy scan passed.
+- Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>`, `npm run smoke:gallery-images -- https://<host>`, and `npm run smoke:mobile-layout -- https://<host>` passed; `/api/version` reports `20260526-mobile-css-consolidate-v1`; root HTML loads `/dist/app.cbb1404428fe.css`; server source no longer has root `public/mobile*.css` files.
+- Deployment note: the deployment package was generated with `git archive HEAD`, uploaded as the standard update archive, verified by local size, entry count, and SHA256 before deployment, then deployed after clearing old `public/dist` and root mobile CSS leftovers from the server source tree. No database schema or data changes were made.
+- Known blockers: external `npm run smoke:visual-regression -- https://<host>` repeatedly navigated Chrome to `chrome-error://chromewebdata/` for every scenario, producing selector-missing diffs unrelated to deployed DOM/CSS; the same local visual regression passed before deployment, and external `smoke:mobile-layout` passed against the deployed site. The three canvas hashed-entry smoke failures listed in §9.1 remain known pre-existing `AIS-RLS-111` cleanup items, not AIS-RLS-114 regressions.
+- Rollback target: revert `b885bf1`, restore the previous hashed CSS bundle and legacy root-level mobile CSS sources, then redeploy from the latest pre-AIS-RLS-114 backup recorded in the private deployment log if mobile styling or CSS bundling regresses.
+
 ### 2026-05-25 AIS-RLS-147+148 Slice 化首批部署
 
 - Tasks covered: `AIS-RLS-147` Canvas backend slice extraction and `AIS-RLS-148` Agent backend slice extraction.
