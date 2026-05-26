@@ -234,6 +234,19 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for the JS hash release. The generated manifest increases measured non-canvas initial JS to `443890` bytes, still under the updated 450 KB smoke budget.
 - Rollback target: revert `ae6cf24`, or change public `index.html` scripts back to root JS files with manual query strings and restore normal static asset cache headers if hashed JS serving regresses.
 
+### 2026-05-25 AIS-RLS-112 Self-Hosted Fonts And Icons Release
+
+- Task covered: `AIS-RLS-112` Self-host Geist, Instrument Serif, and Remixicon under `/vendor/`.
+- Commits covered: `705d5ef`, `10d2ad3`, `48c3893`.
+- Files changed: `public/vendor/fonts/*`, `public/vendor/icons/*`, `public/css/02-typography.css`, `public/admin.html`, `public/index.html`, generated `public/dist/app.81c7ea539fca.css`, frontend manifest files, `server.js`, smoke scripts, and `Dockerfile`.
+- Frontend coverage: public and admin pages no longer depend on Google Fonts or jsDelivr for the covered font/icon assets. Typography now uses local `@font-face` paths, Remixicon is served from `/vendor/icons/`, and `/vendor/*.css|woff2` receives immutable cache headers.
+- CSP coverage: report-only CSP was tightened so `font-src` is self-hosted only; stylesheet policy keeps local inline compatibility while removing the external font/icon hosts covered by this task.
+- Local checks: `npm run frontend:build`, `node --check server.js`, `node --check scripts/smoke/check-css-visual-polish.mjs`, `npm run smoke:css-visual-polish`, `npm run smoke:frontend-build-tooling`, `npm run smoke:css-module-split`, `npm run smoke:frontend-performance`, `npm run check`, `git diff --check`, `npm run smoke:visual-regression`, and workspace package resolution check passed.
+- Online smoke: deployed version reported `20260525-self-host-assets-v1`; external `npm run smoke:public -- https://<host>` passed and verified the public CSS bundle plus local Geist, Instrument Serif, and Remixicon assets.
+- Deployment note: the first production rebuild exposed that workspace packages were missing from the Docker image after `AIS-RLS-148`; `48c3893` fixed the production Docker copy step and was included in the successful self-host assets deployment.
+- Known blockers: no self-host asset blocker remained after `48c3893`. Server disk was still around 87% used, so this release intentionally avoided a full source backup.
+- Rollback target: revert `705d5ef` and `10d2ad3`, or temporarily restore the previous external font/icon links and CSP allowances if local vendor asset serving regresses. Keep or re-apply `48c3893` when workspace packages remain required in the production image.
+
 ### 2026-05-25 AIS-RLS-147+148 Slice 化首批部署
 
 - Tasks covered: `AIS-RLS-147` Canvas backend slice extraction and `AIS-RLS-148` Agent backend slice extraction.
