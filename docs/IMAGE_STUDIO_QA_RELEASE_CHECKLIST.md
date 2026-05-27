@@ -550,3 +550,18 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: container `npm run smoke:mask-admin-email`, container `npm run smoke:user-flow-polish`, container `npm run smoke:public -- http://127.0.0.1:3000`, and external `npm run smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
 - Known blockers: none for AIS-RLS-119. `/admin` still uses the AIS-RLS-117 query-string version on admin shell compatibility links, but the front-page hashed app/auth assets and `/api/version` are on the 119 release.
 - Rollback target: revert `cafb433`, restore the previous hashed app/auth assets and APP_VERSION, rebuild/restart app, then rerun public smoke and homepage source email grep checks.
+
+### 2026-05-27 AIS-RLS-133 Visual Token v2 Release
+
+- Task covered: `AIS-RLS-133` visual redesign Phase 1 token foundation for color, typography, and motion.
+- Commit covered: `78328a6 feat(AIS-RLS-133): add visual token v2 foundation`.
+- Files changed: `public/css/00-tokens.css`, new typography/motion token files, split reset/app-shell/home-shell/publish CSS modules, dark token overrides, `public/admin.html` `data-app="admin"`, frontend build manifests, hashed CSS bundle, and `smoke:frontend-boundaries` guardrails.
+- Token coverage: `brand-50..900`, `neutral-0..900`, semantic success/warn/danger/info, surface canvas/card/elev/glass/overlay, typography font/size/line-height/tracking tokens, motion duration/easing tokens, reduced-motion duration zeroing, mobile overrides, and admin compact token overrides are present.
+- Compatibility coverage: legacy `00-tokens.css` variable names remain available; `styles.css` keeps token imports first; `--brand-600` is guarded by frontend-boundaries smoke.
+- Local checks: `npm run frontend:build`, `npm run check`, `npm run smoke:frontend-boundaries`, `npm run smoke:css-module-split`, `npm run smoke:visual-regression`, and `git diff --check` passed. Token file line counts are `88 / 27 / 28`, within the AIS-RLS-133 limits.
+- Deployment packages: primary delta archive `ai-image-studio-ais-rls-133-78328a6-delta.tgz` was `71,416` bytes / `27` entries / SHA256 `E1B16EF6B538C1ECA45795E79E2D9475F451C05BB9DDA38A84E2FA4ADF7D6176`; a follow-up worktree-byte dist archive `ai-image-studio-ais-rls-133-78328a6-dist-worktree.tgz` was `191,015` bytes / `55` entries / SHA256 `D31945932E24AA762543896FACA698B7A8C8C4C3F44BCB251413B542D7C45547`.
+- Deployment note: production `.env` was updated to `APP_VERSION=20260527-visual-token-v2-v1`; Docker build and app restart succeeded; no database schema or data changes were made.
+- Online version: container and external `/api/version` report `20260527-visual-token-v2-v1`; public entry CSS is `/dist/app.3a2641ae684c.css`; app restart count is `0`.
+- Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-boundaries`, and `npm run smoke:css-module-split` passed; external `npm run smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
+- Known blockers: none for AIS-RLS-133. Existing ESLint warnings and frontend-boundaries long-term file-size warnings remain pre-existing non-blockers.
+- Rollback target: revert `78328a6`, restore the previous `APP_VERSION` and hashed CSS entry `app.6a49a8e41627.css`, rebuild/restart app, then rerun public, frontend-boundaries, css-module-split, frontend-build-tooling, and visual-regression smoke.
