@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260527-admin-token-replace-v1",
+  "version": "20260527-mobile-preview-modal-fix-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.ed3f7b8dea3a.css",
-    "file": "/dist/app.ed3f7b8dea3a.css",
-    "hash": "ed3f7b8dea3a",
-    "bytes": 298216,
+    "entry": "/dist/app.60642d680cdf.css",
+    "file": "/dist/app.60642d680cdf.css",
+    "hash": "60642d680cdf",
+    "bytes": 298322,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

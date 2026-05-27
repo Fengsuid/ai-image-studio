@@ -7,7 +7,7 @@ const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const SOURCE_DIR = path.join(DATA_DIR, "sources");
 
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260527-admin-token-replace-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260527-mobile-preview-modal-fix-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = Math.max(

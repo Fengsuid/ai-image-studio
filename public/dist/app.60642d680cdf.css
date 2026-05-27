@@ -13558,6 +13558,12 @@ button.tag-chip.active {
     margin: var(--space-xs) auto var(--space-sm);
   }
 
+  .square-preview-modal::before,
+  .image-zoom-modal::before {
+    content: none;
+    display: none;
+  }
+
   /* Square preview modal: fullscreen bottom-sheet */
   .square-preview-modal {
     max-height: calc(100svh - env(safe-area-inset-top));
