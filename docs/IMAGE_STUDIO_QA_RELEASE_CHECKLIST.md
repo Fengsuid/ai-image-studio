@@ -565,3 +565,17 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-boundaries`, and `npm run smoke:css-module-split` passed; external `npm run smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
 - Known blockers: none for AIS-RLS-133. Existing ESLint warnings and frontend-boundaries long-term file-size warnings remain pre-existing non-blockers.
 - Rollback target: revert `78328a6`, restore the previous `APP_VERSION` and hashed CSS entry `app.6a49a8e41627.css`, rebuild/restart app, then rerun public, frontend-boundaries, css-module-split, frontend-build-tooling, and visual-regression smoke.
+
+### 2026-05-27 AIS-RLS-130 ESLint Blocking Rules Release
+
+- Task covered: `AIS-RLS-130` tightens ESLint warning-level quality gates into CI-blocking errors before the CI workflow lands.
+- Commit covered: `705817a chore(AIS-RLS-130): tighten eslint blocking rules`.
+- Files changed: `eslint.config.mjs`, focused lint cleanup in `public/app.js`, canvas helper modules, smoke scripts, `server.js`, `src/mysql-store.js`, `src/provider-mapping.js`, and `src/routes/images.js`.
+- Rule coverage: `no-undef`, `no-unused-vars`, and `no-empty` now run at `error`; `_`-prefixed unused args and caught errors remain explicit allowed exceptions.
+- Cleanup coverage: historical lint warnings were removed by deleting unused helpers/constants, documenting intentional empty catches, simplifying redundant boolean casts, and renaming intentionally unused parameters.
+- Runtime impact: no feature behavior changed; removed server/client code was unreferenced or telemetry-only catch scaffolding.
+- Local checks: `npm run lint`, `npm run check`, and `git diff --check` passed after cleanup.
+- Negative lint probe: piping `missingGlobal();` into ESLint with `--stdin --stdin-filename lint-negative.js` failed with `no-undef` and exit code `1`, confirming real lint errors now block.
+- Deployment note: task card has `deployment_required=false`; no Docker deploy, no online smoke, and no `APP_VERSION` bump were required. Production remains on `20260527-visual-token-v2-v1`.
+- Known blockers: none for AIS-RLS-130. `smoke:frontend-boundaries` still reports existing long-term file-size warnings for god-files, which are non-blocking guardrail warnings.
+- Rollback target: revert `705817a` to restore previous warning-level ESLint rules and the pre-cleanup lint scaffolding.
