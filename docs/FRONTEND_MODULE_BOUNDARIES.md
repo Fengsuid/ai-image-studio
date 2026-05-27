@@ -48,6 +48,7 @@ Use the existing CSS split:
 | Area | Owner |
 | --- | --- |
 | Tokens, theme, reset, type | `public/css/00-*.css`, `01-reset.css`, `02-typography.css` |
+| Shared primitives | `public/css/primitives/_*.css` |
 | Shell, topbar, layout, composer shell | `public/css/03-*.css` |
 | Shared cards, forms, modals, controls | `public/css/04-*.css` |
 | Home and composer refinements | `public/css/05-*.css` |

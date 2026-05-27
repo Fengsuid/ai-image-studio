@@ -593,3 +593,20 @@ Record the outcome in the relevant development document or release note before m
 - Validation note: `Select-String` confirmed three new `现状索引` entries in `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md`.
 - Deployment note: documentation-only task with `deployment_required=false`; no Docker deploy, no online smoke, no `APP_VERSION` bump, and no private deployment log entry were required.
 - Rollback target: revert `c42c5d3` and this release-record commit to remove the added Phase D specs and follow-up-plan links.
+
+### 2026-05-27 AIS-RLS-134 Button Primitive Release
+
+- Task covered: `AIS-RLS-134` visual redesign Phase 2 button primitive foundation.
+- Commit covered: `86940e7 feat(AIS-RLS-134): add button primitive`.
+- Files changed: new `public/css/primitives/_button.css`, `public/styles.css` primitive import order, `public/index.html` composer `.btn` consumers, frontend build manifests, hashed `public/dist/app.af00027fb70e.css`, hashed `public/dist/app.0cc97fcfc1d0.js`, and smoke guardrails.
+- Primitive coverage: `.btn`, `.btn--primary`, `.btn--secondary`, `.btn--ghost`, `.btn--danger`, `.btn--link`, and `.btn--icon` are present with hover, active, focus-visible, disabled, compact density, dark mode, and `[data-loading]::after` spinner behavior.
+- Architecture coverage: `public/styles.css` imports `/css/primitives/_button.css` after token/reset-base modules and before legacy layout modules, preserving the token/primitive/page cascade contract.
+- Runtime consumption: the home composer fallback, composer template send button, and composer options button now consume `.btn` variants; remaining legacy button callsites are intentionally left to later visual phases.
+- Local checks: `npm run frontend:build`, `npm run check`, `npm run smoke:css-module-split`, `npm run smoke:visual-regression`, `git diff --check`, and the `_button.css` hex grep all passed.
+- Visual regression: 10/10 scenarios baseline matched in `docs/mobile-qa/visual-regression/runs/2026-05-27T07-14-04-717Z`.
+- Deployment package: `ais-rls-134-86940e7-delta-worktree.tgz`, `113,855` bytes / `12` entries / SHA256 `86048B39B9827C1705D6FD044E64280CB3862C4C286389AFC94CC684B4E1DBB2`.
+- Deployment note: production `.env` was updated to `APP_VERSION=20260527-button-primitive-v1`; Docker build and app restart succeeded with no database schema or data changes.
+- Online version: container and external `/api/version` report `20260527-button-primitive-v1`; app restart count is `0` and container status is `running`.
+- Online smoke: container `smoke:frontend-build-tooling`, `smoke:frontend-boundaries`, `smoke:css-module-split`, and `smoke:public -- http://127.0.0.1:3000` passed; external `smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
+- Known blockers: none for AIS-RLS-134. The `/admin` compatibility stylesheet query still references the prior visual-token version, matching the existing admin compatibility path and not affecting the public hashed app bundle or `/api/version`.
+- Rollback target: revert `86940e7`, restore the previous `APP_VERSION=20260527-visual-token-v2-v1` and hashed entries `app.3a2641ae684c.css`, `app.48294c7b6c01.js`, `canvas-history.d56d37f6ed67.js`, rebuild/restart app, then rerun public, frontend-boundaries, css-module-split, frontend-build-tooling, and visual-regression smoke.
