@@ -1,14 +1,95 @@
-/* Home hero shell split from the token layer for AIS-RLS-133. */
+/* AIS-RLS-135 — Public topbar density governance + hero shell.
+   Consumes 133 space tokens + 134 btn primitive height. */
+
+/* ── Topbar density overrides ─────────────────────────────── */
+
+.topbar {
+  padding: var(--space-sm) var(--space-xl);
+  gap: var(--space-md);
+}
+
+.top-actions {
+  gap: var(--space-xs);
+}
+
+/* Align nav elements to btn primitive height */
+.brand-btn,
+.nav-pill,
+.icon-pill,
+.dark-pill {
+  min-height: var(--btn-h, 40px);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.icon-pill {
+  width: var(--btn-h, 40px);
+  min-width: var(--btn-h, 40px);
+}
+
+.brand-dot {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+
+.brand-btn {
+  gap: var(--space-xs);
+  font-size: var(--fs-md);
+}
+
+.nav-pill,
+.icon-pill {
+  padding: 0 var(--space-sm);
+  font-size: var(--fs-sm);
+}
+
+.dark-pill {
+  padding: 0 var(--space-md);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+/* Tighten account avatar to match system */
+.account-avatar {
+  width: var(--btn-h, 40px);
+  height: var(--btn-h, 40px);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* Hover feedback — consume motion tokens */
+.nav-pill:hover,
+.icon-pill:hover,
+.brand-btn:hover,
+.github-pill:hover,
+.contact-pill:hover,
+.dark-pill:hover,
+.account-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.dark-pill:hover,
+.send-button:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* ── Hero shell ───────────────────────────────────────────── */
 
 .hero {
   max-width: 1200px;
   margin: 0 auto;
   min-height: min(760px, calc(100vh - 74px));
-  padding: clamp(132px, 12vh, 164px) 32px 44px;
+  padding: clamp(132px, 12vh, 164px) var(--space-xl) var(--space-2xl);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: clamp(14px, 2vh, 22px);
+  gap: clamp(var(--space-sm), 2vh, var(--space-lg));
   position: relative;
 }
