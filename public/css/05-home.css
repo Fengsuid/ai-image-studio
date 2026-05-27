@@ -1,20 +1,4 @@
-/* Split from public/styles.css for AIS-RLS-071.
-   Order chunk 10 of 22; keep import order stable until semantic CSS modules are refined. */
-
-
-.publish-original-check {
-  display: flex !important;
-  grid-template-columns: none !important;
-  align-items: center;
-  gap: 9px !important;
-  color: #475569 !important;
-}
-
-.publish-original-check input {
-  width: 18px;
-  height: 18px;
-  accent-color: #111827;
-}
+/* Split from public/styles.css for AIS-RLS-071. */
 
 .bind-source-modal {
   width: min(780px, calc(100vw - 32px));
@@ -153,7 +137,10 @@
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
   cursor: zoom-in;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .work-card:hover,
@@ -176,11 +163,27 @@
   display: grid;
   place-items: center;
   background:
-    linear-gradient(45deg, rgba(226, 232, 240, 0.62) 25%, transparent 25% 75%, rgba(226, 232, 240, 0.62) 75%),
-    linear-gradient(45deg, rgba(226, 232, 240, 0.62) 25%, transparent 25% 75%, rgba(226, 232, 240, 0.62) 75%),
+    linear-gradient(
+      45deg,
+      rgba(226, 232, 240, 0.62) 25%,
+      transparent 25% 75%,
+      rgba(226, 232, 240, 0.62) 75%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(226, 232, 240, 0.62) 25%,
+      transparent 25% 75%,
+      rgba(226, 232, 240, 0.62) 75%
+    ),
     linear-gradient(135deg, #f8fafc, #eef2f7);
-  background-position: 0 0, 12px 12px, 0 0;
-  background-size: 24px 24px, 24px 24px, auto;
+  background-position:
+    0 0,
+    12px 12px,
+    0 0;
+  background-size:
+    24px 24px,
+    24px 24px,
+    auto;
 }
 
 .work-select {
@@ -336,7 +339,10 @@
   font-weight: 600;
   min-height: 32px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .works-filter-btn:hover {

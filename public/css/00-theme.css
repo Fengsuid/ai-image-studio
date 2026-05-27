@@ -11,6 +11,10 @@
     --paper: rgba(17, 24, 39, 0.78);
     --paper-solid: #111827;
     --dark: #f8fafc;
+    --brand-50: #172554; --brand-100: #1e3a8a; --brand-200: #1e40af; --brand-300: #1d4ed8; --brand-400: #2563eb; --brand-500: #3b82f6; --brand-600: #60a5fa; --brand-700: #93c5fd; --brand-800: #bfdbfe; --brand-900: #dbeafe;
+    --neutral-0: #020617; --neutral-50: #0f172a; --neutral-100: #111827; --neutral-200: #1e293b; --neutral-300: #334155; --neutral-400: #475569; --neutral-500: #64748b; --neutral-600: #94a3b8; --neutral-700: #cbd5e1; --neutral-800: #e2e8f0; --neutral-900: #f8fafc;
+    --color-success: #4ade80; --color-warn: #fbbf24; --color-danger: #fb7185; --color-info: #38bdf8;
+    --surface-canvas: #0f172a; --surface-card: #111827; --surface-elev-1: #1e293b; --surface-elev-2: #263241; --surface-glass: rgba(15, 23, 42, 0.76); --surface-overlay: rgba(2, 6, 23, 0.7);
     --bg: #070b13;
     --brand: #60a5fa;
     --brand-strong: #93c5fd;
@@ -47,6 +51,10 @@
   --paper: rgba(17, 24, 39, 0.78);
   --paper-solid: #111827;
   --dark: #f8fafc;
+  --brand-50: #172554; --brand-100: #1e3a8a; --brand-200: #1e40af; --brand-300: #1d4ed8; --brand-400: #2563eb; --brand-500: #3b82f6; --brand-600: #60a5fa; --brand-700: #93c5fd; --brand-800: #bfdbfe; --brand-900: #dbeafe;
+  --neutral-0: #020617; --neutral-50: #0f172a; --neutral-100: #111827; --neutral-200: #1e293b; --neutral-300: #334155; --neutral-400: #475569; --neutral-500: #64748b; --neutral-600: #94a3b8; --neutral-700: #cbd5e1; --neutral-800: #e2e8f0; --neutral-900: #f8fafc;
+  --color-success: #4ade80; --color-warn: #fbbf24; --color-danger: #fb7185; --color-info: #38bdf8;
+  --surface-canvas: #0f172a; --surface-card: #111827; --surface-elev-1: #1e293b; --surface-elev-2: #263241; --surface-glass: rgba(15, 23, 42, 0.76); --surface-overlay: rgba(2, 6, 23, 0.7);
   --bg: #070b13;
   --brand: #60a5fa;
   --brand-strong: #93c5fd;

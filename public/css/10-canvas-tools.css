@@ -1,7 +1,6 @@
 /* Split from public/styles.css for AIS-RLS-071.
    Order chunk 21 of 22; keep import order stable until semantic CSS modules are refined. */
 
-
 @media (max-width: 640px) {
   .admin-main {
     padding: 14px 12px 28px;
@@ -272,8 +271,7 @@
 .image-skeleton,
 .generation-card.loading,
 .work-card.loading {
-  background:
-    linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
   background-size: 840px 100%;
   animation: ais-shimmer 1.45s linear infinite;
 }
@@ -408,5 +406,3 @@
   border-color: color-mix(in srgb, var(--brand) 24%, var(--border-subtle));
   box-shadow: var(--shadow-lg);
 }
-
-.recent-visual,

@@ -1,5 +1,10 @@
 /* AIS-RLS-071 compatibility entry. CSS rules live in public/css modules. */
 @import url("/css/00-tokens.css");
+@import url("/css/00-tokens-typography.css");
+@import url("/css/00-tokens-motion.css");
+@import url("/css/01-reset-base.css");
+@import url("/css/03-layout-app-shell.css");
+@import url("/css/05-home-shell.css");
 @import url("/css/00-theme.css");
 @import url("/css/01-reset.css");
 @import url("/css/02-typography.css");
@@ -10,6 +15,7 @@
 @import url("/css/04-components-cards.css");
 @import url("/css/04-components-modals.css");
 @import url("/css/04-components-forms.css");
+@import url("/css/05-home-publish.css");
 @import url("/css/05-home.css");
 @import url("/css/05-home-onboarding.css");
 @import url("/css/05-home-composer.css");

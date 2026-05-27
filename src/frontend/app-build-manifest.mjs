@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260527-mask-admin-email-v1";
+export const FRONTEND_BUILD_VERSION = "20260527-visual-token-v2-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

@@ -1,0 +1,15 @@
+/* Home publish controls split for CSS module budget. */
+
+.publish-original-check {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 9px !important;
+  color: #475569 !important;
+}
+
+.publish-original-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #111827;
+}

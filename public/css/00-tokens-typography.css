@@ -1,0 +1,27 @@
+/* Visual Token v2 typography scale. */
+
+:root {
+  --font-display: "Instrument Serif", "Noto Serif SC", Georgia, serif;
+  --font-body: Geist, "Noto Sans SC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 30px;
+  --fs-display: 48px;
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+  --tracking-tight: 0;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+}
+
+@media (max-width: 768px) {
+  :root { --fs-3xl: 26px; --fs-display: 40px; --lh-relaxed: 1.6; }
+}

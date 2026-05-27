@@ -28,11 +28,7 @@ const requiredAppScripts = [
   "app.js"
 ];
 
-const requiredAdminScripts = [
-  "app-modules.js",
-  "frontend-build-manifest.js",
-  "app-router.js"
-];
+const requiredAdminScripts = ["app-modules.js", "frontend-build-manifest.js", "app-router.js"];
 
 const requiredLazyAdminScripts = [
   "/admin-generation-diagnostics.js",
@@ -66,15 +62,21 @@ const requiredLazyCanvasScripts = [
 
 const requiredCssModules = [
   "00-tokens.css",
+  "00-tokens-typography.css",
+  "00-tokens-motion.css",
   "00-theme.css",
+  "01-reset-base.css",
   "01-reset.css",
   "02-typography.css",
   "03-layout.css",
+  "03-layout-app-shell.css",
   "03-layout-shell.css",
   "04-components.css",
   "04-components-cards.css",
   "04-components-modals.css",
   "04-components-forms.css",
+  "05-home-shell.css",
+  "05-home-publish.css",
   "05-home.css",
   "05-home-composer.css",
   "05-home-mobile.css",
@@ -143,7 +145,9 @@ function checkFileBudget(relativePath, budget) {
     `${relativePath} has ${lines} lines; move new code into ${budget.owner} before exceeding ${budget.maxLines}`
   );
   if (budget.targetLines && lines > budget.targetLines) {
-    warn(`${relativePath} is ${lines} lines; long-term target is ${budget.targetLines} lines via ${budget.owner}`);
+    warn(
+      `${relativePath} is ${lines} lines; long-term target is ${budget.targetLines} lines via ${budget.owner}`
+    );
   }
 }
 
@@ -152,7 +156,10 @@ function checkOrderedScripts(html, scripts, label) {
   for (const scriptName of scripts) {
     const position = scriptPosition(html, scriptName);
     assert(position >= 0, `${label} must load ${scriptName}`);
-    assert(position > previous, `${label} must load ${scriptName} after the previous frontend module`);
+    assert(
+      position > previous,
+      `${label} must load ${scriptName} after the previous frontend module`
+    );
     previous = position;
   }
 }
@@ -171,11 +178,23 @@ function checkCssModules() {
   const cssDir = fullPath("public/css");
   assert(fs.existsSync(cssDir), "public/css directory must exist");
   const styles = read("public/styles.css");
-  assert(styles.includes("AIS-RLS-071 compatibility entry"), "public/styles.css must remain a compatibility import entry");
-  assert(!styles.includes("{\n  --") && !styles.includes(":root {"), "public/styles.css should not contain bulk CSS rules");
+  assert(
+    styles.includes("AIS-RLS-071 compatibility entry"),
+    "public/styles.css must remain a compatibility import entry"
+  );
+  assert(
+    !styles.includes("{\n  --") && !styles.includes(":root {"),
+    "public/styles.css should not contain bulk CSS rules"
+  );
 
-  const actual = fs.readdirSync(cssDir).filter((name) => name.endsWith(".css")).sort();
-  assert(actual.length >= requiredCssModules.length, "public/css should contain the required split modules");
+  const actual = fs
+    .readdirSync(cssDir)
+    .filter((name) => name.endsWith(".css"))
+    .sort();
+  assert(
+    actual.length >= requiredCssModules.length,
+    "public/css should contain the required split modules"
+  );
 
   for (const cssFile of requiredCssModules) {
     const relativePath = `public/css/${cssFile}`;
@@ -183,17 +202,69 @@ function checkCssModules() {
     assert(styles.includes(`/css/${cssFile}`), `public/styles.css must import ${cssFile}`);
   }
 
-  const imports = [...styles.matchAll(/@import url\("\/css\/([^"]+\.css)"\);/g)].map((match) => match[1]);
-  assert(imports.length === actual.length, "public/styles.css import count must match public/css/*.css");
-  assert(JSON.stringify([...imports].sort()) === JSON.stringify(actual), "public/styles.css imports must match public/css/*.css exactly");
+  const imports = [...styles.matchAll(/@import url\("\/css\/([^"]+\.css)"\);/g)].map(
+    (match) => match[1]
+  );
+  assert(
+    imports.length === actual.length,
+    "public/styles.css import count must match public/css/*.css"
+  );
+  assert(
+    JSON.stringify([...imports].sort()) === JSON.stringify(actual),
+    "public/styles.css imports must match public/css/*.css exactly"
+  );
 
   for (const cssFile of actual) {
     const relativePath = `public/css/${cssFile}`;
     const content = read(relativePath);
     const lines = lineCount(content);
-    assert(lines <= budgets["public/css/*.css"].maxLines, `${relativePath} has ${lines} lines; split or move rules to the owning CSS module`);
-    assert(content.trimStart().startsWith("/*"), `${relativePath} should start with a short module header comment`);
+    assert(
+      lines <= budgets["public/css/*.css"].maxLines,
+      `${relativePath} has ${lines} lines; split or move rules to the owning CSS module`
+    );
+    assert(
+      content.trimStart().startsWith("/*"),
+      `${relativePath} should start with a short module header comment`
+    );
   }
+
+  const tokens = read("public/css/00-tokens.css");
+  const typography = read("public/css/00-tokens-typography.css");
+  const motion = read("public/css/00-tokens-motion.css");
+  assert(
+    /--brand-600:\s*#[0-9a-fA-F]{6};/.test(tokens),
+    "00-tokens.css must expose Token v2 --brand-600"
+  );
+  assert(
+    tokens.includes("--surface-canvas:") && tokens.includes("--neutral-900:"),
+    "00-tokens.css must expose Token v2 surface and neutral scales"
+  );
+  assert(
+    typography.includes("--font-display:") && typography.includes("--fs-display:"),
+    "00-tokens-typography.css must expose typography tokens"
+  );
+  assert(
+    motion.includes("--ease-spring:") && motion.includes("--dur-slower:"),
+    "00-tokens-motion.css must expose motion tokens"
+  );
+  assert(lineCount(tokens) <= 90, "00-tokens.css must stay within AIS-RLS-133 token line budget");
+  assert(
+    lineCount(typography) <= 40,
+    "00-tokens-typography.css must stay within AIS-RLS-133 typography line budget"
+  );
+  assert(
+    lineCount(motion) <= 60,
+    "00-tokens-motion.css must stay within AIS-RLS-133 motion line budget"
+  );
+  assert(tokens.includes("TODO(AIS-RLS-134)"), "00-tokens.css must keep a migration TODO anchor");
+  assert(tokens.includes("@media (max-width: 768px)"), "00-tokens.css must cover mobile token overrides");
+  assert(typography.includes("@media (max-width: 768px)"), "typography tokens must cover mobile overrides");
+  assert(motion.includes("@media (prefers-reduced-motion: reduce)"), "motion tokens must honor reduced motion");
+  assert(styles.indexOf("/css/00-tokens.css") < styles.indexOf("/css/01-reset-base.css"), "token imports must precede token consumers");
+  const theme = read("public/css/00-theme.css");
+  assert(theme.includes("--brand-600: #60a5fa;") && theme.includes("--surface-canvas: #0f172a;"), "dark theme must override Token v2 colors and surfaces");
+  const adminHtml = read("public/admin.html");
+  assert(adminHtml.includes('<html lang="zh-CN" data-app="admin">'), "admin root must opt into compact data-app token overrides");
 }
 
 function checkMaintenanceDocs() {
@@ -220,14 +291,22 @@ const adminHtml = read("public/admin.html");
 const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 checkOrderedScripts(indexHtml, requiredAppScripts, "public/index.html");
 checkOrderedScripts(adminHtml, requiredAdminScripts, "public/admin.html");
-assert(scriptPosition(indexHtml, "canvas.js") < 0, "public/index.html must lazy-load canvas.js through app-router");
-assert(scriptPosition(adminHtml, "admin.js") < 0, "public/admin.html must lazy-load admin.js through app-router");
 assert(
-  JSON.stringify(buildManifest.js?.lazyRoutes?.admin?.scripts || []) === JSON.stringify(requiredLazyAdminScripts),
+  scriptPosition(indexHtml, "canvas.js") < 0,
+  "public/index.html must lazy-load canvas.js through app-router"
+);
+assert(
+  scriptPosition(adminHtml, "admin.js") < 0,
+  "public/admin.html must lazy-load admin.js through app-router"
+);
+assert(
+  JSON.stringify(buildManifest.js?.lazyRoutes?.admin?.scripts || []) ===
+    JSON.stringify(requiredLazyAdminScripts),
   "frontend manifest must preserve admin lazy route script order"
 );
 assert(
-  JSON.stringify(buildManifest.js?.lazyRoutes?.canvas?.scripts || []) === JSON.stringify(requiredLazyCanvasScripts),
+  JSON.stringify(buildManifest.js?.lazyRoutes?.canvas?.scripts || []) ===
+    JSON.stringify(requiredLazyCanvasScripts),
   "frontend manifest must preserve canvas lazy route script order"
 );
 
@@ -237,12 +316,16 @@ checkModuleRegistration("public/app-gallery.js", "AppModules", ["gallery"]);
 checkModuleRegistration("public/admin-overview.js", "AdminModules", ["overview"]);
 checkModuleRegistration("public/admin-users.js", "AdminModules", ["users"]);
 checkModuleRegistration("public/admin-providers.js", "AdminModules", ["providers"]);
-checkModuleRegistration("public/admin-gallery.js", "AdminModules", ["squareReview", "galleryFiles"]);
+checkModuleRegistration("public/admin-gallery.js", "AdminModules", [
+  "squareReview",
+  "galleryFiles"
+]);
 checkModuleRegistration("public/admin-settings.js", "AdminModules", ["settings"]);
 
 const packageJson = JSON.parse(read("package.json"));
 assert(
-  packageJson.scripts?.["smoke:frontend-boundaries"] === "node scripts/smoke/check-frontend-boundaries.mjs",
+  packageJson.scripts?.["smoke:frontend-boundaries"] ===
+    "node scripts/smoke/check-frontend-boundaries.mjs",
   "package.json must expose smoke:frontend-boundaries"
 );
 

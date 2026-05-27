@@ -1,5 +1,5 @@
 {
-  "version": "20260527-mask-admin-email-v1",
+  "version": "20260527-visual-token-v2-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,14 +22,19 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.6a49a8e41627.css",
-    "file": "/dist/app.6a49a8e41627.css",
-    "hash": "6a49a8e41627",
-    "bytes": 279514,
+    "entry": "/dist/app.3a2641ae684c.css",
+    "file": "/dist/app.3a2641ae684c.css",
+    "hash": "3a2641ae684c",
+    "bytes": 282994,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
       "/css/00-tokens.css",
+      "/css/00-tokens-typography.css",
+      "/css/00-tokens-motion.css",
+      "/css/01-reset-base.css",
+      "/css/03-layout-app-shell.css",
+      "/css/05-home-shell.css",
       "/css/00-theme.css",
       "/css/01-reset.css",
       "/css/02-typography.css",
@@ -40,6 +45,7 @@
       "/css/04-components-cards.css",
       "/css/04-components-modals.css",
       "/css/04-components-forms.css",
+      "/css/05-home-publish.css",
       "/css/05-home.css",
       "/css/05-home-onboarding.css",
       "/css/05-home-composer.css",

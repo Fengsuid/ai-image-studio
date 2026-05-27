@@ -29,14 +29,66 @@
 }
 
 /* public/css/00-tokens.css */
-/* Split from public/styles.css for AIS-RLS-071.
-   Order chunk 1 of 22; keep import order stable until semantic CSS modules are refined. */
-
-:root {
-  color-scheme: light;
-  --ink: #1a1a1a;
-  --text: #373a46;
-  --muted: #8c93a1;
+/* Visual Token v2 color, spacing, radius, shadow and compatibility aliases. TODO(AIS-RLS-134): migrate legacy aliases. */
+:root { color-scheme: light;
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-200: #bfdbfe;
+  --brand-300: #93c5fd;
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+  --brand-800: #1e40af;
+  --brand-900: #1e3a8a;
+  --neutral-0: #ffffff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+  --color-success: #16a34a;
+  --color-warn: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #0284c7;
+  --surface-canvas: var(--neutral-50);
+  --surface-card: var(--neutral-0);
+  --surface-elev-1: var(--neutral-0);
+  --surface-elev-2: var(--neutral-50);
+  --surface-glass: color-mix(in srgb, var(--neutral-0) 76%, transparent);
+  --surface-overlay: color-mix(in srgb, var(--neutral-900) 24%, transparent);
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+  --radius-full: var(--radius-pill);
+  --shadow-xs: 0 1px 4px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.09);
+  --shadow-lg: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --shadow-xl: 0 32px 96px rgba(15, 23, 42, 0.18);
+  --shadow-glow-brand: 0 0 0 1px color-mix(in srgb, var(--brand-600) 40%, transparent), 0 8px 24px color-mix(in srgb, var(--brand-600) 22%, transparent);
+  --shadow: 0 20px 60px rgba(15, 23, 42, 0.08); --shadow-soft: 0 6px 24px rgba(15, 23, 42, 0.06); --shadow-modal: 0 32px 96px rgba(15, 23, 42, 0.18); --shadow-brand: 0 12px 32px rgba(37, 99, 235, 0.24);
+  --gap-xs: 6px; --gap-sm: 10px; --gap-md: 16px; --gap-lg: 22px;
+  --chat-rail-width: 260px; --chat-main-width: 820px; --chat-gap: 22px;
+  --ink: #1a1a1a; --text: #373a46; --muted: #8c93a1;
   --line: #eceff3;
   --soft: #f7f8fa;
   --paper: rgba(255, 255, 255, 0.72);
@@ -45,50 +97,88 @@
   --green: #52c41a;
   --blue: #1677ff;
   --red: #ff4d4f;
-  --bg: #ffffff;
-  --brand: #2563eb;
+  --bg: var(--neutral-0);
+  --brand: var(--brand-600);
   --brand-strong: #1d4ed8;
   --brand-soft: rgba(37, 99, 235, 0.1);
   --accent: #f97316;
   --accent-soft: rgba(249, 115, 22, 0.12);
   --surface: #f8fafc;
   --surface-raised: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.72);
   --border: #e2e8f0;
   --border-subtle: rgba(148, 163, 184, 0.22);
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-tertiary: #94a3b8;
   --text-on-brand: #ffffff;
+  font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+:root[data-app="admin"] { --space-md: 12px; --space-lg: 20px; --radius-xl: 14px; --radius-2xl: 18px; }
+@media (max-width: 768px) {
+  :root { --space-md: 14px; --space-lg: 20px; --radius-xl: 18px; --radius-2xl: 24px; }
+}
+
+/* public/css/00-tokens-typography.css */
+/* Visual Token v2 typography scale. */
+
+:root {
+  --font-display: "Instrument Serif", "Noto Serif SC", Georgia, serif;
+  --font-body: Geist, "Noto Sans SC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 30px;
+  --fs-display: 48px;
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+  --tracking-tight: 0;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+}
+
+@media (max-width: 768px) {
+  :root { --fs-3xl: 26px; --fs-display: 40px; --lh-relaxed: 1.6; }
+}
+
+/* public/css/00-tokens-motion.css */
+/* Visual Token v2 motion scale. */
+
+:root {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: var(--ease-spring);
+  --dur-instant: 80ms;
   --dur-fast: 140ms;
   --dur-base: 220ms;
   --dur-slow: 380ms;
-  --radius-xs: 4px;
-  --radius-full: 999px;
-  --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
-  --shadow-soft: 0 6px 24px rgba(15, 23, 42, 0.06);
-  --shadow-modal: 0 32px 96px rgba(15, 23, 42, 0.18);
-  --shadow-xs: 0 1px 4px rgba(15, 23, 42, 0.06);
-  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.07);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.09);
-  --shadow-lg: 0 20px 60px rgba(15, 23, 42, 0.12);
-  --shadow-xl: 0 32px 96px rgba(15, 23, 42, 0.18);
-  --shadow-brand: 0 12px 32px rgba(37, 99, 235, 0.24);
-  --gap-xs: 6px;
-  --gap-sm: 10px;
-  --gap-md: 16px;
-  --gap-lg: 22px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --chat-rail-width: 260px;
-  --chat-main-width: 820px;
-  --chat-gap: 22px;
-  font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --dur-slower: 480ms;
 }
+
+@media (max-width: 768px) {
+  :root { --dur-slower: 360ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --dur-slower: 0ms;
+  }
+}
+
+/* public/css/01-reset-base.css */
+/* Base reset and document defaults split from the token layer for AIS-RLS-133. */
 
 * {
   box-sizing: border-box;
@@ -127,6 +217,14 @@ img {
   max-width: 100%;
 }
 
+a {
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
 [data-image-fallback] {
   position: relative;
 }
@@ -145,21 +243,15 @@ img {
   padding: 10px;
   text-align: center;
   color: #64748b;
-  background:
-    linear-gradient(135deg, rgba(248, 250, 252, 0.94), rgba(226, 232, 240, 0.88));
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.94), rgba(226, 232, 240, 0.88));
   font-size: clamp(10px, 2.8vw, 13px);
   font-weight: 800;
   line-height: 1.35;
   word-break: keep-all;
 }
 
-a {
-  color: inherit;
-}
-
-.hidden {
-  display: none !important;
-}
+/* public/css/03-layout-app-shell.css */
+/* App shell, ambient background and top navigation defaults split for AIS-RLS-133. */
 
 .app {
   min-height: 100vh;
@@ -233,14 +325,18 @@ a {
   justify-content: center;
   gap: 7px;
   min-height: 38px;
-  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .brand-btn {
   background: transparent;
   color: var(--ink);
   font-weight: 800;
-  font-size: 15px;
+  font-size: var(--fs-md);
 }
 
 .brand-btn > span:last-child {
@@ -329,7 +425,9 @@ a {
   font-weight: 900;
   letter-spacing: 0;
   box-shadow: 0 12px 28px rgba(109, 40, 217, 0.18);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .account-menu {
@@ -464,6 +562,9 @@ a {
   z-index: 10;
 }
 
+/* public/css/05-home-shell.css */
+/* Home hero shell split from the token layer for AIS-RLS-133. */
+
 .hero {
   max-width: 1200px;
   margin: 0 auto;
@@ -491,6 +592,10 @@ a {
     --paper: rgba(17, 24, 39, 0.78);
     --paper-solid: #111827;
     --dark: #f8fafc;
+    --brand-50: #172554; --brand-100: #1e3a8a; --brand-200: #1e40af; --brand-300: #1d4ed8; --brand-400: #2563eb; --brand-500: #3b82f6; --brand-600: #60a5fa; --brand-700: #93c5fd; --brand-800: #bfdbfe; --brand-900: #dbeafe;
+    --neutral-0: #020617; --neutral-50: #0f172a; --neutral-100: #111827; --neutral-200: #1e293b; --neutral-300: #334155; --neutral-400: #475569; --neutral-500: #64748b; --neutral-600: #94a3b8; --neutral-700: #cbd5e1; --neutral-800: #e2e8f0; --neutral-900: #f8fafc;
+    --color-success: #4ade80; --color-warn: #fbbf24; --color-danger: #fb7185; --color-info: #38bdf8;
+    --surface-canvas: #0f172a; --surface-card: #111827; --surface-elev-1: #1e293b; --surface-elev-2: #263241; --surface-glass: rgba(15, 23, 42, 0.76); --surface-overlay: rgba(2, 6, 23, 0.7);
     --bg: #070b13;
     --brand: #60a5fa;
     --brand-strong: #93c5fd;
@@ -527,6 +632,10 @@ a {
   --paper: rgba(17, 24, 39, 0.78);
   --paper-solid: #111827;
   --dark: #f8fafc;
+  --brand-50: #172554; --brand-100: #1e3a8a; --brand-200: #1e40af; --brand-300: #1d4ed8; --brand-400: #2563eb; --brand-500: #3b82f6; --brand-600: #60a5fa; --brand-700: #93c5fd; --brand-800: #bfdbfe; --brand-900: #dbeafe;
+  --neutral-0: #020617; --neutral-50: #0f172a; --neutral-100: #111827; --neutral-200: #1e293b; --neutral-300: #334155; --neutral-400: #475569; --neutral-500: #64748b; --neutral-600: #94a3b8; --neutral-700: #cbd5e1; --neutral-800: #e2e8f0; --neutral-900: #f8fafc;
+  --color-success: #4ade80; --color-warn: #fbbf24; --color-danger: #fb7185; --color-info: #38bdf8;
+  --surface-canvas: #0f172a; --surface-card: #111827; --surface-elev-1: #1e293b; --surface-elev-2: #263241; --surface-glass: rgba(15, 23, 42, 0.76); --surface-overlay: rgba(2, 6, 23, 0.7);
   --bg: #070b13;
   --brand: #60a5fa;
   --brand-strong: #93c5fd;
@@ -4338,10 +4447,8 @@ html.theme-transitioning *::after {
   line-height: 1.55;
 }
 
-/* public/css/05-home.css */
-/* Split from public/styles.css for AIS-RLS-071.
-   Order chunk 10 of 22; keep import order stable until semantic CSS modules are refined. */
-
+/* public/css/05-home-publish.css */
+/* Home publish controls split for CSS module budget. */
 
 .publish-original-check {
   display: flex !important;
@@ -4356,6 +4463,9 @@ html.theme-transitioning *::after {
   height: 18px;
   accent-color: #111827;
 }
+
+/* public/css/05-home.css */
+/* Split from public/styles.css for AIS-RLS-071. */
 
 .bind-source-modal {
   width: min(780px, calc(100vw - 32px));
@@ -4494,7 +4604,10 @@ html.theme-transitioning *::after {
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
   cursor: zoom-in;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .work-card:hover,
@@ -4517,11 +4630,27 @@ html.theme-transitioning *::after {
   display: grid;
   place-items: center;
   background:
-    linear-gradient(45deg, rgba(226, 232, 240, 0.62) 25%, transparent 25% 75%, rgba(226, 232, 240, 0.62) 75%),
-    linear-gradient(45deg, rgba(226, 232, 240, 0.62) 25%, transparent 25% 75%, rgba(226, 232, 240, 0.62) 75%),
+    linear-gradient(
+      45deg,
+      rgba(226, 232, 240, 0.62) 25%,
+      transparent 25% 75%,
+      rgba(226, 232, 240, 0.62) 75%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(226, 232, 240, 0.62) 25%,
+      transparent 25% 75%,
+      rgba(226, 232, 240, 0.62) 75%
+    ),
     linear-gradient(135deg, #f8fafc, #eef2f7);
-  background-position: 0 0, 12px 12px, 0 0;
-  background-size: 24px 24px, 24px 24px, auto;
+  background-position:
+    0 0,
+    12px 12px,
+    0 0;
+  background-size:
+    24px 24px,
+    24px 24px,
+    auto;
 }
 
 .work-select {
@@ -4677,7 +4806,10 @@ html.theme-transitioning *::after {
   font-weight: 600;
   min-height: 32px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .works-filter-btn:hover {
@@ -10951,7 +11083,6 @@ button.tag-chip.active {
 /* Split from public/styles.css for AIS-RLS-071.
    Order chunk 21 of 22; keep import order stable until semantic CSS modules are refined. */
 
-
 @media (max-width: 640px) {
   .admin-main {
     padding: 14px 12px 28px;
@@ -11222,8 +11353,7 @@ button.tag-chip.active {
 .image-skeleton,
 .generation-card.loading,
 .work-card.loading {
-  background:
-    linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
   background-size: 840px 100%;
   animation: ais-shimmer 1.45s linear infinite;
 }
@@ -11358,8 +11488,6 @@ button.tag-chip.active {
   border-color: color-mix(in srgb, var(--brand) 24%, var(--border-subtle));
   box-shadow: var(--shadow-lg);
 }
-
-.recent-visual,
 
 /* public/css/11-mobile.css */
 /* Split from public/styles.css for AIS-RLS-071.
