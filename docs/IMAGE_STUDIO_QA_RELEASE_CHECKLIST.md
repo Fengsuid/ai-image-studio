@@ -534,3 +534,19 @@ Record the outcome in the relevant development document or release note before m
 - Deployment note: `b952831` was deployed as `APP_VERSION=20260526-generic-prompt-fix-v1`; production was later superseded by `20260527-lazy-route-loader-v1`, which descends from and includes the generic prompt fix.
 - Current closure note: this record and the two smoke scripts close the audit gap; no new runtime deploy or APP_VERSION bump is required for the test/documentation-only follow-up.
 - Rollback target: revert `b952831` only if generic prompt expansion causes provider prompt regressions; revert this closure commit only if the added smoke guardrails need to be removed or renamed.
+
+### 2026-05-27 AIS-RLS-119 Mask Admin Email Release
+
+- Task covered: `AIS-RLS-119` mask admin email in the account menu and remove reliance on Cloudflare `__cf_email__` obfuscation.
+- Commit covered: `cafb433 feat(AIS-RLS-119): mask account menu emails`.
+- Files changed: `public/app.js`, `public/app-auth.js`, `public/index.html`, `scripts/smoke/check-mask-admin-email.mjs`, root `package.json`, APP_VERSION/build manifest files, and refreshed hashed `public/dist/app*.js` assets.
+- Runtime coverage: account-menu current-user email and admin contact email now render through `maskContactEmail()`, while click/keyboard copy and contact-modal copy continue to use the real email from JS state/settings.
+- HTML exposure coverage: static `user@example.com` was removed from `public/index.html`; production homepage source checks for `__cf_email__`, `user@example.com`, and `support@example.com` all returned `0`.
+- Smoke coverage: added `smoke:mask-admin-email` to assert masked account/admin display, real-value copy paths, `mailto:` preservation, and lack of static email placeholders.
+- Local checks: `npm run frontend:build`, `node --check public/app.js`, `node --check public/app-auth.js`, `node --check scripts/smoke/check-mask-admin-email.mjs`, `npm run smoke:mask-admin-email`, `npm run smoke:user-flow-polish`, `npm run check`, and `git diff --check` passed. Local `smoke:public` without a running local app failed with `fetch failed`; container and external smoke below are the deployment authority.
+- Deployment package: `ai-image-studio-ais-rls-119-cafb433-delta.tgz`, 132,437 bytes, 18 entries, SHA256 `BE53D33DAC600C2B87ECA1A86AAB27004E7E2723431F67FF45777EB61C8C5CCA`, verified after upload on the server.
+- Deployment note: delta archive deployed to production, `.env` updated to `APP_VERSION=20260527-mask-admin-email-v1`, `docker compose build app` and `docker compose up -d app` succeeded; no DB/schema changes.
+- Online version: container and external `/api/version` report `20260527-mask-admin-email-v1`; app restart count is `0`, MySQL is healthy, and server disk usage is about `84%` with about `9.1G` free.
+- Online smoke: container `npm run smoke:mask-admin-email`, container `npm run smoke:user-flow-polish`, container `npm run smoke:public -- http://127.0.0.1:3000`, and external `npm run smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
+- Known blockers: none for AIS-RLS-119. `/admin` still uses the AIS-RLS-117 query-string version on admin shell compatibility links, but the front-page hashed app/auth assets and `/api/version` are on the 119 release.
+- Rollback target: revert `cafb433`, restore the previous hashed app/auth assets and APP_VERSION, rebuild/restart app, then rerun public smoke and homepage source email grep checks.
