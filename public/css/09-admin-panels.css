@@ -58,7 +58,7 @@
 
   .works-detail-body {
     border-left: 0;
-    border-top: 1px solid rgba(226, 232, 240, 0.86);
+    border-top: 1px solid color-mix(in srgb, var(--neutral-200) 86%, transparent);
     padding: 56px 16px 22px;
   }
 
@@ -79,9 +79,9 @@
   margin: 14px 0 6px;
   padding: 10px 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--neutral-0) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--neutral-0) 12%, transparent);
+  color: color-mix(in srgb, var(--neutral-0) 80%, transparent);
   font-size: 13px;
 }
 
@@ -93,7 +93,7 @@
   flex: 0 0 auto;
   letter-spacing: 0.04em;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.62);
+  color: color-mix(in srgb, var(--neutral-0) 62%, transparent);
   text-transform: uppercase;
   font-size: 11px;
 }
@@ -110,8 +110,8 @@
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(8, 8, 14, 0.62);
+  border: 1px solid color-mix(in srgb, var(--neutral-0) 18%, transparent);
+  background: color-mix(in srgb, var(--neutral-900) 62%, transparent);
   overflow: hidden;
   cursor: pointer;
   padding: 0;
@@ -120,7 +120,7 @@
 
 .editor-recent-thumb:hover {
   transform: translateY(-1px);
-  border-color: rgba(168, 85, 247, 0.85);
+  border-color: color-mix(in srgb, var(--brand-400) 85%, transparent);
 }
 
 .editor-recent-thumb img {
@@ -137,8 +137,8 @@
   font-style: normal;
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
-  background: rgba(15, 23, 42, 0.7);
+  color: var(--neutral-0);
+  background: color-mix(in srgb, var(--neutral-900) 70%, transparent);
   padding: 1px 6px;
   border-radius: 6px;
   letter-spacing: 0.05em;
@@ -228,39 +228,39 @@
 
 .editor-view {
   background:
-    radial-gradient(circle at 20% 12%, rgba(59, 130, 246, 0.12), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(245, 158, 11, 0.11), transparent 24%),
-    linear-gradient(135deg, #f5f7fb 0%, #edf3f8 52%, #f8fafc 100%);
-  color: #0f172a;
+    radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--brand-500) 12%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--color-warn) 11%, transparent), transparent 24%),
+    linear-gradient(135deg, var(--neutral-50) 0%, color-mix(in srgb, var(--brand-50) 52%, var(--neutral-100)) 52%, var(--neutral-50) 100%);
+  color: var(--neutral-900);
 }
 
 .editor-brand {
-  color: #0f172a;
+  color: var(--neutral-900);
 }
 
 .editor-tabs {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(203, 213, 225, 0.95);
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+  background: color-mix(in srgb, var(--neutral-0) 88%, transparent);
+  border-color: color-mix(in srgb, var(--neutral-300) 95%, transparent);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--neutral-900) 8%, transparent);
 }
 
 .editor-tabs button {
-  color: #64748b;
+  color: var(--neutral-500);
 }
 
 .editor-tabs button.active {
-  background: linear-gradient(135deg, #2563eb, #0f766e);
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
+  background: linear-gradient(135deg, var(--brand-600), var(--color-success));
+  color: var(--neutral-0);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--brand-600) 18%, transparent);
 }
 
 .editor-workspace {
-  border: 1px solid rgba(203, 213, 225, 0.95);
+  border: 1px solid color-mix(in srgb, var(--neutral-300) 95%, transparent);
   background:
-    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px) 0 0 / 36px 36px,
-    linear-gradient(0deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px) 0 0 / 36px 36px,
-    #eef2f7;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.9), 0 24px 60px rgba(15, 23, 42, 0.10);
+    linear-gradient(90deg, color-mix(in srgb, var(--neutral-400) 14%, transparent) 1px, transparent 1px) 0 0 / 36px 36px,
+    linear-gradient(0deg, color-mix(in srgb, var(--neutral-400) 14%, transparent) 1px, transparent 1px) 0 0 / 36px 36px,
+    color-mix(in srgb, var(--neutral-100) 78%, var(--brand-50));
+  box-shadow: inset 0 1px color-mix(in srgb, var(--neutral-0) 90%, transparent), 0 24px 60px color-mix(in srgb, var(--neutral-900) 10%, transparent);
 }
 
 .editor-toolbar,
@@ -268,63 +268,63 @@
 .editor-keyboard,
 .editor-prompt-bar,
 .editor-publish-panel {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(203, 213, 225, 0.92);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+  background: color-mix(in srgb, var(--neutral-0) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--neutral-300) 92%, transparent);
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--neutral-900) 12%, transparent);
   backdrop-filter: blur(18px);
 }
 
 .editor-toolbar button,
 .editor-zoom button,
 .editor-attach {
-  color: #475569;
+  color: var(--neutral-600);
 }
 
 .editor-toolbar button.active {
-  background: linear-gradient(135deg, #2563eb, #0f766e);
-  color: #fff;
+  background: linear-gradient(135deg, var(--brand-600), var(--color-success));
+  color: var(--neutral-0);
 }
 
 .editor-upload-card {
-  border-color: rgba(148, 163, 184, 0.55);
-  background: rgba(255, 255, 255, 0.74);
-  color: #64748b;
+  border-color: color-mix(in srgb, var(--neutral-400) 55%, transparent);
+  background: color-mix(in srgb, var(--neutral-0) 74%, transparent);
+  color: var(--neutral-500);
 }
 
 .editor-upload-card i {
-  color: #2563eb;
+  color: var(--brand-600);
 }
 
 .editor-upload-card strong {
-  color: #0f172a;
+  color: var(--neutral-900);
 }
 
 .editor-image-scaler img {
   border-radius: 16px;
-  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.20);
+  box-shadow: 0 28px 70px color-mix(in srgb, var(--neutral-900) 20%, transparent);
 }
 
 .editor-zoom span,
 .editor-keyboard {
-  color: #475569;
+  color: var(--neutral-600);
 }
 
 .editor-prompt-bar {
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--neutral-0) 96%, transparent);
 }
 
 .editor-prompt-bar > input {
-  color: #0f172a;
+  color: var(--neutral-900);
 }
 
 .editor-prompt-bar input::placeholder {
-  color: #94a3b8;
+  color: var(--neutral-400);
 }
 
 .editor-prompt-bar button[type="submit"] {
-  background: linear-gradient(135deg, #2563eb, #0f766e);
-  color: #fff;
-  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
+  background: linear-gradient(135deg, var(--brand-600), var(--color-success));
+  color: var(--neutral-0);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--brand-600) 22%, transparent);
 }
 
 .editor-publish-panel {
@@ -345,20 +345,20 @@
 }
 
 .editor-publish-panel strong {
-  color: #0f172a;
+  color: var(--neutral-900);
   font-size: 15px;
   letter-spacing: 0;
 }
 
 .editor-publish-panel > div span {
-  color: #64748b;
+  color: var(--neutral-500);
   font-size: 12px;
   line-height: 1.45;
 }
 
 .editor-public-toggle,
 .editor-source-toggle {
-  color: #334155;
+  color: var(--neutral-700);
   justify-content: space-between;
   gap: 14px;
 }
@@ -431,8 +431,8 @@
 
 .admin-body {
   min-height: 100vh;
-  background: #f4f6f8;
-  color: #172033;
+  background: var(--neutral-50);
+  color: var(--neutral-800);
 }
 
 .admin-shell {
