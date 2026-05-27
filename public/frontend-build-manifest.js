@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260527-visual-token-v2-v1",
+  "version": "20260527-button-primitive-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.3a2641ae684c.css",
-    "file": "/dist/app.3a2641ae684c.css",
-    "hash": "3a2641ae684c",
-    "bytes": 282994,
+    "entry": "/dist/app.af00027fb70e.css",
+    "file": "/dist/app.af00027fb70e.css",
+    "hash": "af00027fb70e",
+    "bytes": 285566,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -36,6 +36,7 @@
       "/css/00-tokens-typography.css",
       "/css/00-tokens-motion.css",
       "/css/01-reset-base.css",
+      "/css/primitives/_button.css",
       "/css/03-layout-app-shell.css",
       "/css/05-home-shell.css",
       "/css/00-theme.css",
@@ -316,10 +317,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.48294c7b6c01.js",
-        "fileName": "app.48294c7b6c01.js",
-        "hash": "48294c7b6c01",
-        "bytes": 179416,
+        "entry": "/dist/app.0cc97fcfc1d0.js",
+        "fileName": "app.0cc97fcfc1d0.js",
+        "hash": "0cc97fcfc1d0",
+        "bytes": 179266,
         "lazy": false
       },
       {
@@ -452,9 +453,9 @@
       },
       {
         "source": "/canvas-history.js",
-        "entry": "/dist/canvas-history.d56d37f6ed67.js",
-        "fileName": "canvas-history.d56d37f6ed67.js",
-        "hash": "d56d37f6ed67",
+        "entry": "/dist/canvas-history.33b2660bb690.js",
+        "fileName": "canvas-history.33b2660bb690.js",
+        "hash": "33b2660bb690",
         "bytes": 1989,
         "lazy": true
       },

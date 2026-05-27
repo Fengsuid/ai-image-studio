@@ -43,19 +43,29 @@ const required = [
   "10-canvas.css",
   "11-mobile.css",
   "11-mobile-shell.css",
-  "12-animations.css"
+  "12-animations.css",
+  "primitives/_button.css"
 ];
 for (const file of required) {
   assert(fs.existsSync(path.join(cssDir, file)), `missing CSS module ${file}`);
 }
 
-const cssFiles = fs.readdirSync(cssDir).filter((name) => name.endsWith(".css")).sort();
+function listCssModules(dir, prefix = "") {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const absolute = path.join(dir, entry.name);
+    if (entry.isDirectory()) return listCssModules(absolute, name);
+    return entry.isFile() && entry.name.endsWith(".css") ? [name] : [];
+  });
+}
+
+const cssFiles = listCssModules(cssDir).sort();
 assert(cssFiles.length >= required.length, "CSS split should include the required module set");
 assert(styles.includes("AIS-RLS-071 compatibility entry"), "styles.css must be a compatibility entry");
 assert(!styles.includes(":root {"), "styles.css should not keep bulk CSS rules after split");
 
 for (const file of cssFiles) {
-  const content = fs.readFileSync(path.join(cssDir, file), "utf8");
+  const content = fs.readFileSync(path.join(cssDir, ...file.split("/")), "utf8");
   const lines = content.split(/\r?\n/).length;
   assert(lines <= 500, `${file} exceeds 500 lines (${lines})`);
   assert(styles.includes(`/css/${file}`), `styles.css must import ${file}`);

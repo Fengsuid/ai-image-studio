@@ -64,6 +64,7 @@ const requiredCssModules = [
   "00-tokens.css",
   "00-tokens-typography.css",
   "00-tokens-motion.css",
+  "primitives/_button.css",
   "00-theme.css",
   "01-reset-base.css",
   "01-reset.css",
@@ -187,9 +188,16 @@ function checkCssModules() {
     "public/styles.css should not contain bulk CSS rules"
   );
 
-  const actual = fs
-    .readdirSync(cssDir)
-    .filter((name) => name.endsWith(".css"))
+  function listCssModules(dir, prefix = "") {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolute = path.join(dir, entry.name);
+      if (entry.isDirectory()) return listCssModules(absolute, name);
+      return entry.isFile() && entry.name.endsWith(".css") ? [name] : [];
+    });
+  }
+
+  const actual = listCssModules(cssDir)
     .sort();
   assert(
     actual.length >= requiredCssModules.length,
@@ -231,6 +239,7 @@ function checkCssModules() {
   const tokens = read("public/css/00-tokens.css");
   const typography = read("public/css/00-tokens-typography.css");
   const motion = read("public/css/00-tokens-motion.css");
+  const buttonPrimitive = read("public/css/primitives/_button.css");
   assert(
     /--brand-600:\s*#[0-9a-fA-F]{6};/.test(tokens),
     "00-tokens.css must expose Token v2 --brand-600"
@@ -261,6 +270,18 @@ function checkCssModules() {
   assert(typography.includes("@media (max-width: 768px)"), "typography tokens must cover mobile overrides");
   assert(motion.includes("@media (prefers-reduced-motion: reduce)"), "motion tokens must honor reduced motion");
   assert(styles.indexOf("/css/00-tokens.css") < styles.indexOf("/css/01-reset-base.css"), "token imports must precede token consumers");
+  assert(styles.includes("/css/primitives/_button.css"), "public/styles.css must import button primitive");
+  assert(styles.indexOf("/css/00-tokens-motion.css") < styles.indexOf("/css/primitives/_button.css"), "button primitive must load after token modules");
+  assert(styles.indexOf("/css/01-reset-base.css") < styles.indexOf("/css/primitives/_button.css"), "button primitive must load after reset-base");
+  assert(styles.indexOf("/css/primitives/_button.css") < styles.indexOf("/css/03-layout-app-shell.css"), "button primitive must load before legacy layout modules");
+  assert(buttonPrimitive.includes(".btn--primary") && buttonPrimitive.includes(".btn--secondary") && buttonPrimitive.includes(".btn--ghost"), "button primitive must expose core variants");
+  assert(buttonPrimitive.includes(".btn--danger") && buttonPrimitive.includes(".btn--link"), "button primitive must expose danger and link variants");
+  assert(buttonPrimitive.includes("[data-loading]::after") && buttonPrimitive.includes("var(--dur-slower)"), "button primitive loading spinner must use motion token");
+  assert(buttonPrimitive.includes(':root[data-theme="dark"] .btn'), "button primitive must include explicit dark-mode coverage");
+  assert(!/#[0-9a-fA-F]{3,6}/.test(buttonPrimitive), "button primitive must not hard-code hex colors");
+  const indexHtml = read("public/index.html");
+  assert(indexHtml.includes('class="btn btn--primary send-button"'), "public index must consume .btn on the composer send button");
+  assert(indexHtml.includes('class="btn btn--secondary composer-options-button options-toggle"'), "public index must consume .btn on composer option buttons");
   const theme = read("public/css/00-theme.css");
   assert(theme.includes("--brand-600: #60a5fa;") && theme.includes("--surface-canvas: #0f172a;"), "dark theme must override Token v2 colors and surfaces");
   const adminHtml = read("public/admin.html");
