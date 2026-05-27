@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260527-lazy-route-loader-v1",
+  "version": "20260527-mask-admin-email-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -294,10 +294,10 @@
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.a38ad60f2384.js",
-        "fileName": "app-auth.a38ad60f2384.js",
-        "hash": "a38ad60f2384",
-        "bytes": 23710,
+        "entry": "/dist/app-auth.aa1bb18d7203.js",
+        "fileName": "app-auth.aa1bb18d7203.js",
+        "hash": "aa1bb18d7203",
+        "bytes": 24160,
         "lazy": false
       },
       {
@@ -310,10 +310,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.a15abd933f85.js",
-        "fileName": "app.a15abd933f85.js",
-        "hash": "a15abd933f85",
-        "bytes": 178784,
+        "entry": "/dist/app.48294c7b6c01.js",
+        "fileName": "app.48294c7b6c01.js",
+        "hash": "48294c7b6c01",
+        "bytes": 179416,
         "lazy": false
       },
       {

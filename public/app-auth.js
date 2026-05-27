@@ -30,6 +30,7 @@
     const escapeHtml = requireContext(context, "escapeHtml");
     const formatDate = requireContext(context, "formatDate");
     const truncate = requireContext(context, "truncate");
+    const maskContactEmail = requireContext(context, "maskContactEmail");
     const openModal = requireContext(context, "openModal");
     const closeModal = requireContext(context, "closeModal");
     const showToast = requireContext(context, "showToast");
@@ -217,6 +218,7 @@
       const adminEmail = String(state.settings?.contactEmail ?? state.settings?.contactAdminEmail ?? "").trim();
       if (!adminEmail) return;
       const mailto = `mailto:${adminEmail}?subject=${encodeURIComponent("ai-image-studio support")}`;
+      const maskedAdminEmail = maskContactEmail(adminEmail);
       openModal(`
         <section class="modal">
           <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
@@ -227,14 +229,15 @@
           </div>
           <div class="contact-card">
             <span>${escapeHtml(text("contactEmailLabel"))}</span>
-            <a class="contact-email" href="${escapeHtml(mailto)}">${escapeHtml(adminEmail)}</a>
+            <a class="contact-email" href="${escapeHtml(mailto)}">${escapeHtml(maskedAdminEmail)}</a>
             <button class="contact-copy" type="button" data-copy-contact-email>${escapeHtml(text("contactCopy"))}</button>
           </div>
           <button class="modal-secondary" type="button" data-close-auth>${text("close")}</button>
         </section>
       `);
       $("[data-copy-contact-email]", elements.modalLayer).addEventListener("click", async () => {
-        await navigator.clipboard?.writeText(adminEmail);
+        if (typeof context.copyText === "function") await context.copyText(adminEmail);
+        else await navigator.clipboard?.writeText(adminEmail);
         showToast(text("contactCopied"), "ri-file-copy-line");
       });
       $("[data-close-auth]", elements.modalLayer).addEventListener("click", closeModal);
@@ -652,6 +655,18 @@
 
     function bindAccountEvents() {
       elements.contactBtn.addEventListener("click", openContactModal);
+      elements.accountEmailText?.addEventListener("click", async () => {
+        const email = String(state.user?.email || "").trim();
+        if (!email) return;
+        if (typeof context.copyText === "function") await context.copyText(email);
+        else await navigator.clipboard?.writeText(email);
+        showToast(text("contactCopied"), "ri-file-copy-line");
+      });
+      elements.accountEmailText?.addEventListener("keydown", (event) => {
+        if (!["Enter", " "].includes(event.key)) return;
+        event.preventDefault();
+        elements.accountEmailText.click();
+      });
       elements.accountContactBtn?.addEventListener("click", () => {
         closeAccountMenu();
         openContactModal();

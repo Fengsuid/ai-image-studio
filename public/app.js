@@ -303,7 +303,7 @@ function initSettingsController() {
 
 function authControllerContext() {
   return {
-    state, elements, text, escapeHtml, formatDate, truncate, openModal, closeModal, showToast,
+    state, elements, text, escapeHtml, formatDate, truncate, maskContactEmail, openModal, closeModal, showToast,
     setCurrentCacheUser, loadHistory, ensureImageSessions, loadAnnouncements, renderAll, canvasV2ProjectUrl, navigate,
     maybeOpenUnreadAnnouncementModal, restartHeroVideo, cacheDb, updateNav, syncThemeMobileNav, routeState, routeUrl,
     isImageToImageItem, displayTag, publicRewardLabel, canUserUnpublishPublicWork, imageFallbackContainerAttrs,
@@ -639,6 +639,20 @@ function truncate(value, length = 120) {
   const textValue = String(value || "");
   return textValue.length > length ? `${textValue.slice(0, length)}...` : textValue;
 }
+function maskContactEmail(value) {
+  const email = String(value || "").trim();
+  const at = email.indexOf("@");
+  if (at <= 0) return email ? "***" : "";
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  const maskPart = (part) => {
+    if (!part) return "***";
+    return part.length <= 2 ? `${part[0]}***` : `${part[0]}***${part[part.length - 1]}`;
+  };
+  const [domainHead, ...domainTail] = domain.split(".");
+  const maskedDomain = domainTail.length ? `${maskPart(domainHead)}.${domainTail.join(".")}` : maskPart(domainHead);
+  return `${maskPart(local)}@${maskedDomain}`;
+}
 function promptCoverFallbackSrc(prompt = {}) {
   return window.ImageStudioPromptCoverFallback?.dataUrl?.(prompt, { truncate }) || "";
 }
@@ -776,6 +790,7 @@ function updateNav() {
   const loggedIn = Boolean(state.user);
   const capabilities = state.settings?.providerCapabilities || {};
   const contactEmail = String(state.settings?.contactEmail ?? state.settings?.contactAdminEmail ?? "").trim();
+  const accountEmail = String(state.user?.email || "").trim();
   const hideCanvasEntry = isCanvasEntryHidden();
   elements.loginBtn.classList.toggle("hidden", loggedIn);
   elements.accountMenuWrap?.classList.toggle("hidden", !loggedIn);
@@ -791,9 +806,14 @@ function updateNav() {
   elements.accountContactBtn?.classList.toggle("hidden", !contactEmail);
   elements.adminBtn?.classList.toggle("hidden", state.user?.role !== "admin");
   elements.creditsText.textContent = state.user ? `${text("credits")} ${state.user.credits}` : "0";
-  if (elements.accountNameText) elements.accountNameText.textContent = state.user?.name || state.user?.email || text("user");
-  if (elements.accountEmailText) elements.accountEmailText.textContent = state.user?.email || "";
-  if (elements.accountContactText) elements.accountContactText.textContent = contactEmail || text("contact");
+  if (elements.accountNameText) elements.accountNameText.textContent = state.user?.name || maskContactEmail(accountEmail) || text("user");
+  if (elements.accountEmailText) {
+    elements.accountEmailText.textContent = maskContactEmail(accountEmail);
+    elements.accountEmailText.title = accountEmail ? (state.lang === "zh" ? "点击复制完整邮箱" : "Click to copy full email") : "";
+    elements.accountEmailText.tabIndex = accountEmail ? 0 : -1;
+  }
+  if (elements.accountContactText) elements.accountContactText.textContent = maskContactEmail(contactEmail) || text("contact");
+  if (elements.accountContactBtn) elements.accountContactBtn.title = contactEmail ? `${text("contactCopy")} · ${maskContactEmail(contactEmail)}` : "";
   if (elements.accountAvatarText) {
     const source = String(state.user?.name || state.user?.email || "T").trim();
     elements.accountAvatarText.textContent = (source[0] || "T").toUpperCase();

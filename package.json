@@ -74,6 +74,7 @@
     "smoke:agent-session-api": "node scripts/smoke/check-agent-session-api.mjs",
     "smoke:image-session-panel": "node scripts/smoke/check-image-session-panel.mjs",
     "smoke:user-flow-polish": "node scripts/smoke/check-user-flow-polish.mjs",
+    "smoke:mask-admin-email": "node scripts/smoke/check-mask-admin-email.mjs",
     "smoke:public-reward-policy": "node scripts/smoke/check-public-reward-policy.mjs",
     "smoke:agent-batch-generation": "node scripts/smoke/check-agent-batch-generation.mjs",
     "smoke:agent-export-canvas": "node scripts/smoke/check-agent-export-canvas.mjs",
