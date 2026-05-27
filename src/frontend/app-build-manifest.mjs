@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260527-mobile-preview-modal-fix-v1";
+export const FRONTEND_BUILD_VERSION = "20260527-visual-hotfix-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

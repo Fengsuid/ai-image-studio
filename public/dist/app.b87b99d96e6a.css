@@ -1928,7 +1928,6 @@ html.theme-transitioning *::after {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleY(-1);
   opacity: 0.88;
   display: block;
   background: #eef2ff;
@@ -2064,6 +2063,8 @@ html.theme-transitioning *::after {
 
 .hero h1 span {
   display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
   margin-bottom: clamp(6px, 0.9vw, 14px);
   color: #0f172a;
   text-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
@@ -2071,12 +2072,12 @@ html.theme-transitioning *::after {
 
 .hero h1 em {
   display: block;
-  font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-display);
   padding: 0 16px 4px;
   font-size: clamp(38px, 5.1vw, 62px);
   font-style: italic;
-  font-weight: 850;
-  letter-spacing: -0.052em;
+  font-weight: 400;
+  letter-spacing: -0.02em;
   line-height: 1;
   color: transparent;
   background: linear-gradient(100deg, #5b21b6 0%, #a855f7 28%, #ec4899 52%, #6366f1 76%, #2563eb 100%);

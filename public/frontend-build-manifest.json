@@ -1,5 +1,5 @@
 {
-  "version": "20260527-mobile-preview-modal-fix-v1",
+  "version": "20260527-visual-hotfix-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.60642d680cdf.css",
-    "file": "/dist/app.60642d680cdf.css",
-    "hash": "60642d680cdf",
-    "bytes": 298322,
+    "entry": "/dist/app.b87b99d96e6a.css",
+    "file": "/dist/app.b87b99d96e6a.css",
+    "hash": "b87b99d96e6a",
+    "bytes": 298281,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

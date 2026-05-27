@@ -63,7 +63,7 @@ async function updateIndexStyles(root, cssEntry) {
   const html = await readText(indexPath);
   const nextLink = `    <link rel="stylesheet" href="${cssEntry}">`;
   const localStylesheetBlock = /[ ]{4}<link rel="stylesheet" href="\/styles\.css\?v=[^"]+">\r?\n[ ]{4}<link rel="stylesheet" href="\/mobile-gallery\.css\?v=[^"]+">\r?\n[ ]{4}<link rel="stylesheet" href="\/mobile\.css\?v=[^"]+">\r?\n[ ]{4}<link rel="stylesheet" href="\/mobile-home\.css\?v=[^"]+">\r?\n[ ]{4}<link rel="stylesheet" href="\/mobile-editor\.css\?v=[^"]+">/;
-  const bundledStylesheetLink = /[ ]{4}<link rel="stylesheet" href="\/dist\/app\.[a-f0-9]{12}\.css">/;
+  const bundledStylesheetLink = /[ ]{4}<link rel="stylesheet" href="\/dist\/app\.[a-f0-9]+\.css">/;
   if (!localStylesheetBlock.test(html) && !bundledStylesheetLink.test(html) && !html.includes(nextLink)) {
     throw new Error("Could not find the public index local stylesheet block");
   }
