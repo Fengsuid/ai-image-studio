@@ -9093,16 +9093,16 @@ button.tag-chip.active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
-  background: var(--brand-50);
-  color: var(--brand-600);
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
   font-size: 18px;
 }
 
 .admin-stat span,
 .admin-stat small,
 .admin-table small {
-  color: var(--neutral-500);
+  color: #667085;
   font-size: 12px;
 }
 
@@ -9139,9 +9139,9 @@ button.tag-chip.active {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--neutral-300);
-  background: var(--neutral-0);
-  border-radius: var(--radius-sm);
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  border-radius: 8px;
   padding: 0 10px;
 }
 
@@ -9154,11 +9154,11 @@ button.tag-chip.active {
 .admin-form-grid textarea {
   width: 100%;
   min-height: 38px;
-  border: 1px solid var(--neutral-300);
-  border-radius: var(--radius-sm);
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
   padding: 8px 10px;
-  background: var(--neutral-0);
-  color: var(--neutral-800);
+  background: #fff;
+  color: #182230;
   font: inherit;
 }
 
@@ -9169,21 +9169,21 @@ button.tag-chip.active {
   gap: 8px;
   margin-bottom: 12px;
   padding: 10px;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-50);
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #f9fafb;
 }
 
 .admin-bulk-bar span {
-  color: var(--neutral-500);
+  color: #667085;
   font-size: 12px;
 }
 
 .admin-bulk-bar button {
   min-height: 38px;
-  border: 1px solid var(--neutral-300);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-0);
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
   font-weight: 700;
 }
 
@@ -9205,17 +9205,17 @@ button.tag-chip.active {
 .admin-table th,
 .admin-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--neutral-200);
+  border-bottom: 1px solid #eaecf0;
   text-align: left;
   vertical-align: top;
   font-size: 13px;
 }
 
 .admin-table th {
-  color: var(--neutral-500);
+  color: #667085;
   font-size: 12px;
   font-weight: 700;
-  background: var(--neutral-50);
+  background: #f9fafb;
 }
 
 .admin-table td strong,
@@ -9234,10 +9234,10 @@ button.tag-chip.active {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  border-radius: var(--radius-pill);
+  border-radius: 999px;
   padding: 0 8px;
-  background: var(--neutral-100);
-  color: var(--neutral-600);
+  background: #f2f4f7;
+  color: #475467;
   font-size: 12px;
   font-weight: 700;
 }
@@ -9246,51 +9246,51 @@ button.tag-chip.active {
 .admin-badge[data-status="active"],
 .admin-badge[data-status="visible"],
 .admin-badge[data-status="restored"] {
-  background: color-mix(in srgb, var(--color-success) 10%, var(--neutral-0));
-  color: var(--color-success);
+  background: #ecfdf3;
+  color: #027a48;
 }
 
 .admin-badge[data-status="failed"],
 .admin-badge[data-status="disabled"],
 .admin-badge[data-status="hidden"] {
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
-  color: var(--color-danger);
+  background: #fef3f2;
+  color: #b42318;
 }
 
 .admin-badge[data-status="reported"],
 .admin-badge[data-status="reviewing"],
 .admin-badge[data-status="requested"] {
-  background: color-mix(in srgb, var(--color-warn) 12%, var(--neutral-0));
-  color: var(--color-warn);
+  background: #fff8db;
+  color: #9a6700;
 }
 
 .admin-badge[data-status="success"],
 .admin-badge[data-status="allowed"],
 .admin-badge[data-status="reviewed"],
 .admin-badge[data-status="override_allowed"] {
-  background: color-mix(in srgb, var(--color-success) 10%, var(--neutral-0));
-  color: var(--color-success);
+  background: #ecfdf3;
+  color: #027a48;
 }
 
 .admin-badge[data-status="queued"],
 .admin-badge[data-status="pending"],
 .admin-badge[data-status="running"] {
-  background: var(--brand-50);
-  color: var(--brand-700);
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .admin-badge[data-status="cancelled"],
 .admin-badge[data-status="blocked"],
 .admin-badge[data-status="error"] {
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
-  color: var(--color-danger);
+  background: #fef3f2;
+  color: #b42318;
 }
 
 .admin-badge[data-status="review"],
 .admin-badge[data-status="warning"],
 .admin-badge[data-status="unknown"] {
-  background: color-mix(in srgb, var(--color-warn) 12%, var(--neutral-0));
-  color: var(--color-warn);
+  background: #fff8db;
+  color: #9a6700;
 }
 
 .admin-section-shell,
@@ -9322,7 +9322,7 @@ button.tag-chip.active {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  background: var(--neutral-200);
+  background: #e5e7eb;
 }
 
 .admin-work-card div {
@@ -9332,7 +9332,7 @@ button.tag-chip.active {
 .admin-work-card p {
   min-height: 40px;
   margin: 6px 0;
-  color: var(--neutral-600);
+  color: #475467;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -9372,7 +9372,7 @@ button.tag-chip.active {
 .admin-form-grid label {
   display: grid;
   gap: 6px;
-  color: var(--neutral-600);
+  color: #475467;
   font-size: 13px;
   font-weight: 700;
 }
@@ -9401,8 +9401,8 @@ button.tag-chip.active {
 }
 
 .admin-form-grid .danger {
-  border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
-  color: var(--color-danger);
+  border-color: rgba(180, 35, 24, 0.45);
+  color: #b42318;
 }
 
 .admin-placeholder {
@@ -9414,28 +9414,28 @@ button.tag-chip.active {
 .admin-placeholder > i,
 .admin-auth-required > i {
   font-size: 34px;
-  color: var(--brand-600);
+  color: #2563eb;
 }
 
 .admin-placeholder p,
 .admin-auth-required p {
   margin: 0;
-  color: var(--neutral-500);
+  color: #667085;
   line-height: 1.6;
 }
 
 .admin-placeholder ul {
   margin: 0;
   padding-left: 18px;
-  color: var(--neutral-600);
+  color: #475467;
 }
 
 .admin-settings-provider-note {
   margin: 0 0 18px;
   padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--brand-600) 14%, transparent);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--brand-50) 72%, transparent);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 18px;
+  background: rgba(239, 246, 255, 0.72);
 }
 
 .admin-empty-state,
@@ -9445,7 +9445,7 @@ button.tag-chip.active {
   place-items: center;
   align-content: center;
   gap: 10px;
-  color: var(--neutral-500);
+  color: #667085;
   text-align: center;
   padding: 24px;
 }
@@ -9456,9 +9456,9 @@ button.tag-chip.active {
   right: 0;
   width: min(460px, 100vw);
   height: 100vh;
-  background: var(--neutral-0);
-  border-left: 1px solid var(--neutral-200);
-  box-shadow: -16px 0 40px color-mix(in srgb, var(--neutral-900) 16%, transparent);
+  background: #fff;
+  border-left: 1px solid #e4e7ec;
+  box-shadow: -16px 0 40px rgba(16, 24, 40, 0.16);
   z-index: 80;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -9473,7 +9473,7 @@ button.tag-chip.active {
   align-items: center;
   justify-content: space-between;
   padding: 18px;
-  border-bottom: 1px solid var(--neutral-200);
+  border-bottom: 1px solid #eaecf0;
 }
 
 .admin-drawer-head h2 {
@@ -9484,9 +9484,9 @@ button.tag-chip.active {
 .admin-drawer-head button {
   width: 34px;
   height: 34px;
-  border: 1px solid var(--neutral-300);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-0);
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .admin-drawer-body {
@@ -9503,7 +9503,7 @@ button.tag-chip.active {
 }
 
 .admin-detail-list dt {
-  color: var(--neutral-500);
+  color: #667085;
   font-size: 12px;
   font-weight: 700;
 }
@@ -9517,15 +9517,15 @@ button.tag-chip.active {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   margin-bottom: 14px;
-  background: var(--neutral-200);
+  background: #e5e7eb;
 }
 
 .admin-ledger-section {
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid var(--neutral-200);
+  border-top: 1px solid #eaecf0;
 }
 
 .admin-ledger-section h3 {
@@ -9543,18 +9543,18 @@ button.tag-chip.active {
   grid-template-columns: 80px minmax(0, 1fr);
   gap: 4px 10px;
   padding: 10px;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
 }
 
 .admin-mini-table small {
   grid-column: 2;
-  color: var(--neutral-500);
+  color: #667085;
 }
 
 .admin-mini-table p {
   margin: 0;
-  color: var(--neutral-500);
+  color: #667085;
 }
 
 @media (max-width: 1080px) {
@@ -9642,7 +9642,7 @@ button.tag-chip.active {
 
   .works-detail-body {
     border-left: 0;
-    border-top: 1px solid color-mix(in srgb, var(--neutral-200) 86%, transparent);
+    border-top: 1px solid rgba(226, 232, 240, 0.86);
     padding: 56px 16px 22px;
   }
 
@@ -9663,9 +9663,9 @@ button.tag-chip.active {
   margin: 14px 0 6px;
   padding: 10px 14px;
   border-radius: 16px;
-  background: color-mix(in srgb, var(--neutral-0) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--neutral-0) 12%, transparent);
-  color: color-mix(in srgb, var(--neutral-0) 80%, transparent);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 13px;
 }
 
@@ -9677,7 +9677,7 @@ button.tag-chip.active {
   flex: 0 0 auto;
   letter-spacing: 0.04em;
   font-weight: 700;
-  color: color-mix(in srgb, var(--neutral-0) 62%, transparent);
+  color: rgba(255, 255, 255, 0.62);
   text-transform: uppercase;
   font-size: 11px;
 }
@@ -9694,8 +9694,8 @@ button.tag-chip.active {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--neutral-0) 18%, transparent);
-  background: color-mix(in srgb, var(--neutral-900) 62%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 8, 14, 0.62);
   overflow: hidden;
   cursor: pointer;
   padding: 0;
@@ -9704,7 +9704,7 @@ button.tag-chip.active {
 
 .editor-recent-thumb:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--brand-400) 85%, transparent);
+  border-color: rgba(168, 85, 247, 0.85);
 }
 
 .editor-recent-thumb img {
@@ -9721,8 +9721,8 @@ button.tag-chip.active {
   font-style: normal;
   font-size: 10px;
   font-weight: 700;
-  color: var(--neutral-0);
-  background: color-mix(in srgb, var(--neutral-900) 70%, transparent);
+  color: #fff;
+  background: rgba(15, 23, 42, 0.7);
   padding: 1px 6px;
   border-radius: 6px;
   letter-spacing: 0.05em;
@@ -9812,39 +9812,39 @@ button.tag-chip.active {
 
 .editor-view {
   background:
-    radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--brand-500) 12%, transparent), transparent 28%),
-    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--color-warn) 11%, transparent), transparent 24%),
-    linear-gradient(135deg, var(--neutral-50) 0%, color-mix(in srgb, var(--brand-50) 52%, var(--neutral-100)) 52%, var(--neutral-50) 100%);
-  color: var(--neutral-900);
+    radial-gradient(circle at 20% 12%, rgba(59, 130, 246, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(245, 158, 11, 0.11), transparent 24%),
+    linear-gradient(135deg, #f5f7fb 0%, #edf3f8 52%, #f8fafc 100%);
+  color: #0f172a;
 }
 
 .editor-brand {
-  color: var(--neutral-900);
+  color: #0f172a;
 }
 
 .editor-tabs {
-  background: color-mix(in srgb, var(--neutral-0) 88%, transparent);
-  border-color: color-mix(in srgb, var(--neutral-300) 95%, transparent);
-  box-shadow: 0 12px 34px color-mix(in srgb, var(--neutral-900) 8%, transparent);
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(203, 213, 225, 0.95);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
 }
 
 .editor-tabs button {
-  color: var(--neutral-500);
+  color: #64748b;
 }
 
 .editor-tabs button.active {
-  background: linear-gradient(135deg, var(--brand-600), var(--color-success));
-  color: var(--neutral-0);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--brand-600) 18%, transparent);
+  background: linear-gradient(135deg, #2563eb, #0f766e);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
 }
 
 .editor-workspace {
-  border: 1px solid color-mix(in srgb, var(--neutral-300) 95%, transparent);
+  border: 1px solid rgba(203, 213, 225, 0.95);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--neutral-400) 14%, transparent) 1px, transparent 1px) 0 0 / 36px 36px,
-    linear-gradient(0deg, color-mix(in srgb, var(--neutral-400) 14%, transparent) 1px, transparent 1px) 0 0 / 36px 36px,
-    color-mix(in srgb, var(--neutral-100) 78%, var(--brand-50));
-  box-shadow: inset 0 1px color-mix(in srgb, var(--neutral-0) 90%, transparent), 0 24px 60px color-mix(in srgb, var(--neutral-900) 10%, transparent);
+    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px) 0 0 / 36px 36px,
+    linear-gradient(0deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px) 0 0 / 36px 36px,
+    #eef2f7;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.9), 0 24px 60px rgba(15, 23, 42, 0.10);
 }
 
 .editor-toolbar,
@@ -9852,63 +9852,63 @@ button.tag-chip.active {
 .editor-keyboard,
 .editor-prompt-bar,
 .editor-publish-panel {
-  background: color-mix(in srgb, var(--neutral-0) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--neutral-300) 92%, transparent);
-  box-shadow: 0 18px 42px color-mix(in srgb, var(--neutral-900) 12%, transparent);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(203, 213, 225, 0.92);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
   backdrop-filter: blur(18px);
 }
 
 .editor-toolbar button,
 .editor-zoom button,
 .editor-attach {
-  color: var(--neutral-600);
+  color: #475569;
 }
 
 .editor-toolbar button.active {
-  background: linear-gradient(135deg, var(--brand-600), var(--color-success));
-  color: var(--neutral-0);
+  background: linear-gradient(135deg, #2563eb, #0f766e);
+  color: #fff;
 }
 
 .editor-upload-card {
-  border-color: color-mix(in srgb, var(--neutral-400) 55%, transparent);
-  background: color-mix(in srgb, var(--neutral-0) 74%, transparent);
-  color: var(--neutral-500);
+  border-color: rgba(148, 163, 184, 0.55);
+  background: rgba(255, 255, 255, 0.74);
+  color: #64748b;
 }
 
 .editor-upload-card i {
-  color: var(--brand-600);
+  color: #2563eb;
 }
 
 .editor-upload-card strong {
-  color: var(--neutral-900);
+  color: #0f172a;
 }
 
 .editor-image-scaler img {
   border-radius: 16px;
-  box-shadow: 0 28px 70px color-mix(in srgb, var(--neutral-900) 20%, transparent);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.20);
 }
 
 .editor-zoom span,
 .editor-keyboard {
-  color: var(--neutral-600);
+  color: #475569;
 }
 
 .editor-prompt-bar {
-  background: color-mix(in srgb, var(--neutral-0) 96%, transparent);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .editor-prompt-bar > input {
-  color: var(--neutral-900);
+  color: #0f172a;
 }
 
 .editor-prompt-bar input::placeholder {
-  color: var(--neutral-400);
+  color: #94a3b8;
 }
 
 .editor-prompt-bar button[type="submit"] {
-  background: linear-gradient(135deg, var(--brand-600), var(--color-success));
-  color: var(--neutral-0);
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--brand-600) 22%, transparent);
+  background: linear-gradient(135deg, #2563eb, #0f766e);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
 }
 
 .editor-publish-panel {
@@ -9929,20 +9929,20 @@ button.tag-chip.active {
 }
 
 .editor-publish-panel strong {
-  color: var(--neutral-900);
+  color: #0f172a;
   font-size: 15px;
   letter-spacing: 0;
 }
 
 .editor-publish-panel > div span {
-  color: var(--neutral-500);
+  color: #64748b;
   font-size: 12px;
   line-height: 1.45;
 }
 
 .editor-public-toggle,
 .editor-source-toggle {
-  color: var(--neutral-700);
+  color: #334155;
   justify-content: space-between;
   gap: 14px;
 }
@@ -10015,8 +10015,8 @@ button.tag-chip.active {
 
 .admin-body {
   min-height: 100vh;
-  background: var(--neutral-50);
-  color: var(--neutral-800);
+  background: #f4f6f8;
+  color: #172033;
 }
 
 .admin-shell {
@@ -10042,9 +10042,9 @@ button.tag-chip.active {
   flex-direction: column;
   gap: 18px;
   padding: 18px 14px;
-  background: var(--neutral-900);
-  color: var(--neutral-0);
-  border-right: 1px solid color-mix(in srgb, var(--neutral-0) 8%, transparent);
+  background: #101623;
+  color: #fff;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .admin-sidebar-head {
@@ -10059,7 +10059,7 @@ button.tag-chip.active {
   gap: 10px;
   min-height: 44px;
   padding: 0 10px;
-  color: var(--neutral-0);
+  color: #fff;
   text-decoration: none;
   flex: 1;
   min-width: 0;
@@ -10068,11 +10068,11 @@ button.tag-chip.active {
 .admin-brand span {
   width: 34px;
   height: 34px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  background: var(--neutral-0);
-  color: var(--neutral-900);
+  background: #fff;
+  color: #101623;
 }
 
 .admin-sidebar-toggle {
@@ -10081,10 +10081,10 @@ button.tag-chip.active {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--neutral-0) 14%, transparent);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--neutral-0) 8%, transparent);
-  color: var(--neutral-0);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
   cursor: pointer;
 }
 
@@ -10122,9 +10122,9 @@ button.tag-chip.active {
 .admin-nav button {
   min-height: 40px;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   background: transparent;
-  color: color-mix(in srgb, var(--neutral-0) 72%, transparent);
+  color: rgba(255, 255, 255, 0.72);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -10134,8 +10134,8 @@ button.tag-chip.active {
 
 .admin-nav button:hover,
 .admin-nav button.active {
-  background: color-mix(in srgb, var(--neutral-0) 10%, transparent);
-  color: var(--neutral-0);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .admin-nav i {
@@ -10162,7 +10162,7 @@ button.tag-chip.active {
 }
 
 .admin-topbar p {
-  color: var(--neutral-500);
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -10184,7 +10184,7 @@ button.tag-chip.active {
 #adminPageDescription {
   display: block;
   margin-top: 6px;
-  color: var(--neutral-500);
+  color: #64748b;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -10192,10 +10192,10 @@ button.tag-chip.active {
 .admin-status span,
 .admin-status a {
   min-height: 34px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--neutral-200);
-  background: var(--neutral-0);
-  color: var(--neutral-600);
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -10206,15 +10206,15 @@ button.tag-chip.active {
 }
 
 .admin-status .ok {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 10%, var(--neutral-0));
-  border-color: color-mix(in srgb, var(--color-success) 25%, var(--neutral-0));
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #bbf7d0;
 }
 
 .admin-status .warn {
-  color: var(--color-warn);
-  background: color-mix(in srgb, var(--color-warn) 10%, var(--neutral-0));
-  border-color: color-mix(in srgb, var(--color-warn) 28%, var(--neutral-0));
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fde68a;
 }
 
 .admin-content {
@@ -10235,10 +10235,10 @@ button.tag-chip.active {
 
 .admin-overview-hero-copy,
 .admin-overview-hero-panel {
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, var(--neutral-0) 0%, var(--neutral-50) 100%);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--neutral-900) 4%, transparent);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.04);
   min-width: 0;
 }
 
@@ -10255,7 +10255,7 @@ button.tag-chip.active {
 
 .admin-kicker {
   margin: 0 0 8px;
-  color: var(--neutral-500);
+  color: #64748b;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
@@ -10270,7 +10270,7 @@ button.tag-chip.active {
 
 .admin-overview-hero-copy p {
   margin: 10px 0 0;
-  color: var(--neutral-600);
+  color: #475467;
   line-height: 1.6;
 }
 
@@ -10280,7 +10280,7 @@ button.tag-chip.active {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 16px;
-  color: var(--neutral-500);
+  color: #64748b;
   font-size: 12px;
 }
 
@@ -10288,21 +10288,21 @@ button.tag-chip.active {
   display: grid;
   gap: 4px;
   padding: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--neutral-0);
-  border: 1px solid var(--neutral-200);
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
 }
 
 .admin-overview-hero-row strong {
   font-size: 14px;
-  color: var(--neutral-800);
+  color: #182230;
 }
 
 .admin-overview-hero-row span,
 .admin-panel-head span,
 .admin-issue small,
 .admin-quick-link span {
-  color: var(--neutral-500);
+  color: #667085;
   font-size: 12px;
 }
 
@@ -10311,37 +10311,37 @@ button.tag-chip.active {
 }
 
 .admin-stat {
-  border-color: var(--neutral-200);
+  border-color: #e2e8f0;
 }
 
 .admin-stat[data-tone="teal"] i {
-  background: color-mix(in srgb, var(--color-success) 10%, var(--neutral-0));
-  color: var(--color-success);
+  background: #ecfdf3;
+  color: #047857;
 }
 
 .admin-stat[data-tone="blue"] i {
-  background: var(--brand-50);
-  color: var(--brand-600);
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .admin-stat[data-tone="violet"] i {
-  background: color-mix(in srgb, var(--brand-500) 10%, var(--neutral-0));
-  color: var(--brand-700);
+  background: #f5f3ff;
+  color: #7c3aed;
 }
 
 .admin-stat[data-tone="amber"] i {
-  background: color-mix(in srgb, var(--color-warn) 10%, var(--neutral-0));
-  color: var(--color-warn);
+  background: #fffbeb;
+  color: #b45309;
 }
 
 .admin-stat[data-tone="rose"] i {
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
-  color: var(--color-danger);
+  background: #fff1f2;
+  color: #be123c;
 }
 
 .admin-stat[data-tone="slate"] i {
-  background: var(--neutral-100);
-  color: var(--neutral-700);
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .admin-overview-split {
@@ -10360,9 +10360,9 @@ button.tag-chip.active {
   min-height: 106px;
   align-content: start;
   padding: 14px;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-0);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
   text-align: left;
 }
 
@@ -10372,14 +10372,14 @@ button.tag-chip.active {
   height: 32px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--brand-50);
-  color: var(--brand-600);
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
   font-size: 18px;
 }
 
 .admin-quick-link strong {
-  color: var(--neutral-800);
+  color: #182230;
   font-size: 14px;
 }
 
@@ -10394,9 +10394,9 @@ button.tag-chip.active {
   gap: 12px;
   align-items: start;
   padding: 12px;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-0);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .admin-issue strong,
@@ -10406,53 +10406,53 @@ button.tag-chip.active {
 
 .admin-issue p {
   margin-top: 4px;
-  color: var(--neutral-700);
+  color: #344054;
   line-height: 1.5;
 }
 
 .admin-issue[data-tone="danger"] > i {
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
-  color: var(--color-danger);
+  background: #fef3f2;
+  color: #b42318;
 }
 
 .admin-issue[data-tone="warn"] > i {
-  background: color-mix(in srgb, var(--color-warn) 10%, var(--neutral-0));
-  color: var(--color-warn);
+  background: #fffbeb;
+  color: #b45309;
 }
 
 .admin-issue button {
   min-height: 34px;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-0);
-  color: var(--neutral-700);
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
   padding: 0 12px;
   font-weight: 650;
 }
 
 .admin-notice {
   margin-bottom: 14px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   padding: 12px 14px;
-  color: var(--neutral-800);
-  background: color-mix(in srgb, var(--color-info) 12%, var(--neutral-0));
-  border: 1px solid color-mix(in srgb, var(--color-info) 28%, var(--neutral-0));
+  color: #1e293b;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
 }
 
 .admin-notice.error {
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
-  border-color: color-mix(in srgb, var(--color-danger) 25%, var(--neutral-0));
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .admin-code-block {
   margin: 0;
   max-height: 360px;
   overflow: auto;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: var(--neutral-900);
-  color: var(--neutral-200);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
   padding: 14px;
   font-size: 12px;
   line-height: 1.6;
@@ -10465,7 +10465,7 @@ button.tag-chip.active {
 
 .admin-temp-password p {
   margin: 0;
-  color: var(--neutral-600);
+  color: #475569;
   line-height: 1.6;
 }
 
@@ -10480,18 +10480,18 @@ button.tag-chip.active {
 
 .admin-body {
   background:
-    radial-gradient(circle at 10% 8%, color-mix(in srgb, var(--brand-600) 10%, transparent), transparent 28%),
-    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 26%),
-    linear-gradient(180deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+    radial-gradient(circle at 10% 8%, rgba(37, 99, 235, 0.10), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(20, 184, 166, 0.10), transparent 26%),
+    linear-gradient(180deg, #f7fafc 0%, #edf2f7 100%);
 }
 
 .admin-panel,
 .admin-stat,
 .admin-work-card {
-  border: 1px solid color-mix(in srgb, var(--neutral-300) 82%, transparent);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--neutral-0) 92%, transparent);
-  box-shadow: 0 16px 40px color-mix(in srgb, var(--neutral-900) 6%, transparent);
+  border: 1px solid rgba(203, 213, 225, 0.82);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
 .admin-section-shell {
@@ -10504,7 +10504,7 @@ button.tag-chip.active {
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
-  background: linear-gradient(90deg, var(--brand-600), var(--color-success), var(--color-warn));
+  background: linear-gradient(90deg, #2563eb, #0f766e, #f59e0b);
   opacity: 0.72;
 }
 
@@ -10512,38 +10512,38 @@ button.tag-chip.active {
   display: inline-flex;
   align-items: center;
   min-height: 26px;
-  border-radius: var(--radius-pill);
+  border-radius: 999px;
   padding: 0 10px;
-  background: var(--neutral-100);
-  color: var(--neutral-600);
+  background: #f1f5f9;
+  color: #475569;
   font-weight: 700;
 }
 
 .admin-risk-strip {
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--neutral-50) 90%, transparent), color-mix(in srgb, var(--neutral-0) 78%, transparent));
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.78));
 }
 
 .admin-toolbar,
 .generation-diagnostics-toolbar,
 .admin-bulk-bar {
-  border: 1px solid color-mix(in srgb, var(--neutral-300) 88%, transparent);
-  border-radius: var(--radius-md);
+  border: 1px solid rgba(203, 213, 225, 0.88);
+  border-radius: 16px;
   padding: 12px;
-  background: color-mix(in srgb, var(--neutral-0) 88%, transparent);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--neutral-900) 5%, transparent);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
 }
 
 .admin-bulk-bar[data-has-selection="true"] {
-  border-color: color-mix(in srgb, var(--brand-600) 45%, transparent);
-  background: linear-gradient(135deg, var(--brand-50), color-mix(in srgb, var(--color-info) 10%, var(--neutral-0)));
+  border-color: rgba(37, 99, 235, 0.45);
+  background: linear-gradient(135deg, #eff6ff, #ecfeff);
 }
 
 .admin-table-wrap {
-  border: 1px solid color-mix(in srgb, var(--neutral-200) 90%, transparent);
-  border-radius: var(--radius-md);
-  background: var(--neutral-0);
-  box-shadow: inset 0 1px color-mix(in srgb, var(--neutral-0) 86%, transparent);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.86);
 }
 
 .admin-table th {
@@ -10557,16 +10557,16 @@ button.tag-chip.active {
 }
 
 .admin-table tbody tr:hover {
-  background: color-mix(in srgb, var(--brand-50) 56%, var(--neutral-0));
-  box-shadow: inset 3px 0 var(--brand-600);
+  background: #f8fbff;
+  box-shadow: inset 3px 0 #2563eb;
 }
 
 .admin-empty-state,
 .admin-error-state,
 .admin-auth-required {
-  border: 1px dashed color-mix(in srgb, var(--neutral-400) 58%, transparent);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--neutral-50) 78%, transparent);
+  border: 1px dashed rgba(148, 163, 184, 0.58);
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.78);
 }
 
 .admin-empty-state > i,
@@ -10576,15 +10576,15 @@ button.tag-chip.active {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-md);
-  background: var(--brand-50);
-  color: var(--brand-600);
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .admin-error-state {
-  border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
-  background: color-mix(in srgb, var(--color-warn) 10%, var(--neutral-0));
-  color: var(--color-warn);
+  border-color: rgba(248, 113, 113, 0.45);
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 .admin-drawer-backdrop:not(.hidden),
@@ -10592,21 +10592,21 @@ button.tag-chip.active {
   position: fixed;
   inset: 0;
   z-index: 79;
-  background: color-mix(in srgb, var(--neutral-900) 38%, transparent);
+  background: rgba(15, 23, 42, 0.38);
   backdrop-filter: blur(4px);
 }
 
 .admin-drawer {
   width: min(560px, 100vw);
-  border-left-color: color-mix(in srgb, var(--neutral-300) 90%, transparent);
-  box-shadow: -24px 0 70px color-mix(in srgb, var(--neutral-900) 22%, transparent);
+  border-left-color: rgba(203, 213, 225, 0.9);
+  box-shadow: -24px 0 70px rgba(15, 23, 42, 0.22);
 }
 
 .admin-drawer-head {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: color-mix(in srgb, var(--neutral-0) 96%, transparent);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
 }
 
@@ -10621,10 +10621,10 @@ button.tag-chip.active {
   width: min(420px, calc(100vw - 32px));
   margin: min(20vh, 160px) auto 0;
   border-radius: 20px;
-  border: 1px solid color-mix(in srgb, var(--neutral-200) 90%, transparent);
-  background: var(--neutral-0);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: #fff;
   padding: 22px;
-  box-shadow: 0 32px 90px color-mix(in srgb, var(--neutral-900) 28%, transparent);
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.28);
 }
 
 .admin-confirm-actions,
@@ -10641,32 +10641,32 @@ button.tag-chip.active {
   height: 36px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-pill);
-  background: var(--neutral-0);
-  color: var(--neutral-700);
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
 }
 
 .admin-status-pill[data-tone="danger"],
 #adminStatus[data-tone="danger"] {
-  border-color: color-mix(in srgb, var(--color-danger) 25%, var(--neutral-0));
-  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
-  color: var(--color-danger);
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
 }
 
 .admin-status-pill[data-tone="loading"],
 #adminStatus[data-tone="loading"] {
-  border-color: var(--brand-200);
-  background: var(--brand-50);
-  color: var(--brand-700);
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 :root[data-theme="dark"] .admin-body {
   background:
-    radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--brand-600) 18%, transparent), transparent 30%),
-    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 28%),
-    linear-gradient(180deg, var(--neutral-0) 0%, var(--neutral-50) 100%);
-  color: var(--neutral-800);
+    radial-gradient(circle at 12% 10%, rgba(96, 165, 250, 0.18), transparent 30%),
+    radial-gradient(circle at 88% 18%, rgba(45, 212, 191, 0.12), transparent 28%),
+    linear-gradient(180deg, #07111f 0%, #0f172a 100%);
+  color: #e5edf8;
 }
 
 :root[data-theme="dark"] .admin-panel,
@@ -10680,17 +10680,17 @@ button.tag-chip.active {
 :root[data-theme="dark"] .admin-table-wrap,
 :root[data-theme="dark"] .admin-drawer,
 :root[data-theme="dark"] .admin-confirm-card {
-  border-color: color-mix(in srgb, var(--neutral-400) 24%, transparent);
-  background: color-mix(in srgb, var(--neutral-50) 88%, transparent);
-  color: var(--neutral-800);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--neutral-0) 26%, transparent);
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.88);
+  color: #e5edf8;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
 }
 
 :root[data-theme="dark"] .admin-overview-hero-copy,
 :root[data-theme="dark"] .admin-overview-hero-panel {
   background:
-    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--brand-600) 12%, transparent), transparent 32%),
-    color-mix(in srgb, var(--neutral-50) 90%, transparent);
+    radial-gradient(circle at 16% 0%, rgba(96, 165, 250, 0.12), transparent 32%),
+    rgba(15, 23, 42, 0.9);
 }
 
 :root[data-theme="dark"] .admin-kicker,
@@ -10703,7 +10703,7 @@ button.tag-chip.active {
 :root[data-theme="dark"] .admin-stat span,
 :root[data-theme="dark"] .admin-stat small,
 :root[data-theme="dark"] #adminPageDescription {
-  color: var(--neutral-600);
+  color: #9fb0c7;
 }
 
 :root[data-theme="dark"] .admin-overview-hero-copy h2,
@@ -10712,26 +10712,26 @@ button.tag-chip.active {
 :root[data-theme="dark"] .admin-issue strong,
 :root[data-theme="dark"] .admin-issue p,
 :root[data-theme="dark"] .admin-stat strong {
-  color: var(--neutral-900);
+  color: #f8fafc;
 }
 
 :root[data-theme="dark"] .admin-status .ok {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 18%, transparent);
-  border-color: color-mix(in srgb, var(--color-success) 42%, transparent);
+  color: #6ee7b7;
+  background: rgba(6, 78, 59, 0.34);
+  border-color: rgba(52, 211, 153, 0.42);
 }
 
 :root[data-theme="dark"] .admin-status .warn {
-  color: var(--color-warn);
-  background: color-mix(in srgb, var(--color-warn) 18%, transparent);
-  border-color: color-mix(in srgb, var(--color-warn) 36%, transparent);
+  color: #fbbf24;
+  background: rgba(120, 53, 15, 0.34);
+  border-color: rgba(251, 191, 36, 0.36);
 }
 
 :root[data-theme="dark"] .admin-stat i,
 :root[data-theme="dark"] .admin-quick-link i,
 :root[data-theme="dark"] .admin-issue > i {
-  background: color-mix(in srgb, var(--brand-600) 18%, transparent);
-  color: var(--brand-700);
+  background: rgba(37, 99, 235, 0.18);
+  color: #93c5fd;
 }
 
 :root[data-theme="dark"] .admin-table th,
@@ -10741,25 +10741,25 @@ button.tag-chip.active {
 :root[data-theme="dark"] .admin-quick-link,
 :root[data-theme="dark"] .admin-issue,
 :root[data-theme="dark"] .admin-icon-button {
-  border-color: color-mix(in srgb, var(--neutral-400) 22%, transparent);
-  background: color-mix(in srgb, var(--neutral-200) 92%, transparent);
-  color: var(--neutral-800);
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(30, 41, 59, 0.92);
+  color: #e5edf8;
 }
 
 :root[data-theme="dark"] .admin-table td,
 :root[data-theme="dark"] .admin-table th {
-  border-bottom-color: color-mix(in srgb, var(--neutral-400) 18%, transparent);
+  border-bottom-color: rgba(148, 163, 184, 0.18);
 }
 
 :root[data-theme="dark"] .admin-table tbody tr:hover {
-  background: color-mix(in srgb, var(--brand-600) 14%, transparent);
+  background: rgba(37, 99, 235, 0.14);
 }
 
 :root[data-theme="dark"] .admin-empty-state,
 :root[data-theme="dark"] .admin-error-state,
 :root[data-theme="dark"] .admin-auth-required {
-  border-color: color-mix(in srgb, var(--neutral-400) 28%, transparent);
-  background: color-mix(in srgb, var(--neutral-50) 62%, transparent);
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.62);
 }
 
 @media (max-width: 760px) {
@@ -13514,7 +13514,8 @@ button.tag-chip.active {
   }
 }
 
-/* ── AIS-RLS-139 — Mobile consolidation ───────────────────── */
+/* public/css/11-mobile-bottom-sheet.css */
+/* AIS-RLS-139 mobile bottom-sheet and viewport consolidation. */
 
 /* svh unit improvements for mobile viewport reliability */
 @media (max-width: 768px) {
@@ -13530,7 +13531,7 @@ button.tag-chip.active {
     min-height: 100svh;
   }
 
-  /* Modal → bottom-sheet conversion */
+  /* Modal -> bottom-sheet conversion */
   .modal-layer {
     align-items: flex-end;
     padding: 0;
@@ -13557,20 +13558,20 @@ button.tag-chip.active {
     margin: var(--space-xs) auto var(--space-sm);
   }
 
-  /* Square preview modal — fullscreen bottom-sheet */
+  /* Square preview modal: fullscreen bottom-sheet */
   .square-preview-modal {
     max-height: calc(100svh - env(safe-area-inset-top));
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
 
-  /* Works workspace — bottom-sheet */
+  /* Works workspace: bottom-sheet */
   .works-workspace {
     width: 100% !important;
     height: calc(92svh - env(safe-area-inset-top));
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
 
-  /* Works detail drawer — bottom-sheet */
+  /* Works detail drawer: bottom-sheet */
   .works-detail-drawer {
     top: auto;
     right: 0;
@@ -13598,6 +13599,7 @@ button.tag-chip.active {
     opacity: 0;
     transform: translateY(100%);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
