@@ -1128,9 +1128,9 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 
 | Gap 章节 | 主题 | 状态 | 建议任务 |
 | --- | --- | --- | --- |
-| §4.7 | 多候选 / 分支生成 | Not started | `AIS-RLS-094-multi-candidate-generation` |
-| §4.10 | 参考图作为真实资产（非 metadata） | Partial | `AIS-RLS-095-reference-image-as-asset` |
-| §4.15 | my-works 资产库 | Partial | `AIS-RLS-096-my-works-asset-library` |
+| §4.7 | 多候选 / 分支生成 | Not started | `AIS-RLS-120-feat-multi-candidate-generation` |
+| §4.10 | 参考图作为真实资产（非 metadata） | Partial | `AIS-RLS-121-feat-reference-image-asset` |
+| §4.15 | my-works 资产库 | Partial | `AIS-RLS-122-feat-my-works-asset-library` |
 | §4.16 | embedding 去重审计 | Not started | `AIS-RLS-097-embedding-duplicate-audit` |
 | — | CDN / 缓存策略全面治理 | 提及但无承接 | `AIS-RLS-098-cdn-cache-strategy` |
 
@@ -1138,6 +1138,207 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 - 每个条目在 `.trelis/tasks/` 创建真实 `task.json`。
 - `PROJECT_PROGRESS_STATUS.md` 增加 Active / Backlog 行。
 - gap 文档每节末尾追加 `> 对应 Trellis：AIS-RLS-XXX`。
+
+### P3-1a. Phase D feature specs: AIS-RLS-120~122
+
+本节把 ProductFlow gap 中仍未实现的三条产品能力写成可直接开工的功能规格。引用锚点：
+
+- `docs/IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md` §4.7、§4.10、§4.15、§7.8。
+- `docs/IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md` §5 关键遗留、§6 P1/P2。
+- `.trelis/tasks/ais-rls-120-feat-multi-candidate-generation/task.json`。
+- `.trelis/tasks/ais-rls-121-feat-reference-image-asset/task.json`。
+- `.trelis/tasks/ais-rls-122-feat-my-works-asset-library/task.json`。
+
+独立规格索引：
+
+- `AIS-RLS-120` 多候选 / 分支生成：[`docs/specs/AIS-RLS-120-multi-candidate-generation.md`](specs/AIS-RLS-120-multi-candidate-generation.md)。现状索引：公共 composer 仍以单 prompt 单结果为默认，缺候选组、选中候选、部分成功计费和分支选择契约。
+- `AIS-RLS-121` 参考图资产化：[`docs/specs/AIS-RLS-121-reference-image-asset.md`](specs/AIS-RLS-121-reference-image-asset.md)。现状索引：首页参考图入口历史上只是灵感记录/预览，参考图尚未作为可复用、可审计、可展示的独立资产落库。
+- `AIS-RLS-122` my-works 资产库升级：[`docs/specs/AIS-RLS-122-my-works-asset-library.md`](specs/AIS-RLS-122-my-works-asset-library.md)。现状索引：my-works 仍偏弹窗/列表，缺完整资产库筛选、详情 drawer、批量归档/取消公开/导出和候选/参考资产展示。
+
+#### AIS-RLS-120: 多候选 / 分支生成
+
+**核心用户场景**
+
+用户在同一 prompt 下想一次得到 2-4 张不同方向的结果，先横向比较构图、风格和可用性，再选定一张作为“当前结果”继续图生图、加入画布或公开到广场。公开时不能误发未选中的候选，后续继续创作也不能默认拿最后完成的一张。
+
+**现状**
+
+当前生成链路仍偏单结果；ProductFlow gap §4.7 明确记录“当前我们偏单结果”，建议支持 `n > 1`、候选作为 `round_candidate`、用户选择当前结果，并让公开最终展示图读取当前结果。现有 `generation_requests` / `generations` 已能承载单次生成、队列恢复和 trace，但前台缺少候选组概念、候选逐张完成状态和“选定当前结果”的持久字段。
+
+**影响**
+
+- 用户需要反复提交相同 prompt 才能比较方向，credits、等待时间和历史列表噪音都会增加。
+- 没有候选选择状态时，公开、图生图续作、加入画布可能使用错误图片。
+- 如果后续接入真实队列，多候选逐张完成但 UI 只能全量刷新，会加重闪动和滚动重置。
+
+**方案**
+
+1. 数据模型增加“候选组”语义：一次提交生成 `candidateCount`，创建一个 `generation_request`，其下有 1-N 条候选记录；每条候选保存 `candidate_index`、`status`、`image_url`、`error_message`、`cost_credits`、`duration_ms`、`provider_request_id`。
+2. 增加 `selected_candidate_id` 或等价字段，写在请求/会话轮次/生成组上；默认选择首个成功候选，用户点击后更新。
+3. credits 计费按实际请求候选数或实际成功候选数采用明确策略：提交前预估并确认，失败候选按现有 provider 失败退费规则处理，记录审计日志。
+4. API 请求体支持 `candidateCount`，限制为 `1..4`；Provider 不支持 `n` 时由服务层拆成多个子调用，仍归入同一候选组。
+5. 前端生成结果区从单卡升级为候选网格，候选可逐张进入 `pending/running/succeeded/failed`，支持选择、预览、重试单张、从选中候选继续图生图、公开选中候选。
+
+**UI 线框**
+
+```text
+生成结果
+┌──────────────────────────────────────────────────────┐
+│ Prompt summary                         候选数 [1 2 3 4] │
+├──────────────┬──────────────┬──────────────┬──────────────┤
+│ 候选 1        │ 候选 2        │ 候选 3        │ 候选 4        │
+│ 生成中...     │ [image]      │ 失败 可重试    │ [image]      │
+│              │ ✓ 当前结果    │              │              │
+├──────────────┴──────────────┴──────────────┴──────────────┤
+│ [设为当前] [图生图] [加入画布] [公开当前候选] [下载]          │
+└──────────────────────────────────────────────────────┘
+```
+
+桌面使用 2-4 列候选网格；移动端使用横向 snap 列表 + 底部固定候选动作栏。候选卡固定尺寸，失败和 loading 状态不改变网格高度。
+
+**验收**
+
+- 用户可从同一 prompt 生成 2-4 个候选结果，候选逐张显示完成/失败状态。
+- 用户选择候选后，图生图、加入画布、下载、公开广场均使用选中候选。
+- 生成队列和 credits 计费正确；部分失败时不会重复扣除或错误公开失败候选。
+- `npm run smoke:public` 通过，并补手动多候选生成流程：提交 4 候选、选择第 2 张、公开、刷新详情确认封面和路线一致。
+
+**回滚**
+
+关闭 `candidateCount > 1` 的 UI 入口和 API 校验，只允许 `candidateCount = 1`；保留候选表/字段的向后兼容读取，旧单生成模式继续写入一条候选记录或继续读取原 `generations` 字段。
+
+#### AIS-RLS-121: 参考图核心资产化
+
+**核心用户场景**
+
+用户上传 1-4 张参考图后，系统必须明确这些图片是“仅灵感记录”还是“真实参与生成”。启用本任务后，参考图会作为可复用资产进入生成请求、会话线路、我的作品、画廊详情和画布，而不是只存在于前端预览或 metadata 里。
+
+**现状**
+
+ProductFlow gap §4.10 记录：首页参考图上传当前会提示“已添加参考图预览，当前后端仍按文本生成”，用户容易误以为参考图参与了生成。当前公开详情和历史记录已有 `sourceImageUrl` 等图生图输入图字段，但参考图没有独立资产 CRUD、没有稳定的资产 ID、无法在刷新后作为独立对象管理，也不能可靠区分 `inputImage`、`referenceImages`、`outputImage`。
+
+**影响**
+
+- 用户预期与实际生成不一致，尤其是上传风格/产品参考图后结果未受影响。
+- 参考图不能被复用、审计、加入画布或在公开详情中透明展示。
+- 把参考图塞进 metadata 会让删除、权限、文件存在性检查、缩略图、CDN 缓存和后续对象存储迁移都变复杂。
+
+**方案**
+
+1. 新增一等资产表，建议命名 `source_assets`，覆盖输入图、参考图、遮罩和后续画布导入图。
+2. `src/stores/gallery-store.js` 增加参考图 CRUD：创建资产、按 generation/request 查询、软删除、文件存在性检查、公开详情读取。
+3. 生成请求持久化 `reference_asset_ids`，Provider adapter 把资产解析为 provider 支持的 image input；不支持参考图的 provider 必须返回 capability warning，并在 UI 禁用真实参考图提交。
+4. 公开作品详情返回结构显式区分：
+
+   ```json
+   {
+     "inputImage": { "assetId": "asset_1", "url": "/api/images/1/source-file" },
+     "referenceImages": [
+       { "assetId": "asset_2", "url": "/api/assets/asset_2/file", "role": "style" }
+     ],
+     "outputImage": { "generationId": 100, "url": "/images/output.jpg" }
+   }
+   ```
+
+5. UI 中参考图区改为资产条：显示缩略图、用途标签、是否参与本次生成、删除/替换；公开详情和我的作品详情显示“输入图 / 参考图 / 输出图”分组。
+
+**DB / schema 变更点**
+
+```sql
+CREATE TABLE source_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  generation_request_id BIGINT NULL,
+  generation_id BIGINT NULL,
+  asset_kind VARCHAR(32) NOT NULL, -- input, reference, mask, output_source
+  role VARCHAR(32) NULL,           -- style, product, pose, composition
+  file_path VARCHAR(1024) NOT NULL,
+  mime_type VARCHAR(128) NOT NULL,
+  byte_size BIGINT NOT NULL,
+  width INT NULL,
+  height INT NULL,
+  sha256 CHAR(64) NULL,
+  metadata_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL,
+  INDEX idx_source_assets_user_created (user_id, created_at),
+  INDEX idx_source_assets_request (generation_request_id),
+  INDEX idx_source_assets_generation (generation_id),
+  INDEX idx_source_assets_kind (asset_kind)
+);
+
+CREATE TABLE generation_reference_assets (
+  generation_request_id BIGINT NOT NULL,
+  asset_id BIGINT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (generation_request_id, asset_id)
+);
+```
+
+Migration must keep existing metadata/source image fields readable. Backfill only when a stable file path exists; otherwise leave legacy metadata untouched and mark the asset as absent instead of inventing a broken file reference.
+
+**验收**
+
+- 参考图存储为独立资产，刷新后仍能在生成详情、我的作品和公开详情中展示。
+- `src/stores/gallery-store.js` 提供参考图创建、查询、软删除/隐藏和详情聚合读取能力。
+- 上传 1-4 张参考图并提交时，请求体包含 reference asset IDs；Provider 不支持时 UI 给出明确禁用/说明。
+- `npm run smoke:public`、`npm run smoke:gallery-images` 通过；手动检查公开详情能区分输入图、参考图和输出图。
+
+**回滚**
+
+保留 legacy metadata/source 字段读取，关闭参考图资产上传和详情分组 UI；新表不参与渲染。若线上出现 provider 或文件权限问题，只回退 UI/API 入口，不删除已写入资产记录。
+
+#### AIS-RLS-122: My-works 资产库升级
+
+**核心用户场景**
+
+用户把“我的作品”当作个人素材库使用：搜索历史生成、按公开状态/生成类型/标签/日期筛选，批量导出、删除私有历史、撤回公开，打开详情查看输入图、参考图、输出图，并把选中作品继续编辑或加入画布。
+
+**现状**
+
+ProductFlow gap §4.15 记录 `openMyWorksModal()` 仍是弹窗式作品列表，已有下载、重试、编辑、公开/编辑标签等基础动作，但缺完整资产管理能力。后续批次已补过筛选 tab 和移动端单列/底部批量栏，但 Trellis 任务 `AIS-RLS-122` 仍要求把 my-works 升级为资产库，且明确依赖 `AIS-RLS-121`，因为作品详情必须能查看输入图/参考图。
+
+**影响**
+
+- 作品数量增长后，弹窗列表难以承载搜索、批量操作、详情对照和移动端长列表。
+- 用户不容易区分“删除历史记录”“取消公开”“管理员下架”“导出文件”这些动作的后果。
+- 参考图资产化后，如果我的作品不升级，新增资产仍缺少用户侧管理入口。
+
+**方案**
+
+1. 把 my-works 从单一 modal 升级为 `/works` 路由或全屏 view；保留顶部导航入口和移动底部导航入口。
+2. 列表查询支持分页/游标、搜索、排序和筛选：全部、已公开、未公开、文生图、图生图、有参考图、日期范围、标签、失败/可重试。
+3. 批量选择采用桌面 checkbox + shift range，移动端长按或“选择”模式；底部批量操作栏提供导出、删除私有历史、撤回公开、加入画布。
+4. 详情抽屉显示输出图、输入图、参考图、prompt、模型、尺寸、耗时、credits、公开状态、标签和路线；引用 AIS-RLS-121 的 `source_assets` 读取参考图。
+5. 危险操作分层：删除只针对私有历史，公开作品先提示“撤回公开不会删除历史”；超过撤回窗口的作品进入撤回申请或提示联系管理员，沿用现有公开奖励/审核规则。
+
+**筛选 / 批量交互设计**
+
+```text
+我的作品
+┌────────────────────────────────────────────────────────┐
+│ 搜索 prompt / 标签 / 文件名        [日期] [排序: 最新]      │
+│ [全部] [已公开] [未公开] [文生图] [图生图] [有参考图] [失败] │
+├────────────────────────────────────────────────────────┤
+│ □ 作品卡  □ 作品卡  □ 作品卡  □ 作品卡                    │
+│    类型       公开状态    标签       快捷动作              │
+├────────────────────────────────────────────────────────┤
+│ 已选 3 项       [导出] [加入画布] [撤回公开] [删除私有历史]   │
+└────────────────────────────────────────────────────────┘
+```
+
+移动端：筛选 chips 横向滚动，批量操作吸底；详情使用全屏 sheet，主图和操作按钮固定在首屏，元信息分组折叠。
+
+**验收**
+
+- my-works 支持按类型、日期、标签、公开状态、有无参考图筛选，筛选不导致全页面重置。
+- 支持批量导出、删除私有历史；已公开作品支持批量撤回或进入撤回申请流程，操作结果有明确 toast 和失败项明细。
+- 详情能查看输入图、参考图、输出图，并能继续图生图、加入画布、下载或打开公开详情。
+- `npm run smoke:public` 通过；手动资产库流程覆盖桌面和移动端：筛选、批量选择、批量导出、删除私有历史、撤回公开、打开详情。
+
+**回滚**
+
+关闭 `/works` 或全屏资产库入口，恢复旧 my-works modal；保留后端筛选参数和资产字段的兼容读取。若批量操作出现风险，先只隐藏批量栏，单作品下载/公开/撤回继续可用。
 
 ### P3-2. `ais-rls-094 ~ 100` 写在文档但未落任务
 
@@ -1337,9 +1538,9 @@ gantt
 | 24 | `refactor: lazy-load public/admin.js and public/canvas.js on route entry` | C | P1-1 Step B | public/app-router.js, public/index.html |
 | 25 | `feat: gradual enforce CSP via CSP_ENFORCE flag with hashed canary` | C | P0-1 | server.js |
 | 26 | `feat: mask admin email in account menu and remove cf-email obfuscation reliance` | C | P3-5 | public/app.js or public/app-auth.js |
-| 27 | `feat: AIS-RLS-094 multi-candidate generation (branch from prompt)` | D | P3-1 | server.js, src/services/generation-*, public/app.js |
-| 28 | `feat: AIS-RLS-095 reference image as first-class asset` | D | P3-1 | src/stores/gallery-store.js, src/routes/images*, public/app.js |
-| 29 | `feat: AIS-RLS-096 my-works asset library upgrade` | D | P3-1 | public/app.js, src/stores/gallery-store.js |
+| 27 | `feat: AIS-RLS-120 multi-candidate generation (branch from prompt)` | D | P3-1 | server.js, src/services/generation-*, public/app.js |
+| 28 | `feat: AIS-RLS-121 reference image as first-class asset` | D | P3-1 | src/stores/gallery-store.js, src/routes/images*, public/app.js |
+| 29 | `feat: AIS-RLS-122 my-works asset library upgrade` | D | P3-1 | public/app.js, src/stores/gallery-store.js |
 | 30 | `chore: add vitest with unit tests for provider-mapping / agent-planner / prompt-source-sync` | D | P1-6 | vitest.config.mjs, src/*.test.js |
 
 每个 PR 须在描述中列出：跑过的 smoke 名称、是否需服务器部署、回滚 commit。
