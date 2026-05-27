@@ -25,6 +25,10 @@ async function readText(filePath) {
   return fs.readFile(filePath, "utf8");
 }
 
+function normalizeLineEndings(content) {
+  return content.replace(/\r\n?/g, "\n");
+}
+
 async function bundledScript(content, sourceFileName) {
   const result = await esbuild.transform(content, {
     loader: "js",
@@ -102,7 +106,7 @@ export async function buildJsAssets({ root = process.cwd(), lazySources = [] } =
   const assets = [];
   for (const script of scripts) {
     const content = await readText(script.sourceAbsolutePath);
-    const bundled = await bundledScript(content, script.sourceFileName);
+    const bundled = normalizeLineEndings(await bundledScript(content, script.sourceFileName));
     const hash = createHash("sha256").update(bundled).digest("hex").slice(0, 12);
     const stem = path.basename(script.sourceFileName, ".js");
     const fileName = `${stem}.${hash}.js`;

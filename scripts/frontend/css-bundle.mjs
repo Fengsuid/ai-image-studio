@@ -16,10 +16,14 @@ async function readText(filePath) {
   return fs.readFile(filePath, "utf8");
 }
 
+function normalizeLineEndings(content) {
+  return content.replace(/\r\n?/g, "\n");
+}
+
 async function cssSources(root) {
   const publicDir = path.join(root, "public");
   const stylesPath = path.join(publicDir, "styles.css");
-  const styles = await readText(stylesPath);
+  const styles = normalizeLineEndings(await readText(stylesPath));
   const moduleFiles = [...styles.matchAll(PUBLIC_CSS_IMPORT_RE)].map((match) => match[1]);
   const sources = [
     ...VENDOR_CSS.map((fileName) => path.join("public", fileName)),
@@ -35,7 +39,7 @@ async function cssSources(root) {
 async function bundledCss(root, sources) {
   const chunks = [];
   for (const source of sources) {
-    const content = await readText(source.absolutePath);
+    const content = normalizeLineEndings(await readText(source.absolutePath));
     chunks.push(`/* ${source.relativePath.replace(/\\/g, "/")} */\n${content.trimEnd()}\n`);
   }
   return `${chunks.join("\n")}\n`;

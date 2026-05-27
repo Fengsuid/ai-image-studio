@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.189602649cfb.css",
-    "file": "/dist/app.189602649cfb.css",
-    "hash": "189602649cfb",
-    "bytes": 308020,
+    "entry": "/dist/app.ed3f7b8dea3a.css",
+    "file": "/dist/app.ed3f7b8dea3a.css",
+    "hash": "ed3f7b8dea3a",
+    "bytes": 298216,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

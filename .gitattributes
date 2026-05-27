@@ -1,0 +1,7 @@
+.gitattributes text eol=lf
+public/index.html text eol=lf
+public/dist/*.css text eol=lf
+public/dist/*.js text eol=lf
+public/frontend-build-manifest.js text eol=lf
+public/frontend-build-manifest.json text eol=lf
+scripts/frontend/*.mjs text eol=lf
