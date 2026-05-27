@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260527-button-primitive-v1";
+export const FRONTEND_BUILD_VERSION = "20260527-admin-token-replace-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
