@@ -93,3 +93,127 @@
   gap: clamp(var(--space-sm), 2vh, var(--space-lg));
   position: relative;
 }
+
+/* ── AIS-RLS-136 — Hero Instrument Serif + Composer glass ── */
+
+/* Hero title: use Instrument Serif for the italic tagline */
+.hero h1 em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Hero pathway polish */
+.hero-pathway {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.hero-pathway span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.hero-pathway b {
+  width: 20px;
+  height: 1px;
+  background: var(--neutral-300);
+  display: block;
+}
+
+/* Composer glass card upgrade */
+.composer {
+  background: var(--surface-glass);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 60%, transparent);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, #fff 48%, transparent) inset,
+    var(--shadow-lg);
+  backdrop-filter: blur(24px) saturate(1.4);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.hero .composer {
+  border-radius: var(--radius-xl);
+}
+
+/* Focus glow: purple halo on interaction */
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--brand-400) 42%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, #fff 32%, transparent) inset,
+    0 0 0 3px color-mix(in srgb, var(--brand-400) 14%, transparent),
+    var(--shadow-xl);
+}
+
+/* Discovery chips upgrade */
+.home-discovery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.home-discovery button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 36px;
+  padding: 0 var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 72%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.home-discovery button:hover {
+  transform: translateY(-1px);
+  background: var(--surface-card);
+  border-color: color-mix(in srgb, var(--brand-400) 36%, transparent);
+  color: var(--text-primary);
+}
+
+/* Dark mode composer overrides */
+:root[data-theme="dark"] .composer {
+  background: color-mix(in srgb, var(--surface-elev-1) 82%, transparent);
+  border-color: var(--border-subtle);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--neutral-300) 8%, transparent) inset,
+    var(--shadow-lg);
+}
+
+:root[data-theme="dark"] .composer:focus-within {
+  border-color: color-mix(in srgb, var(--brand-400) 38%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--neutral-300) 6%, transparent) inset,
+    0 0 0 3px color-mix(in srgb, var(--brand-400) 12%, transparent),
+    var(--shadow-xl);
+}
+
+:root[data-theme="dark"] .home-discovery button {
+  background: color-mix(in srgb, var(--surface-elev-1) 72%, transparent);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .home-discovery button:hover {
+  background: var(--surface-elev-2);
+  color: var(--text-primary);
+}

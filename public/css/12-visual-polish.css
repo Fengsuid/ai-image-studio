@@ -123,3 +123,199 @@
     border-radius: var(--radius-lg);
   }
 }
+
+/* ── AIS-RLS-138 — Ambient mesh + dark mode补完 ───────────── */
+
+/* Light: purple→blue→cyan→pink 4-corner mesh (user-approved) */
+.ambient {
+  background:
+    radial-gradient(at 18% 22%, rgba(124, 58, 237, 0.14), transparent 50%),
+    radial-gradient(at 80% 16%, rgba(56, 130, 246, 0.13), transparent 50%),
+    radial-gradient(at 24% 84%, rgba(34, 211, 238, 0.11), transparent 50%),
+    radial-gradient(at 82% 80%, rgba(236, 72, 153, 0.11), transparent 50%),
+    linear-gradient(160deg, var(--bg) 0%, var(--surface) 100%);
+}
+
+/* Dark: same mesh, slightly boosted saturation */
+:root[data-theme="dark"] .ambient {
+  background:
+    radial-gradient(at 18% 22%, rgba(139, 92, 246, 0.20), transparent 50%),
+    radial-gradient(at 80% 16%, rgba(56, 130, 246, 0.18), transparent 50%),
+    radial-gradient(at 24% 84%, rgba(34, 211, 238, 0.14), transparent 50%),
+    radial-gradient(at 82% 80%, rgba(236, 72, 153, 0.14), transparent 50%),
+    linear-gradient(160deg, var(--bg) 0%, var(--surface) 100%);
+}
+
+/* Ambient drift — slow position animation */
+@keyframes ambient-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(2%, -1.5%) scale(1.02); }
+  50%  { transform: translate(-1%, 2%) scale(1.01); }
+  75%  { transform: translate(1.5%, -0.5%) scale(1.03); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.ambient {
+  animation: ambient-drift 28s var(--ease-soft) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient {
+    animation: none;
+  }
+}
+
+/* ── Dark mode coverage補完 ───────────────────────────────── */
+
+/* Recent section */
+:root[data-theme="dark"] .recent-tile {
+  background: color-mix(in srgb, var(--surface-elev-1) 88%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .recent-caption strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .recent-caption span {
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .recent-header h2 {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .recent-header p {
+  color: var(--text-tertiary);
+}
+
+/* Inspiration / example cards */
+:root[data-theme="dark"] .example-card,
+:root[data-theme="dark"] .prompt-card {
+  background: color-mix(in srgb, var(--surface-elev-1) 86%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .example-card:hover,
+:root[data-theme="dark"] .prompt-card:hover {
+  border-color: color-mix(in srgb, var(--brand-400) 28%, transparent);
+}
+
+:root[data-theme="dark"] .inspiration-head {
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .inspiration-head button {
+  color: var(--text-secondary);
+}
+
+/* Hero elements */
+:root[data-theme="dark"] .hero h1 span {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .hero-desc {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .hero-pathway {
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .hero-pathway b {
+  background: var(--neutral-600);
+}
+
+:root[data-theme="dark"] .reviews {
+  color: var(--text-tertiary);
+}
+
+/* Config chip / daily metric */
+:root[data-theme="dark"] .config-chip {
+  background: color-mix(in srgb, var(--surface-elev-2) 82%, transparent);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .daily-metric {
+  color: var(--text-tertiary);
+}
+
+/* Gallery leaderboard */
+:root[data-theme="dark"] .gallery-leaderboard {
+  background: color-mix(in srgb, var(--surface-elev-1) 88%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .gallery-rank-card {
+  background: color-mix(in srgb, var(--surface-elev-2) 74%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .gallery-rank-card p {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .gallery-rank-card .rank-like {
+  background: var(--surface-elev-1);
+  border-color: var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .gallery-rank-tabs div {
+  background: color-mix(in srgb, var(--surface-elev-1) 82%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .gallery-rank-tabs button {
+  color: var(--text-tertiary);
+}
+
+:root[data-theme="dark"] .gallery-rank-tabs button.active {
+  background: var(--brand-600);
+  color: var(--neutral-0);
+}
+
+/* Leaderboard page */
+:root[data-theme="dark"] .leaderboard-page-head {
+  background: color-mix(in srgb, var(--surface-elev-1) 82%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .leaderboard-page-head h1 {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .leaderboard-page-head p {
+  color: var(--text-tertiary);
+}
+
+/* Work cards dark */
+:root[data-theme="dark"] .work-card {
+  background: color-mix(in srgb, var(--surface-elev-1) 88%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .work-body {
+  background: color-mix(in srgb, var(--surface-elev-1) 94%, transparent);
+}
+
+:root[data-theme="dark"] .work-body p {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .work-body > span {
+  color: var(--text-tertiary);
+}
+
+/* Reference row / context badges dark */
+:root[data-theme="dark"] .reference-row {
+  background: var(--surface-elev-2);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .context-badge {
+  background: var(--surface-elev-1);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}

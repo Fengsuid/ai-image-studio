@@ -225,6 +225,110 @@
   animation: ais-pop var(--dur-slow, 320ms) var(--ease-bounce, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
 }
 
+/* ── AIS-RLS-137 — Card hover spotlight + micro-interactions ── */
+
+/* Spotlight: cards set --spot-x / --spot-y via JS pointermove */
+@keyframes ais-spotlight-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.card-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    480px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--brand-400) 12%, transparent),
+    transparent 60%
+  );
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.card-spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Card lift — universal hover micro-interaction */
+.card-lift {
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.card-lift:active {
+  transform: translateY(-1px);
+}
+
+/* Apply to existing card types */
+.recent-tile,
+.example-card,
+.prompt-card,
+.work-card {
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.recent-tile:hover,
+.example-card:hover,
+.prompt-card:hover,
+.work-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.recent-tile:active,
+.example-card:active,
+.prompt-card:active,
+.work-card:active {
+  transform: translateY(-1px);
+  transition-duration: var(--dur-instant);
+}
+
+/* Stagger fade-in for grids (JS sets --stagger-i) */
+@keyframes ais-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--anim-distance-sm)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.stagger-item {
+  animation: ais-stagger-in var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--stagger-i, 0) * 60ms);
+}
+
+/* Button press micro-feedback */
+@keyframes ais-btn-press {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+.micro-press:active {
+  animation: ais-btn-press var(--dur-fast) var(--ease-spring);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-in,
   .anim-slide-up,
@@ -237,10 +341,24 @@
   .animate-fade-in,
   .animate-slide-up,
   .animate-scale-in,
-  .animate-pop-in {
+  .animate-pop-in,
+  .stagger-item,
+  .micro-press:active {
     animation-duration: 1ms;
     animation-delay: 0ms;
     animation-iteration-count: 1;
+  }
+
+  .card-spotlight::before {
+    display: none;
+  }
+
+  .card-lift:hover,
+  .recent-tile:hover,
+  .example-card:hover,
+  .prompt-card:hover,
+  .work-card:hover {
+    transform: none;
   }
 
   .anim-shimmer {
