@@ -579,3 +579,17 @@ Record the outcome in the relevant development document or release note before m
 - Deployment note: task card has `deployment_required=false`; no Docker deploy, no online smoke, and no `APP_VERSION` bump were required. Production remains on `20260527-visual-token-v2-v1`.
 - Known blockers: none for AIS-RLS-130. `smoke:frontend-boundaries` still reports existing long-term file-size warnings for god-files, which are non-blocking guardrail warnings.
 - Rollback target: revert `705817a` to restore previous warning-level ESLint rules and the pre-cleanup lint scaffolding.
+
+### 2026-05-27 AIS-RLS-129 Phase D Feature Specs Release
+
+- Task covered: `AIS-RLS-129` writes detailed Phase D feature specs for `AIS-RLS-120`, `AIS-RLS-121`, and `AIS-RLS-122`.
+- Commit covered: `c42c5d3 docs(AIS-RLS-129): add phase d feature specs`.
+- Files changed: `docs/specs/AIS-RLS-120-multi-candidate-generation.md`, `docs/specs/AIS-RLS-121-reference-image-asset.md`, `docs/specs/AIS-RLS-122-my-works-asset-library.md`, and `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md`.
+- Spec coverage: 120 covers multi-candidate user scenarios, candidate UI wireframes, API drafts, DB migration sketch, credits/queue policy, acceptance, rollback, and risks.
+- Spec coverage: 121 covers reference image asset storage, gallery-store CRUD contract, reference visibility, API drafts, DB schema changes, acceptance, rollback, and privacy risks.
+- Spec coverage: 122 covers my-works library filters, batch actions, detail drawer, export/archive/unpublish flows, API drafts, DB schema changes, mobile constraints, acceptance, and rollback.
+- Follow-up plan coverage: Phase D P3-1 now links the three independent specs and includes three `现状索引` entries for task-card validation.
+- Local checks: `git diff --check` passed; spec files are `8,410 / 8,048 / 8,256` bytes, avoiding stub-document risk.
+- Validation note: `Select-String` confirmed three new `现状索引` entries in `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md`.
+- Deployment note: documentation-only task with `deployment_required=false`; no Docker deploy, no online smoke, no `APP_VERSION` bump, and no private deployment log entry were required.
+- Rollback target: revert `c42c5d3` and this release-record commit to remove the added Phase D specs and follow-up-plan links.
