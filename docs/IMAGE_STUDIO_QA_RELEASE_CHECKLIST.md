@@ -610,3 +610,20 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: container `smoke:frontend-build-tooling`, `smoke:frontend-boundaries`, `smoke:css-module-split`, and `smoke:public -- http://127.0.0.1:3000` passed; external `smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
 - Known blockers: none for AIS-RLS-134. The `/admin` compatibility stylesheet query still references the prior visual-token version, matching the existing admin compatibility path and not affecting the public hashed app bundle or `/api/version`.
 - Rollback target: revert `86940e7`, restore the previous `APP_VERSION=20260527-visual-token-v2-v1` and hashed entries `app.3a2641ae684c.css`, `app.48294c7b6c01.js`, `canvas-history.d56d37f6ed67.js`, rebuild/restart app, then rerun public, frontend-boundaries, css-module-split, frontend-build-tooling, and visual-regression smoke.
+
+### 2026-05-27 AIS-RLS-140 Admin Token Replace Release
+
+- Task covered: `AIS-RLS-140` visual redesign Phase 8 admin hardcoded hex replacement.
+- Commits covered: `b4315e4 feat(AIS-RLS-140): replace admin hardcoded colors with tokens` and `6b1dd03 fix(frontend-build): normalize hashed bundles to LF`.
+- Files changed: `public/css/09-admin.css`, `public/css/09-admin-panels.css`, `public/css/09-admin-diagnostics.css`, `public/css/09-admin-shell-polish.css`, visual baselines, `src/config/app-settings.js`, frontend build manifests, `public/dist/app.ed3f7b8dea3a.css`, `.gitattributes`, and frontend bundle scripts.
+- Token coverage: admin CSS now consumes Token v2 semantic/surface variables for neutral, brand, success, warn, danger, and info states without adding new admin-only tokens.
+- Hex audit: `Select-String -Path public/css/09-admin*.css -Pattern '#[0-9a-fA-F]{3,6}' -AllMatches` returned `0`, stricter than the <= 5 acceptance budget.
+- Local checks: `npm run check`, `npm run smoke:admin-module-split`, `npm run smoke:visual-regression`, `git diff --cached --check`, and the admin CSS hex audit passed.
+- Visual regression: the manually approved `2026-05-27T11-24-27-225Z` run was promoted to baseline; rerun `docs/mobile-qa/visual-regression/runs/2026-05-27T11-58-54-198Z/summary.md` passed 10/10 scenarios with all baselines matched.
+- Build integrity: `6b1dd03` normalizes CSS/JS bundle content to LF before hashing and adds `.gitattributes` LF guards so Linux container file hashes match `public/frontend-build-manifest.json`.
+- Deployment packages: initial LF hash delta `ai-image-studio-ais-rls-140-lf-hash-6b1dd03-delta.tgz` was `63,735` bytes / `11` entries / SHA256 `2866B0B03988C27BDE827E576705992E25DEEF1E83C7D3035D888324945A1915`; final full LF dist package `ai-image-studio-ais-rls-140-lf-dist-6b1dd03.tgz` was `194,529` bytes / `59` entries / SHA256 `A3DC53CD78F830412BEFEE4D84D30A8CD59C70288A1B54AD8D6DFE97BC602B4B`.
+- Deployment note: production was rebuilt and restarted with `APP_VERSION=20260527-admin-token-replace-v1`; no database schema or data changes were made.
+- Online smoke: container `smoke:frontend-build-tooling`, `smoke:frontend-boundaries`, `smoke:css-module-split`, `smoke:public -- http://127.0.0.1:3000`, and external `smoke:public -- https://ai-image-studio.twisterfeng.com` passed.
+- Online version: container and external `/api/version` report `20260527-admin-token-replace-v1`; app restart count is `0`, MySQL is healthy, and public entry CSS is `/dist/app.ed3f7b8dea3a.css`.
+- Known blockers: the first post-deploy container build-tooling smoke failed on stale worktree-byte JS dist assets; the final full LF dist archive resolved all JS and CSS manifest hash mismatches.
+- Rollback target: revert `6b1dd03` and `b4315e4`, restore the prior `APP_VERSION=20260527-button-primitive-v1` and CSS entry `app.af00027fb70e.css`, rebuild/restart app, then rerun public, frontend-boundaries, css-module-split, frontend-build-tooling, admin-module-split, and visual-regression smoke.
