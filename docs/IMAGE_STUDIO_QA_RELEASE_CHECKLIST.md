@@ -505,3 +505,18 @@ Record the outcome in the relevant development document or release note before m
 - Deployment note: the fix was deployed as an emergency small-file hot patch from pushed commits after large archive upload instability; `/api/version` reports `20260526-generation-status-route-fix-v1`.
 - Online smoke: container `npm run smoke:public -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; repeated generation-status probes returned `200`; app restart count stayed `0`; recent logs contain no `ERR_HTTP_HEADERS_SENT`.
 - Rollback target: revert `90b4e71` and `48587c8`, then redeploy the prior release only if generation status polling regresses in a different way.
+
+### 2026-05-27 AIS-RLS-117 Lazy Route Loader Release
+
+- Task covered: `AIS-RLS-117` lazy-load `admin.js` and legacy canvas bundles on route entry.
+- Commits covered: `a4e5a70 feat(AIS-RLS-117): lazy-load route bundles` and `f60f396 test(AIS-RLS-117): tolerate minified public smoke bundles`.
+- Files changed: `public/app-router.js`, `public/index.html`, `public/admin.html`, `public/app.js`, `public/admin.js`, frontend build manifest/build tooling, route-aware smoke scripts, generated `public/dist/*` assets, and `APP_VERSION` files.
+- Runtime coverage: public first-load HTML no longer includes legacy `canvas*.js`; `/admin` loads `app-router.js` and lazy-loads ordered admin modules before `admin.js`; `#/canvas` calls `ImageStudioRouter.ensureCanvas()` and loads manifest-ordered canvas modules before binding shell events.
+- Guardrail coverage: `public/frontend-build-manifest.json` now carries `js.lazyRoutes.admin` and `js.lazyRoutes.canvas`; `smoke:frontend-boundaries`, `smoke:frontend-build-tooling`, and `smoke:public` assert route order and first-load exclusions.
+- Local checks: `npm run frontend:build`, `npm run check`, route/module smoke updates, and `git diff --check` passed before deployment. Local full `smoke:public` remained covered by the production container because the local app/MySQL environment is not the deployment authority for this lane.
+- Deployment package: the full `git archive HEAD` package at `a4e5a70` was 240,995,870 bytes / 1,810 entries / SHA256 `9FC6D5A31F8BC5E10044C787A790FFB5F230FE87F37178ABEE4320B5EC44A03D`, but the upload was incomplete and was not used for deployment.
+- Deployment note: production used a verified delta archive, 286,725 bytes / 85 entries / SHA256 `04A9AED010FA6DEB2C5F58C61880647296EC82023D9E79AC9C04EF4C8D8AE7F1`, then a smoke-only patch archive, 10,054 bytes / 3 entries / SHA256 `4E740A4D0B099F04009B71327CAB2E4D7FC95A9DC8558FA7672E88769CB0104A`, to deploy `APP_VERSION=20260527-lazy-route-loader-v1`.
+- Online version: container and external `/api/version` report `20260527-lazy-route-loader-v1`; app restart count is `0`.
+- Online smoke: container `npm run smoke:auth-admin -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; container `npm run smoke:public -- http://127.0.0.1:3000` passed after `f60f396` aligned smoke assertions with minified production bundles.
+- Known blockers: none for AIS-RLS-117. The initial post-deploy container `smoke:public` failure was a test assertion issue around minified bundle text, not a route-loader runtime regression.
+- Rollback target: revert `f60f396` only if the smoke assertion needs to be tightened, or revert `a4e5a70` and redeploy the prior release if lazy admin/canvas route loading regresses.
