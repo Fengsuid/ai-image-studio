@@ -520,3 +520,17 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: container `npm run smoke:auth-admin -- http://127.0.0.1:3000` passed; external `npm run smoke:public -- https://<host>` passed; container `npm run smoke:public -- http://127.0.0.1:3000` passed after `f60f396` aligned smoke assertions with minified production bundles.
 - Known blockers: none for AIS-RLS-117. The initial post-deploy container `smoke:public` failure was a test assertion issue around minified bundle text, not a route-loader runtime regression.
 - Rollback target: revert `f60f396` only if the smoke assertion needs to be tightened, or revert `a4e5a70` and redeploy the prior release if lazy admin/canvas route loading regresses.
+
+### 2026-05-26 Generic Prompt Expansion Release
+
+- Issue covered: very short home text-to-image prompts such as `生成图片`, `随机图片`, and `generate image` were sent to the provider too literally, which could produce poor output or provider-side failures for generic requests.
+- Commit covered: `b952831 fix: expand generic image generation prompts`.
+- Files changed: `src/generation-prompt.js`, `src/routes/images-generate.js`, `server.js`, `src/config/app-settings.js`, `src/frontend/app-build-manifest.mjs`, and generated frontend build manifest files.
+- Runtime coverage: generic Chinese and English text-to-image prompts are detected, expanded into one of five provider-ready original prompts, and selected deterministically from the request/audit seed.
+- API coverage: `/api/images/generate` stores the original user prompt while sending `providerPrompt` to OpenAI; `requestedParams` records `providerPrompt` only when the provider prompt differs from the user prompt.
+- Smoke coverage added after audit: `smoke:generic-prompt-normalize` verifies Chinese/English generic detection, specific-prompt pass-through, seed stability, prompt-pool membership, and route wiring.
+- Hotfix regression smoke added after audit: `smoke:generation-status-route` verifies status GET, terminal POST, and queued cancel POST return `handled=true` after writing status, preventing 404 fallthrough and double responses.
+- Local checks: `node --check scripts/smoke/check-generic-prompt-normalize.mjs`, `node --check scripts/smoke/check-generation-status-route-return.mjs`, `npm run smoke:generic-prompt-normalize`, and `npm run smoke:generation-status-route` passed.
+- Deployment note: `b952831` was deployed as `APP_VERSION=20260526-generic-prompt-fix-v1`; production was later superseded by `20260527-lazy-route-loader-v1`, which descends from and includes the generic prompt fix.
+- Current closure note: this record and the two smoke scripts close the audit gap; no new runtime deploy or APP_VERSION bump is required for the test/documentation-only follow-up.
+- Rollback target: revert `b952831` only if generic prompt expansion causes provider prompt regressions; revert this closure commit only if the added smoke guardrails need to be removed or renamed.
