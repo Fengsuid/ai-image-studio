@@ -1,4 +1,4 @@
-(function initCanvasAssistant(global, document) {
+(function initCanvasAssistant(global, _document) {
   "use strict";
 
   const root = global.ImageStudioCanvas || (global.ImageStudioCanvas = {});

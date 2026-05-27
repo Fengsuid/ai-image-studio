@@ -67,7 +67,6 @@ const { normalizeTextToImagePrompt } = require("./src/generation-prompt");
 
 const {
   PUBLIC_DIR,
-  DATA_DIR,
   GENERATED_DIR,
   SOURCE_DIR,
   PORT,
@@ -132,14 +131,8 @@ const canvasService = canvasCore.createService({
   defaultModel: DEFAULT_MODEL
 });
 
-const generationWindows = new Map();
 const rumEvents = [];
 const GENERATION_RUNNER_ID = `${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
-const PROVIDER_MAPPING_TRACE_STAGES = [
-  "provider_mapping_submit",
-  "provider_task_submitted",
-  "provider_polled"
-];
 const GENERATION_QUEUE_CONCURRENCY = Math.max(1, Number.parseInt(process.env.GENERATION_QUEUE_CONCURRENCY || "1", 10) || 1);
 const GENERATION_QUEUE_ESTIMATE_SECONDS = Math.max(20, Number.parseInt(process.env.GENERATION_QUEUE_ESTIMATE_SECONDS || "90", 10) || 90);
 const GENERATION_QUEUE_STALE_RUNNING_MS = Math.max(
@@ -1664,49 +1657,6 @@ async function callOpenAIImages(settings, payload, { signal, trace = null } = {}
     }
   }
   throw lastError || httpError("OpenAI image request failed", 502);
-}
-
-async function callOpenAIResponses(settings, payload, { signal } = {}) {
-  const routes = await resolveProviderRoutes(settings, { mode: "image-edit", candidateCount: 1 });
-  let lastError = null;
-  for (const route of routes) {
-    try {
-      const apiKey = getOpenAIApiKey(route.settings);
-      const routedPayload = { ...payload, model: route.settings.model || payload.model || DEFAULT_MODEL };
-      const response = await fetchWithTimeout("OpenAI image edit (responses)", getOpenAIResponsesEndpoint(route.settings), {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(routedPayload),
-        signal
-      });
-
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        data = { raw: text };
-      }
-
-      if (!response.ok) {
-        const message = data?.error?.message || "OpenAI image edit request failed";
-        throw httpError(message, response.status, data);
-      }
-      await markProviderHealth(route.provider, { healthStatus: "ok", lastError: "" });
-      return data;
-    } catch (error) {
-      if (error?.name === "AbortError") throw error;
-      lastError = withProviderFailure(error, route.provider);
-      await markProviderHealth(route.provider, {
-        healthStatus: "error",
-        lastError: String(error.message || error).slice(0, 2000)
-      });
-    }
-  }
-  throw lastError || httpError("OpenAI image edit request failed", 502);
 }
 
 async function callOpenAITextResponses(settings, payload, { signal } = {}) {

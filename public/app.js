@@ -388,7 +388,9 @@ function setupRumMonitoring() {
         const lcp = entries[entries.length - 1];
         if (lcp) reportRumMetric("LCP", lcp.startTime, { id: lcp.id || "", url: lcp.url || "" });
       }).observe({ type: "largest-contentful-paint", buffered: true });
-    } catch {}
+    } catch {
+      // PerformanceObserver support varies by browser; missing entries are non-fatal telemetry gaps.
+    }
     try {
       let cls = 0;
       new PerformanceObserver((list) => {
@@ -397,13 +399,17 @@ function setupRumMonitoring() {
         }
         reportRumMetric("CLS", cls);
       }).observe({ type: "layout-shift", buffered: true });
-    } catch {}
+    } catch {
+      // PerformanceObserver support varies by browser; missing entries are non-fatal telemetry gaps.
+    }
     try {
       new PerformanceObserver((list) => {
         const longest = list.getEntries().reduce((max, entry) => Math.max(max, entry.duration || 0), 0);
         if (longest) reportRumMetric("INP", longest);
       }).observe({ type: "event", buffered: true, durationThreshold: 40 });
-    } catch {}
+    } catch {
+      // PerformanceObserver support varies by browser; missing entries are non-fatal telemetry gaps.
+    }
   }
   window.addEventListener("error", (event) => {
     const target = event.target;
@@ -417,9 +423,6 @@ function text(key) {
   return requireSettingsController().text(key);
 }
 
-function local(value) {
-  return requireSettingsController().local(value);
-}
 function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -673,9 +676,6 @@ function normalizePublicTags(value) {
       return true;
     })
     .slice(0, 8);
-}
-function publicTagsText(tags = []) {
-  return normalizePublicTags(tags).join(", ");
 }
 function publicKindTagForItem(item = {}) {
   return item.sourceImageData || item.sourceImageUrl || item.sourceFilename || item.sourceImageId
@@ -2049,7 +2049,6 @@ function syncComposers(sourceForm) {
     }
     const toggle = ensureContinuationToggle(form);
     if (toggle) {
-      const isActive = continuation.active;
       const canContinue = continuationCandidate.active;
       const isOn = state.continuationMode === "auto";
       toggle.classList.toggle("hidden", !canContinue);
@@ -3402,7 +3401,6 @@ function promptCardHtml(prompt) {
   const sourceBadge = prompt.kind === "square"
     ? `<em class="square-badge"><i class="ri-user-line"></i>${escapeHtml(displayUserName(prompt))}</em><b>${text(tagView.kindBadge?.textKey || (isImageToImageItem(prompt) ? "imageToImage" : "textToImage"))}</b>${canvasBadge}`
     : `<em><i class="ri-user-line"></i>${escapeHtml(prompt.sourceRepo || prompt.source || prompt.author || "@open")}</em>`;
-  const hasImage = Boolean(coverUrl);
   const openAttr = prompt.kind === "square"
     ? ` data-open-square="${escapeHtml(prompt.id)}" role="button" tabindex="0"`
     : ` data-open-prompt="${escapeHtml(prompt.id)}" role="button" tabindex="0"`;

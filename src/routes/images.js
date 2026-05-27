@@ -7,7 +7,6 @@ const { promises: fs } = require("fs");
 // GET/HEAD /api/images/:id/file and GET/HEAD /api/images/:id/source-file.
 function createImagesRoute({
   store,
-  sendError,
   withSecurityHeaders,
   mimeTypes,
   getCurrentUser,
@@ -29,7 +28,7 @@ function createImagesRoute({
   canWithdrawDirectly,
   claimFirstPublicRewardForGeneration
 }) {
-  async function sendImageFile(req, res, url, { generation, filename, directory, contentSource }) {
+  async function sendImageFile(req, res, url, { filename, directory, contentSource }) {
     const absolutePath = path.join(directory, filename);
     const extension = path.extname(filename).toLowerCase();
     const bytes = await fs.readFile(absolutePath).catch((error) => {
@@ -68,7 +67,6 @@ function createImagesRoute({
         }
       }
       await sendImageFile(req, res, url, {
-        generation,
         filename: generation.sourceFilename,
         directory: sourceDir,
         contentSource: "user-provided-source-image"
@@ -90,7 +88,6 @@ function createImagesRoute({
         }
       }
       await sendImageFile(req, res, url, {
-        generation,
         filename: generation.filename,
         directory: generatedDir,
         contentSource: "ai-generated"

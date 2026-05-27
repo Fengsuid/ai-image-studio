@@ -449,14 +449,18 @@ function stableVisualInitProbe(theme) {
   try {
     localStorage.setItem("imageStudio.theme", theme);
     localStorage.setItem("imageStudioComplianceNoticeV1", "seen");
-  } catch {}
+  } catch {
+    // localStorage may be unavailable in hardened browser contexts.
+  }
 }
 
 function stableVisualStateProbe(theme, primaryShift) {
   try {
     localStorage.setItem("imageStudio.theme", theme);
     localStorage.setItem("imageStudioComplianceNoticeV1", "seen");
-  } catch {}
+  } catch {
+    // localStorage may be unavailable in hardened browser contexts.
+  }
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
   if (!document.getElementById("visualRegressionFreezeStyle")) {

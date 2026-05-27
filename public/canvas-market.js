@@ -133,7 +133,7 @@
     if (!canvasId || typeof root.request !== "function") return;
     try {
       const canvas = state.mineCanvases.find((item) => item.id === canvasId) || state.templateCanvases.find((item) => item.id === canvasId) || null;
-      const nextIsTemplate = !Boolean(canvas?.isTemplate);
+      const nextIsTemplate = !canvas?.isTemplate;
       const result = await root.request(`/api/canvases/${encodeURIComponent(canvasId)}`, {
         method: "PATCH",
         body: JSON.stringify({

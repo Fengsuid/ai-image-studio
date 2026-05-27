@@ -84,7 +84,7 @@ function getJsonPathValue(source, path) {
   return current;
 }
 
-function validateJsonPath(path, label) {
+function validateJsonPath(path, _label) {
   if (!path) return "";
   parseJsonPath(path);
   return String(path).trim();

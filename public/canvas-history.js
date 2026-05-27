@@ -91,7 +91,7 @@
     function paste(target = {}) {
       if (!clipboard?.nodes?.length || typeof createNode !== "function") return null;
       const idMap = new Map();
-      const nodes = clipboard.nodes.map((node, index) => {
+      const nodes = clipboard.nodes.map((node, _index) => {
         const created = createNode({
           ...node,
           id: "",

@@ -155,8 +155,8 @@ async function cleanupSmokeUsers() {
   try {
     connection = await mysql.createConnection(mysqlConfig());
     await connection.execute("DELETE FROM users WHERE email IN (?, ?)", [owner.email, otherUser.email]);
-  } catch (error) {
-    log("cleanup skipped:", error.message);
+  } catch (_error) {
+    log("cleanup skipped:", _error.message);
   } finally {
     await connection?.end().catch(() => {});
   }
@@ -185,7 +185,7 @@ async function ensureActiveLogin(session, user) {
       await createActiveSmokeUser(otherUser);
       await loginSmokeUser(session, user);
     }
-  } catch (error) {
+  } catch {
     await cleanupSmokeUsers();
     await createActiveSmokeUser(owner);
     await createActiveSmokeUser(otherUser);

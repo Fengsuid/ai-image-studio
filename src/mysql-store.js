@@ -1,7 +1,7 @@
 let mysql;
 try {
   mysql = require("mysql2/promise");
-} catch (error) {
+} catch {
   throw new Error("Missing dependency mysql2. Run: npm.cmd install");
 }
 const { normalizeTraceLevel, safeJsonSummary } = require("./generation-trace-service");
@@ -31,7 +31,7 @@ function buildStoreFacade(exportGroups) {
   return store;
 }
 
-function createMySQLStore(dbConfig = {}) {
+function createMySQLStore(_dbConfig = {}) {
 let pool;
 let defaultModel = "GPT-IMAGE-2";
 const DEFAULT_CONTACT_ADMIN_EMAIL = "support@example.com";
