@@ -294,9 +294,11 @@ async function checkHomeResources() {
   assert(frontendPerformance.status === 200, `${frontendPerformancePath} status=${frontendPerformance.status}`);
   assert(frontendPerformance.body.includes("ImageStudioPerformance"), `${frontendPerformancePath} should register frontend performance helper`);
   assert(frontendPerformance.body.includes("IntersectionObserver"), `${frontendPerformancePath} should defer card/image work with IntersectionObserver`);
-  assert(frontendPerformance.body.includes("shouldDisableHeroVideo"), `${frontendPerformancePath} should gate hero video for low-power devices`);
-  assert(frontendPerformance.body.includes("slow-2g"), `${frontendPerformancePath} should disable hero video on slow-2g`);
-  assert(frontendPerformance.body.includes('video.preload = "none"'), `${frontendPerformancePath} should avoid video loading when disabled`);
+  assertSourceIncludes("frontend-performance.js", [
+    "shouldDisableHeroVideo",
+    "slow-2g",
+    "video.preload = \"none\""
+  ]);
 
   log(`GET ${promptLibraryPath}`);
   const promptLibrary = await fetchText(promptLibraryPath, "application/javascript,*/*");
@@ -437,7 +439,6 @@ async function checkHomeResources() {
   const canvasInspector = await fetchText(canvasInspectorPath, "application/javascript,*/*");
   assert(canvasInspector.status === 200, `${canvasInspectorPath} status=${canvasInspector.status}`);
   assert(canvasInspector.body.includes(".inspector"), `${canvasInspectorPath} should register canvas inspector module`);
-  assert(canvasInspector.body.includes("connectionPanel"), `${canvasInspectorPath} should render connection inspector controls`);
   assertSourceIncludes("canvas-inspector.js", ["root.inspector", "connectionPanel"]);
 
   log(`GET ${galleryModelPath}`);
