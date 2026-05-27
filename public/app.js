@@ -2235,7 +2235,7 @@ async function submitGeneration(form) {
       state.history = state.history.map((entry) =>
         entry.id === tempId ? { ...entry, requestId: data.request.id, queuePosition: data.request.queuePosition, queueTotal: data.request.queueTotal } : entry
       );
-      data = await waitForGenerationRequest(data.request.id, tempId, startedAt);
+      data = await waitForGenerationRequest(data.request.id, tempId, startedAt, state.generateAbortController.signal);
     }
     const generation = data.generations[0];
     focusId = generation.id;
@@ -2275,6 +2275,7 @@ async function submitGeneration(form) {
     if (error?.name === "AbortError") {
       // 用户主动取消：把临时占位条目移除，不显示错误。
       state.history = state.history.filter((entry) => entry.id !== tempId);
+      focusId = "";
     } else {
       state.history = state.history.map((entry) =>
         entry.id === tempId ? { ...entry, status: "error", error: error.message, elapsedMs } : entry
@@ -2292,7 +2293,7 @@ async function submitGeneration(form) {
     renderHistory();
     renderImageSessions();
     renderComposers();
-    focusGenerationWorkspace(focusId, "smooth");
+    if (focusId) focusGenerationWorkspace(focusId, "smooth");
     if (postPublishItem) {
       const hasSourceImage = Boolean(postPublishItem.sourceImageData || postPublishItem.sourceImageUrl || postPublishItem.sourceFilename);
       setTimeout(() => openPublishModal(postPublishItem, hasSourceImage), 180);
@@ -2376,6 +2377,16 @@ function focusGenerationWorkspace(itemId, behavior = "smooth") {
 function generationRequestStatus(request = {}) {
   return request.normalizedStatus || (request.status === "success" ? "succeeded" : request.status || "");
 }
+function abortableDelay(ms, signal) {
+  if (signal?.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    }, { once: true });
+  });
+}
 function updateQueuedHistoryItem(itemId, request = {}) {
   state.history = state.history.map((entry) => {
     if (String(entry.id) !== String(itemId) && String(entry.requestId || "") !== String(request.id || "")) return entry;
@@ -2389,11 +2400,12 @@ function updateQueuedHistoryItem(itemId, request = {}) {
     };
   });
 }
-async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now()) {
+async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now(), signal = null) {
   let lastError = null;
   for (;;) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     try {
-      const data = await api(`/api/images/requests/${encodeURIComponent(requestId)}`);
+      const data = await api(`/api/images/requests/${encodeURIComponent(requestId)}`, { signal });
       const request = data.request || {};
       const status = generationRequestStatus(request);
       updateQueuedHistoryItem(itemId, request);
@@ -2407,10 +2419,11 @@ async function waitForGenerationRequest(requestId, itemId, startedAt = Date.now(
       updateGeneratingHistoryCard(itemId);
       lastError = null;
     } catch (error) {
+      if (error?.name === "AbortError") throw error;
       lastError = error;
       if (!/Failed to fetch|NetworkError/i.test(error.message || "")) throw error;
     }
-    await new Promise((resolve) => setTimeout(resolve, lastError ? 3500 : 1800));
+    await abortableDelay(lastError ? 3500 : 1800, signal);
     state.history = state.history.map((entry) =>
       String(entry.id) === String(itemId) ? { ...entry, elapsedMs: Date.now() - startedAt } : entry
     );
@@ -2708,15 +2721,17 @@ function renderHistory() {
   $$("[data-generate-cancel]", elements.historyList).forEach((button) => {
     button.addEventListener("click", () => {
       const requestId = button.dataset.generateCancel || state.currentGenerationRequestId;
+      state.generateAbortController?.abort();
+      state.generating = false;
+      state.generationStartedAt = 0;
+      stopFunMessages();
+      stopGenerationTimer();
       if (requestId) {
         api(`/api/images/requests/${encodeURIComponent(requestId)}`, { method: "POST", body: "{}" }).catch(() => null);
         state.history = state.history.filter((entry) => entry.requestId !== requestId);
         renderAll();
       }
-      if (state.generateAbortController) {
-        state.generateAbortController.abort();
-        showToast(state.lang === "zh" ? "已取消生成，积分已退还" : "Cancelled; credits refunded", "ri-stop-circle-line");
-      }
+      showToast(state.lang === "zh" ? "已取消生成，积分已退还" : "Cancelled; credits refunded", "ri-stop-circle-line");
     });
   });
   $$("[data-publish-image]", elements.historyList).forEach((button) => {

@@ -47,11 +47,23 @@
     if (!status || doc.getElementById("adminThemeToggle")) return;
     const button = doc.createElement("button");
     button.id = "adminThemeToggle";
-    button.className = "admin-icon-button admin-theme-toggle";
+    button.className = "btn btn--ghost btn--icon admin-theme-toggle";
     button.type = "button";
     button.addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark"));
     status.insertBefore(button, doc.getElementById("adminRefreshBtn") || status.firstChild);
     updateThemeButton();
+  }
+
+  function normalizeButtons(scope) {
+    scope.querySelectorAll("button:not(.btn)").forEach((button) => {
+      button.classList.add("btn");
+      const iconOnly = !button.textContent.trim() && button.querySelector("i");
+      if (button.classList.contains("danger") || button.dataset.confirmOk !== undefined) button.classList.add("btn--danger");
+      else if (button.type === "submit") button.classList.add("btn--primary");
+      else button.classList.add(iconOnly ? "btn--ghost" : "btn--secondary");
+      if (iconOnly) button.classList.add("btn--icon");
+    });
+    scope.querySelectorAll("a.admin-primary-link:not(.btn)").forEach((link) => link.classList.add("btn", "btn--primary"));
   }
 
   function ensureStateIcon(element, iconClass) {
@@ -133,6 +145,7 @@
     doc.body.dataset.adminSection = activeNav?.dataset.section || "overview";
     const content = doc.getElementById("adminContent") || doc;
     content.setAttribute?.("data-admin-active", doc.body.dataset.adminSection);
+    normalizeButtons(doc);
     decoratePanels(content);
     decorateTables(content);
     decorateStates(content);

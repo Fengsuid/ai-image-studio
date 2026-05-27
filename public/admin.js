@@ -34,7 +34,8 @@ const adminState = {
   selectedUsers: new Set(),
   audit: [],
   csrfToken: "",
-  sidebarCollapsed: localStorage.getItem("adminSidebarCollapsed") === "1"
+  sidebarState: localStorage.getItem("admin.sidebar-state") || (localStorage.getItem("adminSidebarCollapsed") === "1" ? "collapsed" : ""),
+  sidebarDrawerOpen: false
 };
 
 const navItems = [
@@ -74,6 +75,27 @@ const pageDescriptions = {
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
+const isAdminMobile = () => window.matchMedia?.("(max-width:760px)")?.matches;
+const defaultSidebarState = () => isAdminMobile() ? "drawer" : window.matchMedia?.("(max-width:1440px)")?.matches ? "collapsed" : "expanded";
+const normalizeSidebarState = (value) => ["expanded", "collapsed", "drawer"].includes(value) ? value : defaultSidebarState();
+
+function applySidebarState() {
+  const state = normalizeSidebarState(adminState.sidebarState), drawerMode = isAdminMobile() || state === "drawer", open = drawerMode && adminState.sidebarDrawerOpen;
+  adminState.sidebarState = drawerMode ? "drawer" : state;
+  [["admin-sidebar-expanded", !drawerMode && state === "expanded"], ["admin-sidebar-collapsed", !drawerMode && state === "collapsed"], ["admin-sidebar-drawer", drawerMode], ["admin-sidebar-drawer-open", open]].forEach(([name, on]) => document.body.classList.toggle(name, on));
+  $("#adminApp")?.setAttribute("data-sidebar-state", drawerMode ? "drawer" : state);
+  $(".admin-sidebar")?.setAttribute("aria-hidden", String(drawerMode && !open));
+  const backdropHidden = !open;
+  $("#adminSidebarBackdrop")?.classList.toggle("hidden", backdropHidden);
+  $("#adminSidebarBackdrop")?.setAttribute("aria-hidden", String(backdropHidden));
+  $("#adminSidebarToggle")?.setAttribute("aria-expanded", String(drawerMode ? open : state === "expanded"));
+}
+
+function setSidebarState(state, persist = true) {
+  adminState.sidebarState = normalizeSidebarState(state);
+  if (persist && adminState.sidebarState !== "drawer") localStorage.setItem("admin.sidebar-state", adminState.sidebarState);
+  applySidebarState();
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -223,9 +245,9 @@ function currentNav() {
 }
 
 function renderNav() {
-  document.body.classList.toggle("admin-sidebar-collapsed", adminState.sidebarCollapsed);
+  applySidebarState();
   $("#adminNav").innerHTML = navItems.map(([id, icon, label]) => `
-    <button class="${id === adminState.active ? "active" : ""}" type="button" data-section="${id}">
+    <button class="btn btn--ghost ${id === adminState.active ? "active" : ""}" type="button" data-section="${id}" data-label="${escapeHtml(label)}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
       <i class="${icon}"></i><span>${label}</span>
     </button>
   `).join("");
@@ -234,6 +256,7 @@ function renderNav() {
       adminState.active = button.dataset.section;
       adminState.page = 1;
       location.hash = adminState.active;
+      adminState.sidebarDrawerOpen = false;
       render();
     });
   });
@@ -1002,8 +1025,10 @@ function render() {
   if (content) content.dataset.adminSection = pageId;
   document.body.dataset.adminSection = pageId;
   $("#adminPageTitle").textContent = label;
+  $("#adminEyebrow").textContent = `后台 / ${label}`;
   const description = $("#adminPageDescription");
   if (description) description.textContent = pageDescriptions[adminState.active] || pageDescriptions.overview;
+  $("#adminViewSwitch .active")?.replaceChildren(document.createTextNode(label));
   const userLabel = $("#adminUserLabel");
   if (userLabel) {
     userLabel.textContent = adminState.user ? `${adminState.user.name || adminState.user.email} · 管理员` : "-";
@@ -2040,15 +2065,23 @@ function bindActions() {
 
 async function init() {
   $("#adminRefreshBtn").addEventListener("click", refreshAndRender);
-  $("#adminSidebarToggle")?.addEventListener("click", () => {
-    adminState.sidebarCollapsed = !adminState.sidebarCollapsed;
-    localStorage.setItem("adminSidebarCollapsed", adminState.sidebarCollapsed ? "1" : "0");
-    renderNav();
+  $("#adminSidebarToggle")?.addEventListener("click", () => isAdminMobile()
+    ? (adminState.sidebarDrawerOpen = !adminState.sidebarDrawerOpen, applySidebarState())
+    : setSidebarState(adminState.sidebarState === "collapsed" ? "expanded" : "collapsed"));
+  $("#adminSidebarBackdrop")?.addEventListener("click", () => {
+    adminState.sidebarDrawerOpen = false; applySidebarState();
+  });
+  $("#adminGlobalSearch")?.addEventListener("input", (event) => {
+    adminState.search = event.target.value; adminState.page = 1; render();
   });
   $("#adminDrawerBackdrop")?.addEventListener("click", closeDrawer);
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeDrawer();
+    if (event.key !== "Escape") return;
+    adminState.sidebarDrawerOpen = false;
+    applySidebarState();
+    closeDrawer();
   });
+  window.addEventListener("resize", applySidebarState);
   window.addEventListener("hashchange", () => {
     adminState.active = location.hash.replace("#", "") || "overview";
     adminState.page = 1;

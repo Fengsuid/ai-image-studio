@@ -62,6 +62,7 @@
     "smoke:generation-flicker": "node scripts/smoke/check-generation-flicker-guard.mjs",
     "smoke:generation-queue-recovery": "node scripts/smoke/check-generation-queue-recovery.mjs",
     "smoke:generation-status-route": "node scripts/smoke/check-generation-status-route-return.mjs",
+    "smoke:generation-cancel-running": "node scripts/smoke/check-generation-cancel-running.mjs",
     "smoke:generation-trace": "node scripts/smoke/check-generation-trace.mjs",
     "smoke:generic-prompt-normalize": "node scripts/smoke/check-generic-prompt-normalize.mjs",
     "smoke:provider-capabilities": "node scripts/smoke/check-provider-capabilities.mjs",

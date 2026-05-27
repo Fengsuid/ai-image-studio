@@ -198,7 +198,7 @@ function createImagesGenerateRoute({
       const queue = enqueueGenerationJob({
         id: auditId,
         userId: user.id,
-        run: () => runQueuedTextGeneration({
+        run: ({ signal } = {}) => runQueuedTextGeneration({
           auditId,
           user,
           settings,
@@ -206,7 +206,8 @@ function createImagesGenerateRoute({
           openaiRequest,
           totalCost,
           costPerImage,
-          requestStartedAt
+          requestStartedAt,
+          signal
         })
       });
       sendJson(res, 202, {
@@ -455,7 +456,7 @@ function createImagesGenerateRoute({
       const queue = enqueueGenerationJob({
         id: auditId,
         userId: user.id,
-        run: () => runQueuedImageEdit({
+        run: ({ signal } = {}) => runQueuedImageEdit({
           auditId,
           user,
           settings,
@@ -463,7 +464,8 @@ function createImagesGenerateRoute({
           payload,
           totalCost,
           costPerImage,
-          requestStartedAt
+          requestStartedAt,
+          signal
         })
       });
       sendJson(res, 202, {

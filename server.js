@@ -2750,7 +2750,7 @@ function enqueueGenerationJob(job, { persistQueued = true } = {}) {
 }
 
 function cancelQueuedGenerationJob(id) {
-  return generationQueueRunner.cancelQueued(id);
+  return generationQueueRunner.cancel(id);
 }
 
 async function recoveredGenerationJobFromRequest(request) {
@@ -2773,7 +2773,7 @@ async function recoveredGenerationJobFromRequest(request) {
       id: request.id,
       userId: user.id,
       attemptCount: request.attemptCount,
-      run: () => runQueuedTextGeneration({
+      run: ({ signal } = {}) => runQueuedTextGeneration({
         auditId: request.id,
         user,
         settings,
@@ -2781,7 +2781,7 @@ async function recoveredGenerationJobFromRequest(request) {
         openaiRequest: payload.openaiRequest,
         totalCost: Number(payload.totalCost || 0),
         costPerImage: Number(payload.costPerImage || 0),
-        requestStartedAt
+        requestStartedAt, signal
       })
     };
   }
@@ -2790,7 +2790,7 @@ async function recoveredGenerationJobFromRequest(request) {
       id: request.id,
       userId: user.id,
       attemptCount: request.attemptCount,
-      run: () => runQueuedImageEdit({
+      run: ({ signal } = {}) => runQueuedImageEdit({
         auditId: request.id,
         user,
         settings,
@@ -2798,7 +2798,7 @@ async function recoveredGenerationJobFromRequest(request) {
         payload: payload.payload,
         totalCost: Number(payload.totalCost || 0),
         costPerImage: Number(payload.costPerImage || 0),
-        requestStartedAt
+        requestStartedAt, signal
       })
     };
   }
@@ -2944,7 +2944,7 @@ async function maybeRequeueTransientGenerationFailure({ auditId, user, error, st
   return true;
 }
 
-async function runQueuedTextGeneration({ auditId, user, settings, request, openaiRequest, totalCost, costPerImage, requestStartedAt }) {
+async function runQueuedTextGeneration({ auditId, user, settings, request, openaiRequest, totalCost, costPerImage, requestStartedAt, signal = null }) {
   let reservedCredits = false;
   try {
     await store.updateGenerationRequest(auditId, {
@@ -2993,7 +2993,7 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
       userId: user.id,
       data: { endpoint: "images/generations", providerParams: openaiRequest }
     });
-    const openaiResult = await callOpenAIImages(settings, openaiRequest, { trace: { requestId: auditId, userId: user.id } });
+    const openaiResult = await callOpenAIImages(settings, openaiRequest, { signal, trace: { requestId: auditId, userId: user.id } });
     const { saved, missing } = await finalizeSuccessfulGenerations({
       auditId,
       user,
@@ -3020,16 +3020,33 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
     });
     return saved;
   } catch (error) {
+    const cancelled = signal?.aborted || error?.name === "AbortError";
     if (reservedCredits) await store.addCredits(user.id, totalCost, {
-      source: "generation_error_refund",
+      source: cancelled ? "generation_cancel_refund" : "generation_error_refund",
       referenceId: auditId,
-      note: "generation failed"
+      note: cancelled ? "client cancelled" : "generation failed"
     }).catch((refundError) => console.error(refundError));
     if (reservedCredits) {
       await traceGeneration(auditId, "credit_refunded", {
         userId: user.id,
-        data: { amount: totalCost, reason: "generation failed" }
+        data: { amount: totalCost, reason: cancelled ? "client cancelled" : "generation failed" }
       });
+    }
+    if (cancelled) {
+      await traceGeneration(auditId, "failed", {
+        userId: user.id,
+        level: "warn",
+        message: "client cancelled running request",
+        data: errorSummary(error)
+      });
+      await store.updateGenerationRequest(auditId, {
+        status: "cancelled",
+        errorMessage: "client cancelled",
+        errorCode: "client_cancelled",
+        errorStage: "provider_generation",
+        durationMs: Date.now() - requestStartedAt
+      }).catch((auditError) => console.error(auditError));
+      return;
     }
     const retryQueued = await maybeRequeueTransientGenerationFailure({
       auditId,
@@ -3055,7 +3072,7 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
   }
 }
 
-async function runQueuedImageEdit({ auditId, user, settings, request, payload, totalCost, costPerImage, requestStartedAt }) {
+async function runQueuedImageEdit({ auditId, user, settings, request, payload, totalCost, costPerImage, requestStartedAt, signal = null }) {
   let reservedCredits = false;
   try {
     await store.updateGenerationRequest(auditId, {
@@ -3104,7 +3121,7 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
       userId: user.id,
       data: { endpoint: "images/edits", providerParams: { ...payload, imageData: "[image-data]", referenceImages: "[reference-images]", maskData: payload.maskData ? "[edit-mask]" : "" } }
     });
-    const openaiResult = await callOpenAIImageEdits(settings, payload, { trace: { requestId: auditId, userId: user.id } });
+    const openaiResult = await callOpenAIImageEdits(settings, payload, { signal, trace: { requestId: auditId, userId: user.id } });
     const { missing } = await finalizeSuccessfulGenerations({
       auditId,
       user,
@@ -3130,16 +3147,33 @@ async function runQueuedImageEdit({ auditId, user, settings, request, payload, t
       data: { totalCost }
     });
   } catch (error) {
+    const cancelled = signal?.aborted || error?.name === "AbortError";
     if (reservedCredits) await store.addCredits(user.id, totalCost, {
-      source: "generation_error_refund",
+      source: cancelled ? "generation_cancel_refund" : "generation_error_refund",
       referenceId: auditId,
-      note: "image edit failed"
+      note: cancelled ? "client cancelled" : "image edit failed"
     }).catch((refundError) => console.error(refundError));
     if (reservedCredits) {
       await traceGeneration(auditId, "credit_refunded", {
         userId: user.id,
-        data: { amount: totalCost, reason: "image edit failed" }
+        data: { amount: totalCost, reason: cancelled ? "client cancelled" : "image edit failed" }
       });
+    }
+    if (cancelled) {
+      await traceGeneration(auditId, "failed", {
+        userId: user.id,
+        level: "warn",
+        message: "client cancelled running image edit",
+        data: errorSummary(error)
+      });
+      await store.updateGenerationRequest(auditId, {
+        status: "cancelled",
+        errorMessage: "client cancelled",
+        errorCode: "client_cancelled",
+        errorStage: "provider_edit",
+        durationMs: Date.now() - requestStartedAt
+      }).catch((auditError) => console.error(auditError));
+      return;
     }
     const retryQueued = await maybeRequeueTransientGenerationFailure({
       auditId,

@@ -285,7 +285,7 @@ function checkCssModules() {
   const theme = read("public/css/00-theme.css");
   assert(theme.includes("--brand-600: #60a5fa;") && theme.includes("--surface-canvas: #0f172a;"), "dark theme must override Token v2 colors and surfaces");
   const adminHtml = read("public/admin.html");
-  assert(adminHtml.includes('<html lang="zh-CN" data-app="admin">'), "admin root must opt into compact data-app token overrides");
+  assert(adminHtml.includes('<html lang="zh-CN" data-app="admin" data-density="compact">'), "admin root must opt into compact data-app token overrides");
 }
 
 function checkMaintenanceDocs() {

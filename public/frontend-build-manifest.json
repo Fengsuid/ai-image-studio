@@ -1,5 +1,5 @@
 {
-  "version": "20260527-visual-hotfix-v1",
+  "version": "20260527-admin-shell-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.b87b99d96e6a.css",
-    "file": "/dist/app.b87b99d96e6a.css",
-    "hash": "b87b99d96e6a",
-    "bytes": 298281,
+    "entry": "/dist/app.a24ac71dc577.css",
+    "file": "/dist/app.a24ac71dc577.css",
+    "hash": "a24ac71dc577",
+    "bytes": 302418,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -63,9 +63,9 @@
       "/css/09-admin.css",
       "/css/09-admin-panels.css",
       "/css/09-admin-diagnostics.css",
-      "/css/09-admin-shell-polish.css",
       "/css/10-canvas.css",
       "/css/10-canvas-tools.css",
+      "/css/09-admin-shell-polish.css",
       "/css/11-mobile.css",
       "/css/12-animations.css",
       "/css/12-visual-polish.css",
@@ -315,10 +315,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.0cc97fcfc1d0.js",
-        "fileName": "app.0cc97fcfc1d0.js",
-        "hash": "0cc97fcfc1d0",
-        "bytes": 179266,
+        "entry": "/dist/app.531afd6e9a45.js",
+        "fileName": "app.531afd6e9a45.js",
+        "hash": "531afd6e9a45",
+        "bytes": 179717,
         "lazy": false
       },
       {
@@ -371,18 +371,18 @@
       },
       {
         "source": "/admin-shell-polish.js",
-        "entry": "/dist/admin-shell-polish.80df19608b8c.js",
-        "fileName": "admin-shell-polish.80df19608b8c.js",
-        "hash": "80df19608b8c",
-        "bytes": 4033,
+        "entry": "/dist/admin-shell-polish.4c966f012f22.js",
+        "fileName": "admin-shell-polish.4c966f012f22.js",
+        "hash": "4c966f012f22",
+        "bytes": 4513,
         "lazy": true
       },
       {
         "source": "/admin.js",
-        "entry": "/dist/admin.e5b890e37ca0.js",
-        "fileName": "admin.e5b890e37ca0.js",
-        "hash": "e5b890e37ca0",
-        "bytes": 81953,
+        "entry": "/dist/admin.148a61a6c3e1.js",
+        "fileName": "admin.148a61a6c3e1.js",
+        "hash": "148a61a6c3e1",
+        "bytes": 83811,
         "lazy": true
       },
       {

@@ -29,10 +29,11 @@ function createGenerationQueueRunner({
       const current = jobs.get(job.id);
       if (!current) continue;
       current.status = "running";
+      current.abortController = new AbortController();
       running += 1;
       Promise.resolve()
         .then(() => (onBeforeRun ? onBeforeRun(current) : null))
-        .then(() => current.run())
+        .then(() => current.run({ signal: current.abortController.signal }))
         .catch((error) => onError(error))
         .finally(() => {
           running = Math.max(0, running - 1);
@@ -53,12 +54,22 @@ function createGenerationQueueRunner({
     return snapshot(job.id);
   }
 
-  function cancelQueued(id) {
+  function cancel(id) {
     const index = queue.findIndex((job) => job.id === id);
-    if (index === -1) return false;
-    queue.splice(index, 1);
-    jobs.delete(id);
-    return true;
+    if (index !== -1) {
+      queue.splice(index, 1);
+      jobs.delete(id);
+      return "queued";
+    }
+    const current = jobs.get(id);
+    if (current?.status !== "running") return false;
+    current.status = "cancelled";
+    current.abortController?.abort(new Error("client cancelled"));
+    return "running";
+  }
+
+  function cancelQueued(id) {
+    return cancel(id);
   }
 
   function has(id) {
@@ -67,6 +78,7 @@ function createGenerationQueueRunner({
 
   return {
     enqueue,
+    cancel,
     cancelQueued,
     snapshot,
     drain,

@@ -33,10 +33,27 @@ assert(
   "admin shell polish must load before admin.js"
 );
 assert(styles.includes('@import url("/css/09-admin-shell-polish.css");'), "styles.css must import admin shell polish CSS");
-assert(
-  styles.indexOf("/css/09-admin-diagnostics.css") < styles.indexOf("/css/09-admin-shell-polish.css"),
-  "admin shell polish CSS should override base admin diagnostics CSS"
-);
+for (const upstreamCss of ["/css/09-admin-diagnostics.css", "/css/10-canvas-tools.css"]) {
+  assert(
+    styles.indexOf(upstreamCss) < styles.indexOf("/css/09-admin-shell-polish.css"),
+    `admin shell polish CSS should override ${upstreamCss}`
+  );
+}
+
+for (const token of [
+  'data-app="admin" data-density="compact"',
+  "admin-topbar-global",
+  "admin-topbar-page",
+  "adminGlobalSearch",
+  "adminViewSwitch",
+  "adminSidebarBackdrop",
+  "primitive-drawer",
+  "primitive-pill",
+  "adminNavHelp",
+  'aria-controls="adminNav"'
+]) {
+  assert(adminHtml.includes(token), `admin.html shell scaffold missing ${token}`);
+}
 
 for (const token of [
   "window.AdminShellPolish",
@@ -54,6 +71,21 @@ for (const token of [
   assert(polish.includes(token), `admin shell polish module missing ${token}`);
 }
 
+for (const token of [
+  "sidebarState",
+  "sidebarDrawerOpen",
+  "defaultSidebarState",
+  "data-sidebar-state",
+  "admin-sidebar-expanded",
+  "admin-sidebar-collapsed",
+  "admin-sidebar-drawer",
+  "admin-sidebar-drawer-open",
+  "adminGlobalSearch",
+  "aria-hidden"
+]) {
+  assert(admin.includes(token), `admin.js sidebar shell state missing ${token}`);
+}
+
 for (const selector of [
   ".admin-section-shell",
   ".admin-list-meta",
@@ -67,6 +99,24 @@ for (const selector of [
   "@media (max-width: 760px)"
 ]) {
   assert(shellCss.includes(selector), `admin shell polish CSS missing ${selector}`);
+}
+
+for (const token of [
+  "min-height: max(700px, 100svh)",
+  "grid-template-columns: 240px minmax(0, 1fr)",
+  "grid-template-columns: 64px minmax(0, 1fr)",
+  ".admin-topbar-row",
+  ".admin-topbar-global",
+  ".admin-topbar-page",
+  ".admin-topbar-search",
+  ".admin-page-actions",
+  ".admin-sidebar-backdrop:not(.hidden)",
+  "transform: translateX(-105%)",
+  "admin-sidebar-drawer-open",
+  ".primitive-pill",
+  ".admin-sr-only"
+]) {
+  assert(shellCss.includes(token), `AIS-RLS-141 shell CSS missing ${token}`);
 }
 
 for (const status of [

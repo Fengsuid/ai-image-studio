@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-app="admin">
+<html lang="zh-CN" data-app="admin" data-density="compact">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,31 +10,51 @@
   </head>
   <body class="admin-body">
     <div id="adminApp" class="admin-shell" data-admin-page="overview">
-      <aside class="admin-sidebar">
+      <aside class="admin-sidebar primitive-drawer" aria-label="后台主导航" aria-describedby="adminNavHelp">
         <div class="admin-sidebar-head">
           <a class="admin-brand" href="/">
             <span><i class="ri-sparkling-2-fill"></i></span>
             <strong>ai-image-studio</strong>
           </a>
-          <button id="adminSidebarToggle" class="admin-sidebar-toggle" type="button" aria-label="折叠侧边栏" title="折叠侧边栏">
-            <i class="ri-side-bar-line"></i>
-          </button>
         </div>
+        <p id="adminNavHelp" class="admin-sr-only">使用导航切换后台模块；移动端可通过顶部按钮打开或关闭菜单。</p>
         <nav id="adminNav" class="admin-nav" aria-label="后台导航"></nav>
       </aside>
+      <button id="adminSidebarBackdrop" class="admin-sidebar-backdrop hidden" type="button" aria-hidden="true" tabindex="-1"></button>
 
       <main class="admin-main">
         <header class="admin-topbar">
-          <div>
-            <p id="adminEyebrow">后台工作台</p>
-            <h1 id="adminPageTitle">总览</h1>
-            <small id="adminPageDescription">运营态势、系统风险和近期生成请求。</small>
+          <div class="admin-topbar-row admin-topbar-global">
+            <div class="admin-global-left">
+              <button id="adminSidebarToggle" class="btn btn--ghost btn--icon admin-sidebar-toggle" type="button" aria-label="切换后台导航" aria-controls="adminNav" title="切换后台导航">
+                <i class="ri-side-bar-line"></i>
+              </button>
+              <span class="admin-shell-context" aria-hidden="true">Admin</span>
+            </div>
+            <label class="admin-topbar-search">
+              <i class="ri-search-line" aria-hidden="true"></i>
+              <input id="adminGlobalSearch" type="search" placeholder="搜索模块、用户、提示词" aria-label="搜索后台内容">
+            </label>
+            <div class="admin-status admin-global-actions">
+              <button class="btn btn--ghost btn--icon" type="button" aria-label="通知中心" title="通知中心"><i class="ri-notification-3-line"></i></button>
+              <span id="adminStatus" class="admin-status-pill primitive-pill">Checking...</span>
+              <span id="adminUserLabel" class="admin-user-chip primitive-pill">-</span>
+              <a class="btn btn--ghost btn--icon" href="/" title="返回前台" aria-label="返回前台"><i class="ri-home-5-line"></i></a>
+            </div>
           </div>
-          <div class="admin-status">
-            <span id="adminStatus" class="admin-status-pill">Checking...</span>
-            <span id="adminUserLabel">-</span>
-            <button id="adminRefreshBtn" class="admin-icon-button" type="button" title="刷新"><i class="ri-refresh-line"></i></button>
-            <a href="/" title="返回前台"><i class="ri-home-5-line"></i></a>
+          <div class="admin-topbar-row admin-topbar-page">
+            <div class="admin-page-heading">
+              <p id="adminEyebrow">后台 / 总览</p>
+              <h1 id="adminPageTitle">总览</h1>
+              <small id="adminPageDescription">运营态势、系统风险和近期生成请求。</small>
+            </div>
+            <div class="admin-page-actions">
+              <div id="adminViewSwitch" class="admin-view-switch" role="group" aria-label="页面视图">
+                <button class="btn btn--secondary active" type="button" aria-pressed="true">工作台</button>
+                <button class="btn btn--ghost" type="button" disabled>详情</button>
+              </div>
+              <button id="adminRefreshBtn" class="btn btn--primary" type="button" title="刷新"><i class="ri-refresh-line"></i>刷新</button>
+            </div>
           </div>
         </header>
 
