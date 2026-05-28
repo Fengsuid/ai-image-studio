@@ -18,7 +18,9 @@ const galleryCss = read("public/css/06-gallery.css");
 const adminHtml = read("public/admin.html");
 const indexHtml = read("public/index.html");
 const app = read("public/app.js");
-const admin = read("public/admin.js");
+const adminDashboard = read("public/admin/dashboard.js");
+const adminPrompts = read("public/admin/prompts.js");
+const adminAnnouncements = read("public/admin/announcements.js");
 const adminUsers = read("public/admin-users.js");
 const adminDiagnostics = read("public/admin-generation-diagnostics.js");
 
@@ -105,9 +107,9 @@ for (const token of [
 
 for (const [label, source, tokens] of [
   ["users", adminUsers, ["primitive-table--bulk", "primitive-table-bulk-bar", "admin-user-table", "data-density=\"compact\""]],
-  ["prompts", admin, ["提示词 CMS", "primitive-table", "data-detail=\"prompt:"]],
+  ["prompts", adminPrompts, ["提示词 CMS", "primitive-table", "data-detail=\"prompt:"]],
   ["requests", adminDiagnostics, ["生成请求诊断", "primitive-table", "data-detail=\"request:"]],
-  ["announcements", admin, ["通知公告", "primitive-table", "data-detail=\"announcement:"]]
+  ["announcements", adminAnnouncements, ["通知公告", "primitive-table", "data-detail=\"announcement:"]]
 ]) {
   for (const token of tokens) {
     assert(source.includes(token), `${label} admin list must consume primitive table token: ${token}`);
@@ -119,7 +121,7 @@ for (const token of [
   "primitive-drawer__body",
   "primitive-table__empty"
 ]) {
-  assert(admin.includes(token), `admin.js must consume ${token}`);
+  assert(adminDashboard.includes(token), `admin dashboard must consume ${token}`);
 }
 
 console.log("[admin-primitives-smoke] OK");

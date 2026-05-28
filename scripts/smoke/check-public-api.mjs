@@ -487,7 +487,7 @@ async function checkAdminResources() {
   const admin = await fetchText("/admin", "text/html,*/*");
   assert(admin.status === 200, `/admin status=${admin.status}`);
   assert(admin.body.includes("/app-router.js"), "/admin missing app-router.js reference");
-  assert(!admin.body.includes("/admin.js"), "/admin should lazy-load admin.js through app-router");
+  assert(!admin.body.includes("/admin/dashboard.js"), "/admin should lazy-load admin dashboard through app-router");
   assert(admin.body.includes("admin-shell"), "/admin missing admin shell markup");
 
   const routerMatch = admin.body.match(/src="([^"]*\/app-router\.js[^"]*)"/);
@@ -497,8 +497,8 @@ async function checkAdminResources() {
   const manifest = manifestResponse.body || {};
   const lazyAdminScripts = manifest.js?.lazyRoutes?.admin?.scripts || [];
   assert(Array.isArray(lazyAdminScripts), "manifest must expose admin lazy route scripts");
-  assert(lazyAdminScripts.includes("/admin.js"), "manifest admin lazy route must include admin.js");
-  const scriptPath = manifestAsset(manifest, "/admin.js")?.entry || "/admin.js";
+  assert(lazyAdminScripts.includes("/admin/dashboard.js"), "manifest admin lazy route must include admin dashboard");
+  const scriptPath = manifestAsset(manifest, "/admin/dashboard.js")?.entry || "/admin/dashboard.js";
   const stylePath = styleMatch?.[1] || "/styles.css";
   const routerVersion = new URL(routerMatch?.[1] || "/app-router.js", baseUrl).searchParams.get("v");
   const styleVersion = new URL(stylePath, baseUrl).searchParams.get("v");
@@ -507,7 +507,7 @@ async function checkAdminResources() {
   if (routerVersion && styleVersion) {
     assert(routerVersion === styleVersion, `/admin app-router.js/styles.css version mismatch (${routerVersion} vs ${styleVersion})`);
   }
-  assert(/^\/dist\/admin\.[a-f0-9]{12}\.js$/.test(new URL(scriptPath, baseUrl).pathname), "/admin admin.js should use manifest hashed dist path");
+  assert(/^\/dist\/admin-dashboard\.[a-f0-9]{12}\.js$/.test(new URL(scriptPath, baseUrl).pathname), "/admin dashboard should use manifest hashed dist path");
 
   log(`GET ${stylePath}`);
   const style = await fetchCssWithImports(stylePath);
@@ -530,13 +530,24 @@ async function checkAdminResources() {
   const adminModuleScripts = lazyAdminScripts
     .filter((source) => /\/admin-(?:overview|users|providers|gallery|settings)\.js$/.test(source))
     .map((source) => manifestAsset(manifest, source)?.entry || source);
-  assert(adminModuleScripts.length >= 5, "/admin should load admin panel modules before admin.js");
+  assert(adminModuleScripts.length >= 5, "/admin should load legacy admin panel modules before admin dashboard");
   const moduleBodies = [];
   for (const modulePath of adminModuleScripts) {
     log(`GET ${modulePath}`);
     const module = await fetchText(modulePath, "application/javascript,*/*");
     assert(module.status === 200, `${modulePath} status=${module.status}`);
     assert(module.body.includes("AdminModules"), `${modulePath} should register an AdminModules entry`);
+    moduleBodies.push(module.body);
+  }
+  const adminDomainScripts = lazyAdminScripts
+    .filter((source) => /^\/admin\/(?:users|prompts|announcements|settings|canvas|command-palette)\.js$/.test(source))
+    .map((source) => manifestAsset(manifest, source)?.entry || source);
+  assert(adminDomainScripts.length >= 6, "/admin should load split admin domain modules before admin dashboard");
+  for (const modulePath of adminDomainScripts) {
+    log(`GET ${modulePath}`);
+    const module = await fetchText(modulePath, "application/javascript,*/*");
+    assert(module.status === 200, `${modulePath} status=${module.status}`);
+    assert(module.body.length > 100, `${modulePath} unexpectedly small`);
     moduleBodies.push(module.body);
   }
   const adminBundle = [script.body, ...moduleBodies].join("\n");
@@ -547,9 +558,11 @@ async function checkAdminResources() {
   assert(!adminBundle.includes('name="providerCapabilityConfig"'), "/admin settings module should not duplicate provider capability configuration");
   assert(adminBundle.includes("contactEmail"), "/admin settings module should expose contact email settings");
   assert(adminBundle.includes("maxReferenceImages"), "/admin settings module should expose reference image upload limit settings");
-  assert(script.body.includes("Provider JSON 格式错误"), `${scriptPath} should handle invalid provider JSON before saving`);
-  assertSourceIncludes("admin.js", [
-    "dashboardContext",
+  assert(adminBundle.includes("Provider JSON 格式错误"), "/admin modules should handle invalid provider JSON before saving");
+  assertSourceIncludes("admin/dashboard.js", [
+    "dashboardContext"
+  ]);
+  assertSourceIncludes("admin/canvas.js", [
     "if (isNew || apiKey) payload.apiKey = apiKey",
     "Provider JSON 格式错误"
   ]);

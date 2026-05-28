@@ -58,7 +58,7 @@ for (const source of [...builtJson.js.lazyRoutes.admin.scripts, ...builtJson.js.
 }
 assert(jsAssets.length >= 30, "built manifest must include hashed JS asset entries");
 for (const asset of jsAssets) {
-  assert(/^\/[a-z0-9-]+\.js$/.test(asset.source), `JS asset source must be a root public script: ${asset.source}`);
+  assert(/^\/(?:[a-z0-9-]+|admin\/[a-z0-9-]+)\.js$/.test(asset.source), `JS asset source must be a root or admin domain public script: ${asset.source}`);
   assert(/^\/dist\/[a-z0-9-]+\.[a-f0-9]{12}\.js$/.test(asset.entry), `JS asset entry must be content-hashed: ${asset.entry}`);
   const assetPath = path.join(root, "public", asset.entry.slice(1));
   assert(fs.existsSync(assetPath), `hashed JS asset missing: ${asset.entry}`);

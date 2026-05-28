@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260528-admin-primitives-v1";
+export const FRONTEND_BUILD_VERSION = "20260528-admin-js-split-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -31,7 +31,7 @@ export const frontendBuildManifest = Object.freeze({
     compatibilityManifest: "/frontend-build-manifest.js",
     lazyRoutes: {
       admin: {
-        entry: "/admin.js",
+        entry: "/admin/dashboard.js",
         scripts: [
           "/admin-generation-diagnostics.js",
           "/admin-overview.js",
@@ -40,7 +40,13 @@ export const frontendBuildManifest = Object.freeze({
           "/admin-gallery.js",
           "/admin-settings.js",
           "/admin-shell-polish.js",
-          "/admin.js"
+          "/admin/users.js",
+          "/admin/prompts.js",
+          "/admin/announcements.js",
+          "/admin/settings.js",
+          "/admin/canvas.js",
+          "/admin/command-palette.js",
+          "/admin/dashboard.js"
         ]
       },
       canvas: {

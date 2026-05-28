@@ -6,7 +6,7 @@ This note is the working guardrail for future frontend changes. Run `npm run smo
 
 Do not add new feature flows directly to public/app.js. Keep it as the legacy state/router bridge and move new public UI logic into `AppModules` or focused helper modules.
 
-Do not add new admin panels directly to `public/admin.js`. Add or extend an `admin-*.js` module and expose it through `AdminModules`.
+Do not add new admin flows directly to `public/admin/dashboard.js`. Add or extend a focused `public/admin/*.js` domain module or an `admin-*.js` render module and expose it through `AdminDomains` or `AdminModules`.
 
 Keep `public/styles.css` as the compatibility import entry only. New CSS belongs in `public/css/*.css`, scoped by the owning visual domain.
 
@@ -32,6 +32,8 @@ Use `AdminModules` for admin surface area:
 
 | Area | Owner |
 | --- | --- |
+| Admin shell, data loading, route dispatch | `public/admin/dashboard.js` |
+| User mutations, prompt CMS, announcements, settings submit, provider drawer, command palette | `public/admin/*.js` |
 | Dashboard and overview cards | `public/admin-overview.js` |
 | User list, drawer, credits operations | `public/admin-users.js` |
 | Provider configuration | `public/admin-providers.js` |
@@ -39,7 +41,7 @@ Use `AdminModules` for admin surface area:
 | Generation diagnostics | `public/admin-generation-diagnostics.js` |
 | System settings, reward policy controls, settings submit payload | `public/admin-settings.js` |
 
-`public/admin.html` loads `public/app-router.js`; the ordered admin module list lives in `public/frontend-build-manifest.json` under `js.lazyRoutes.admin`, with admin modules before `public/admin.js`.
+`public/admin.html` loads `public/app-router.js`; the ordered admin module list lives in `public/frontend-build-manifest.json` under `js.lazyRoutes.admin`, with admin modules before `public/admin/dashboard.js`.
 
 ## CSS Modules
 
@@ -66,7 +68,7 @@ Avoid dumping view-specific rules into shared component files unless the selecto
 
 `npm run smoke:frontend-boundaries` validates:
 
-- Entry file growth budgets for `public/app.js`, `public/admin.js`, and `public/styles.css`.
+- Entry file growth budgets for `public/app.js`, `public/admin/*.js`, and `public/styles.css`.
 - `AppModules` and `AdminModules` registration and script loading order.
 - CSS module import order and per-file line budget.
 - This document stays present and points future work to the correct modules.

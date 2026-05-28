@@ -30,7 +30,13 @@ assert.deepEqual(frontendBuildManifest.js?.lazyRoutes?.admin?.scripts, [
   "/admin-gallery.js",
   "/admin-settings.js",
   "/admin-shell-polish.js",
-  "/admin.js"
+  "/admin/users.js",
+  "/admin/prompts.js",
+  "/admin/announcements.js",
+  "/admin/settings.js",
+  "/admin/canvas.js",
+  "/admin/command-palette.js",
+  "/admin/dashboard.js"
 ]);
 assert.deepEqual(frontendBuildManifest.js?.lazyRoutes?.canvas?.scripts, [
   "/cache-db.js",

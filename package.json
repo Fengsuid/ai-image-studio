@@ -22,7 +22,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check \"{src,public,scripts}/**/*.{js,mjs,css}\"",
-    "syntax:check": "node --check server.js && node --check public/app-router.js && node --check public/app.js && node --check public/admin.js",
+    "syntax:check": "node --check server.js && node --check public/app-router.js && node --check public/app.js && node --check public/admin/dashboard.js && node --check public/admin/users.js && node --check public/admin/prompts.js && node --check public/admin/announcements.js && node --check public/admin/settings.js && node --check public/admin/canvas.js && node --check public/admin/command-palette.js",
     "check": "npm run syntax:check && npm run lint && npm run smoke:frontend-boundaries && npm run smoke:frontend-build-tooling",
     "canvas:v2:install": "npm install --prefix apps/canvas-v2",
     "canvas:v2:check": "npm run check --prefix apps/canvas-v2",

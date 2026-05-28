@@ -11,7 +11,8 @@ const require = createRequire(import.meta.url);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
-const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
+const adminStore = fs.readFileSync(path.join(rootDir, "src/stores/admin-store.js"), "utf8");
+const adminCanvas = fs.readFileSync(path.join(rootDir, "public/admin/canvas.js"), "utf8");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const mapping = require(path.join(rootDir, "src/provider-mapping.js"));
 
@@ -47,10 +48,15 @@ assert.throws(() => mapping.normalizeProviderMapping({
 
 for (const token of [
   "provider_mapping_json",
-  "mapping: parseProviderJson",
+  "mapping: parseProviderJson"
+]) {
+  assert(store.includes(token), `mysql-store must expose provider mapping via ${token}`);
+}
+for (const token of [
+  "provider_mapping_json",
   "JSON.stringify(payload.mapping)"
 ]) {
-  assert(store.includes(token), `mysql-store must persist provider mapping via ${token}`);
+  assert(adminStore.includes(token), `admin-store must persist provider mapping via ${token}`);
 }
 
 for (const token of [
@@ -67,9 +73,9 @@ for (const token of [
 for (const token of [
   "Provider Mapping JSON",
   "form.get(\"mapping\")",
-  "mapping,"
+  "capabilities, routing, mapping"
 ]) {
-  assert(admin.includes(token), `admin provider drawer must expose mapping token: ${token}`);
+  assert(adminCanvas.includes(token), `admin provider drawer must expose mapping token: ${token}`);
 }
 
 for (const token of [

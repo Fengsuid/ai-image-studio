@@ -7,7 +7,7 @@
   const ROUTER_VERSION = "20260527-lazy-route-loader-v1";
   const fallbackRoutes = Object.freeze({
     admin: {
-      entry: "/admin.js",
+      entry: "/admin/dashboard.js",
       scripts: [
         "/admin-generation-diagnostics.js",
         "/admin-overview.js",
@@ -16,7 +16,13 @@
         "/admin-gallery.js",
         "/admin-settings.js",
         "/admin-shell-polish.js",
-        "/admin.js"
+        "/admin/users.js",
+        "/admin/prompts.js",
+        "/admin/announcements.js",
+        "/admin/settings.js",
+        "/admin/canvas.js",
+        "/admin/command-palette.js",
+        "/admin/dashboard.js"
       ]
     },
     canvas: {

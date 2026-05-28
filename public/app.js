@@ -330,6 +330,17 @@ function initAuthController() {
 async function api(path, options = {}) {
   return requireAuthController().api(path, options);
 }
+async function cancelGenerationRequest(requestId) {
+  if (!requestId) return false;
+  await api(`/api/images/requests/${encodeURIComponent(requestId)}`, { method: "POST", body: "{}" }).catch(() => null);
+  return true;
+}
+async function cancelActiveGenerationRequests(exceptId = "") {
+  const data = await api("/api/images/requests/active").catch(() => null);
+  const active = (data?.requests || []).filter((request) => !exceptId || String(request.id) !== String(exceptId));
+  await Promise.all(active.map((request) => cancelGenerationRequest(request.id)));
+  return active.length;
+}
 function installCanvasBridge() {
   const canvas = window.ImageStudioCanvas || (window.ImageStudioCanvas = {});
   canvas.request = api;
@@ -2719,18 +2730,22 @@ function renderHistory() {
     });
   });
   $$("[data-generate-cancel]", elements.historyList).forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const requestId = button.dataset.generateCancel || state.currentGenerationRequestId;
       state.generateAbortController?.abort();
       state.generating = false;
       state.generationStartedAt = 0;
+      state.currentGenerationRequestId = "";
       stopFunMessages();
       stopGenerationTimer();
-      if (requestId) {
-        api(`/api/images/requests/${encodeURIComponent(requestId)}`, { method: "POST", body: "{}" }).catch(() => null);
-        state.history = state.history.filter((entry) => entry.requestId !== requestId);
-        renderAll();
-      }
+      stopEditorTimer();
+      if (requestId) await cancelGenerationRequest(requestId);
+      else await cancelActiveGenerationRequests();
+      state.history = state.history.filter((entry) =>
+        entry.status !== "generating" &&
+        (!requestId || String(entry.requestId || "") !== String(requestId))
+      );
+      renderAll();
       showToast(state.lang === "zh" ? "已取消生成，积分已退还" : "Cancelled; credits refunded", "ri-stop-circle-line");
     });
   });
@@ -5573,12 +5588,22 @@ function bindGlobalEvents() {
     if (target.closest("[data-status-cancel]")) {
       // 真正中断：通知 fetch + 后端 close，后端会把 generation_requests 标 cancelled 并退积分。
       const inflight = state.editAbortController || state.generateAbortController;
+      const requestId = state.currentGenerationRequestId;
       if (inflight) {
         inflight.abort();
       }
+      if (requestId) cancelGenerationRequest(requestId);
+      else cancelActiveGenerationRequests();
+      state.generating = false;
+      state.generationStartedAt = 0;
+      state.currentGenerationRequestId = "";
+      state.history = state.history.filter((entry) => entry.status !== "generating");
+      stopFunMessages();
+      stopGenerationTimer();
       stopEditorTimer();
       const submitButton = $("button[type='submit']", elements.editorPromptForm);
       if (submitButton) submitButton.disabled = false;
+      renderAll();
       showToast(state.lang === "zh" ? "已取消生成，积分已退还" : "Cancelled; credits refunded", "ri-stop-circle-line");
     }
   });

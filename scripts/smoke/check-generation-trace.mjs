@@ -14,7 +14,7 @@ const store = fs.readFileSync(path.join(rootDir, "src/mysql-store.js"), "utf8");
 const adminRoute = fs.readFileSync(path.join(rootDir, "src/routes/admin/generations.js"), "utf8");
 const imagesGenerateRoute = fs.readFileSync(path.join(rootDir, "src/routes/images-generate.js"), "utf8");
 const agentGenerationService = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
-const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
+const adminDashboard = fs.readFileSync(path.join(rootDir, "public/admin/dashboard.js"), "utf8");
 const trace = require(path.join(rootDir, "src/generation-trace-service.js"));
 
 const sensitive = trace.safeJsonSummary({
@@ -68,7 +68,7 @@ for (const stage of [
 
 assert(server.includes("createAdminRoute"), "server must mount the admin route module");
 assert(adminRoute.includes("/api/admin/generations") && adminRoute.includes("getGenerationRequestDiagnostic"), "admin route must expose generation diagnostic API");
-assert(admin.includes("/api/admin/generations/${encodeURIComponent(id)}"), "admin request drawer must fetch diagnostic detail");
-assert(admin.includes("Trace 时间线"), "admin request drawer must render trace timeline");
+assert(adminDashboard.includes("/api/admin/generations/${encodeURIComponent(id)}"), "admin request drawer must fetch diagnostic detail");
+assert(adminDashboard.includes("Trace 时间线"), "admin request drawer must render trace timeline");
 
 console.log("[generation-trace] OK: sanitization, schema, trace stages, and admin diagnostics are wired");

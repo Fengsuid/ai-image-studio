@@ -8,7 +8,12 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.
 const read = (relativePath) => fs.readFileSync(path.join(rootDir, relativePath), "utf8");
 
 const adminHtml = read("public/admin.html");
-const admin = read("public/admin.js");
+const dashboard = read("public/admin/dashboard.js");
+const prompts = read("public/admin/prompts.js");
+const announcements = read("public/admin/announcements.js");
+const settings = read("public/admin/settings.js");
+const canvas = read("public/admin/canvas.js");
+const commandPalette = read("public/admin/command-palette.js");
 const overview = read("public/admin-overview.js");
 const users = read("public/admin-users.js");
 const providers = read("public/admin-providers.js");
@@ -31,29 +36,30 @@ const backendModules = [
 
 assert.equal(packageJson.scripts["smoke:admin-module-split"], "node scripts/smoke/check-admin-module-split.mjs", "package.json must expose smoke:admin-module-split");
 assert(adminHtml.includes("/app-router.js"), "admin.html must load app-router.js");
-assert(!adminHtml.includes("/admin.js"), "admin.html must lazy-load admin.js through app-router");
+assert(!adminHtml.includes("/admin/dashboard.js"), "admin.html must lazy-load admin dashboard through app-router");
 for (const file of ["admin-overview.js", "admin-users.js", "admin-providers.js", "admin-gallery.js"]) {
   assert(lazyAdminScripts.includes(`/${file}`), `admin lazy route must load ${file}`);
 }
-assert(lazyAdminScripts.indexOf("/admin-overview.js") < lazyAdminScripts.indexOf("/admin.js"), "overview module must load before admin.js");
-assert(lazyAdminScripts.indexOf("/admin-users.js") < lazyAdminScripts.indexOf("/admin.js"), "users module must load before admin.js");
-assert(lazyAdminScripts.indexOf("/admin-providers.js") < lazyAdminScripts.indexOf("/admin.js"), "providers module must load before admin.js");
-assert(admin.includes("renderAdminModule(\"overview\")"), "admin.js must delegate overview rendering");
-assert(admin.includes("renderAdminModule(\"users\")"), "admin.js must delegate users rendering");
-assert(admin.includes("renderAdminModule(\"providers\")"), "admin.js must delegate provider rendering");
-assert(admin.includes("renderAdminModule(\"squareReview\")"), "admin.js must delegate square review rendering");
-assert(admin.includes("renderAdminModule(\"galleryFiles\")"), "admin.js must delegate gallery files rendering");
-assert(!admin.includes("function renderOverview()"), "renderOverview should move out of admin.js");
-assert(!admin.includes("function renderUsers()"), "renderUsers should move out of admin.js");
-assert(!admin.includes("function renderProvidersPlaceholder()"), "renderProvidersPlaceholder should move out of admin.js");
-assert(!admin.includes("function renderSquareReview()"), "renderSquareReview should move out of admin.js");
-assert(!admin.includes("function renderGalleryFiles()"), "renderGalleryFiles should move out of admin.js");
+for (const file of ["/admin/users.js", "/admin/prompts.js", "/admin/announcements.js", "/admin/settings.js", "/admin/canvas.js", "/admin/command-palette.js", "/admin/dashboard.js"]) {
+  assert(lazyAdminScripts.includes(file), `admin lazy route must load ${file}`);
+}
+assert(lazyAdminScripts.indexOf("/admin-overview.js") < lazyAdminScripts.indexOf("/admin/dashboard.js"), "overview module must load before dashboard entry");
+assert(lazyAdminScripts.indexOf("/admin/users.js") < lazyAdminScripts.indexOf("/admin/dashboard.js"), "users domain must load before dashboard entry");
+assert(lazyAdminScripts.indexOf("/admin/canvas.js") < lazyAdminScripts.indexOf("/admin/dashboard.js"), "canvas domain must load before dashboard entry");
+assert(dashboard.includes("renderAdminModule(\"overview\")"), "dashboard must delegate overview rendering");
+assert(dashboard.includes("renderAdminModule(\"providers\")"), "dashboard must delegate provider rendering");
+assert(dashboard.includes("renderAdminModule(\"squareReview\")"), "dashboard must delegate square review rendering");
+assert(dashboard.includes("renderAdminModule(\"galleryFiles\")"), "dashboard must delegate gallery files rendering");
+assert(!fs.existsSync(path.join(rootDir, "public/admin.js")), "legacy public/admin.js must be deleted");
 
 for (const [name, content] of [["overview", overview], ["users", users], ["providers", providers]]) {
   assert(content.includes(`window.AdminModules.${name}`), `${name} module must register window.AdminModules.${name}`);
 }
 assert(gallery.includes("window.AdminModules.squareReview"), "gallery module must register squareReview");
 assert(gallery.includes("window.AdminModules.galleryFiles"), "gallery module must register galleryFiles");
+for (const [name, content] of Object.entries({ dashboard, prompts, announcements, settings, canvas, commandPalette })) {
+  assert(content.split(/\r?\n/).length <= 400, `public/admin/${name}.js must stay <= 400 lines`);
+}
 assert(!fs.existsSync(path.join(rootDir, "src/routes/admin.js")), "legacy src/routes/admin.js must be deleted");
 assert(!fs.existsSync(path.join(rootDir, "src/routes/admin-users.js")), "legacy src/routes/admin-users.js must be deleted");
 assert(!fs.existsSync(path.join(rootDir, "src/routes/admin-announcements.js")), "legacy src/routes/admin-announcements.js must be deleted");

@@ -16,9 +16,21 @@ function cleanScriptPath(src) {
 }
 
 function sourceFileNameFromPath(publicPath) {
-  const name = path.posix.basename(publicPath);
+  const cleanPath = cleanScriptPath(publicPath).replace(/^\/+/, "");
+  const dir = path.posix.dirname(cleanPath);
+  const name = path.posix.basename(cleanPath);
   const hashed = name.match(HASHED_JS_RE);
-  return hashed ? `${hashed[1]}.js` : name;
+  const fileName = hashed ? `${hashed[1]}.js` : name;
+  if (hashed && dir === "dist") return fileName;
+  return dir === "." ? fileName : `${dir}/${fileName}`;
+}
+
+function distStemForSource(sourceFileName) {
+  return sourceFileName
+    .replace(/\.js$/, "")
+    .split(/[\\/]+/)
+    .filter(Boolean)
+    .join("-");
 }
 
 async function readText(filePath) {
@@ -58,8 +70,8 @@ function scriptDescriptor(root, publicPath, { originalSrc = publicPath, lazy = f
   const sourceFileName = sourceFileNameFromPath(cleanPath);
   return {
     sourceFileName,
-    sourcePublicPath: `/${sourceFileName}`,
-    sourceRelativePath: path.join("public", sourceFileName),
+    sourcePublicPath: `/${sourceFileName.replace(/\\/g, "/")}`,
+    sourceRelativePath: path.join("public", ...sourceFileName.split("/")),
     sourceAbsolutePath: path.join(root, "public", sourceFileName),
     originalSrc,
     lazy
@@ -108,7 +120,7 @@ export async function buildJsAssets({ root = process.cwd(), lazySources = [] } =
     const content = await readText(script.sourceAbsolutePath);
     const bundled = normalizeLineEndings(await bundledScript(content, script.sourceFileName));
     const hash = createHash("sha256").update(bundled).digest("hex").slice(0, 12);
-    const stem = path.basename(script.sourceFileName, ".js");
+    const stem = distStemForSource(script.sourceFileName);
     const fileName = `${stem}.${hash}.js`;
     const relativePath = path.join("public", "dist", fileName);
     await fs.writeFile(path.join(root, relativePath), bundled, "utf8");

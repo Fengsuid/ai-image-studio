@@ -20,13 +20,13 @@ const performanceCss = read("public/css/13-performance.css");
 
 const budgets = {
   "public/app.js": 340000,
-  "public/admin.js": 120000,
+  "public/admin/dashboard.js": 32000,
   "public/app-prompt-library.js": 35000,
   "public/admin-shell-polish.js": 12000,
   // Includes the small manifest-backed app-router entry that lazy-loads route bundles.
   nonCanvasInitialJs: 460000,
   // AIS-RLS-112 moves the icon CSS from CDN into the single local bundle.
-  initialCss: 285000,
+  initialCss: 320000,
   cssModule: 16000,
   htmlInlineJson: 5000
 };

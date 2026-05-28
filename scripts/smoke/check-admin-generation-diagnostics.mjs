@@ -13,7 +13,7 @@ const server = read("server.js");
 const adminRoute = read("src/routes/admin/generations.js");
 const generationStore = read("src/stores/generation-store.js");
 const adminHtml = read("public/admin.html");
-const admin = read("public/admin.js");
+const dashboard = read("public/admin/dashboard.js");
 const diagnostics = read("public/admin-generation-diagnostics.js");
 const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
@@ -52,12 +52,12 @@ for (const token of [
 }
 
 assert(adminHtml.includes("/app-router.js"), "admin page must load app-router.js");
-assert(!adminHtml.includes("/admin.js"), "admin page must lazy-load admin.js through app-router");
-assert(lazyAdminScripts.includes("/admin-generation-diagnostics.js"), "admin lazy route must load diagnostics module before admin.js");
-assert(lazyAdminScripts.indexOf("/admin-generation-diagnostics.js") < lazyAdminScripts.indexOf("/admin.js"), "diagnostics module must load before admin.js");
-assert(admin.includes("generationDiagnosticsQuery"), "admin.js must query diagnostics filters");
-assert(admin.includes("AdminModules?.generationDiagnostics"), "admin.js must delegate to diagnostics module");
-assert(admin.includes("module.renderDrawer"), "request drawer must delegate diagnostics rendering");
+assert(!adminHtml.includes("/admin/dashboard.js"), "admin page must lazy-load admin dashboard through app-router");
+assert(lazyAdminScripts.includes("/admin-generation-diagnostics.js"), "admin lazy route must load diagnostics module before dashboard");
+assert(lazyAdminScripts.indexOf("/admin-generation-diagnostics.js") < lazyAdminScripts.indexOf("/admin/dashboard.js"), "diagnostics module must load before dashboard");
+assert(dashboard.includes("generationDiagnosticsQuery"), "dashboard must query diagnostics filters");
+assert(dashboard.includes("AdminModules?.generationDiagnostics"), "dashboard must delegate to diagnostics module");
+assert(dashboard.includes("module.renderDrawer"), "request drawer must delegate diagnostics rendering");
 
 for (const token of [
   "data-generation-filter=\"provider\"",

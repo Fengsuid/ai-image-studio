@@ -10,6 +10,6 @@ Commands:
 
 Rules:
 
-- Do not add new feature logic directly to `public/app.js` or `public/admin.js` when a module boundary exists.
+- Do not add new feature logic directly to `public/app.js` or `public/admin/dashboard.js` when a module boundary exists.
 - Keep generated public assets deterministic and small.
 - Keep the plain script fallback until all target browsers and Docker paths are verified with the build output.

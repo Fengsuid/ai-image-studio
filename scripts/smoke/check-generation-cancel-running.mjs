@@ -18,7 +18,12 @@ assert(app.includes("abortableDelay"), "app.js polling must use an abortable del
 assert(app.includes("waitForGenerationRequest(data.request.id, tempId, startedAt, state.generateAbortController.signal)"), "text generation polling must receive the active abort signal");
 assert(app.includes("api(`/api/images/requests/${encodeURIComponent(requestId)}`, { signal })"), "request polling must abort fetch");
 assert(app.includes("state.generateAbortController?.abort()"), "cancel button must abort the active generation controller");
+assert(app.includes("cancelGenerationRequest(requestId)"), "cancel button must notify the backend for known request ids");
+assert(app.includes("cancelActiveGenerationRequests()"), "cancel button must cancel active backend requests when request id is not yet attached");
+assert(app.includes('api("/api/images/requests/active")'), "fallback cancellation must query active backend generation requests");
+assert(app.includes('state.history = state.history.filter((entry) =>'), "cancel button must remove generating placeholders from chat history");
 assert(app.includes("stopFunMessages();") && app.includes("stopGenerationTimer();"), "cancel button must clear bottom generation status");
+assert(app.includes("stopEditorTimer();"), "cancel button must clear editor lower-left generation status");
 
 assert(runner.includes("current.abortController = new AbortController()"), "queue runner must create a controller for running jobs");
 assert(runner.includes("current.run({ signal: current.abortController.signal })"), "queue runner must pass signal to job.run");

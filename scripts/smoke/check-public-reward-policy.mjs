@@ -14,7 +14,7 @@ const mysqlStore = read("src/mysql-store.js");
 const adminRoute = read("src/routes/admin/settings.js");
 const userStore = read("src/stores/user-store.js");
 const app = read("public/app.js");
-const admin = read("public/admin.js");
+const adminDashboard = read("public/admin/dashboard.js");
 const adminSettings = read("public/admin-settings.js");
 const html = read("public/index.html");
 const adminHtml = read("public/admin.html");
@@ -53,7 +53,7 @@ assert(scriptPosition(html, "app-reward-policy.js") >= 0, "index must load app r
 assert(adminHtml.includes("app-router.js"), "admin must load app-router module");
 assert(lazyAdminScripts.includes("/admin-settings.js"), "admin lazy route must load settings module");
 assert(rewardPolicy.includes("ImageStudioRewardPolicy"), "reward policy module must register global helper");
-assert(admin.includes('renderAdminModule("settings")'), "admin settings page must render through AdminModules.settings");
+assert(adminDashboard.includes('renderAdminModule("settings")'), "admin settings page must render through AdminModules.settings");
 assert(app.includes("ImageStudioRewardPolicy?.confirmPublish"), "publish flow must confirm reward/no-unpublish policy before publishing");
 assert(app.includes("canUserUnpublishPublicWork"), "app must hide/guard unpublish controls by policy");
 assert(pkg.scripts?.["smoke:public-reward-policy"] === "node scripts/smoke/check-public-reward-policy.mjs", "package.json must expose smoke:public-reward-policy");

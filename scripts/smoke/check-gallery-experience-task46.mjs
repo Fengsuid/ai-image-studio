@@ -11,7 +11,7 @@ import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
-const admin = fs.readFileSync(path.join(rootDir, "public/admin.js"), "utf8");
+const adminUsers = fs.readFileSync(path.join(rootDir, "public/admin/users.js"), "utf8");
 const appSettings = fs.readFileSync(path.join(rootDir, "public/app-settings.js"), "utf8");
 const html = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const styles = readPublicCssWithImports(rootDir);
@@ -75,7 +75,7 @@ assert(app.includes("title: $(\"#publishTitleInput\""), "publish title must be s
 assert(adminUsersRoute.includes("/api/admin/users") && adminUsersRoute.includes("/generations"), "admin user generations endpoint must exist");
 assert(store.includes("async function listGenerationsForUserId"), "admin must use explicit user-scoped generation query");
 assert(!store.includes("user.role === \"admin\"\n      ? `SELECT g.*, u.name AS user_name"), "normal history must not show every user's generations to admins");
-assert(admin.includes("/generations?includeArchived=1&limit=80") && admin.includes("用户作品与会话"), "user management must expose user conversation review");
+assert(adminUsers.includes("/generations?includeArchived=1&limit=80") && adminUsers.includes("用户作品与会话"), "user management must expose user conversation review");
 
 assert(tagStore.includes("ps_davidwuw_gpt_image2_prompts"), "new davidwuw prompt source seed must exist");
 assert(syncModule.includes("parseAwesomeGptImage2PromptsBackup"), "new prompt source parser must exist");

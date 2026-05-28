@@ -15,7 +15,7 @@ function assert(condition, message) {
 const indexHtml = read("public/index.html");
 const adminHtml = read("public/admin.html");
 const appJs = read("public/app.js");
-const adminJs = read("public/admin.js");
+const adminDashboard = read("public/admin/dashboard.js");
 const themeNavJs = read("public/theme-mobile-nav.js");
 const tokensCss = read("public/css/00-tokens.css");
 const shellCss = read("public/css/03-layout-shell.css");
@@ -31,9 +31,9 @@ assert(appJs.includes("focusTarget?.focus") && appJs.includes('aria-modal", "tru
 assert(appJs.includes('button.setAttribute("aria-label", text("close"))'), "dynamic close buttons must receive aria-label");
 assert(appJs.includes('toast.setAttribute("role", "status")'), "dynamic toasts must expose status role");
 
-assert(adminJs.includes("onConfirmKeydown") && adminJs.includes('event.key === "Escape"'), "admin confirmation dialog must support Escape close");
-assert(adminJs.includes('layer.setAttribute("aria-hidden", "false")') && adminJs.includes('layer.setAttribute("aria-hidden", "true")'), "admin confirmation layer must toggle aria-hidden");
-assert(adminJs.includes("focus?.({ preventScroll: true })"), "admin confirmation dialog must focus an actionable control");
+assert(adminDashboard.includes("onKeydown") && adminDashboard.includes('event.key === "Escape"'), "admin confirmation dialog must support Escape close");
+assert(adminDashboard.includes('layer.setAttribute("aria-hidden", "false")') && adminDashboard.includes('layer.setAttribute("aria-hidden", "true")'), "admin confirmation layer must toggle aria-hidden");
+assert(adminDashboard.includes("focus?.({ preventScroll: true })"), "admin confirmation dialog must focus an actionable control");
 
 assert(themeNavJs.includes('button.setAttribute("aria-label", button.title)'), "theme toggle must maintain aria-label");
 assert(themeNavJs.includes('aria-current", "page"'), "mobile nav must expose active page state");

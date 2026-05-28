@@ -11,7 +11,7 @@ const read = (relativePath) => fs.readFileSync(path.join(rootDir, relativePath),
 
 const packageJson = JSON.parse(read("package.json"));
 const adminHtml = read("public/admin.html");
-const admin = read("public/admin.js");
+const adminDashboard = read("public/admin/dashboard.js");
 const polish = read("public/admin-shell-polish.js");
 const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
@@ -29,11 +29,11 @@ assert.equal(
 );
 
 assert(adminHtml.includes("/app-router.js"), "admin.html must load app-router.js");
-assert(!adminHtml.includes("/admin.js"), "admin.html must lazy-load admin.js through app-router");
+assert(!adminHtml.includes("/admin/dashboard.js"), "admin.html must lazy-load admin dashboard through app-router");
 assert(lazyAdminScripts.includes("/admin-shell-polish.js"), "admin lazy route must load admin-shell-polish.js");
 assert(
-  lazyAdminScripts.indexOf("/admin-shell-polish.js") < lazyAdminScripts.indexOf("/admin.js"),
-  "admin shell polish must load before admin.js"
+  lazyAdminScripts.indexOf("/admin-shell-polish.js") < lazyAdminScripts.indexOf("/admin/dashboard.js"),
+  "admin shell polish must load before dashboard entry"
 );
 assert(styles.includes('@import url("/css/09-admin-shell-polish.css");'), "styles.css must import admin shell polish CSS");
 assert(styles.includes('@import url("/css/primitives/_drawer.css");'), "styles.css must import drawer primitive CSS");
@@ -102,7 +102,7 @@ for (const token of [
   "adminGlobalSearch",
   "aria-hidden"
 ]) {
-  assert(admin.includes(token), `admin.js sidebar shell state missing ${token}`);
+  assert(adminDashboard.includes(token), `admin dashboard sidebar shell state missing ${token}`);
 }
 
 for (const selector of [
@@ -158,7 +158,7 @@ for (const status of [
   assert(adminCss.includes(`data-status="${status}"`), `admin status badge missing ${status}`);
 }
 
-assert(!admin.includes("AdminShellPolish"), "public/admin.js should not own shell polish wiring");
+assert(!adminDashboard.includes("AdminShellPolish"), "admin dashboard should not own shell polish wiring");
 
 for (const relativePath of [
   "public/css/09-admin.css",

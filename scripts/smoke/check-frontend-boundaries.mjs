@@ -11,7 +11,7 @@ const warnings = [];
 
 const budgets = {
   "public/app.js": { maxLines: 7350, targetLines: 800, owner: "AppModules + feature modules" },
-  "public/admin.js": { maxLines: 2100, targetLines: 400, owner: "AdminModules + admin-*.js" },
+  "public/admin/*.js": { maxLines: 400, owner: "AdminCore + AdminDomains" },
   "public/styles.css": { maxLines: 80, targetLines: 40, owner: "public/css/*.css imports only" },
   "public/css/*.css": { maxLines: 500, owner: "one visual domain per CSS module" }
 };
@@ -38,7 +38,13 @@ const requiredLazyAdminScripts = [
   "/admin-gallery.js",
   "/admin-settings.js",
   "/admin-shell-polish.js",
-  "/admin.js"
+  "/admin/users.js",
+  "/admin/prompts.js",
+  "/admin/announcements.js",
+  "/admin/settings.js",
+  "/admin/canvas.js",
+  "/admin/command-palette.js",
+  "/admin/dashboard.js"
 ];
 
 const requiredLazyCanvasScripts = [
@@ -304,7 +310,9 @@ function checkMaintenanceDocs() {
 }
 
 checkFileBudget("public/app.js", budgets["public/app.js"]);
-checkFileBudget("public/admin.js", budgets["public/admin.js"]);
+for (const fileName of fs.readdirSync(path.join(root, "public/admin")).filter((name) => name.endsWith(".js"))) {
+  checkFileBudget(path.join("public/admin", fileName).replace(/\\/g, "/"), budgets["public/admin/*.js"]);
+}
 checkFileBudget("public/styles.css", budgets["public/styles.css"]);
 
 const indexHtml = read("public/index.html");
@@ -317,8 +325,8 @@ assert(
   "public/index.html must lazy-load canvas.js through app-router"
 );
 assert(
-  scriptPosition(adminHtml, "admin.js") < 0,
-  "public/admin.html must lazy-load admin.js through app-router"
+  scriptPosition(adminHtml, "dashboard.js") < 0,
+  "public/admin.html must lazy-load admin dashboard through app-router"
 );
 assert(
   JSON.stringify(buildManifest.js?.lazyRoutes?.admin?.scripts || []) ===

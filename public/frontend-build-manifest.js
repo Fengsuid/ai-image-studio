@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260528-admin-primitives-v1",
+  "version": "20260528-admin-js-split-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -92,7 +92,7 @@
     "compatibilityManifest": "/frontend-build-manifest.js",
     "lazyRoutes": {
       "admin": {
-        "entry": "/admin.js",
+        "entry": "/admin/dashboard.js",
         "scripts": [
           "/admin-generation-diagnostics.js",
           "/admin-overview.js",
@@ -101,7 +101,13 @@
           "/admin-gallery.js",
           "/admin-settings.js",
           "/admin-shell-polish.js",
-          "/admin.js"
+          "/admin/users.js",
+          "/admin/prompts.js",
+          "/admin/announcements.js",
+          "/admin/settings.js",
+          "/admin/canvas.js",
+          "/admin/command-palette.js",
+          "/admin/dashboard.js"
         ]
       },
       "canvas": {
@@ -257,10 +263,10 @@
       },
       {
         "source": "/app-router.js",
-        "entry": "/dist/app-router.a96a869ea14a.js",
-        "fileName": "app-router.a96a869ea14a.js",
-        "hash": "a96a869ea14a",
-        "bytes": 3029,
+        "entry": "/dist/app-router.21666e2d04fd.js",
+        "fileName": "app-router.21666e2d04fd.js",
+        "hash": "21666e2d04fd",
+        "bytes": 3181,
         "lazy": false
       },
       {
@@ -321,10 +327,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.64619612b634.js",
-        "fileName": "app.64619612b634.js",
-        "hash": "64619612b634",
-        "bytes": 180143,
+        "entry": "/dist/app.51ee28fb5957.js",
+        "fileName": "app.51ee28fb5957.js",
+        "hash": "51ee28fb5957",
+        "bytes": 180933,
         "lazy": false
       },
       {
@@ -384,11 +390,59 @@
         "lazy": true
       },
       {
-        "source": "/admin.js",
-        "entry": "/dist/admin.1ebd55d4362d.js",
-        "fileName": "admin.1ebd55d4362d.js",
-        "hash": "1ebd55d4362d",
-        "bytes": 84780,
+        "source": "/admin/users.js",
+        "entry": "/dist/admin-users.f826c642f180.js",
+        "fileName": "admin-users.f826c642f180.js",
+        "hash": "f826c642f180",
+        "bytes": 5468,
+        "lazy": true
+      },
+      {
+        "source": "/admin/prompts.js",
+        "entry": "/dist/admin-prompts.33015b0c4872.js",
+        "fileName": "admin-prompts.33015b0c4872.js",
+        "hash": "33015b0c4872",
+        "bytes": 11157,
+        "lazy": true
+      },
+      {
+        "source": "/admin/announcements.js",
+        "entry": "/dist/admin-announcements.e1006db383e8.js",
+        "fileName": "admin-announcements.e1006db383e8.js",
+        "hash": "e1006db383e8",
+        "bytes": 5239,
+        "lazy": true
+      },
+      {
+        "source": "/admin/settings.js",
+        "entry": "/dist/admin-settings.eabecb7d20f8.js",
+        "fileName": "admin-settings.eabecb7d20f8.js",
+        "hash": "eabecb7d20f8",
+        "bytes": 1435,
+        "lazy": true
+      },
+      {
+        "source": "/admin/canvas.js",
+        "entry": "/dist/admin-canvas.3c0dea4f41a0.js",
+        "fileName": "admin-canvas.3c0dea4f41a0.js",
+        "hash": "3c0dea4f41a0",
+        "bytes": 8504,
+        "lazy": true
+      },
+      {
+        "source": "/admin/command-palette.js",
+        "entry": "/dist/admin-command-palette.17a06c2d9ce3.js",
+        "fileName": "admin-command-palette.17a06c2d9ce3.js",
+        "hash": "17a06c2d9ce3",
+        "bytes": 2252,
+        "lazy": true
+      },
+      {
+        "source": "/admin/dashboard.js",
+        "entry": "/dist/admin-dashboard.3ff3372e1de9.js",
+        "fileName": "admin-dashboard.3ff3372e1de9.js",
+        "hash": "3ff3372e1de9",
+        "bytes": 22421,
         "lazy": true
       },
       {
