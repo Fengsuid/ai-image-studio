@@ -19,7 +19,9 @@ assert(app.includes("waitForGenerationRequest(data.request.id, tempId, startedAt
 assert(app.includes("api(`/api/images/requests/${encodeURIComponent(requestId)}`, { signal })"), "request polling must abort fetch");
 assert(app.includes("state.generateAbortController?.abort()"), "cancel button must abort the active generation controller");
 assert(app.includes("cancelGenerationRequest(requestId)"), "cancel button must notify the backend for known request ids");
-assert(app.includes("cancelActiveGenerationRequests()"), "cancel button must cancel active backend requests when request id is not yet attached");
+assert(app.includes("cancelActiveGenerationRequests(id)"), "cancel button must cancel active backend requests when request id is not yet attached");
+assert(app.includes("async function cancelGenerationEverywhere"), "cancel flows must share one backend-first cancellation helper");
+assert(app.indexOf("if (id) await cancelGenerationRequest(id);") < app.indexOf("state.generateAbortController?.abort();"), "cancel helper must notify the backend before aborting local polling");
 assert(app.includes('api("/api/images/requests/active")'), "fallback cancellation must query active backend generation requests");
 assert(app.includes('state.history = state.history.filter((entry) =>'), "cancel button must remove generating placeholders from chat history");
 assert(app.includes("stopFunMessages();") && app.includes("stopGenerationTimer();"), "cancel button must clear bottom generation status");

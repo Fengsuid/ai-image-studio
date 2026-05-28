@@ -341,6 +341,23 @@ async function cancelActiveGenerationRequests(exceptId = "") {
   await Promise.all(active.map((request) => cancelGenerationRequest(request.id)));
   return active.length;
 }
+async function cancelGenerationEverywhere(requestId = "") {
+  const id = requestId || state.currentGenerationRequestId || "";
+  if (id) await cancelGenerationRequest(id);
+  await cancelActiveGenerationRequests(id);
+  state.generateAbortController?.abort();
+  state.editAbortController?.abort();
+  state.generating = false;
+  state.generationStartedAt = 0;
+  state.currentGenerationRequestId = "";
+  state.history = state.history.filter((entry) =>
+    entry.status !== "generating" &&
+    (!id || String(entry.requestId || "") !== String(id))
+  );
+  stopFunMessages();
+  stopGenerationTimer();
+  stopEditorTimer();
+}
 function installCanvasBridge() {
   const canvas = window.ImageStudioCanvas || (window.ImageStudioCanvas = {});
   canvas.request = api;
@@ -2731,20 +2748,7 @@ function renderHistory() {
   });
   $$("[data-generate-cancel]", elements.historyList).forEach((button) => {
     button.addEventListener("click", async () => {
-      const requestId = button.dataset.generateCancel || state.currentGenerationRequestId;
-      state.generateAbortController?.abort();
-      state.generating = false;
-      state.generationStartedAt = 0;
-      state.currentGenerationRequestId = "";
-      stopFunMessages();
-      stopGenerationTimer();
-      stopEditorTimer();
-      if (requestId) await cancelGenerationRequest(requestId);
-      else await cancelActiveGenerationRequests();
-      state.history = state.history.filter((entry) =>
-        entry.status !== "generating" &&
-        (!requestId || String(entry.requestId || "") !== String(requestId))
-      );
+      await cancelGenerationEverywhere(button.dataset.generateCancel || "");
       renderAll();
       showToast(state.lang === "zh" ? "已取消生成，积分已退还" : "Cancelled; credits refunded", "ri-stop-circle-line");
     });
@@ -5573,7 +5577,7 @@ function bindGlobalEvents() {
   elements.editorPromptForm.addEventListener("submit", submitImageEdit);
   // 编辑器状态条按钮（重试 / 关闭失败提示 / 取消）走事件委托，
   // 因为 #editorStatusBar 由 ensureEditorStatusBar() 动态插入。
-  elements.editorView?.addEventListener("click", (event) => {
+  elements.editorView?.addEventListener("click", async (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
     if (target.closest("[data-status-retry]")) {
@@ -5586,21 +5590,7 @@ function bindGlobalEvents() {
       return;
     }
     if (target.closest("[data-status-cancel]")) {
-      // 真正中断：通知 fetch + 后端 close，后端会把 generation_requests 标 cancelled 并退积分。
-      const inflight = state.editAbortController || state.generateAbortController;
-      const requestId = state.currentGenerationRequestId;
-      if (inflight) {
-        inflight.abort();
-      }
-      if (requestId) cancelGenerationRequest(requestId);
-      else cancelActiveGenerationRequests();
-      state.generating = false;
-      state.generationStartedAt = 0;
-      state.currentGenerationRequestId = "";
-      state.history = state.history.filter((entry) => entry.status !== "generating");
-      stopFunMessages();
-      stopGenerationTimer();
-      stopEditorTimer();
+      await cancelGenerationEverywhere();
       const submitButton = $("button[type='submit']", elements.editorPromptForm);
       if (submitButton) submitButton.disabled = false;
       renderAll();

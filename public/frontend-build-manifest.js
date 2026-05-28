@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260528-db-health-audit-v1",
+  "version": "20260528-generation-cancel-close-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -327,10 +327,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.51ee28fb5957.js",
-        "fileName": "app.51ee28fb5957.js",
-        "hash": "51ee28fb5957",
-        "bytes": 180933,
+        "entry": "/dist/app.63ab5846f009.js",
+        "fileName": "app.63ab5846f009.js",
+        "hash": "63ab5846f009",
+        "bytes": 180723,
         "lazy": false
       },
       {

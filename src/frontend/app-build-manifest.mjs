@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260528-db-health-audit-v1";
+export const FRONTEND_BUILD_VERSION = "20260528-generation-cancel-close-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
