@@ -22,7 +22,7 @@ FROM node:20-bookworm-slim AS app
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json server.js ./
+COPY package.json package-lock.json server.js .env.example ./
 COPY src ./src
 COPY public ./public
 COPY packages ./packages
