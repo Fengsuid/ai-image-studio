@@ -10,8 +10,8 @@
             <h2>API 供应商</h2>
             <button type="button" data-create-provider><i class="ri-add-line"></i> 新增 Provider</button>
           </div>
-          <div class="admin-table-wrap">
-            <table class="admin-table">
+          <div class="admin-table-wrap primitive-table-wrap">
+            <table class="admin-table primitive-table" data-density="compact">
               <thead><tr><th>名称</th><th>Base URL</th><th>模型</th><th>能力</th><th>健康</th><th>状态</th><th></th></tr></thead>
               <tbody>
                 ${state.providers.map((provider) => `

@@ -76,8 +76,8 @@
           </div>
           <button type="button" data-generation-filter-refresh><i class="ri-refresh-line"></i>刷新诊断</button>
         </div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
+        <div class="admin-table-wrap primitive-table-wrap">
+          <table class="admin-table primitive-table" data-density="compact">
             <thead><tr><th>状态</th><th>用户</th><th>Provider / 模型</th><th>耗时/积分</th><th>错误阶段</th><th>结果</th><th>时间</th><th></th></tr></thead>
             <tbody>
               ${pageItems.map((item) => `
@@ -131,8 +131,8 @@
       <h3>Provider 参数</h3><pre class="admin-code-block">${jsonBlock(item.providerParams)}</pre>
       <h3>Provider 响应摘要</h3><pre class="admin-code-block">${jsonBlock(item.providerResponse)}</pre>
       <h3>Trace 时间线</h3>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>时间</th><th>阶段</th><th>级别</th><th>消息</th><th>数据</th></tr></thead>
           <tbody>
             ${(trace || []).map((entry) => `

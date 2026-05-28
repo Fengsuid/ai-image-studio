@@ -87,6 +87,7 @@
     "smoke:indexeddb-cache-static": "node scripts/smoke/check-indexeddb-cache-static.mjs",
     "smoke:admin-generation-diagnostics": "node scripts/smoke/check-admin-generation-diagnostics.mjs",
     "smoke:admin-shell-polish": "node scripts/smoke/check-admin-shell-polish.mjs",
+    "smoke:admin-primitives": "node scripts/smoke/check-admin-primitives.mjs",
     "smoke:gallery-images": "node scripts/smoke/check-gallery-images.mjs",
     "smoke:gallery-leaderboard-sidebar": "node scripts/smoke/check-gallery-leaderboard-sidebar.mjs",
     "smoke:generation-result-actions": "node scripts/smoke/check-generation-result-actions.mjs",

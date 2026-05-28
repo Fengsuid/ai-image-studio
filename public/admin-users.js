@@ -12,7 +12,7 @@
             <h2>用户与积分</h2>
             <button type="button" data-create-user><i class="ri-user-add-line"></i> 新建用户</button>
           </div>
-          <div class="admin-bulk-bar admin-bulk-bar-polished" role="region" aria-label="用户批量操作">
+          <div class="admin-bulk-bar admin-bulk-bar-polished primitive-table-bulk-bar" role="region" aria-label="用户批量操作">
             <div class="admin-bulk-summary">
               <i class="ri-checkbox-multiple-line" aria-hidden="true"></i>
               <strong>已选 ${fmtNumber(state.selectedUsers.size)} 个用户</strong>
@@ -29,8 +29,8 @@
               <button type="button" data-bulk-users>应用到已选</button>
             </div>
           </div>
-          <div class="admin-table-wrap">
-            <table class="admin-table admin-table-polished admin-user-table">
+          <div class="admin-table-wrap primitive-table-wrap">
+            <table class="admin-table primitive-table primitive-table--bulk admin-table-polished admin-user-table" data-density="compact">
               <thead><tr><th><input type="checkbox" data-select-page-users aria-label="选择当前页用户"></th><th>用户</th><th>角色</th><th>状态</th><th>积分</th><th>首发奖励</th><th>注册时间</th><th></th></tr></thead>
               <tbody>
                 ${pageItems.map((user) => {

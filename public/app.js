@@ -5318,10 +5318,16 @@ function openModal(html) {
   elements.modalLayer.innerHTML = html;
   elements.modalLayer.classList.toggle("square-preview-layer", Boolean($(".square-preview-modal", elements.modalLayer)));
   elements.modalLayer.classList.toggle("image-zoom-layer", Boolean($(".image-zoom-modal", elements.modalLayer)));
+  elements.modalLayer.classList.add("primitive-modal-layer");
   elements.modalLayer.classList.remove("hidden");
   elements.modalLayer.setAttribute("aria-hidden", "false");
   const dialog = $("[role='dialog'], [role='alertdialog']", elements.modalLayer) || elements.modalLayer.firstElementChild;
   if (dialog) {
+    const isLegacySplitModal = dialog.classList.contains("square-preview-modal");
+    dialog.classList?.toggle("primitive-modal", !isLegacySplitModal);
+    dialog.classList?.toggle("primitive-modal--split", false);
+    dialog.classList?.toggle("primitive-modal--wide", dialog.classList.contains("preview-modal") || dialog.classList.contains("publish-modal"));
+    dialog.classList?.toggle("primitive-modal--keep-centered", !dialog.classList.contains("square-preview-modal"));
     if (!dialog.hasAttribute("role")) dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     if (!dialog.hasAttribute("tabindex")) dialog.setAttribute("tabindex", "-1");

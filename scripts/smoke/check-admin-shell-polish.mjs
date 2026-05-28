@@ -18,6 +18,9 @@ const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
 const styles = read("public/styles.css");
 const adminCss = read("public/css/09-admin.css");
 const shellCss = read("public/css/09-admin-shell-polish.css");
+const drawerPrimitiveCss = read("public/css/primitives/_drawer.css");
+const modalPrimitiveCss = read("public/css/primitives/_modal.css");
+const tablePrimitiveCss = read("public/css/primitives/_table.css");
 
 assert.equal(
   packageJson.scripts["smoke:admin-shell-polish"],
@@ -33,6 +36,10 @@ assert(
   "admin shell polish must load before admin.js"
 );
 assert(styles.includes('@import url("/css/09-admin-shell-polish.css");'), "styles.css must import admin shell polish CSS");
+assert(styles.includes('@import url("/css/primitives/_drawer.css");'), "styles.css must import drawer primitive CSS");
+assert(styles.includes('@import url("/css/primitives/_modal.css");'), "styles.css must import modal primitive CSS");
+assert(styles.includes('@import url("/css/primitives/_table.css");'), "styles.css must import table primitive CSS");
+assert(styles.indexOf("/css/primitives/_drawer.css") < styles.indexOf("/css/09-admin.css"), "drawer primitive must load before admin CSS");
 for (const upstreamCss of ["/css/09-admin-diagnostics.css", "/css/10-canvas-tools.css"]) {
   assert(
     styles.indexOf(upstreamCss) < styles.indexOf("/css/09-admin-shell-polish.css"),
@@ -47,6 +54,7 @@ for (const token of [
   "adminGlobalSearch",
   "adminViewSwitch",
   "adminSidebarBackdrop",
+  "primitive-drawer-layer",
   "primitive-drawer",
   "primitive-pill",
   "adminNavHelp",
@@ -70,6 +78,17 @@ for (const token of [
 ]) {
   assert(polish.includes(token), `admin shell polish module missing ${token}`);
 }
+
+for (const token of [".primitive-drawer", ".primitive-drawer-layer.hidden", ".primitive-drawer__head", ".primitive-drawer__body"]) {
+  assert(drawerPrimitiveCss.includes(token), `drawer primitive CSS missing ${token}`);
+}
+
+for (const token of [".modal-layer", ".modal", "modalIn", "ais-slide-up-sheet"]) {
+  assert(modalPrimitiveCss.includes(token), `modal primitive CSS missing ${token}`);
+}
+
+assert(!read("public/css/06-gallery.css").includes("@keyframes modalIn"), "gallery CSS must not own modalIn keyframes");
+assert(tablePrimitiveCss.includes(".primitive-table-wrap"), "table primitive CSS missing wrapper primitive");
 
 for (const token of [
   "sidebarState",

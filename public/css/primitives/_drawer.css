@@ -1,0 +1,122 @@
+/* AIS-RLS-142 drawer primitive for admin and detail side panels. */
+.primitive-drawer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 79;
+  background: color-mix(in srgb, var(--neutral-900) 38%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.primitive-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(560px, 100vw);
+  height: 100svh;
+  border-left: 1px solid color-mix(in srgb, var(--neutral-300) 90%, transparent);
+  background: var(--surface-card);
+  color: var(--neutral-800);
+  box-shadow: -24px 0 70px color-mix(in srgb, var(--neutral-900) 22%, transparent);
+}
+
+.primitive-drawer[aria-hidden="true"],
+.primitive-drawer.hidden,
+.primitive-drawer-layer.hidden {
+  display: none;
+}
+
+.primitive-drawer__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-bottom: 1px solid color-mix(in srgb, var(--neutral-200) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-card) 96%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.primitive-drawer__head h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+
+.primitive-drawer__body {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+.primitive-drawer__tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: var(--space-xs);
+  margin: calc(var(--space-md) * -1) calc(var(--space-md) * -1) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid color-mix(in srgb, var(--neutral-200) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-card) 96%, transparent);
+}
+
+.primitive-drawer__tab {
+  border: 1px solid color-mix(in srgb, var(--neutral-300) 90%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--neutral-0);
+  color: var(--neutral-600);
+  padding: var(--space-xs) var(--space-sm);
+  font-weight: 800;
+}
+
+.primitive-drawer__tab[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--brand-600) 34%, transparent);
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+
+.primitive-drawer--bottom-sheet {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  max-height: calc(100svh - 56px);
+  height: auto;
+  border-left: 0;
+  border-top: 1px solid color-mix(in srgb, var(--neutral-200) 92%, transparent);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: 0 -24px 70px color-mix(in srgb, var(--neutral-900) 22%, transparent);
+}
+
+:root[data-theme="dark"] .primitive-drawer {
+  border-color: color-mix(in srgb, var(--neutral-700) 88%, transparent);
+  background: var(--surface-card);
+}
+
+:root[data-theme="dark"] .primitive-drawer__head,
+:root[data-theme="dark"] .primitive-drawer__tabs {
+  border-color: color-mix(in srgb, var(--neutral-700) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+}
+
+@media (max-width: 760px) {
+  .primitive-drawer:not(.admin-sidebar) {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-height: calc(100svh - 56px);
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--neutral-200) 92%, transparent);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -24px 70px color-mix(in srgb, var(--neutral-900) 22%, transparent);
+  }
+}

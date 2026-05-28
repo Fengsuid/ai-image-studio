@@ -575,7 +575,7 @@ function pagination(total) {
 
 function emptyState(title, detail, icon = "ri-inbox-archive-line", tone = "neutral") {
   return `
-    <div class="admin-empty-state admin-empty-state-polished" data-tone="${escapeHtml(tone)}">
+    <div class="admin-empty-state admin-empty-state-polished primitive-table__empty" data-tone="${escapeHtml(tone)}">
       <i class="${escapeHtml(icon)}" aria-hidden="true"></i>
       <h3>${escapeHtml(title)}</h3>
       <p>${escapeHtml(detail)}</p>
@@ -595,8 +595,8 @@ function bindPagination() {
 function requestTable(items) {
   if (!items.length) return emptyState("暂无生成请求", "当前筛选条件下没有生成任务，可调整状态或关键词后重试。", "ri-image-ai-line");
   return `
-    <div class="admin-table-wrap">
-      <table class="admin-table admin-table-polished">
+    <div class="admin-table-wrap primitive-table-wrap">
+      <table class="admin-table primitive-table admin-table-polished" data-density="compact">
         <thead><tr><th>状态</th><th>用户</th><th>提示词</th><th>耗时</th><th>时间</th><th></th></tr></thead>
         <tbody>
           ${items.map((item) => `
@@ -630,8 +630,8 @@ function renderPrompts() {
   return `${toolbar("搜索标题、提示词、作者", ["active", "hidden"])}
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>远程来源</h2><button type="button" data-create-prompt-source>新建来源</button></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>来源</th><th>仓库</th><th>状态</th><th>最近同步</th><th>结果</th><th></th></tr></thead>
           <tbody>
             ${(adminState.promptSources || []).map((source) => `
@@ -659,8 +659,8 @@ function renderPrompts() {
         <button type="button" data-scan-prompt-duplicates>扫描候选</button>
         <span>${fmtNumber(adminState.promptDuplicates.length)} 组需人工确认</span>
       </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>提示词 A</th><th>提示词 B</th><th>召回</th><th>处理</th></tr></thead>
           <tbody>
             ${adminState.promptDuplicates.map((item) => `
@@ -684,8 +684,8 @@ function renderPrompts() {
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>提示词 CMS</h2><button type="button" data-create-prompt>新建提示词</button></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>标题</th><th>分类/标签</th><th>来源</th><th>状态</th><th>互动</th><th>排序</th><th></th></tr></thead>
           <tbody>
             ${paged(items).map((prompt) => `
@@ -712,8 +712,8 @@ function renderTags() {
   return `${toolbar("搜索 slug、中文名、分类", ["active", "hidden"])}
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>提示词分类</h2><button type="button" data-create-category>新建分类</button></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>Slug</th><th>中文/英文</th><th>说明</th><th>状态</th><th>排序</th><th></th></tr></thead>
           <tbody>
             ${categories.map((category) => `
@@ -732,8 +732,8 @@ function renderTags() {
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>标签库</h2><button type="button" data-create-tag>新建标签</button></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>Slug</th><th>中文/英文</th><th>分类</th><th>状态</th><th>覆盖</th><th></th></tr></thead>
           <tbody>
             ${paged(items).map((tag) => `
@@ -777,8 +777,8 @@ function renderGrowthPlaceholder() {
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>画廊点赞排行榜</h2><span>${fmtNumber(leaderboard.length)} 条热门作品</span></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>作品</th><th>作者</th><th>点赞</th><th>标签</th><th>时间</th><th></th></tr></thead>
           <tbody>
             ${leaderboard.map((item, index) => `
@@ -797,8 +797,8 @@ function renderGrowthPlaceholder() {
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>异常点赞检查</h2><span>${fmtNumber(anomalies.length)} 个 24h 高频账号</span></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>用户</th><th>24h 点赞</th><th>首次</th><th>最近</th></tr></thead>
           <tbody>
             ${anomalies.map((item) => `
@@ -829,8 +829,8 @@ function renderAnnouncements() {
         <h2>通知公告</h2>
         <button type="button" data-create-announcement><i class="ri-add-line"></i> 新建通知</button>
       </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>标题</th><th>等级</th><th>展示</th><th>目标</th><th>状态</th><th>统计</th><th>时间</th><th></th></tr></thead>
           <tbody>
             ${paged(items).map((item) => `
@@ -864,8 +864,8 @@ function renderPromptAudit() {
         <h2>Prompt Audit</h2>
         <span>${fmtNumber(items.length)} 条审计记录</span>
       </div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>提示词</th><th>重复等级</th><th>建议动作</th><th>匹配项</th><th>人工复核</th><th>时间</th></tr></thead>
           <tbody>
             ${paged(items).map((item) => `
@@ -915,8 +915,8 @@ function renderRum() {
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>RUM 事件</h2><span>${fmtNumber(rum.total || 0)} 条近期事件</span></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>指标</th><th>值</th><th>路径</th><th>时间</th></tr></thead>
           <tbody>${(adminState.rum?.events || []).map((item) => `
             <tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.value)}</td><td>${escapeHtml(item.path || "-")}</td><td>${fmtDate(item.createdAt)}</td></tr>
@@ -930,8 +930,8 @@ function renderWithdrawals() {
   return `
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>举报队列</h2><span>${fmtNumber(adminState.reports.length)} 条记录</span></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>作品</th><th>用户</th><th>状态</th><th>举报</th><th>原因</th><th></th></tr></thead>
           <tbody>
             ${adminState.reports.map((item) => `
@@ -954,8 +954,8 @@ function renderWithdrawals() {
     </section>
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>举报与撤回</h2><span>${fmtNumber(adminState.withdrawals.length)} 条记录</span></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>作品</th><th>用户</th><th>状态</th><th>公开时间</th><th>申请时间</th><th>原因</th><th></th></tr></thead>
           <tbody>
             ${adminState.withdrawals.map((item) => `
@@ -984,8 +984,8 @@ function renderAudit() {
   return `
     <section class="admin-panel">
       <div class="admin-panel-head"><h2>审计日志</h2><button type="button" data-audit-demo>记录一次只读巡检</button></div>
-      <div class="admin-table-wrap">
-        <table class="admin-table">
+      <div class="admin-table-wrap primitive-table-wrap">
+        <table class="admin-table primitive-table" data-density="compact">
           <thead><tr><th>动作</th><th>对象</th><th>操作者</th><th>详情</th><th>时间</th></tr></thead>
           <tbody>
             ${adminState.audit.map((item) => `
@@ -1052,11 +1052,11 @@ function openDrawer(title, body) {
   drawer.setAttribute("aria-label", title);
   document.body.classList.add("admin-drawer-open");
   drawer.innerHTML = `
-    <div class="admin-drawer-head">
+    <div class="admin-drawer-head primitive-drawer__head">
       <h2>${escapeHtml(title)}</h2>
       <button type="button" data-close-drawer aria-label="关闭详情"><i class="ri-close-line" aria-hidden="true"></i></button>
     </div>
-    <div class="admin-drawer-body">${body}</div>
+    <div class="admin-drawer-body primitive-drawer__body">${body}</div>
   `;
   $("[data-close-drawer]", drawer).addEventListener("click", closeDrawer);
   backdrop?.addEventListener("click", closeDrawer, { once: true });
@@ -1129,8 +1129,8 @@ async function requestDrawer(itemOrId) {
     <h3>Provider 响应摘要</h3>
     <pre class="admin-code-block">${jsonBlock(item.providerResponse)}</pre>
     <h3>Trace 时间线</h3>
-    <div class="admin-table-wrap">
-      <table class="admin-table">
+    <div class="admin-table-wrap primitive-table-wrap">
+      <table class="admin-table primitive-table" data-density="compact">
         <thead><tr><th>时间</th><th>阶段</th><th>级别</th><th>消息</th><th>数据</th></tr></thead>
         <tbody>
           ${trace.map((entry) => `

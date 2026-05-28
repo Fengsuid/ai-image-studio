@@ -43,8 +43,8 @@
             </div>
             <button type="button" data-gallery-file-check-run><i class="ri-loop-right-line"></i>运行巡检</button>
           </div>
-          <div class="admin-table-wrap">
-            <table class="admin-table">
+          <div class="admin-table-wrap primitive-table-wrap">
+            <table class="admin-table primitive-table" data-density="compact">
               <thead><tr><th>作品</th><th>类型</th><th>文件</th><th>状态</th><th>大小</th><th>检查时间</th></tr></thead>
               <tbody>
                 ${paged(checks).map((item) => `

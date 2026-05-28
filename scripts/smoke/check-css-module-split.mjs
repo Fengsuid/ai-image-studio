@@ -44,7 +44,10 @@ const required = [
   "11-mobile.css",
   "11-mobile-shell.css",
   "12-animations.css",
-  "primitives/_button.css"
+  "primitives/_button.css",
+  "primitives/_drawer.css",
+  "primitives/_modal.css",
+  "primitives/_table.css"
 ];
 for (const file of required) {
   assert(fs.existsSync(path.join(cssDir, file)), `missing CSS module ${file}`);
@@ -75,6 +78,10 @@ for (const file of cssFiles) {
 const imported = [...styles.matchAll(/@import url\("\/css\/([^"]+\.css)"\);/g)].map((match) => match[1]);
 assert.equal(imported.length, cssFiles.length, "styles.css import count must match public/css files");
 assert.deepEqual([...imported].sort(), cssFiles, "styles.css imports must match public/css files");
+assert(imported.indexOf("primitives/_button.css") < imported.indexOf("primitives/_modal.css"), "modal primitive must load after button primitive");
+assert(imported.indexOf("primitives/_modal.css") < imported.indexOf("04-components-modals.css"), "modal primitive must load before legacy modal feature CSS");
+assert(imported.indexOf("primitives/_drawer.css") < imported.indexOf("09-admin.css"), "drawer primitive must load before admin feature CSS");
+assert(imported.indexOf("primitives/_table.css") < imported.indexOf("09-admin.css"), "table primitive must load before admin feature CSS");
 
 function stylesheetHrefs(html) {
   return [...html.matchAll(/<link\b[^>]*>/g)]

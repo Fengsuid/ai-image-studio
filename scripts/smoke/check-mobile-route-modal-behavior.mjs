@@ -21,6 +21,7 @@ const mobileEditorCss = [
 const galleryCss = read("public/css/06-gallery-leaderboard-responsive.css");
 const mobileGalleryCss = read("public/css/06-gallery-mobile.css");
 const mobileBottomSheetCss = read("public/css/11-mobile-bottom-sheet.css");
+const modalPrimitiveCss = read("public/css/primitives/_modal.css");
 const server = read("server.js");
 const pkg = JSON.parse(read("package.json"));
 
@@ -42,6 +43,8 @@ assert(mobileGalleryCss.includes("z-index: 180;"), "square preview modal layer m
 assert(mobileGalleryCss.includes("position: static !important;"), "square preview actions must stay in the scrollable content flow on mobile");
 assert(mobileGalleryCss.includes("overflow-y: auto;"), "square preview side pane must remain independently scrollable on mobile");
 assert(mobileBottomSheetCss.includes(".square-preview-modal::before"), "mobile bottom-sheet handle must not become a square preview grid item");
+assert(modalPrimitiveCss.includes("@keyframes modalIn"), "modal primitive must own modalIn animation");
+assert(!galleryCss.includes("@keyframes modalIn"), "gallery CSS must not duplicate modalIn");
 assert(mobileEditorCss.includes(".works-bulk-actions"), "mobile editor CSS must keep bulk actions compressed");
 assert(mobileEditorCss.includes(".works-detail-actions"), "mobile editor CSS must keep detail actions compressed");
 assert(server.includes("sanitizeConversationRoute(body.conversationRoute)"), "server must persist sanitized conversationRoute");

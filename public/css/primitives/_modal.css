@@ -1,0 +1,134 @@
+/* AIS-RLS-142 modal primitive. Legacy modal classes keep final route-specific sizing. */
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ais-slide-up-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.primitive-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.26);
+  backdrop-filter: blur(14px);
+}
+
+.modal-layer.hidden,
+.primitive-modal-layer.hidden {
+  display: none;
+}
+
+.primitive-modal {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 86%, transparent);
+  border-radius: var(--radius-2xl);
+  background: color-mix(in srgb, var(--surface-card) 96%, transparent);
+  color: var(--neutral-800);
+  box-shadow: var(--shadow-modal);
+  padding: var(--space-lg);
+  animation: modalIn var(--dur-fast) var(--ease-out) both;
+}
+
+.preview-modal,
+.primitive-modal--wide {
+  width: min(860px, 100%);
+}
+
+.primitive-modal--split {
+  width: min(1480px, calc(100vw - 36px));
+  height: min(900px, calc(100vh - 36px));
+  max-height: calc(100svh - 36px);
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.square-preview-modal.primitive-modal--split {
+  border-radius: 16px;
+  background: #050814;
+  color: #e5edf8;
+}
+
+.primitive-modal--keep-centered {
+  width: min(360px, calc(100vw - 32px));
+}
+
+:root[data-theme="dark"] .primitive-modal {
+  border-color: color-mix(in srgb, var(--neutral-700) 84%, transparent);
+  background: color-mix(in srgb, var(--surface-card) 96%, transparent);
+  color: var(--neutral-100);
+}
+
+@media (max-width: 640px) {
+  .modal-layer,
+  .primitive-modal-layer {
+    align-items: end;
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .primitive-modal:not(.primitive-modal--keep-centered) {
+    width: 100% !important;
+    max-width: 100vw;
+    max-height: calc(100svh - 56px);
+    margin: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+    animation: ais-slide-up-sheet var(--dur-slow) var(--ease-out) both;
+  }
+
+  .primitive-modal:not(.primitive-modal--keep-centered):not(.primitive-modal--split)::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--neutral-300);
+    margin: var(--space-xs) auto var(--space-sm);
+  }
+
+  .primitive-modal--split:not(.primitive-modal--keep-centered) {
+    grid-template-columns: 1fr;
+    padding-bottom: 0;
+  }
+
+  .primitive-modal--keep-centered {
+    justify-self: center;
+    align-self: center;
+    margin: var(--space-md);
+    border-radius: var(--radius-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-layer,
+  .primitive-modal-layer,
+  .primitive-modal {
+    animation: none !important;
+  }
+}

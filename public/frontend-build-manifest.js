@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260527-admin-shell-v1",
+  "version": "20260528-admin-primitives-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.a24ac71dc577.css",
-    "file": "/dist/app.a24ac71dc577.css",
-    "hash": "a24ac71dc577",
-    "bytes": 302418,
+    "entry": "/dist/app.8c095f5f6ece.css",
+    "file": "/dist/app.8c095f5f6ece.css",
+    "hash": "8c095f5f6ece",
+    "bytes": 313679,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -37,6 +37,9 @@
       "/css/00-tokens-motion.css",
       "/css/01-reset-base.css",
       "/css/primitives/_button.css",
+      "/css/primitives/_table.css",
+      "/css/primitives/_drawer.css",
+      "/css/primitives/_modal.css",
       "/css/03-layout-app-shell.css",
       "/css/05-home-shell.css",
       "/css/00-theme.css",
@@ -318,18 +321,18 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.531afd6e9a45.js",
-        "fileName": "app.531afd6e9a45.js",
-        "hash": "531afd6e9a45",
-        "bytes": 179717,
+        "entry": "/dist/app.64619612b634.js",
+        "fileName": "app.64619612b634.js",
+        "hash": "64619612b634",
+        "bytes": 180143,
         "lazy": false
       },
       {
         "source": "/admin-generation-diagnostics.js",
-        "entry": "/dist/admin-generation-diagnostics.7ba211447e61.js",
-        "fileName": "admin-generation-diagnostics.7ba211447e61.js",
-        "hash": "7ba211447e61",
-        "bytes": 9188,
+        "entry": "/dist/admin-generation-diagnostics.0e0479f19c77.js",
+        "fileName": "admin-generation-diagnostics.0e0479f19c77.js",
+        "hash": "0e0479f19c77",
+        "bytes": 9308,
         "lazy": true
       },
       {
@@ -342,26 +345,26 @@
       },
       {
         "source": "/admin-users.js",
-        "entry": "/dist/admin-users.7a5d66103f61.js",
-        "fileName": "admin-users.7a5d66103f61.js",
-        "hash": "7a5d66103f61",
-        "bytes": 3578,
+        "entry": "/dist/admin-users.4f06f2003144.js",
+        "fileName": "admin-users.4f06f2003144.js",
+        "hash": "4f06f2003144",
+        "bytes": 3685,
         "lazy": true
       },
       {
         "source": "/admin-providers.js",
-        "entry": "/dist/admin-providers.2312ce413dc9.js",
-        "fileName": "admin-providers.2312ce413dc9.js",
-        "hash": "2312ce413dc9",
-        "bytes": 2234,
+        "entry": "/dist/admin-providers.ebd59cc1eda7.js",
+        "fileName": "admin-providers.ebd59cc1eda7.js",
+        "hash": "ebd59cc1eda7",
+        "bytes": 2294,
         "lazy": true
       },
       {
         "source": "/admin-gallery.js",
-        "entry": "/dist/admin-gallery.987b128da76b.js",
-        "fileName": "admin-gallery.987b128da76b.js",
-        "hash": "987b128da76b",
-        "bytes": 3565,
+        "entry": "/dist/admin-gallery.fd3e4586edfc.js",
+        "fileName": "admin-gallery.fd3e4586edfc.js",
+        "hash": "fd3e4586edfc",
+        "bytes": 3625,
         "lazy": true
       },
       {
@@ -382,10 +385,10 @@
       },
       {
         "source": "/admin.js",
-        "entry": "/dist/admin.148a61a6c3e1.js",
-        "fileName": "admin.148a61a6c3e1.js",
-        "hash": "148a61a6c3e1",
-        "bytes": 83811,
+        "entry": "/dist/admin.1ebd55d4362d.js",
+        "fileName": "admin.1ebd55d4362d.js",
+        "hash": "1ebd55d4362d",
+        "bytes": 84780,
         "lazy": true
       },
       {
