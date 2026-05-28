@@ -36,9 +36,14 @@ let pool;
 let defaultModel = "GPT-IMAGE-2";
 const DEFAULT_CONTACT_ADMIN_EMAIL = "support@example.com";
 
-function intEnv(name, fallback) {
+const MYSQL_INSTRUMENTED = Symbol("mysql-store-instrumented");
+
+function intEnv(name, fallback, options = {}) {
   const parsed = Number.parseInt(process.env[name], 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed)) return fallback;
+  if (Number.isFinite(options.min) && parsed < options.min) return fallback;
+  if (Number.isFinite(options.max) && parsed > options.max) return options.max;
+  return parsed;
 }
 
 function boolEnv(name, fallback) {
@@ -51,14 +56,79 @@ function quoteIdentifier(identifier) {
 }
 
 function mysqlConfig() {
+  const connectionLimit = intEnv("MYSQL_CONNECTION_LIMIT", 10, { min: 1 });
   return {
     host: process.env.MYSQL_HOST || "127.0.0.1",
-    port: intEnv("MYSQL_PORT", 3306),
+    port: intEnv("MYSQL_PORT", 3306, { min: 1, max: 65535 }),
     user: process.env.MYSQL_USER || "root",
     password: process.env.MYSQL_PASSWORD || "",
     database: process.env.MYSQL_DATABASE || "gpt_image_studio",
-    connectionLimit: intEnv("MYSQL_CONNECTION_LIMIT", 10)
+    waitForConnections: boolEnv("MYSQL_WAIT_FOR_CONNECTIONS", true),
+    connectionLimit,
+    maxIdle: intEnv("MYSQL_MAX_IDLE", connectionLimit, { min: 1, max: connectionLimit }),
+    idleTimeout: intEnv("MYSQL_IDLE_TIMEOUT_MS", 60000, { min: 1000 }),
+    queueLimit: intEnv("MYSQL_QUEUE_LIMIT", 0, { min: 0 }),
+    connectTimeout: intEnv("MYSQL_CONNECT_TIMEOUT_MS", 10000, { min: 1000 }),
+    slowQueryMs: intEnv("MYSQL_SLOW_QUERY_MS", 1000, { min: 0 }),
+    migrationWarnMs: intEnv("MYSQL_MIGRATION_WARN_MS", 10000, { min: 0 })
   };
+}
+
+function summarizeSql(sql) {
+  if (typeof sql === "string") return sql.replace(/\s+/g, " ").trim().slice(0, 240);
+  if (sql && typeof sql.sql === "string") return sql.sql.replace(/\s+/g, " ").trim().slice(0, 240);
+  return "unlabeled mysql operation";
+}
+
+function warnSlowMysqlOperation(message, metadata) {
+  console.warn(`[mysql-store] ${message}`, metadata);
+}
+
+function instrumentMysqlExecutor(executor, label, slowQueryMs) {
+  if (!executor || executor[MYSQL_INSTRUMENTED] || slowQueryMs <= 0) return executor;
+  Object.defineProperty(executor, MYSQL_INSTRUMENTED, { value: true });
+  for (const method of ["query", "execute"]) {
+    const original = typeof executor[method] === "function" ? executor[method].bind(executor) : null;
+    if (!original) continue;
+    executor[method] = async (...args) => {
+      const startedAt = Date.now();
+      try {
+        return await original(...args);
+      } finally {
+        const durationMs = Date.now() - startedAt;
+        if (durationMs >= slowQueryMs) {
+          warnSlowMysqlOperation("slow mysql query", {
+            method: `${label}.${method}`,
+            durationMs,
+            thresholdMs: slowQueryMs,
+            sql: summarizeSql(args[0])
+          });
+        }
+      }
+    };
+  }
+  return executor;
+}
+
+function instrumentMysqlPool(dbPool, slowQueryMs) {
+  if (!dbPool || slowQueryMs <= 0) return dbPool;
+  instrumentMysqlExecutor(dbPool, "pool", slowQueryMs);
+  const originalGetConnection = typeof dbPool.getConnection === "function" ? dbPool.getConnection.bind(dbPool) : null;
+  if (originalGetConnection) {
+    dbPool.getConnection = async (...args) => {
+      const startedAt = Date.now();
+      const connection = await originalGetConnection(...args);
+      const durationMs = Date.now() - startedAt;
+      if (durationMs >= slowQueryMs) {
+        warnSlowMysqlOperation("slow mysql pool checkout", {
+          durationMs,
+          thresholdMs: slowQueryMs
+        });
+      }
+      return instrumentMysqlExecutor(connection, "connection", slowQueryMs);
+    };
+  }
+  return dbPool;
 }
 
 function getPool() {
@@ -1299,11 +1369,24 @@ async function initializeDatabase(options = {}) {
     user: config.user,
     password: config.password,
     database: config.database,
-    waitForConnections: true,
+    waitForConnections: config.waitForConnections,
     connectionLimit: config.connectionLimit,
+    maxIdle: config.maxIdle,
+    idleTimeout: config.idleTimeout,
+    queueLimit: config.queueLimit,
+    connectTimeout: config.connectTimeout,
     charset: "utf8mb4"
   });
+  instrumentMysqlPool(pool, config.slowQueryMs);
+  const migrationStartedAt = Date.now();
   await runMigrations();
+  const migrationDurationMs = Date.now() - migrationStartedAt;
+  if (config.migrationWarnMs > 0 && migrationDurationMs >= config.migrationWarnMs) {
+    warnSlowMysqlOperation("mysql migrations completed slowly", {
+      durationMs: migrationDurationMs,
+      thresholdMs: config.migrationWarnMs
+    });
+  }
   await tagStore.seedPromptCategories();
   await tagStore.seedPromptSources();
   await userStore.deleteExpiredSessions();

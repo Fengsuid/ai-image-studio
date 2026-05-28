@@ -681,3 +681,19 @@ Record the outcome in the relevant development document or release note before m
 - Deployment health: app restart count is `0`, container status is `running`, MySQL remains healthy, and server disk usage is about `91%` with about `5.4G` available after deployment.
 - Known blockers: none for AIS-RLS-145. `smoke:frontend-boundaries` still reports long-term god-file line-count warnings for `public/app.js` and `public/styles.css`, which are non-blocking guardrail warnings.
 - Rollback target: revert `89ac493` and this release-record commit, restore `APP_VERSION=20260528-admin-primitives-v1` and prior hashed admin/app-router/app entries, restore legacy `public/admin.js` only for rollback, rebuild/restart app, then rerun public, admin-module-split, admin-shell-polish, admin-primitives, frontend-build-tooling, generation-cancel-running, and visual-regression smoke.
+
+### 2026-05-28 AIS-RLS-127 DB Health Audit Release
+
+- Task covered: `AIS-RLS-127` database health check for slow query visibility, MySQL pool configuration, migration timing, and backup/restore readiness.
+- Commit covered: pending `feat(AIS-RLS-127): add mysql health instrumentation`; docs closure commit will record this release note after deployment.
+- Files changed: `src/mysql-store.js`, `.env.example`, `package.json`, `scripts/smoke/check-mysql-health-config.mjs`, `src/config/app-settings.js`, `src/frontend/app-build-manifest.mjs`, `public/frontend-build-manifest.{js,json}`, and private audit document `docs/private/DB_HEALTH_AUDIT_202605.md`.
+- Pool coverage: runtime config now exposes `MYSQL_WAIT_FOR_CONNECTIONS`, `MYSQL_CONNECTION_LIMIT`, `MYSQL_MAX_IDLE`, `MYSQL_IDLE_TIMEOUT_MS`, `MYSQL_QUEUE_LIMIT`, `MYSQL_CONNECT_TIMEOUT_MS`, `MYSQL_SLOW_QUERY_MS`, and `MYSQL_MIGRATION_WARN_MS`.
+- Slow-query coverage: app-side MySQL query/execute and pool checkout instrumentation logs operations above `MYSQL_SLOW_QUERY_MS=1000`; production MySQL server was audited as `slow_query_log=OFF` and requires a later maintenance-window server-level flag rollout.
+- Migration coverage: startup migration duration is timed and warns when it exceeds `MYSQL_MIGRATION_WARN_MS=10000`; no schema/data migration is included in this release.
+- Backup drill note: a production dump was exported (`21,957,793` bytes, SHA256 `a6778ffa5bd5acb46f845cdf75fd057f3741873612234a9761f0cb4d50b072cd`), but full restore on the same 1.9Gi/no-swap production host was operator-waived after temporary restore containers caused memory pressure and SSH instability.
+- Cleanup note: AIS-RLS-127 temporary `ais127-*` containers and `/tmp/ais127*.sql` files were removed; Docker build cache was pruned from `6.415GB` to `0B`, reducing disk usage from about `92%` to about `82%`.
+- Local checks: `npm run frontend:build`, `npm run smoke:mysql-health-config`, `npm run check`, and `git diff --check` passed.
+- Deployment note: production deployment updates the app runtime to `APP_VERSION=20260528-db-health-audit-v1`; no database schema or data changes are made.
+- Online smoke: run container `smoke:mysql-health-config`, container `smoke:public -- http://127.0.0.1:3000`, and `/api/version` verification after deployment.
+- Known blockers: full restore drill is intentionally deferred to a separate test host or local Docker/MySQL environment because the production host has `1.9Gi` RAM and no swap.
+- Rollback target: revert the AIS-RLS-127 feature/docs commits, restore `APP_VERSION=20260528-admin-js-split-v1`, redeploy app, and remove optional `MYSQL_*` pool tuning values if runtime behavior regresses.

@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260528-admin-js-split-v1",
+  "version": "20260528-db-health-audit-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
