@@ -26,7 +26,7 @@
         ? `<img src="${escapeHtml(imageVariantUrl(latest.images[0]))}" ${imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(latest.prompt, 60))}">`
         : `<i class="ri-chat-3-line"></i>`;
       return `
-        <button class="chat-session-card ${active}" type="button" data-session-id="${escapeHtml(session.id)}">
+        <div class="chat-session-card ${active}" role="button" tabindex="0" data-session-id="${escapeHtml(session.id)}">
           <span class="session-thumb" ${imageFallbackContainerAttrs()}>${thumb}</span>
           <span class="session-copy">
             <strong>${escapeHtml(session.title || text("sessionUntitled"))}</strong>
@@ -34,14 +34,14 @@
             <small>${escapeHtml(truncate(latestPrompt || session.updatedAt || "", 42))}</small>
           </span>
           <span class="session-actions">
-            <span class="session-action" data-rename-session="${escapeHtml(session.id)}" title="${escapeHtml(editLabel)}" aria-label="${escapeHtml(editLabel)}">
+            <button class="session-action" type="button" data-session-action data-rename-session="${escapeHtml(session.id)}" title="${escapeHtml(editLabel)}" aria-label="${escapeHtml(editLabel)}">
               <i class="ri-edit-2-line"></i>
-            </span>
-            <span class="session-action danger" data-delete-session="${escapeHtml(session.id)}" title="${escapeHtml(text("deleteConversation"))}" aria-label="${escapeHtml(text("deleteConversation"))}">
+            </button>
+            <button class="session-action danger" type="button" data-session-action data-delete-session="${escapeHtml(session.id)}" title="${escapeHtml(text("deleteConversation"))}" aria-label="${escapeHtml(text("deleteConversation"))}">
               <i class="ri-delete-bin-line"></i>
-            </span>
+            </button>
           </span>
-        </button>
+        </div>
       `;
     }).join("");
   }

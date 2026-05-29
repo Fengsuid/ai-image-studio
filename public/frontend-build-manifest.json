@@ -1,5 +1,5 @@
 {
-  "version": "20260528-generation-cancel-close-v1",
+  "version": "20260528-mobile-session-toast-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.8c095f5f6ece.css",
-    "file": "/dist/app.8c095f5f6ece.css",
-    "hash": "8c095f5f6ece",
-    "bytes": 313679,
+    "entry": "/dist/app.b0723bba14a7.css",
+    "file": "/dist/app.b0723bba14a7.css",
+    "hash": "b0723bba14a7",
+    "bytes": 319969,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -172,10 +172,10 @@
       },
       {
         "source": "/image-session-list.js",
-        "entry": "/dist/image-session-list.46cac225779b.js",
-        "fileName": "image-session-list.46cac225779b.js",
-        "hash": "46cac225779b",
-        "bytes": 1606,
+        "entry": "/dist/image-session-list.4fc599f08985.js",
+        "fileName": "image-session-list.4fc599f08985.js",
+        "hash": "4fc599f08985",
+        "bytes": 1689,
         "lazy": false
       },
       {
@@ -300,10 +300,10 @@
       },
       {
         "source": "/app-credits-detail.js",
-        "entry": "/dist/app-credits-detail.267a79f09a4b.js",
-        "fileName": "app-credits-detail.267a79f09a4b.js",
-        "hash": "267a79f09a4b",
-        "bytes": 4674,
+        "entry": "/dist/app-credits-detail.126f97475f96.js",
+        "fileName": "app-credits-detail.126f97475f96.js",
+        "hash": "126f97475f96",
+        "bytes": 4857,
         "lazy": false
       },
       {
@@ -324,10 +324,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.63ab5846f009.js",
-        "fileName": "app.63ab5846f009.js",
-        "hash": "63ab5846f009",
-        "bytes": 180723,
+        "entry": "/dist/app.f301714c9558.js",
+        "fileName": "app.f301714c9558.js",
+        "hash": "f301714c9558",
+        "bytes": 181846,
         "lazy": false
       },
       {

@@ -345,12 +345,16 @@
 }
 
 .session-action {
+  border: 0;
   width: 28px;
   height: 28px;
+  padding: 0;
   border-radius: 9px;
+  background: transparent;
   display: grid;
   place-items: center;
   color: #64748b;
+  cursor: pointer;
 }
 
 .session-action:hover {

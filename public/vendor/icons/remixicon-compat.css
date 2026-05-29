@@ -23,3 +23,7 @@
 .ri-sync-warning-line:before {
   content: "\ea1d";
 }
+
+.ri-command-line:before {
+  content: "\f0d1";
+}

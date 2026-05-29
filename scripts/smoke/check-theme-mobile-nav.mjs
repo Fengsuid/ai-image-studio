@@ -18,6 +18,13 @@ const themeNav = read("public/theme-mobile-nav.js");
 const css = readPublicCssWithImports(root);
 const pkg = JSON.parse(read("package.json"));
 
+function scriptPosition(html, scriptName) {
+  const plainIndex = html.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
+
 const requiredIndexMarkers = [
   'id="themeToggle"',
   'id="bottomNav"',
@@ -25,13 +32,13 @@ const requiredIndexMarkers = [
   'data-mobile-nav-action="library"',
   'data-mobile-nav-action="generate"',
   'data-mobile-nav-action="editor"',
-  'data-mobile-nav-action="works"',
-  "/theme-mobile-nav.js"
+  'data-mobile-nav-action="works"'
 ];
 
 for (const marker of requiredIndexMarkers) {
   if (!index.includes(marker)) fail(`index.html missing ${marker}`);
 }
+if (scriptPosition(index, "theme-mobile-nav.js") < 0) fail("index.html missing theme-mobile-nav.js");
 
 const requiredThemeMarkers = [
   "imageStudio.theme",
@@ -55,6 +62,7 @@ const requiredCssMarkers = [
   "env(safe-area-inset-bottom)",
   ".bottom-nav-generate",
   ".toast-layer",
+  "z-index: 180",
   ".modal-layer"
 ];
 

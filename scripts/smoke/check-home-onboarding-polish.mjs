@@ -14,14 +14,21 @@ const styles = read("public/styles.css");
 const css = read("public/css/05-home-onboarding.css");
 const packageJson = JSON.parse(read("package.json"));
 
+function scriptPosition(html, scriptName) {
+  const plainIndex = html.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
+
 assert.equal(
   packageJson.scripts["smoke:home-onboarding-polish"],
   "node scripts/smoke/check-home-onboarding-polish.mjs",
   "package.json must expose smoke:home-onboarding-polish"
 );
 
-assert(index.includes("/home-onboarding.js"), "index.html must load home-onboarding.js");
-assert(index.indexOf("/home-onboarding.js") < index.indexOf("/app.js"), "home-onboarding.js must load before app.js");
+assert(scriptPosition(index, "home-onboarding.js") >= 0, "index.html must load home-onboarding.js");
+assert(scriptPosition(index, "home-onboarding.js") < scriptPosition(index, "app.js"), "home-onboarding.js must load before app.js");
 assert(index.includes("hero-pathway"), "home hero must expose generation path hints");
 assert(index.includes("homeDiscovery"), "home hero must expose prompt discovery");
 assert(styles.includes('/css/05-home-onboarding.css'), "styles.css must import home onboarding CSS");

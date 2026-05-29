@@ -175,10 +175,40 @@
   }
 
   .toast-layer {
-    bottom: calc(82px + env(safe-area-inset-bottom));
+    z-index: 180;
+    left: 50%;
+    right: auto;
+    top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top) + 8px);
+    bottom: auto;
+    width: min(360px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    justify-items: center;
   }
 
-  .chat-view .sticky-composer,
+  .toast {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 40px;
+    border-radius: 999px;
+    padding: 9px 12px;
+    display: inline-flex;
+    gap: 7px;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .toast i {
+    flex: 0 0 auto;
+  }
+
+  .toast span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .editor-prompt-bar {
     margin-bottom: calc(78px + env(safe-area-inset-bottom));
   }

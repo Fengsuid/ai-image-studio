@@ -36,7 +36,9 @@ function scriptPaths(html) {
 }
 
 function stylesheetPaths(html) {
-  return [...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map((match) => match[1]);
+  return [...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)]
+    .map((match) => match[1])
+    .filter((url) => new URL(url, "https://example.test").origin === "https://example.test");
 }
 
 function diskPathFromPublicUrl(url) {

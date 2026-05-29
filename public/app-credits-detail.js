@@ -52,13 +52,15 @@
       return `
         <article class="credit-ledger-row ${positive ? "positive" : "negative"}">
           <span class="credit-ledger-icon"><i class="${positive ? "ri-add-circle-line" : "ri-subtract-line"}"></i></span>
-          <div>
+          <div class="credit-ledger-main">
             <strong>${escapeHtml(creditSourceLabel(item.source, lang))}</strong>
             <small>${escapeHtml(item.note || item.referenceId || formatDate(item.createdAt) || "")}</small>
           </div>
-          <em>${positive ? "+" : ""}${delta}</em>
-          <time>${escapeHtml(formatDate(item.createdAt) || "")}</time>
-          <span>${escapeHtml(text("creditsBalance"))}: ${Number(item.balanceAfter || 0)}</span>
+          <div class="credit-ledger-meta">
+            <em>${positive ? "+" : ""}${delta}</em>
+            <time>${escapeHtml(formatDate(item.createdAt) || "")}</time>
+            <span>${escapeHtml(text("creditsBalance"))}: ${Number(item.balanceAfter || 0)}</span>
+          </div>
         </article>
       `;
     }).join("");
@@ -73,10 +75,14 @@
         <div class="reward-ledger-list">
           ${records.map((item) => `
             <article class="reward-ledger-row">
-              <strong>${escapeHtml(item.rewardType ? item.rewardType.replace(/_/g, " ") : "-")}</strong>
-              <span>${escapeHtml(rewardStatusLabel(item.status, lang))}</span>
-              <em>+${Number(item.amount || 0)}</em>
-              <time>${escapeHtml(formatDate(item.awardedAt || item.createdAt) || "")}</time>
+              <div>
+                <strong>${escapeHtml(item.rewardType ? item.rewardType.replace(/_/g, " ") : "-")}</strong>
+                <em>+${Number(item.amount || 0)}</em>
+              </div>
+              <div>
+                <span>${escapeHtml(rewardStatusLabel(item.status, lang))}</span>
+                <time>${escapeHtml(formatDate(item.awardedAt || item.createdAt) || "")}</time>
+              </div>
             </article>
           `).join("")}
         </div>

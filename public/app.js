@@ -12,6 +12,7 @@ const state = {
   },
   history: [],
   imageSessions: [],
+  hiddenImageSessionIds: [],
   activeImageSessionId: "",
   generationMeta: {},
   generating: false,
@@ -273,6 +274,7 @@ const elements = {
 let heroVideoWatchdog = null;
 
 const IMAGE_SESSION_STORAGE_KEY = "imageStudio.imageSessions.v1";
+const HIDDEN_IMAGE_SESSION_IDS_KEY = "imageStudio.hiddenImageSessionIds.v1";
 const ACTIVE_IMAGE_SESSION_KEY = "imageStudio.activeImageSessionId";
 const GENERATION_META_STORAGE_KEY = "imageStudio.generationMeta.v1";
 let authController = null;
@@ -871,6 +873,19 @@ function releaseSessionDrawerLock() {
   state.sessionDrawerLocked = false;
   syncThemeMobileNav();
 }
+function openSessionDrawer({ force = false } = {}) {
+  if (state.sessionDrawerLocked && !force) return;
+  state.sessionDrawerLocked = false;
+  const willOpen = !elements.app.classList.contains("session-panel-open");
+  if (willOpen) {
+    state.forceHero = false;
+    setView("home");
+  }
+  elements.app.classList.toggle("session-panel-open", willOpen);
+  elements.app.classList.remove("chat-panel-collapsed");
+  renderImageSessions({ force: true });
+  syncThemeMobileNav();
+}
 function updateNotificationBadge() {
   if (!elements.notificationBadge) return;
   const count = state.unreadAnnouncements.length;
@@ -897,11 +912,15 @@ function loadImageSessionState() {
   state.imageSessions = Array.isArray(readStoredJson(IMAGE_SESSION_STORAGE_KEY, []))
     ? readStoredJson(IMAGE_SESSION_STORAGE_KEY, [])
     : [];
+  state.hiddenImageSessionIds = Array.isArray(readStoredJson(HIDDEN_IMAGE_SESSION_IDS_KEY, []))
+    ? readStoredJson(HIDDEN_IMAGE_SESSION_IDS_KEY, []).map(String)
+    : [];
   state.generationMeta = readStoredJson(GENERATION_META_STORAGE_KEY, {});
   state.activeImageSessionId = localStorage.getItem(ACTIVE_IMAGE_SESSION_KEY) || "";
 }
 function saveImageSessionState() {
   writeStoredJson(IMAGE_SESSION_STORAGE_KEY, state.imageSessions);
+  writeStoredJson(HIDDEN_IMAGE_SESSION_IDS_KEY, state.hiddenImageSessionIds);
   writeStoredJson(GENERATION_META_STORAGE_KEY, state.generationMeta);
   if (state.activeImageSessionId) localStorage.setItem(ACTIVE_IMAGE_SESSION_KEY, state.activeImageSessionId);
 }
@@ -954,7 +973,8 @@ function createRecoveredImageSessions(ids = []) {
 }
 function ensureImageSessions() {
   try {
-    const historyIds = state.history.map((item) => String(item.id));
+    const hiddenIds = new Set((state.hiddenImageSessionIds || []).map(String));
+    const historyIds = state.history.map((item) => String(item.id)).filter((id) => !hiddenIds.has(id));
     state.imageSessions = state.imageSessions.flatMap((session) => {
       const ids = [...new Set((session.generationIds || []).map(String).filter((id) => historyIds.includes(id)))];
       if (isHistorySessionTitle(session.title) && ids.length > 1) {
@@ -1025,6 +1045,7 @@ function focusGenerationComposer() {
   setTimeout(() => $(".prompt-box", elements.stickyComposerMount)?.focus(), 80);
 }
 function addGenerationToActiveSession(itemId, prompt) {
+  state.hiddenImageSessionIds = (state.hiddenImageSessionIds || []).filter((id) => String(id) !== String(itemId));
   const session = ensureActiveImageSession(prompt);
   session.generationIds = [...new Set([...(session.generationIds || []), String(itemId)])];
   session.updatedAt = new Date().toISOString();
@@ -1033,6 +1054,11 @@ function addGenerationToActiveSession(itemId, prompt) {
 function deleteImageSession(sessionIdToDelete) {
   const id = String(sessionIdToDelete || "");
   if (!id) return;
+  const deletingSession = state.imageSessions.find((session) => String(session.id) === id);
+  state.hiddenImageSessionIds = [...new Set([
+    ...(state.hiddenImageSessionIds || []).map(String),
+    ...((deletingSession?.generationIds || []).map(String))
+  ])];
   state.imageSessions = state.imageSessions.filter((session) => String(session.id) !== id);
   if (state.activeImageSessionId === id) {
     state.activeImageSessionId = state.imageSessions[0]?.id || "";
@@ -2535,10 +2561,10 @@ async function loadHistory() {
     showToast(error.message, "ri-error-warning-line");
   }
 }
-function renderImageSessions() {
+function renderImageSessions({ force = false } = {}) {
   if (!elements.imageSessionList) return;
   const stamp = imageSessionRenderStamp();
-  if (stamp && state.renderStamp.sessions === stamp) return;
+  if (!force && stamp && state.renderStamp.sessions === stamp) return;
   state.renderStamp.sessions = stamp;
   elements.imageSessionList.innerHTML = window.AppModules?.session?.renderImageSessions?.({
     sessions: state.imageSessions,
@@ -2566,6 +2592,7 @@ function renderImageSessions() {
 
   $$("[data-rename-session]", elements.imageSessionList).forEach((button) => {
     button.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
       const session = state.imageSessions.find((item) => String(item.id) === String(button.dataset.renameSession));
       const nextTitle = window.prompt(state.lang === "zh" ? "编辑对话标题" : "Edit chat title", session?.title || "");
@@ -2575,6 +2602,7 @@ function renderImageSessions() {
 
   $$("[data-delete-session]", elements.imageSessionList).forEach((button) => {
     button.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
       const confirmed = window.confirm(state.lang === "zh" ? "删除这个对话？生成历史和公开作品不会被删除。" : "Delete this chat? Generated works and public posts are kept.");
       if (!confirmed) return;
@@ -2583,7 +2611,8 @@ function renderImageSessions() {
   });
 
   $$("[data-session-id]", elements.imageSessionList).forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
+      if (event.target.closest("[data-session-action]")) return;
       state.activeImageSessionId = button.dataset.sessionId;
       state.continuationLockedSessionId = "";
       state.continuationLastImageUrl = "";
@@ -2594,6 +2623,11 @@ function renderImageSessions() {
       renderAll();
       setView("home");
       focusGenerationWorkspace(null, "auto");
+    });
+    button.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key) || event.target.closest("[data-session-action]")) return;
+      event.preventDefault();
+      button.click();
     });
   });
 }
@@ -5469,6 +5503,7 @@ window.ImageStudioAppActions = {
   openMyWorksModal,
   openAuthModal,
   releaseSessionDrawerLock,
+  openSessionDrawer,
   focusGenerationComposer,
   setDraftPrompt(prompt = "", { focus = false } = {}) {
     state.draftPrompt = String(prompt || "");
@@ -5491,11 +5526,7 @@ function bindGlobalEvents() {
   elements.leaderboardBtn?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
   elements.canvasWorkspaceBtn?.addEventListener("click", openCanvasWorkspace);
   elements.sessionDrawerToggle?.addEventListener("click", () => {
-    if (state.sessionDrawerLocked) return;
-    const willOpen = !elements.app.classList.contains("session-panel-open");
-    elements.app.classList.toggle("session-panel-open", willOpen);
-    elements.app.classList.remove("chat-panel-collapsed");
-    renderImageSessions();
+    openSessionDrawer({ force: true });
   });
   elements.newImageSessionBtn?.addEventListener("click", () => {
     state.sessionDrawerLocked = false;
