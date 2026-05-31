@@ -29,6 +29,69 @@ function createImagesRoute({
   canWithdrawDirectly,
   claimFirstPublicRewardForGeneration
 }) {
+  function normalizeLibraryDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const date = new Date(raw.length <= 10 ? `${raw}T00:00:00.000Z` : raw);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function generationType(generation) {
+    return generation.sourceFilename || generation.sourceImageId || generation.sourcePrompt
+      ? "image-to-image"
+      : "text-to-image";
+  }
+
+  function normalizeTagValue(tag) {
+    if (tag && typeof tag === "object") return String(tag.slug || tag.id || tag.label || tag.name || "").trim();
+    return String(tag || "").trim();
+  }
+
+  function generationMatchesLibraryFilters(generation, url) {
+    const status = String(url.searchParams.get("status") || "all").trim();
+    if (status === "public" && (!generation.isPublic || generation.archived)) return false;
+    if (status === "private" && (generation.isPublic || generation.archived)) return false;
+    if (status === "archived" && !generation.archived) return false;
+    const type = String(url.searchParams.get("type") || "").trim();
+    if (type && generationType(generation) !== type) return false;
+    const tag = String(url.searchParams.get("tag") || "").trim();
+    if (tag && !(generation.publicTags || []).some((item) => normalizeTagValue(item) === tag)) return false;
+    const createdAt = generation.createdAt ? new Date(generation.createdAt) : null;
+    const dateFrom = normalizeLibraryDate(url.searchParams.get("dateFrom"));
+    const dateTo = normalizeLibraryDate(url.searchParams.get("dateTo"));
+    if (createdAt && dateFrom && createdAt < dateFrom) return false;
+    if (createdAt && dateTo) {
+      const end = new Date(dateTo);
+      if (String(url.searchParams.get("dateTo") || "").trim().length <= 10) end.setUTCDate(end.getUTCDate() + 1);
+      if (createdAt >= end) return false;
+    }
+    const query = String(url.searchParams.get("q") || "").trim().toLowerCase();
+    if (query) {
+      const haystack = [
+        generation.prompt,
+        generation.title,
+        generation.createdAt,
+        ...(generation.publicTags || []).map(normalizeTagValue)
+      ].join(" ").toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
+  }
+
+  function exportManifestItem(generation) {
+    return {
+      id: generation.id,
+      prompt: generation.prompt || "",
+      type: generationType(generation),
+      createdAt: generation.createdAt || "",
+      imageUrl: `/api/images/${generation.id}/file`,
+      sourceImageUrl: sourceImageUrlForGeneration(generation, { includePrivateSource: true }),
+      publicTags: generation.publicTags || [],
+      isPublic: Boolean(generation.isPublic),
+      archived: Boolean(generation.archived)
+    };
+  }
+
   async function sendImageFile(req, res, url, { filename, directory, contentSource }) {
     const absolutePath = path.join(directory, filename);
     const extension = path.extname(filename).toLowerCase();
@@ -99,9 +162,12 @@ function createImagesRoute({
     if (req.method === "GET" && url.pathname === "/api/images/history") {
       const current = await getCurrentUser(req);
       ensureAuthenticated(current);
-      const includeArchived = url.searchParams.get("includeArchived") === "1";
+      const status = String(url.searchParams.get("status") || "all").trim();
+      const includeArchived = url.searchParams.get("includeArchived") === "1" || status === "archived";
       const limit = sanitizePositiveInt(url.searchParams.get("limit"), 120, 200);
-      const generations = await Promise.all((await store.listGenerationsForUser(current.user, limit, { includeArchived })).map(async (generation) => ({
+      const generations = await Promise.all((await store.listGenerationsForUser(current.user, limit, { includeArchived }))
+        .filter((generation) => generationMatchesLibraryFilters(generation, url))
+        .map(async (generation) => ({
         ...(generationResponseForViewer
           ? await generationResponseForViewer(generation, current)
           : generation),
@@ -123,12 +189,18 @@ function createImagesRoute({
       if (!ids.length) throw httpError("No images selected", 400);
       const action = String(body.action || "").trim();
       const results = [];
+      const exportItems = [];
       const publishSettings = await store.getSettings();
       for (const id of ids) {
         try {
           const generation = await store.getGenerationById(id);
           if (!generation || !canTouchGeneration(current.user, generation)) {
             results.push({ id, ok: false, error: "not_found" });
+            continue;
+          }
+          if (action === "export") {
+            exportItems.push(exportManifestItem(generation));
+            results.push({ id, ok: true });
             continue;
           }
           const patch = {};
@@ -160,6 +232,16 @@ function createImagesRoute({
             patch.archived = true;
             patch.isPublic = false;
             patch.publishOriginal = false;
+          } else if (action === "delete") {
+            if (generation.isPublic && current.user.role !== "admin" && !publishSettings.publicUnpublishAllowed) {
+              throw new Error("public_unpublish_disabled");
+            }
+            if (generation.isPublic && !canWithdrawDirectly(generation) && current.user.role !== "admin") {
+              throw new Error("withdrawal_request_required");
+            }
+            patch.archived = true;
+            patch.isPublic = false;
+            patch.publishOriginal = false;
           } else if (action === "unarchive") {
             patch.archived = false;
           } else {
@@ -177,7 +259,15 @@ function createImagesRoute({
           results.push({ id, ok: false, error: error.message || String(error) });
         }
       }
-      sendJson(res, 200, { results });
+      const payload = { results };
+      if (action === "export") {
+        payload.export = {
+          format: "manifest",
+          generatedAt: new Date().toISOString(),
+          items: exportItems
+        };
+      }
+      sendJson(res, 200, payload);
       return true;
     }
 

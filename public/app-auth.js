@@ -251,6 +251,8 @@
       context.syncThemeMobileNav("works");
       const shouldReplaceRoute = options.replaceRoute !== false;
       state.worksFilter = state.worksFilter || "all";
+      state.worksDateFilter = state.worksDateFilter || "all";
+      state.worksTagFilter = state.worksTagFilter || "all";
       const filters = [
         { id: "all", label: text("worksFilterAll") },
         { id: "public", label: text("worksFilterPublic") },
@@ -259,25 +261,41 @@
         { id: "image", label: text("worksFilterImage") },
         { id: "archived", label: text("worksFilterArchived") }
       ];
+      const tagOptions = worksTagOptions();
       openModal(`
         <section class="modal works-modal works-workspace">
           <button class="close-modal" type="button"><i class="ri-close-line"></i></button>
           <div class="works-head">
             <div>
               <h2>${text("myWorks")}</h2>
-              <p>${state.lang === "zh" ? "搜索、批量公开、撤回或归档历史作品。" : "Search, publish, unpublish, or archive generated assets in bulk."}</p>
+              <p>${state.lang === "zh" ? "按类型、日期、标签管理作品，批量导出或删除私有历史。" : "Manage works by type, date, and tag, then export or delete private history in bulk."}</p>
             </div>
             <button class="btn btn--ghost btn--icon ghost-button works-refresh" type="button" data-works-refresh><i class="ri-refresh-line"></i></button>
           </div>
           <div class="works-toolbar">
             <label class="works-search"><i class="ri-search-line"></i><input id="worksSearchInput" value="${escapeHtml(state.worksSearch || "")}" placeholder="${state.lang === "zh" ? "搜索提示词、标签或时间" : "Search prompt, tags, or date"}"></label>
+            <div class="works-library-filters" aria-label="${escapeHtml(state.lang === "zh" ? "资产库筛选" : "Library filters")}">
+              <label>${state.lang === "zh" ? "日期" : "Date"}<select id="worksDateFilter">
+                ${[
+                  ["all", state.lang === "zh" ? "全部日期" : "All dates"],
+                  ["today", state.lang === "zh" ? "今天" : "Today"],
+                  ["7d", state.lang === "zh" ? "近 7 天" : "Last 7 days"],
+                  ["30d", state.lang === "zh" ? "近 30 天" : "Last 30 days"]
+                ].map(([id, label]) => `<option value="${id}"${state.worksDateFilter === id ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}
+              </select></label>
+              <label>${state.lang === "zh" ? "标签" : "Tag"}<select id="worksTagFilter">
+                <option value="all"${state.worksTagFilter === "all" ? " selected" : ""}>${state.lang === "zh" ? "全部标签" : "All tags"}</option>
+                ${tagOptions.map((tag) => `<option value="${escapeHtml(tag.value)}"${state.worksTagFilter === tag.value ? " selected" : ""}>${escapeHtml(tag.label)}</option>`).join("")}
+              </select></label>
+            </div>
             <div class="works-bulk-actions">
               <span data-works-selection>0 ${text("worksSelected")}</span>
-              <button type="button" data-works-bulk="download"><i class="ri-download-2-line"></i>${text("worksBatchDownload")}</button>
+              <button type="button" data-works-bulk="export"><i class="ri-download-2-line"></i>${text("worksBatchExport")}</button>
               <button type="button" data-works-bulk="publish"><i class="ri-gallery-upload-line"></i>${text("publishImage")}</button>
               ${context.canUserUnpublishPublicWork() ? `<button type="button" data-works-bulk="unpublish"><i class="ri-eye-off-line"></i>${text("unpublish")}</button>` : ""}
               <button type="button" data-works-bulk="archive"><i class="ri-archive-line"></i>${state.lang === "zh" ? "归档" : "Archive"}</button>
               <button type="button" data-works-bulk="unarchive"><i class="ri-inbox-unarchive-line"></i>${state.lang === "zh" ? "取消归档" : "Unarchive"}</button>
+              <button type="button" data-works-bulk="delete" class="works-danger-action"><i class="ri-delete-bin-6-line"></i>${text("worksBatchDelete")}</button>
             </div>
           </div>
           <div class="works-filter-bar" role="tablist">
@@ -290,6 +308,16 @@
       $("[data-works-refresh]", elements.modalLayer).addEventListener("click", () => loadMyWorks(true));
       $("#worksSearchInput", elements.modalLayer).addEventListener("input", (event) => {
         state.worksSearch = event.target.value;
+        loadMyWorks(false);
+      });
+      $("#worksDateFilter", elements.modalLayer).addEventListener("change", (event) => {
+        state.worksDateFilter = event.target.value || "all";
+        state.worksSelected.clear();
+        loadMyWorks(false);
+      });
+      $("#worksTagFilter", elements.modalLayer).addEventListener("change", (event) => {
+        state.worksTagFilter = event.target.value || "all";
+        state.worksSelected.clear();
         loadMyWorks(false);
       });
       $$("[data-works-filter]", elements.modalLayer).forEach((button) => {
@@ -318,6 +346,9 @@
       if (forceReload) await context.loadHistory();
       const filterId = state.worksFilter || "all";
       const query = String(state.worksSearch || "").trim().toLowerCase();
+      const dateFilter = state.worksDateFilter || "all";
+      const tagFilter = String(state.worksTagFilter || "all");
+      const minTime = worksDateMinTime(dateFilter);
       const items = [...state.history]
         .filter((item) => item.status === "done" && item.images?.[0])
         .filter((item) => {
@@ -336,6 +367,15 @@
             default:
               return !item.archived;
           }
+        })
+        .filter((item) => {
+          if (!minTime) return true;
+          const createdAt = new Date(item.time || 0).getTime();
+          return Number.isFinite(createdAt) && createdAt >= minTime;
+        })
+        .filter((item) => {
+          if (tagFilter === "all") return true;
+          return (item.publicTags || []).some((tag) => worksTagValue(tag) === tagFilter);
         })
         .filter((item) => {
           if (!query) return true;
@@ -392,6 +432,37 @@
       `;
       }).join("");
       bindWorksGrid(grid);
+    }
+
+    function worksDateMinTime(filterId) {
+      const now = Date.now();
+      if (filterId === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        return start.getTime();
+      }
+      if (filterId === "7d") return now - 7 * 24 * 60 * 60 * 1000;
+      if (filterId === "30d") return now - 30 * 24 * 60 * 60 * 1000;
+      return 0;
+    }
+
+    function worksTagValue(tag) {
+      if (tag && typeof tag === "object") return String(tag.slug || tag.id || tag.label || tag.name || "").trim();
+      return String(tag || "").trim();
+    }
+
+    function worksTagOptions() {
+      const options = new Map();
+      for (const item of state.history || []) {
+        for (const tag of item.publicTags || []) {
+          const value = worksTagValue(tag);
+          if (!value) continue;
+          options.set(value, context.displayTag(tag));
+        }
+      }
+      return [...options.entries()]
+        .map(([value, label]) => ({ value, label: label || value }))
+        .sort((a, b) => a.label.localeCompare(b.label, state.lang === "zh" ? "zh-Hans-CN" : "en"));
     }
 
     function bindWorksGrid(grid) {
@@ -509,18 +580,24 @@
     async function bulkUpdateWorks(action) {
       const ids = Array.from(state.worksSelected);
       if (!ids.length) return;
-      if (action === "download") {
-        downloadWorks(ids);
+      if (action === "export") {
+        await exportWorks(ids);
         return;
       }
-      const dangerous = action === "unpublish" || action === "archive";
+      const dangerous = action === "unpublish" || action === "archive" || action === "delete";
       const label = {
         publish: state.lang === "zh" ? "公开" : "publish",
         unpublish: state.lang === "zh" ? "撤回公开" : "unpublish",
         archive: state.lang === "zh" ? "归档" : "archive",
-        unarchive: state.lang === "zh" ? "取消归档" : "unarchive"
+        unarchive: state.lang === "zh" ? "取消归档" : "unarchive",
+        delete: state.lang === "zh" ? "删除私有历史" : "delete private history"
       }[action] || action;
-      if (dangerous && !confirm(`${state.lang === "zh" ? "确认" : "Confirm"}${label} ${ids.length} ${state.lang === "zh" ? "个作品？" : "works?"}`)) return;
+      const confirmMessage = action === "delete"
+        ? (state.lang === "zh"
+          ? `删除会把 ${ids.length} 个作品移入已归档，不会清除审计文件；已公开作品会按撤回规则处理。继续？`
+          : `Delete moves ${ids.length} works to archived history and keeps audit files. Published works follow unpublish policy. Continue?`)
+        : `${state.lang === "zh" ? "确认" : "Confirm"}${label} ${ids.length} ${state.lang === "zh" ? "个作品？" : "works?"}`;
+      if (dangerous && !confirm(confirmMessage)) return;
       try {
         const selectedItems = ids.map(workById).filter(Boolean);
         const selectedKinds = [...new Set(selectedItems.map(context.publicKindTagForItem))];
@@ -558,6 +635,19 @@
         }, index * 220);
       });
       showToast(`${text("worksDownloadStarted")}: ${items.length}`, "ri-download-2-line");
+    }
+
+    async function exportWorks(ids) {
+      try {
+        const data = await api("/api/images/bulk", {
+          method: "POST",
+          body: JSON.stringify({ generationIds: ids, action: "export" })
+        });
+        const exportedIds = (data.export?.items || []).map((item) => item.id);
+        downloadWorks(exportedIds.length ? exportedIds : ids);
+      } catch (error) {
+        showToast(error.message, "ri-error-warning-line");
+      }
     }
 
     function openWorkDetail(id, options = {}) {

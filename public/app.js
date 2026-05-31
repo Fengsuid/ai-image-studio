@@ -80,6 +80,8 @@ const state = {
   versionInfo: null,
   worksFilter: "all",
   worksSearch: "",
+  worksDateFilter: "all",
+  worksTagFilter: "all",
   worksSelected: new Set(),
   editing: false,
   editStartedAt: 0,

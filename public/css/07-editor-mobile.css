@@ -315,6 +315,24 @@
     font-size: 16px;
   }
 
+  .works-library-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .works-library-filters label {
+    justify-content: space-between;
+    min-height: 42px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.86);
+  }
+
+  .works-library-filters select {
+    min-width: 0;
+    max-width: 112px;
+  }
+
   .works-bulk-actions {
     position: fixed;
     left: var(--mobile-page-pad);

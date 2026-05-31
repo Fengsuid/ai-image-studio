@@ -48,12 +48,12 @@ assert(
 );
 assertIncludes(appSettings, [
   'REFERENCE_ASSET_DIR',
-  'APP_VERSION = process.env.APP_VERSION || "20260531-reference-assets-v1"'
+  'APP_VERSION = process.env.APP_VERSION || "20260531-my-works-asset-library-v1"'
 ], "app settings");
 assertIncludes(frontendSource, [
-  'FRONTEND_BUILD_VERSION = "20260531-reference-assets-v1"'
+  'FRONTEND_BUILD_VERSION = "20260531-my-works-asset-library-v1"'
 ], "frontend source manifest");
-assert(manifest.version === "20260531-reference-assets-v1", "built frontend manifest version must match AIS-RLS-121");
+assert(manifest.version === "20260531-my-works-asset-library-v1", "built frontend manifest version must match current release");
 
 assertIncludes(mysqlStore, [
   "CREATE TABLE IF NOT EXISTS reference_assets",

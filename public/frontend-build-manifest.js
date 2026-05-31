@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260531-reference-assets-v1",
+  "version": "20260531-my-works-asset-library-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.d09b57a5ba31.css",
-    "file": "/dist/app.d09b57a5ba31.css",
-    "hash": "d09b57a5ba31",
-    "bytes": 321577,
+    "entry": "/dist/app.90ec654bf5c7.css",
+    "file": "/dist/app.90ec654bf5c7.css",
+    "hash": "90ec654bf5c7",
+    "bytes": 322627,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -312,26 +312,26 @@
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.0e366561252a.js",
-        "fileName": "app-auth.0e366561252a.js",
-        "hash": "0e366561252a",
-        "bytes": 24467,
+        "entry": "/dist/app-auth.36c9d2111268.js",
+        "fileName": "app-auth.36c9d2111268.js",
+        "hash": "36c9d2111268",
+        "bytes": 27359,
         "lazy": false
       },
       {
         "source": "/app-settings.js",
-        "entry": "/dist/app-settings.1ad926522c95.js",
-        "fileName": "app-settings.1ad926522c95.js",
-        "hash": "1ad926522c95",
-        "bytes": 25730,
+        "entry": "/dist/app-settings.96345b1ec651.js",
+        "fileName": "app-settings.96345b1ec651.js",
+        "hash": "96345b1ec651",
+        "bytes": 25834,
         "lazy": false
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.b45df54b6c33.js",
-        "fileName": "app.b45df54b6c33.js",
-        "hash": "b45df54b6c33",
-        "bytes": 183201,
+        "entry": "/dist/app.b4d051c671df.js",
+        "fileName": "app.b4d051c671df.js",
+        "hash": "b4d051c671df",
+        "bytes": 183244,
         "lazy": false
       },
       {
