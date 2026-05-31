@@ -760,3 +760,20 @@ Record the outcome in the relevant development document or release note before m
 - Deployment note: `deployment_required=false`; no production deployment, APP_VERSION bump, image rebuild, database change, or online smoke was required for this test-only task.
 - Known blockers: none for AIS-RLS-123.
 - Rollback target: revert this release commit to remove the root Vitest entrypoint, unit tests, and test globals; production runtime remains unchanged.
+
+### 2026-05-31 AIS-RLS-124 Frontend A11y Release
+
+- Task covered: `AIS-RLS-124` accessibility audit for split public modules, keyboard navigation, aria coverage, and dark-mode contrast.
+- Commit covered: `f224aab fix(AIS-RLS-124): tighten split-module accessibility semantics`.
+- Files changed: `public/app-auth.js`, `public/app-settings.js`, `public/app.js`, `scripts/smoke/check-frontend-a11y.mjs`, `scripts/smoke/check-reference-assets.mjs`, APP_VERSION/build manifests, `public/index.html`, refreshed hashed `public/dist/*` assets, and two promoted home visual-regression baselines.
+- Accessibility coverage: auth mode tabs and My Works filters now expose `tablist`/`tab` semantics with `aria-selected`; My Works refresh/detail-close controls have accessible names; the account email copy target now exposes button semantics when copyable; the language toggle exposes a dynamic label and pressed state.
+- Smoke coverage: `smoke:frontend-a11y` now verifies split `app-auth.js` and `app-settings.js` source plus hashed dist output, including account-copy semantics, auth/My Works tab state, refresh/close names, language toggle state, static icon-only button names, modal semantics, and contrast ratios.
+- Reference smoke maintenance: `smoke:reference-assets` no longer pins a stale release version; it still verifies reference asset wiring and now checks that the built frontend manifest version matches the source manifest version, so future release bumps do not create false negatives.
+- Visual QA: `npm run smoke:visual-regression` initially found the two home composer baselines stale after earlier visual polish; the current screenshots were manually reviewed and promoted, then the full 10-scenario visual regression smoke passed.
+- Local checks: focused `node --check` for changed frontend/smoke/config files, `npm run smoke:frontend-a11y`, `npm run smoke:reference-assets`, `npm run check`, `npm run smoke:visual-regression`, and `git diff --check` passed. `npm run check` retained only existing long-term `public/app.js` and `public/styles.css` guardrail warnings.
+- Deployment package: full tracked archive from `f224aab`, `242,470,842` bytes / `1,861` entries / SHA256 `4FD4FDA0CC905E77F8CFBAC4D970D67EA81DC09CEFDD00DF03EDBF94183146EB`; server-side SHA256 and entry count matched before extraction.
+- Deployment note: production deployment updates runtime to `APP_VERSION=20260531-frontend-a11y-v1`; deployment clears stale `public/dist`, extracts source plus generated assets together, rebuilds/restarts the app container, and makes no database schema or data changes.
+- Online smoke: container `npm run smoke:frontend-a11y`, `npm run smoke:reference-assets`, `npm run smoke:public -- http://<app-container>:3000`, and `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260531-frontend-a11y-v1`; server HTTPS `/` returned `HTTP 200`.
+- Deployment health: app restart count is `0`, MySQL restart count is `0`, MySQL remains healthy, and server disk usage is about `12%` with about `83G` available after deployment.
+- Known blockers: none for AIS-RLS-124. The visual-regression smoke still reports non-blocking text-overflow warnings on compact `use-button` controls that predate this a11y release.
+- Rollback target: revert this release commit, restore `APP_VERSION=20260531-my-works-asset-library-v1` and prior hashed entries `app.b4d051c671df.js`, `app-auth.36c9d2111268.js`, and `app-settings.96345b1ec651.js`, redeploy from git, then rerun public, frontend-a11y, reference-assets, frontend-build-tooling, and visual-regression smoke.
