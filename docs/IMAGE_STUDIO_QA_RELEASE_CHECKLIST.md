@@ -746,3 +746,17 @@ Record the outcome in the relevant development document or release note before m
 - Deployment health: app restart count is `0`, MySQL restart count is `0`, MySQL remains healthy, and server disk usage is about `12%` with about `84G` available after deployment.
 - Known blockers: none for AIS-RLS-122. Server-side zip export remains intentionally deferred; first release returns an export manifest and the UI starts the existing safe per-image download queue.
 - Rollback target: revert `bd7342a` and this release-record commit, restore `APP_VERSION=20260531-reference-assets-v1` and prior hashed entries `app.d09b57a5ba31.css`, `app.b45df54b6c33.js`, `app-auth.0e366561252a.js`, and `app-settings.1ad926522c95.js`, redeploy from git, then rerun public plus my-works asset-library smoke.
+
+### 2026-05-31 AIS-RLS-123 Vitest Unit Tests Release
+
+- Task covered: `AIS-RLS-123` add Vitest with unit tests for provider mapping, Agent planner, and prompt-source sync.
+- Commit covered: final AIS-RLS-123 release commit; short hash is recorded in the task output and private no-deploy log because this public release record is part of the same single-task commit.
+- Files changed: `vitest.config.mjs`, `src/provider-mapping.test.js`, `packages/agent-core/src/planner.test.js`, `src/prompt-source-sync.test.js`, `package.json`, `package-lock.json`, and focused `eslint.config.mjs` test globals.
+- Acceptance coverage: root `vitest.config.mjs` runs Node tests from `src/**/*.test.js` and `packages/agent-core/src/**/*.test.js`; `npm test` runs `14` test cases across the three target pure-function domains.
+- Provider mapping coverage: validates mapping normalization, relative-path/method rejection, template rendering, JSON-path reads, and mapped OpenAI-compatible request/response behavior.
+- Agent planner coverage: validates frozen plan format, no-generation confirmation gate, variant-count clamping, size/quality/style inference, question generation, and summary wording.
+- Prompt sync coverage: validates remote prompt normalization, markdown prompt extraction, non-decorative image extraction, GitHub repo parsing, GPT-4o README parsing, and prompt fingerprint normalization.
+- Local checks: focused `node --check` for the new test/config files, `npm test`, `npm run check`, and `git diff --check` passed. `npm run check` retained only existing long-term `public/app.js` and `public/styles.css` guardrail warnings.
+- Deployment note: `deployment_required=false`; no production deployment, APP_VERSION bump, image rebuild, database change, or online smoke was required for this test-only task.
+- Known blockers: none for AIS-RLS-123.
+- Rollback target: revert this release commit to remove the root Vitest entrypoint, unit tests, and test globals; production runtime remains unchanged.

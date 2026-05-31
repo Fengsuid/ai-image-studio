@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "start": "node server.js",
+    "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -130,6 +131,7 @@
     "esbuild": "^0.21.5",
     "eslint": "^9.39.4",
     "globals": "^17.6.0",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "vitest": "^1.6.0"
   }
 }

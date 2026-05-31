@@ -31,5 +31,15 @@ export default [
       "apps/**",
       "**/*.min.js"
     ]
+  },
+  {
+    files: ["src/**/*.test.js", "packages/**/src/**/*.test.js"],
+    languageOptions: {
+      globals: {
+        describe: "readonly",
+        expect: "readonly",
+        it: "readonly"
+      }
+    }
   }
 ];
