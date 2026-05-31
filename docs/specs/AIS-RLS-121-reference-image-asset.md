@@ -1,6 +1,6 @@
 # AIS-RLS-121 Feature Spec: Reference Image As First-class Asset
 
-Status: ready for implementation planning  
+Status: implemented first slice on 2026-05-31
 Task: `AIS-RLS-121`  
 Owner lane: Feature / Phase D  
 Related docs: `docs/IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md` §4.10, §4.12, §4.13, §7.8; `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md` §5 P3-1
@@ -10,6 +10,8 @@ Related docs: `docs/IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md` §4.10, §4.12, §
 The product currently exposes reference-image affordances, but previous work deliberately clarified that uploaded reference images are inspiration records unless routed through an image-edit path. Phase D needs to turn reference images into durable assets: upload, store, associate, display, reuse, and audit them independently from prompt text or transient preview metadata.
 
 AIS-RLS-121 defines that contract. It should be implemented before AIS-RLS-122 because my-works asset management needs a stable reference asset model.
+
+Implementation note 2026-05-31: the first production slice is shipped in `18cccd8` with `APP_VERSION=20260531-reference-assets-v1`. It uses additive `reference_assets` and `generation_reference_assets` tables, `/api/reference-assets`, owner/admin/public-visible file authorization, generation link records, reference thumbnail strips in history/gallery/my-works, and `smoke:reference-assets`. Provider-specific conditioning remains capability-dependent and continues through the existing image-edit/reference payload path.
 
 ## 现状
 
@@ -183,6 +185,11 @@ Storage path should be separate from generated output paths, for example `data/r
 - `src/stores/gallery-store.js` or its delegated domain store supports reference asset CRUD.
 - `npm run smoke:public` and `npm run smoke:gallery-images` pass.
 - Add a focused smoke that uploads a reference asset, links it to a generation-like fixture, refreshes the detail data, and verifies visibility filtering.
+
+Implemented first-slice checks:
+
+- `npm run smoke:reference-assets` statically verifies schema/index tokens, route/store exports, generation request wiring, frontend display/persist hooks, and hashed dist coverage.
+- Deployment verification on 2026-05-31 confirmed `reference_assets`, `generation_reference_assets`, `idx_reference_assets_user_created`, `idx_reference_assets_sha256`, and `idx_generation_reference_assets_asset` exist after startup migration.
 
 ## 回滚
 

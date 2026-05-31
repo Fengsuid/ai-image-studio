@@ -1129,7 +1129,7 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 | Gap 章节 | 主题 | 状态 | 建议任务 |
 | --- | --- | --- | --- |
 | §4.7 | 多候选 / 分支生成 | Not started | `AIS-RLS-120-feat-multi-candidate-generation` |
-| §4.10 | 参考图作为真实资产（非 metadata） | Partial | `AIS-RLS-121-feat-reference-image-asset` |
+| §4.10 | 参考图作为真实资产（非 metadata） | Done | `AIS-RLS-121-feat-reference-image-asset` |
 | §4.15 | my-works 资产库 | Partial | `AIS-RLS-122-feat-my-works-asset-library` |
 | §4.16 | embedding 去重审计 | Not started | `AIS-RLS-097-embedding-duplicate-audit` |
 | — | CDN / 缓存策略全面治理 | 提及但无承接 | `AIS-RLS-098-cdn-cache-strategy` |
@@ -1152,7 +1152,7 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 独立规格索引：
 
 - `AIS-RLS-120` 多候选 / 分支生成：[`docs/specs/AIS-RLS-120-multi-candidate-generation.md`](specs/AIS-RLS-120-multi-candidate-generation.md)。现状索引：2026-05-31 release 采用现有 `generation_requests` + 多条 `generations` + 前端 `candidateIds`/主图重排完成轻量闭环；公共 composer 可选 1-4 候选，选中候选会成为后续公开、续图、加入画布的当前结果，部分成功按缺失候选退款。
-- `AIS-RLS-121` 参考图资产化：[`docs/specs/AIS-RLS-121-reference-image-asset.md`](specs/AIS-RLS-121-reference-image-asset.md)。现状索引：首页参考图入口历史上只是灵感记录/预览，参考图尚未作为可复用、可审计、可展示的独立资产落库。
+- `AIS-RLS-121` 参考图资产化：[`docs/specs/AIS-RLS-121-reference-image-asset.md`](specs/AIS-RLS-121-reference-image-asset.md)。现状索引：2026-05-31 release 新增 `reference_assets` / `generation_reference_assets`、`/api/reference-assets`、参考图资产条、生成/编辑请求 `referenceAssetIds` 传递、公开可见性同步和 `smoke:reference-assets`，已完成参考图作为可复用、可审计、可展示资产的第一阶段闭环。
 - `AIS-RLS-122` my-works 资产库升级：[`docs/specs/AIS-RLS-122-my-works-asset-library.md`](specs/AIS-RLS-122-my-works-asset-library.md)。现状索引：my-works 仍偏弹窗/列表，缺完整资产库筛选、详情 drawer、批量归档/取消公开/导出和候选/参考资产展示。
 
 #### AIS-RLS-120: 多候选 / 分支生成
@@ -1208,6 +1208,8 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 关闭 `candidateCount > 1` 的 UI 入口和 API 校验，只允许 `candidateCount = 1`；保留候选表/字段的向后兼容读取，旧单生成模式继续写入一条候选记录或继续读取原 `generations` 字段。
 
 #### AIS-RLS-121: 参考图核心资产化
+
+2026-05-31 release 状态：`Done`。本轮采用独立 `reference_assets` 表和 `generation_reference_assets` 关联表，先覆盖用户上传参考图的持久化、生成结果关联、历史 / 我的作品 / 公开详情展示、公开可见性保护和静态 smoke 守护；Provider 对参考图的真实模型条件能力仍按现有 image-edit/reference payload 路径与后续 provider capability 工作继续推进。
 
 **核心用户场景**
 
