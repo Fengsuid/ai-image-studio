@@ -1,5 +1,5 @@
 {
-  "version": "20260528-mobile-session-toast-v1",
+  "version": "20260531-button-legacy-followup-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -252,10 +252,10 @@
       },
       {
         "source": "/app-prompt-library.js",
-        "entry": "/dist/app-prompt-library.cac1d1f4ba3d.js",
-        "fileName": "app-prompt-library.cac1d1f4ba3d.js",
-        "hash": "cac1d1f4ba3d",
-        "bytes": 19907,
+        "entry": "/dist/app-prompt-library.0cbc364e260e.js",
+        "fileName": "app-prompt-library.0cbc364e260e.js",
+        "hash": "0cbc364e260e",
+        "bytes": 19924,
         "lazy": false
       },
       {
@@ -308,10 +308,10 @@
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.aa1bb18d7203.js",
-        "fileName": "app-auth.aa1bb18d7203.js",
-        "hash": "aa1bb18d7203",
-        "bytes": 24160,
+        "entry": "/dist/app-auth.e43adbafbe2b.js",
+        "fileName": "app-auth.e43adbafbe2b.js",
+        "hash": "e43adbafbe2b",
+        "bytes": 24185,
         "lazy": false
       },
       {
@@ -324,10 +324,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.f301714c9558.js",
-        "fileName": "app.f301714c9558.js",
-        "hash": "f301714c9558",
-        "bytes": 181846,
+        "entry": "/dist/app.3a48d14e0c4e.js",
+        "fileName": "app.3a48d14e0c4e.js",
+        "hash": "3a48d14e0c4e",
+        "bytes": 181863,
         "lazy": false
       },
       {

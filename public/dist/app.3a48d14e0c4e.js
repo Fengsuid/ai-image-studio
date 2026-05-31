@@ -273,7 +273,7 @@ const state={lang:window.AppModules?.settings?.readPreference?.("lang","zh")||"z
       <div class="card-actions">
         <button type="button" data-copy-prompt="${escapeHtml(e.id)}"><i class="ri-file-copy-line"></i>${text("copy")}</button>
         ${k}
-        <button class="use-button" type="button" data-use-prompt="${escapeHtml(e.id)}">${text("use")} <i class="ri-arrow-right-line"></i></button>
+        <button class="btn btn--primary use-button" type="button" data-use-prompt="${escapeHtml(e.id)}">${text("use")} <i class="ri-arrow-right-line"></i></button>
         ${w}
       </div>
     </article>

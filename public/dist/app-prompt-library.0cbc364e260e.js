@@ -34,7 +34,7 @@
         <div class="card-actions">
           <button type="button" data-copy-prompt="${a(e,t.id)}"><i class="ri-file-copy-line"></i>${a(e,e.text?.("copy")||"Copy")}</button>
           ${O}
-          <button class="use-button" type="button" data-use-prompt="${a(e,t.id)}">${a(e,e.text?.("use")||"Use")} <i class="ri-arrow-right-line"></i></button>
+          <button class="btn btn--primary use-button" type="button" data-use-prompt="${a(e,t.id)}">${a(e,e.text?.("use")||"Use")} <i class="ri-arrow-right-line"></i></button>
           ${M}
         </div>
       </article>

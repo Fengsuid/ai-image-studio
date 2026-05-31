@@ -129,6 +129,15 @@ function exists(relativePath) {
   return fs.existsSync(fullPath(relativePath));
 }
 
+function listHashedDistJavaScriptFiles() {
+  const distDir = fullPath("public/dist");
+  if (!fs.existsSync(distDir)) return [];
+  return fs.readdirSync(distDir)
+    .filter((fileName) => /\.[a-f0-9]{12}\.js$/.test(fileName))
+    .map((fileName) => `public/dist/${fileName}`)
+    .sort();
+}
+
 function lineCount(content) {
   return content.split(/\r?\n/).length;
 }
@@ -288,10 +297,57 @@ function checkCssModules() {
   const indexHtml = read("public/index.html");
   assert(indexHtml.includes('class="btn btn--primary send-button"'), "public index must consume .btn on the composer send button");
   assert(indexHtml.includes('class="btn btn--secondary composer-options-button options-toggle"'), "public index must consume .btn on composer option buttons");
+  assert(
+    indexHtml.includes('class="btn btn--ghost brand-btn"') &&
+      indexHtml.includes('class="btn btn--ghost nav-pill"') &&
+      indexHtml.includes('class="btn btn--ghost btn--icon icon-pill') &&
+      indexHtml.includes('class="btn btn--primary dark-pill"'),
+    "public index shell buttons must consume .btn variants while retaining legacy hook classes"
+  );
+  const legacyButtonGuardFiles = [
+    "public/index.html",
+    "public/app-auth.js",
+    "public/app-prompt-library.js",
+    "public/app.js",
+    ...listHashedDistJavaScriptFiles()
+  ];
+  for (const file of legacyButtonGuardFiles) {
+    assertLegacyButtonClassesUseBtn(file);
+  }
   const theme = read("public/css/00-theme.css");
   assert(theme.includes("--brand-600: #60a5fa;") && theme.includes("--surface-canvas: #0f172a;"), "dark theme must override Token v2 colors and surfaces");
   const adminHtml = read("public/admin.html");
   assert(adminHtml.includes('<html lang="zh-CN" data-app="admin" data-density="compact">'), "admin root must opt into compact data-app token overrides");
+}
+
+function assertLegacyButtonClassesUseBtn(relativePath, { allowedWithoutBtn = [] } = {}) {
+  const source = read(relativePath);
+  const legacyButtonClasses = [
+    "brand-btn",
+    "nav-pill",
+    "dark-pill",
+    "icon-pill",
+    "tool-button",
+    "send-button",
+    "composer-options-button",
+    "ghost-button",
+    "tiny-button",
+    "use-button"
+  ];
+  const classAttrPattern = /\bclass=(["'`])([^"'`]+)\1/g;
+  let match;
+  while ((match = classAttrPattern.exec(source))) {
+    const classes = match[2].split(/\s+/).filter(Boolean);
+    const legacyClasses = legacyButtonClasses.filter((className) => classes.includes(className));
+    if (!legacyClasses.length || classes.includes("btn")) continue;
+    const allowed = legacyClasses.every((className) =>
+      allowedWithoutBtn.some((allowedClass) => allowedClass === className)
+    );
+    assert(
+      allowed,
+      `${relativePath} must pair legacy button hook(s) ${legacyClasses.join(", ")} with .btn`
+    );
+  }
 }
 
 function checkMaintenanceDocs() {

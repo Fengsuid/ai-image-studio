@@ -215,7 +215,7 @@
         <div class="card-actions">
           <button type="button" data-copy-prompt="${html(ctx, prompt.id)}"><i class="ri-file-copy-line"></i>${html(ctx, ctx.text?.("copy") || "Copy")}</button>
           ${viewDetailButton}
-          <button class="use-button" type="button" data-use-prompt="${html(ctx, prompt.id)}">${html(ctx, ctx.text?.("use") || "Use")} <i class="ri-arrow-right-line"></i></button>
+          <button class="btn btn--primary use-button" type="button" data-use-prompt="${html(ctx, prompt.id)}">${html(ctx, ctx.text?.("use") || "Use")} <i class="ri-arrow-right-line"></i></button>
           ${adminActions}
         </div>
       </article>

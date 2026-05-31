@@ -3510,7 +3510,7 @@ function promptCardHtml(prompt) {
       <div class="card-actions">
         <button type="button" data-copy-prompt="${escapeHtml(prompt.id)}"><i class="ri-file-copy-line"></i>${text("copy")}</button>
         ${viewDetailButton}
-        <button class="use-button" type="button" data-use-prompt="${escapeHtml(prompt.id)}">${text("use")} <i class="ri-arrow-right-line"></i></button>
+        <button class="btn btn--primary use-button" type="button" data-use-prompt="${escapeHtml(prompt.id)}">${text("use")} <i class="ri-arrow-right-line"></i></button>
         ${adminActions}
       </div>
     </article>

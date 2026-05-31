@@ -267,7 +267,7 @@
               <h2>${text("myWorks")}</h2>
               <p>${state.lang === "zh" ? "搜索、批量公开、撤回或归档历史作品。" : "Search, publish, unpublish, or archive generated assets in bulk."}</p>
             </div>
-            <button class="ghost-button works-refresh" type="button" data-works-refresh><i class="ri-refresh-line"></i></button>
+            <button class="btn btn--ghost btn--icon ghost-button works-refresh" type="button" data-works-refresh><i class="ri-refresh-line"></i></button>
           </div>
           <div class="works-toolbar">
             <label class="works-search"><i class="ri-search-line"></i><input id="worksSearchInput" value="${escapeHtml(state.worksSearch || "")}" placeholder="${state.lang === "zh" ? "搜索提示词、标签或时间" : "Search prompt, tags, or date"}"></label>
