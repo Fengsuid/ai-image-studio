@@ -731,6 +731,22 @@ Record the outcome in the relevant development document or release note before m
 - Known blockers: none for AIS-RLS-121. Provider-specific use of reference assets as true model conditioning remains capability-dependent; this release persists, links, displays, and permission-gates assets while preserving existing image-edit/reference image payload behavior.
 - Rollback target: revert `18cccd8` and this release-record commit, restore `APP_VERSION=20260531-multi-candidate-generation-v1` and prior hashed entries, redeploy from git, rerun reference/public/gallery smoke, and leave additive reference asset tables/files in place for manual cleanup or read-only inspection.
 
+### 2026-05-31 AIS-RLS-121 Reference Image Asset Follow-up Release
+
+- Task covered: `AIS-RLS-121` reference image as first-class asset follow-up.
+- Commit covered: `1e76051 fix(AIS-RLS-121): harden reference asset CRUD migration`.
+- Files changed: `src/mysql-store.js`, `src/routes/reference-assets.js`, `scripts/smoke/check-reference-assets.mjs`, `docs/API_REFERENCE.md`, `docs/specs/AIS-RLS-121-reference-image-asset.md`, APP_VERSION/build manifest files, and public frontend build manifest outputs.
+- Runtime coverage: startup migration now self-heals missing `reference_assets` / `generation_reference_assets` columns and indexes on already-created tables; `/api/reference-assets/:id` now supports readable metadata, visibility PATCH, and owner/admin soft DELETE while keeping file access authorization unchanged.
+- Smoke coverage: `smoke:reference-assets` now asserts the column/index self-healing guards and exercises the single-asset CRUD route handler in-process, including read authorization, visibility update, and delete store calls.
+- Local checks: focused `node --check` for changed backend/smoke/config files, `npm run smoke:reference-assets`, `npm run smoke:frontend-build-tooling`, `npm run smoke:mysql-store-domain-split`, `npm run check`, and `git diff --check` passed. Local bare public/gallery smoke still requires a running app, so deployed/container checks below are the release authority.
+- Deployment package: full tracked archive from `1e76051`, `242,473,596` bytes / `1,861` entries / SHA256 `4B5728C7A0BEA2D2E9750D15425A2B9D3E7BD5B8905C323E8EF4CD238B2A23C3`; server-side SHA256 and entry count matched before extraction.
+- Deployment note: production deployment clears stale `public/dist`, extracts the tracked archive, updates runtime to `APP_VERSION=20260531-reference-assets-index-v1`, and rebuilds/restarts the app container.
+- Online smoke: container `npm run smoke:reference-assets`, `npm run smoke:public -- http://<app-container>:3000`, and `npm run smoke:gallery-images -- http://<app-container>:3000` passed; external `npm run smoke:public -- https://<host>` and `npm run smoke:gallery-images -- https://<host>` passed; `/api/version` reports `20260531-reference-assets-index-v1`.
+- Schema verification: confirmed `reference_assets`, `generation_reference_assets`, `idx_reference_assets_user_created`, `idx_reference_assets_sha256`, and `idx_generation_reference_assets_asset` exist after deployment.
+- Deployment health: app restart count is `0`, MySQL restart count is `0`, MySQL remains healthy, disk usage is about `12%`, and deployment/schema temporary files were removed.
+- Known blockers: none for this AIS-RLS-121 follow-up. Provider-specific use of reference assets as true model conditioning remains beyond this task's persistence/CRUD/display contract.
+- Rollback target: revert `1e76051` and this release-record commit, restore `APP_VERSION=20260531-frontend-a11y-v1`, redeploy from git, and rerun reference/public/gallery smoke. Additive table/schema changes may remain in place for read-only compatibility.
+
 ### 2026-05-31 AIS-RLS-122 My Works Asset Library Release
 
 - Task covered: `AIS-RLS-122` My-works asset library upgrade.
