@@ -8,6 +8,44 @@ function createGalleryStore({
   mapGalleryFileCheck,
   cancelFirstPublicReward
 }) {
+  function mapReferenceAsset(row) {
+    if (!row) return null;
+    return {
+      id: row.id || "",
+      userId: row.user_id || "",
+      role: row.role || "reference",
+      filename: row.filename || "",
+      storedFilename: row.stored_filename || "",
+      mimeType: row.mime_type || "",
+      fileSize: Number(row.file_size || 0),
+      width: row.width === null || row.width === undefined ? null : Number(row.width),
+      height: row.height === null || row.height === undefined ? null : Number(row.height),
+      sha256: row.sha256 || "",
+      visibility: row.visibility || "private",
+      status: row.status || "active",
+      publicVisible: Boolean(row.public_visible || row.visibility === "public"),
+      sortOrder: Number(row.sort_order || 0),
+      generationId: row.generation_id || "",
+      createdAt: toIso(row.created_at),
+      updatedAt: toIso(row.updated_at)
+    };
+  }
+
+  function normalizeAssetRole(value) {
+    const role = String(value || "reference").trim();
+    return ["reference", "source", "mask", "output"].includes(role) ? role : "reference";
+  }
+
+  function normalizeAssetVisibility(value) {
+    const visibility = String(value || "private").trim();
+    return ["private", "public"].includes(visibility) ? visibility : "private";
+  }
+
+  function normalizeAssetStatus(value) {
+    const status = String(value || "active").trim();
+    return ["active", "archived"].includes(status) ? status : "active";
+  }
+
   async function listWithdrawalRequests({ limit = 100 } = {}) {
     const normalizedLimit = Math.max(1, Math.min(500, Number(limit) || 100));
     const [rows] = await getPool().execute(
@@ -353,6 +391,169 @@ function createGalleryStore({
     return mapGeneration(rows[0]);
   }
 
+  async function createReferenceAsset(user, input = {}) {
+    if (!user?.id || !input.id || !input.storedFilename) return null;
+    const now = input.createdAt ? new Date(input.createdAt) : new Date();
+    await getPool().execute(
+      `INSERT INTO reference_assets
+        (id, user_id, role, filename, stored_filename, mime_type, file_size, width, height, sha256, visibility, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        input.id,
+        user.id,
+        normalizeAssetRole(input.role),
+        String(input.filename || "reference-image").slice(0, 255),
+        String(input.storedFilename || "").slice(0, 255),
+        String(input.mimeType || "").slice(0, 80),
+        Math.max(0, Number(input.fileSize || 0)),
+        input.width === null || input.width === undefined ? null : Math.max(0, Number(input.width || 0)),
+        input.height === null || input.height === undefined ? null : Math.max(0, Number(input.height || 0)),
+        String(input.sha256 || "").slice(0, 64),
+        normalizeAssetVisibility(input.visibility),
+        normalizeAssetStatus(input.status),
+        now,
+        now
+      ]
+    );
+    return getReferenceAssetById(input.id);
+  }
+
+  async function listReferenceAssetsForUser(user, filters = {}) {
+    if (!user?.id) return [];
+    const normalizedLimit = Math.max(1, Math.min(200, Number(filters.limit) || 60));
+    const values = [user.id];
+    const where = ["user_id = ?"];
+    const role = String(filters.role || "").trim();
+    if (role) {
+      where.push("role = ?");
+      values.push(normalizeAssetRole(role));
+    }
+    if (filters.includeArchived !== true) {
+      where.push("status = 'active'");
+    }
+    const [rows] = await getPool().execute(
+      `SELECT * FROM reference_assets
+        WHERE ${where.join(" AND ")}
+        ORDER BY created_at DESC
+        LIMIT ${normalizedLimit}`,
+      values
+    );
+    return rows.map(mapReferenceAsset);
+  }
+
+  async function getReferenceAssetById(id) {
+    const assetId = String(id || "").trim();
+    if (!assetId) return null;
+    const [rows] = await getPool().execute(
+      "SELECT * FROM reference_assets WHERE id = ? LIMIT 1",
+      [assetId]
+    );
+    return mapReferenceAsset(rows[0]);
+  }
+
+  async function canReadReferenceAsset(assetOrId, viewer = {}) {
+    const asset = typeof assetOrId === "object" && assetOrId
+      ? assetOrId
+      : await getReferenceAssetById(assetOrId);
+    if (!asset || asset.status !== "active") return false;
+    const viewerId = String(viewer.id || viewer.userId || "").trim();
+    if (viewer.role === "admin" || asset.userId === viewerId || asset.visibility === "public") return true;
+    const [rows] = await getPool().execute(
+      `SELECT 1
+         FROM generation_reference_assets gra
+         INNER JOIN generations g ON g.id = gra.generation_id
+        WHERE gra.asset_id = ?
+          AND gra.public_visible = 1
+          AND g.is_public = 1
+          AND g.archived = 0
+          AND g.moderation_status IN ('visible', 'restored')
+        LIMIT 1`,
+      [asset.id]
+    );
+    return rows.length > 0;
+  }
+
+  async function linkReferenceAssetToGeneration(generationId, assetId, options = {}) {
+    const generation = String(generationId || "").trim();
+    const asset = String(assetId || "").trim();
+    if (!generation || !asset) return null;
+    const role = normalizeAssetRole(options.role);
+    const sortOrder = Math.max(0, Number(options.sortOrder || 0));
+    const publicVisible = options.publicVisible === true ? 1 : 0;
+    await getPool().execute(
+      `INSERT INTO generation_reference_assets
+          (generation_id, asset_id, role, sort_order, public_visible, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          role = VALUES(role),
+          sort_order = VALUES(sort_order),
+          public_visible = VALUES(public_visible)`,
+      [generation, asset, role, sortOrder, publicVisible, new Date()]
+    );
+    const rows = await listReferenceAssetsForGeneration(generation, { role: "admin" });
+    return rows.find((row) => row.id === asset) || null;
+  }
+
+  async function listReferenceAssetsForGeneration(generationId, viewer = {}) {
+    const generation = String(generationId || "").trim();
+    if (!generation) return [];
+    const role = String(viewer.role || "").trim();
+    const viewerId = String(viewer.id || viewer.userId || "").trim();
+    const values = [generation];
+    const where = ["gra.generation_id = ?", "ra.status = 'active'"];
+    if (role !== "admin") {
+      where.push("(gra.public_visible = 1 OR ra.visibility = 'public' OR ra.user_id = ?)");
+      values.push(viewerId || "");
+    }
+    const [rows] = await getPool().execute(
+      `SELECT ra.*, gra.generation_id, gra.role AS link_role, gra.sort_order, gra.public_visible
+         FROM generation_reference_assets gra
+         INNER JOIN reference_assets ra ON ra.id = gra.asset_id
+        WHERE ${where.join(" AND ")}
+        ORDER BY gra.sort_order ASC, gra.created_at ASC`,
+      values
+    );
+    return rows.map((row) => mapReferenceAsset({
+      ...row,
+      role: row.link_role || row.role
+    }));
+  }
+
+  async function updateReferenceAssetVisibility(assetId, visibility) {
+    const id = String(assetId || "").trim();
+    if (!id) return null;
+    const normalized = normalizeAssetVisibility(visibility);
+    await getPool().execute(
+      "UPDATE reference_assets SET visibility = ?, updated_at = ? WHERE id = ?",
+      [normalized, new Date(), id]
+    );
+    return getReferenceAssetById(id);
+  }
+
+  async function setReferenceAssetsPublicVisibleForGeneration(generationId, publicVisible) {
+    const generation = String(generationId || "").trim();
+    if (!generation) return [];
+    await getPool().execute(
+      "UPDATE generation_reference_assets SET public_visible = ? WHERE generation_id = ?",
+      [publicVisible === true ? 1 : 0, generation]
+    );
+    return listReferenceAssetsForGeneration(generation, { role: "admin" });
+  }
+
+  async function deleteReferenceAsset(assetId, user = {}) {
+    const id = String(assetId || "").trim();
+    if (!id || !user?.id) return null;
+    const existing = await getReferenceAssetById(id);
+    if (!existing || (existing.userId !== user.id && user.role !== "admin")) return null;
+    const values = user.role === "admin" ? [new Date(), id] : [new Date(), id, user.id];
+    await getPool().execute(
+      `UPDATE reference_assets SET status = 'archived', updated_at = ? WHERE id = ?
+       ${user.role === "admin" ? "" : "AND user_id = ?"}`,
+      values
+    );
+    return { ...existing, status: "archived" };
+  }
+
   async function updateGenerationPublic(id, patch) {
     const existing = await getGenerationById(id);
     const columns = [];
@@ -494,6 +695,15 @@ function createGalleryStore({
     listGenerationLikeAnomalies,
     listReportedGenerations,
     getGenerationById,
+    createReferenceAsset,
+    listReferenceAssetsForUser,
+    getReferenceAssetById,
+    canReadReferenceAsset,
+    linkReferenceAssetToGeneration,
+    listReferenceAssetsForGeneration,
+    updateReferenceAssetVisibility,
+    setReferenceAssetsPublicVisibleForGeneration,
+    deleteReferenceAsset,
     updateGenerationPublic,
     countTodayGenerations
   };

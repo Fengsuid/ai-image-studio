@@ -813,6 +813,43 @@ async function runMigrations() {
     await db.query("ALTER TABLE generations ADD COLUMN like_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER duration_ms");
   }
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS reference_assets (
+      id VARCHAR(32) NOT NULL PRIMARY KEY,
+      user_id VARCHAR(32) NOT NULL,
+      role VARCHAR(24) NOT NULL DEFAULT 'reference',
+      filename VARCHAR(255) NOT NULL,
+      stored_filename VARCHAR(255) NOT NULL,
+      mime_type VARCHAR(80) NOT NULL,
+      file_size INT UNSIGNED NOT NULL DEFAULT 0,
+      width INT UNSIGNED NULL,
+      height INT UNSIGNED NULL,
+      sha256 CHAR(64) NOT NULL,
+      visibility VARCHAR(24) NOT NULL DEFAULT 'private',
+      status VARCHAR(24) NOT NULL DEFAULT 'active',
+      created_at DATETIME(3) NOT NULL,
+      updated_at DATETIME(3) NOT NULL,
+      INDEX idx_reference_assets_user_created (user_id, created_at),
+      INDEX idx_reference_assets_sha256 (sha256),
+      CONSTRAINT fk_reference_assets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS generation_reference_assets (
+      generation_id VARCHAR(32) NOT NULL,
+      asset_id VARCHAR(32) NOT NULL,
+      role VARCHAR(24) NOT NULL DEFAULT 'reference',
+      sort_order INT NOT NULL DEFAULT 0,
+      public_visible TINYINT(1) NOT NULL DEFAULT 0,
+      created_at DATETIME(3) NOT NULL,
+      PRIMARY KEY (generation_id, asset_id),
+      INDEX idx_generation_reference_assets_asset (asset_id),
+      CONSTRAINT fk_generation_reference_assets_generation FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE,
+      CONSTRAINT fk_generation_reference_assets_asset FOREIGN KEY (asset_id) REFERENCES reference_assets(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
   await canvasCore.applySchema(db);
 
   await db.query(`
@@ -1583,6 +1620,15 @@ const storeExportGroups = [
       listGenerationLikeAnomalies: galleryStore.listGenerationLikeAnomalies,
       listReportedGenerations: galleryStore.listReportedGenerations,
       getGenerationById: galleryStore.getGenerationById,
+      createReferenceAsset: galleryStore.createReferenceAsset,
+      listReferenceAssetsForUser: galleryStore.listReferenceAssetsForUser,
+      getReferenceAssetById: galleryStore.getReferenceAssetById,
+      canReadReferenceAsset: galleryStore.canReadReferenceAsset,
+      linkReferenceAssetToGeneration: galleryStore.linkReferenceAssetToGeneration,
+      listReferenceAssetsForGeneration: galleryStore.listReferenceAssetsForGeneration,
+      updateReferenceAssetVisibility: galleryStore.updateReferenceAssetVisibility,
+      setReferenceAssetsPublicVisibleForGeneration: galleryStore.setReferenceAssetsPublicVisibleForGeneration,
+      deleteReferenceAsset: galleryStore.deleteReferenceAsset,
       getCanvasProjectForGeneration: canvasStore.getCanvasProjectForGeneration,
       getPublicGenerationForCanvas: canvasStore.getPublicGenerationForCanvas,
       updateGenerationPublic: galleryStore.updateGenerationPublic,

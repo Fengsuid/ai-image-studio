@@ -11,6 +11,12 @@ function serializeGeneration(deps, generation) {
   };
 }
 
+async function syncReferenceAssetPublicVisibility(deps, generation) {
+  if (typeof deps.store.setReferenceAssetsPublicVisibleForGeneration !== "function" || !generation?.id) return;
+  const visible = generation.isPublic && !generation.archived && ["visible", "restored"].includes(generation.moderationStatus || "visible");
+  await deps.store.setReferenceAssetsPublicVisibleForGeneration(generation.id, visible);
+}
+
 async function reviewPromptAudit(deps, req, res, id) {
   const { store, sendJson, readJsonBody, httpError, writeAdminAudit } = deps;
   const current = await requireAdmin(deps, req);
@@ -109,6 +115,7 @@ async function decideWithdrawal(deps, req, res, generationId) {
   const updated = await store.updateGenerationPublic(generation.id, decision === "approved"
     ? { withdrawalStatus: "approved", isPublic: false, publishOriginal: false }
     : { withdrawalStatus: "rejected" });
+  if (decision === "approved") await syncReferenceAssetPublicVisibility(deps, updated);
   const reason = String(body.reason || "").trim().slice(0, 255);
   await deps.notifyWithdrawalDecision({ generation: updated, decision, reason, actorUserId: current.user.id });
   await writeAdminAudit(current, req, `withdrawal_${decision}`, "generation", generation.id, { reason });
@@ -137,6 +144,7 @@ async function moderatePublicImage(deps, req, res, generationId) {
     throw httpError("Invalid moderation action", 400);
   }
   const updated = await store.updateGenerationPublic(generation.id, patch);
+  await syncReferenceAssetPublicVisibility(deps, updated);
   await store.markGenerationReportsHandled(generation.id, { status: action === "restore" || action === "reject" ? "rejected" : "resolved", handledBy: current.user.id });
   await deps.notifyModerationOutcome({ generation: updated, action, reason: reason || patch.moderationReason || "", reports: pendingReports, actorUserId: current.user.id });
   await writeAdminAudit(current, req, `moderation_${action}`, "generation", generation.id, {

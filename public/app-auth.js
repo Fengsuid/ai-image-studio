@@ -568,6 +568,13 @@
       const tags = (item.publicTags || []).map(context.displayTag).filter(Boolean);
       const isImageToImage = context.isImageToImageItem(item);
       const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation?.length ? item.conversation : context.conversationRouteForItem(item);
+      const referenceAssetsHtml = window.ImageStudioReferenceImages?.renderAssetStrip?.(item.referenceAssets || [], {
+        className: "works-detail-reference-assets",
+        label: text("reference"),
+        escapeHtml,
+        imageFallbackContainerAttrs: context.imageFallbackContainerAttrs,
+        imageFallbackImgAttrs: context.imageFallbackImgAttrs
+      }) || "";
       const optionRows = [
         [text("model"), item.model || "-"],
         [text("size"), item.options?.size || "-"],
@@ -604,6 +611,7 @@
               ${optionRows.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(String(value || "-"))}</dd>`).join("")}
             </dl>
             ${item.sourceImageUrl ? `<section class="works-detail-source" ${context.imageFallbackContainerAttrs()}><h4>${escapeHtml(text("sourceImage"))}</h4><img src="${escapeHtml(item.sourceImageUrl)}" ${context.imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(text("sourceImage"))}"></section>` : ""}
+            ${referenceAssetsHtml}
             ${route?.length ? `
               <section class="works-detail-route">
                 <h4>${escapeHtml(text("routeTitle"))}</h4>

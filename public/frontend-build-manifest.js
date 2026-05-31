@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260531-multi-candidate-generation-v1",
+  "version": "20260531-reference-assets-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.b0723bba14a7.css",
-    "file": "/dist/app.b0723bba14a7.css",
-    "hash": "b0723bba14a7",
-    "bytes": 319969,
+    "entry": "/dist/app.d09b57a5ba31.css",
+    "file": "/dist/app.d09b57a5ba31.css",
+    "hash": "d09b57a5ba31",
+    "bytes": 321577,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -50,6 +50,7 @@
       "/css/04-components.css",
       "/css/04-components-skeleton.css",
       "/css/04-components-cards.css",
+      "/css/04-reference-assets.css",
       "/css/04-components-modals.css",
       "/css/04-components-forms.css",
       "/css/05-home-publish.css",
@@ -143,10 +144,10 @@
       },
       {
         "source": "/gallery-normalize.js",
-        "entry": "/dist/gallery-normalize.0a422a234db3.js",
-        "fileName": "gallery-normalize.0a422a234db3.js",
-        "hash": "0a422a234db3",
-        "bytes": 3910,
+        "entry": "/dist/gallery-normalize.33178b9ef0e4.js",
+        "fileName": "gallery-normalize.33178b9ef0e4.js",
+        "hash": "33178b9ef0e4",
+        "bytes": 4031,
         "lazy": false
       },
       {
@@ -183,10 +184,10 @@
       },
       {
         "source": "/render-stamp.js",
-        "entry": "/dist/render-stamp.7dd51900bd69.js",
-        "fileName": "render-stamp.7dd51900bd69.js",
-        "hash": "7dd51900bd69",
-        "bytes": 772,
+        "entry": "/dist/render-stamp.c227d14b8f43.js",
+        "fileName": "render-stamp.c227d14b8f43.js",
+        "hash": "c227d14b8f43",
+        "bytes": 836,
         "lazy": false
       },
       {
@@ -215,10 +216,10 @@
       },
       {
         "source": "/reference-images.js",
-        "entry": "/dist/reference-images.fb72af7c8010.js",
-        "fileName": "reference-images.fb72af7c8010.js",
-        "hash": "fb72af7c8010",
-        "bytes": 896,
+        "entry": "/dist/reference-images.2a49717532ca.js",
+        "fileName": "reference-images.2a49717532ca.js",
+        "hash": "2a49717532ca",
+        "bytes": 2583,
         "lazy": false
       },
       {
@@ -311,10 +312,10 @@
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.e43adbafbe2b.js",
-        "fileName": "app-auth.e43adbafbe2b.js",
-        "hash": "e43adbafbe2b",
-        "bytes": 24185,
+        "entry": "/dist/app-auth.0e366561252a.js",
+        "fileName": "app-auth.0e366561252a.js",
+        "hash": "0e366561252a",
+        "bytes": 24467,
         "lazy": false
       },
       {
@@ -327,10 +328,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.3a48d14e0c4e.js",
-        "fileName": "app.3a48d14e0c4e.js",
-        "hash": "3a48d14e0c4e",
-        "bytes": 181863,
+        "entry": "/dist/app.b45df54b6c33.js",
+        "fileName": "app.b45df54b6c33.js",
+        "hash": "b45df54b6c33",
+        "bytes": 183201,
         "lazy": false
       },
       {

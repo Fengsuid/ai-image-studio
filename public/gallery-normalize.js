@@ -49,6 +49,9 @@
       creativeRoute: generation.creativeRoute || fallback.creativeRoute || [],
       conversation: generation.creativeRoute || generation.conversation || fallback.creativeRoute || fallback.conversation || [],
       canvasProject: generation.canvasProject || fallback.canvasProject || null,
+      referenceAssets: Array.isArray(generation.referenceAssets)
+        ? generation.referenceAssets
+        : (Array.isArray(fallback.referenceAssets) ? fallback.referenceAssets : []),
       publicTags: generation.publicTags || fallback.publicTags || [],
       userId: generation.userId || fallback.userId || currentUser.id || "",
       userName: generation.userName || fallback.userName || currentUser.name || "",

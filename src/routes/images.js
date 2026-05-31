@@ -21,6 +21,7 @@ function createImagesRoute({
   sanitizePositiveInt,
   sourceImageUrlForGeneration,
   sourceImageAuditFields,
+  generationResponseForViewer,
   ensureActiveAuthenticated,
   enforcePromptPublishAudit,
   publicKindTagForGeneration,
@@ -100,12 +101,14 @@ function createImagesRoute({
       ensureAuthenticated(current);
       const includeArchived = url.searchParams.get("includeArchived") === "1";
       const limit = sanitizePositiveInt(url.searchParams.get("limit"), 120, 200);
-      const generations = (await store.listGenerationsForUser(current.user, limit, { includeArchived })).map((generation) => ({
-        ...generation,
+      const generations = await Promise.all((await store.listGenerationsForUser(current.user, limit, { includeArchived })).map(async (generation) => ({
+        ...(generationResponseForViewer
+          ? await generationResponseForViewer(generation, current)
+          : generation),
         imageUrl: `/api/images/${generation.id}/file`,
         sourceImageUrl: sourceImageUrlForGeneration(generation, { includePrivateSource: true }),
         ...sourceImageAuditFields(generation)
-      }));
+      })));
       sendJson(res, 200, { generations });
       return true;
     }
@@ -163,6 +166,9 @@ function createImagesRoute({
             throw new Error("invalid_action");
           }
           let updated = await store.updateGenerationPublic(generation.id, patch);
+          if (typeof store.setReferenceAssetsPublicVisibleForGeneration === "function") {
+            await store.setReferenceAssetsPublicVisibleForGeneration(updated.id, patch.isPublic === true && patch.archived !== true);
+          }
           if (action === "publish" && !generation.isPublic) {
             updated = await claimFirstPublicRewardForGeneration(updated);
           }

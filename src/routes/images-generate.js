@@ -44,6 +44,24 @@ function createImagesGenerateRoute({
   runQueuedImageEdit,
   callOpenAIImageEdits
 }) {
+  async function referenceAssetIdsForUser(user, rawIds = [], limit = 4) {
+    if (!Array.isArray(rawIds)) return [];
+    const normalizedLimit = Math.max(0, Math.min(15, Number.parseInt(limit, 10) || 0));
+    if (!normalizedLimit) return [];
+    const ids = [...new Set(rawIds
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+      .slice(0, normalizedLimit)
+    )];
+    for (const id of ids) {
+      const asset = await store.getReferenceAssetById(id);
+      if (!asset || asset.status !== "active" || asset.userId !== user.id) {
+        throw httpError("Reference asset not found", 404);
+      }
+    }
+    return ids;
+  }
+
   return async function handleImagesGenerateRoute(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/images/requests/active") {
     const current = await getCurrentUser(req);
@@ -106,6 +124,11 @@ function createImagesGenerateRoute({
     if (!user || user.status !== "active") {
       throw httpError("Account is not active", 403);
     }
+    const referenceAssetIds = await referenceAssetIdsForUser(
+      user,
+      body.referenceAssetIds,
+      normalizeMaxReferenceImages(settings.maxReferenceImages)
+    );
 
     const maxImages = Number(settings.maxImagesPerRequest || 1);
     const n = sanitizePositiveInt(body.n, 1, maxImages);
@@ -121,6 +144,8 @@ function createImagesGenerateRoute({
       background: choose(body.background, ["auto", "opaque", "transparent"], "auto"),
       output_format: choose(body.outputFormat, ["png", "webp", "jpeg"], "png"),
       isPublic: body.isPublic === true,
+      referenceAssetIds,
+      publishReferenceAssets: body.publishReferenceAssets === true,
       conversation: sanitizeConversationRoute(body.conversationRoute),
       publicTags: await normalizePublishPublicTags(body.publicTags, {
         kind: PUBLIC_KIND_TAGS.text,
@@ -162,6 +187,9 @@ function createImagesGenerateRoute({
       background: body.background,
       outputFormat: body.outputFormat,
       isPublic: body.isPublic,
+      referenceAssetIds,
+      referenceAssetCount: referenceAssetIds.length,
+      publishReferenceAssets: body.publishReferenceAssets,
       publicTags: body.publicTags
     });
     const normalizedParams = safeJsonSummary(request);
@@ -359,6 +387,11 @@ function createImagesGenerateRoute({
     if (!user || user.status !== "active") {
       throw httpError("Account is not active", 403);
     }
+    const referenceAssetIds = await referenceAssetIdsForUser(
+      user,
+      body.referenceAssetIds,
+      normalizeMaxReferenceImages(settings.maxReferenceImages)
+    );
 
     const maxImages = Number(settings.maxImagesPerRequest || 1);
     const n = sanitizePositiveInt(body.n, 1, maxImages);
@@ -377,6 +410,8 @@ function createImagesGenerateRoute({
       background: "auto",
       output_format: "png",
       isPublic: body.isPublic === true,
+      referenceAssetIds,
+      publishReferenceAssets: body.publishReferenceAssets === true,
       sourceFilename,
       publishOriginal: body.publishOriginal === true,
       conversation: sanitizeConversationRoute(body.conversationRoute),
@@ -415,7 +450,10 @@ function createImagesGenerateRoute({
       publishOriginal: body.publishOriginal,
       publicTags: body.publicTags,
       hasMask: Boolean(maskData),
-      referenceImageCount: referenceImages.length
+      referenceImageCount: referenceImages.length,
+      referenceAssetIds,
+      referenceAssetCount: referenceAssetIds.length,
+      publishReferenceAssets: body.publishReferenceAssets
     });
     const normalizedParams = safeJsonSummary(request);
     const providerParams = safeJsonSummary({

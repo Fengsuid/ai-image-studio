@@ -15,7 +15,6 @@ function createGalleryRoute({
   cleanPrompt,
   auditPayload,
   isPubliclyVisibleGeneration,
-  generationResponse,
   generationResponseForViewer,
   promptLeaderboardResponse,
   filterGenerationsWithImageFiles,
@@ -56,7 +55,9 @@ function createGalleryRoute({
         includeBroken
       });
       const visibleGenerationItems = includeBroken ? rawGenerationItems : await filterGenerationsWithImageFiles(rawGenerationItems);
-      const generationItems = visibleGenerationItems.map(generationResponse);
+      const generationItems = await Promise.all(
+        visibleGenerationItems.map((generation) => generationResponseForViewer(generation, current))
+      );
       const promptItems = type === "image-to-image"
         ? []
         : (await store.listPromptImageLeaderboard({
@@ -127,7 +128,7 @@ function createGalleryRoute({
           });
         }
       }
-      sendJson(res, 200, { generation: generationResponse(updated) });
+      sendJson(res, 200, { generation: await generationResponseForViewer(updated, current) });
       return true;
     }
 

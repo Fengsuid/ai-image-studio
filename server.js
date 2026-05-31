@@ -59,6 +59,7 @@ const { createCreditsRoute } = require("./src/routes/credits");
 const { createSettingsPublicRoute } = require("./src/routes/settings-public");
 const { createAnnouncementsRoute } = require("./src/routes/announcements");
 const { createImagesGenerateRoute } = require("./src/routes/images-generate");
+const { createReferenceAssetsRoute, serializeReferenceAsset } = require("./src/routes/reference-assets");
 const { createSessionMiddleware } = require("./src/middleware/session");
 const { createCsrfMiddleware } = require("./src/middleware/csrf");
 const { createAppAuth } = require("./src/middleware/app-auth");
@@ -69,6 +70,7 @@ const {
   PUBLIC_DIR,
   GENERATED_DIR,
   SOURCE_DIR,
+  REFERENCE_ASSET_DIR,
   PORT,
   APP_VERSION,
   SERVER_STARTED_AT,
@@ -311,6 +313,7 @@ const handleImagesRoute = createImagesRoute({
   sanitizePositiveInt,
   sourceImageUrlForGeneration,
   sourceImageAuditFields,
+  generationResponseForViewer,
   ensureActiveAuthenticated,
   enforcePromptPublishAudit,
   publicKindTagForGeneration,
@@ -452,6 +455,12 @@ const handleImagesGenerateRoute = createImagesGenerateRoute({
   errorSummary, editableImageSource, validateImageDataUrl, normalizedEditReferenceImages,
   normalizeMaxReferenceImages, saveSourceImageFromData, queuePayloadForImageEdit,
   runQueuedImageEdit, callOpenAIImageEdits
+});
+
+const handleReferenceAssetsRoute = createReferenceAssetsRoute({
+  store, getCurrentUser, ensureAuthenticated, ensureActiveAuthenticated, withSecurityHeaders,
+  mimeTypes, referenceAssetDir: REFERENCE_ASSET_DIR, httpError, sendJson,
+  readJsonBody, sanitizePositiveInt, randomId, validateImageDataUrl
 });
 
 
@@ -2521,8 +2530,15 @@ function generationResponse(generation) {
   };
 }
 
+async function referenceAssetsForGeneration(generation, current) {
+  if (!generation?.id) return [];
+  const assets = await store.listReferenceAssetsForGeneration(generation.id, current?.user || {});
+  return assets.map(serializeReferenceAsset).filter(Boolean);
+}
+
 async function generationResponseForViewer(generation, current) {
   const response = generationResponse(generation);
+  response.referenceAssets = await referenceAssetsForGeneration(generation, current);
   const canvasProject = await store.getCanvasProjectForGeneration(generation.id);
   if (canvasProject) {
     const sourceCanvasProject = await store.getCanvasProjectById(canvasProject.id).catch((error) => {
@@ -2712,12 +2728,12 @@ function requestStatusPayload(request) {
   };
 }
 
-async function loadRequestGenerations(request) {
+async function loadRequestGenerations(request, current) {
   const ids = Array.isArray(request?.generationIds) ? request.generationIds : [];
   const generations = [];
   for (const id of ids) {
     const generation = await store.getGenerationById(id).catch(() => null);
-    if (generation) generations.push(generationResponse(generation));
+    if (generation) generations.push(await generationResponseForViewer(generation, current));
   }
   return generations;
 }
@@ -2731,7 +2747,7 @@ async function sendGenerationRequestStatus(req, res, requestId) {
   }
   return sendJson(res, 200, {
     request: requestStatusPayload(request),
-    generations: await loadRequestGenerations(request),
+    generations: await loadRequestGenerations(request, current),
     credits: await store.getUserCredits(current.user.id)
   });
 }
@@ -2861,6 +2877,18 @@ async function finalizeSuccessfulGenerations({ auditId, user, request, openaiRes
     data: { count: saved.length, filenames: saved.map((generation) => generation.filename) }
   });
   await store.insertGenerations(saved);
+  const referenceAssetIds = Array.isArray(request.referenceAssetIds) ? request.referenceAssetIds : [];
+  if (referenceAssetIds.length) {
+    for (const generation of saved) {
+      for (const [index, assetId] of referenceAssetIds.entries()) {
+        await store.linkReferenceAssetToGeneration(generation.id, assetId, {
+          sortOrder: index,
+          publicVisible: Boolean(request.isPublic && request.publishReferenceAssets)
+        });
+      }
+      generation.referenceAssets = await referenceAssetsForGeneration(generation, { user });
+    }
+  }
   await traceGeneration(auditId, "generation_saved", {
     userId: user.id,
     message: `${saved.length} generation row(s) saved`,
@@ -3220,6 +3248,8 @@ async function routeApi(req, res, url) {
 
   if (await handleAuthRoute(req, res, url)) return;
 
+  if (await handleReferenceAssetsRoute(req, res, url)) return;
+
   if (await handleImagesRoute(req, res, url)) return;
 
   if (await handleGalleryRoute(req, res, url)) return;
@@ -3408,13 +3438,16 @@ async function routeApi(req, res, url) {
       }
     }
     let updated = await store.updateGenerationPublic(generation.id, patch);
+    if (typeof store.setReferenceAssetsPublicVisibleForGeneration === "function") {
+      await store.setReferenceAssetsPublicVisibleForGeneration(updated.id, updated.isPublic && !updated.archived);
+    }
     if (patch.isPublic === true && !generation.isPublic) {
       updated = await claimFirstPublicRewardForGeneration(updated);
     }
+    const response = await generationResponseForViewer(updated, current);
     return sendJson(res, 200, {
       generation: {
-        ...updated,
-        imageUrl: `/api/images/${updated.id}/file`,
+        ...response,
         sourceImageUrl: sourceImageUrlForGeneration(updated, { includePrivateSource: true }),
         ...sourceImageAuditFields(updated)
       }
@@ -3475,6 +3508,9 @@ async function routeApi(req, res, url) {
         withdrawalRequestedAt: new Date(),
         withdrawalReason: body.reason || "direct withdrawal"
       });
+      if (typeof store.setReferenceAssetsPublicVisibleForGeneration === "function") {
+        await store.setReferenceAssetsPublicVisibleForGeneration(updated.id, false);
+      }
       await notifyWithdrawalRequest({ generation: updated, direct: true });
       return sendJson(res, 200, { generation: updated, direct: true });
     }
@@ -3680,6 +3716,7 @@ async function seedPromptsFromJsonIfEmpty() {
 async function start() {
   await fs.mkdir(GENERATED_DIR, { recursive: true });
   await fs.mkdir(SOURCE_DIR, { recursive: true });
+  await fs.mkdir(REFERENCE_ASSET_DIR, { recursive: true });
   await store.initializeDatabase({ defaultModel: DEFAULT_MODEL });
   await bootstrapAdminAccount();
   await seedPromptsFromJsonIfEmpty();

@@ -35,6 +35,7 @@
         queueTotal: item.queueTotal ?? null,
         isPublic: Boolean(item.isPublic),
         publicTags: item.publicTags || [],
+        referenceAssets: (item.referenceAssets || []).map((asset) => asset.id || asset.url || ""),
         error: item.error || ""
       }))
     });

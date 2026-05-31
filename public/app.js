@@ -1857,6 +1857,9 @@ async function filesToReferenceImages(files, { limit = maxReferenceImages() } = 
     imageData: await blobToDataUrl(file)
   })));
 }
+async function persistReferenceAssets(references = []) {
+  return state.user ? (referenceImageTools().persistAssets?.(references, api, { visibility: "private" }) || references) : references;
+}
 function revokeReferenceImages(references = []) {
   const tools = referenceImageTools();
   if (tools.revokeReferences) {
@@ -1878,6 +1881,15 @@ function referenceRequestPayload(references = [], { limit = maxReferenceImages()
     .filter((reference) => reference.imageData.startsWith("data:image/"))
     .slice(0, limit);
 }
+function referenceAssetIds(references = [], { limit = maxReferenceImages() } = {}) {
+  return referenceImageTools().assetIds?.(references, { limit }) || [];
+}
+function referenceAssetsFromReferences(references = []) {
+  return referenceImageTools().assetsFromReferences?.(references) || references.map((reference) => reference?.asset).filter(Boolean);
+}
+function referenceAssetStrip(assets = [], className = "reference-assets-strip") {
+  return referenceImageTools().renderAssetStrip?.(assets, { className, maxItems: maxReferenceImages(), label: text("reference"), escapeHtml, imageFallbackContainerAttrs, imageFallbackImgAttrs }) || "";
+}
 function clearComposerReferences({ sync = true } = {}) {
   revokeReferenceImages(state.references);
   state.references = [];
@@ -1892,7 +1904,7 @@ async function handleComposerReferenceUpload(referenceInput, referenceRow, form,
     return;
   }
   try {
-    const selected = await filesToReferenceImages(files, { limit: capacity });
+    const selected = await persistReferenceAssets(await filesToReferenceImages(files, { limit: capacity }));
     if (!append) clearComposerReferences({ sync: false });
     state.references = append ? [...state.references, ...selected] : selected;
     renderReferences(referenceRow);
@@ -2194,7 +2206,10 @@ async function submitGeneration(form) {
   state.publishToSquare = state.generationOptions.isPublic;
   const candidateCount = Math.max(1, Number(state.generationOptions.candidateCount || 1));
   const composerReferencePayload = referenceRequestPayload(state.references);
+  const composerReferenceAssetIds = referenceAssetIds(state.references);
+  const composerReferenceAssets = referenceAssetsFromReferences(state.references);
   const primaryComposerReference = composerReferencePayload[0] || null;
+  const publishReferenceAssets = state.publishToSquare && candidateCount === 1;
   const fromHeroComposer = form?.dataset?.sticky !== "1" && state.view === "home" && shouldShowHero();
   if (fromHeroComposer) {
     startNewImageSession(prompt);
@@ -2213,7 +2228,8 @@ async function submitGeneration(form) {
     publicTags: [],
     options: { ...state.generationOptions },
     sourceImageData: primaryComposerReference?.imageData || "",
-    references: state.references.map((reference) => reference.url)
+    references: state.references.map((reference) => reference.url),
+    referenceAssets: composerReferenceAssets
   };
   addGenerationToActiveSession(tempId, prompt);
   state.history.push(item);
@@ -2258,6 +2274,8 @@ async function submitGeneration(form) {
           async: true,
           n: candidateCount,
           referenceImages: extraReferences,
+          referenceAssetIds: composerReferenceAssetIds,
+          publishReferenceAssets,
           publishOriginal: Boolean(sourceImageData),
           sourceImageData,
           publicTags: item.publicTags,
@@ -2277,6 +2295,8 @@ async function submitGeneration(form) {
           background: item.options.background,
           outputFormat: item.options.outputFormat,
           isPublic: item.isPublic && candidateCount === 1,
+          referenceAssetIds: composerReferenceAssetIds,
+          publishReferenceAssets,
           async: true,
           publicTags: item.publicTags,
           conversationRoute: conversationRouteForItem(item),
@@ -2681,6 +2701,7 @@ function renderHistory() {
         `).join("")}
       </div>
     ` : "";
+    const referenceStrip = item.status === "done" ? referenceAssetStrip(item.referenceAssets) : "";
     const candidateStrip = item.status === "done" && (item.images || []).length > 1 ? `
       <div class="candidate-strip">
         ${item.images.map((imageUrl, index) => `
@@ -2716,6 +2737,7 @@ function renderHistory() {
         </div>
         <div class="message-image"><button type="button" class="image-shell image-shell-zoom" data-zoom-history="${escapeHtml(item.id)}" ${imageFallbackContainerAttrs()} aria-label="${escapeHtml(state.lang === "zh" ? "放大查看生成图片" : "Open generated image")}">${image}</button></div>
         ${routeStrip}
+        ${referenceStrip}
         ${candidateStrip}
         ${tagRow}
         ${error}
@@ -3932,7 +3954,7 @@ async function handleEditorUpload(files, { appendReferences = false } = {}) {
     if (!selected.length) return;
     if (appendReferences && state.editor.imageUrl) {
       const capacity = Math.max(0, maxReferenceImages() - state.editor.references.length);
-      const references = selected.slice(0, capacity);
+      const references = await persistReferenceAssets(selected.slice(0, capacity));
       const overflow = selected.slice(capacity);
       if (overflow.length) revokeReferenceImages(overflow);
       state.editor.references.push(...references);
@@ -3940,7 +3962,8 @@ async function handleEditorUpload(files, { appendReferences = false } = {}) {
       if (references.length) showToast(text("referenceUploadToast"), "ri-image-add-line");
       return;
     }
-    const [baseImage, ...references] = selected;
+    const [baseImage, ...rawReferences] = selected;
+    const references = await persistReferenceAssets(rawReferences);
     revokeReferenceImages([baseImage]);
     setEditorImage(baseImage.imageData, baseImage.imageData, references);
     if (references.length) showToast(text("referenceUploadToast"), "ri-image-add-line");
@@ -4195,6 +4218,8 @@ async function submitImageEdit(event) {
   try {
     const originalData = state.editor.imageData || await imageReferenceForEdit(state.editor.imageUrl);
     const editorReferences = referenceRequestPayload(state.editor.references);
+    const editorReferenceAssetIds = referenceAssetIds(state.editor.references);
+    const editorReferenceAssets = referenceAssetsFromReferences(state.editor.references);
     const { imageData, maskData } = await editorAnnotatedImageData(originalData);
     const draftRoute = conversationRouteWithDraft({
       id: `edit_${Date.now()}`,
@@ -4223,6 +4248,8 @@ async function submitImageEdit(event) {
         imageData,
         maskData,
         referenceImages: editorReferences,
+        referenceAssetIds: editorReferenceAssetIds,
+        publishReferenceAssets: isPublic,
         isPublic,
         publishOriginal,
         sourceImageData: publishOriginal ? originalData : "",
@@ -4254,7 +4281,8 @@ async function submitImageEdit(event) {
       model: generation.model,
       isPublic: Boolean(generation.isPublic),
       publicRewardStatus: generation.publicRewardStatus || "none",
-      publicRewardAmount: Number(generation.publicRewardAmount || 0)
+      publicRewardAmount: Number(generation.publicRewardAmount || 0),
+      referenceAssets: generation.referenceAssets || editorReferenceAssets
     };
     state.history.push(savedEntry);
     setEditorImage(generation.imageUrl);
@@ -4352,6 +4380,7 @@ function squareItemFromPrompt(prompt) {
       likedByCurrentUser: Boolean(prompt.likedByCurrentUser),
       conversation: prompt.conversation || [],
       creativeRoute: prompt.creativeRoute || prompt.conversation || [],
+      referenceAssets: prompt.referenceAssets || [],
       publicTags: prompt.publicTags || [],
       userId: prompt.userId || "",
       userName: prompt.userName || prompt.author || "",
@@ -4416,6 +4445,7 @@ function openSquarePreview(prompt, options = {}) {
   const tags = tagView.publicTags;
   const route = item.creativeRoute?.length ? item.creativeRoute : item.conversation || [];
   const sourcePrompt = item.sourcePrompt || "";
+  const referenceStrip = referenceAssetStrip(item.referenceAssets, "square-reference-assets");
   const mediaController = window.AppModules?.gallery?.createDetailMedia?.({ item, imageUrl, route, text })
     || window.ImageStudioGalleryDetailMedia?.create?.({ item, imageUrl, route, text });
   openModal(`
@@ -4469,6 +4499,7 @@ function openSquarePreview(prompt, options = {}) {
             </button>
           </div>
         ` : ""}
+        ${referenceStrip}
         ${route.length > 1 ? `
           <section class="square-route" data-route-section data-route-collapsed="${route.length > 5 ? "1" : "0"}">
             <header class="square-route-head">
