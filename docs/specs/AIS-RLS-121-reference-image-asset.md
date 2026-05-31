@@ -13,6 +13,8 @@ AIS-RLS-121 defines that contract. It should be implemented before AIS-RLS-122 b
 
 Implementation note 2026-05-31: the first production slice is shipped in `18cccd8` with `APP_VERSION=20260531-reference-assets-v1`. It uses additive `reference_assets` and `generation_reference_assets` tables, `/api/reference-assets`, owner/admin/public-visible file authorization, generation link records, reference thumbnail strips in history/gallery/my-works, and `smoke:reference-assets`. Provider-specific conditioning remains capability-dependent and continues through the existing image-edit/reference payload path.
 
+Follow-up note 2026-05-31: `APP_VERSION=20260531-reference-assets-index-v1` strengthens the same contract by making startup migration self-heal missing reference-asset columns and indexes on already-created tables, and by adding single-asset `GET`, `PATCH visibility`, and `DELETE` routes. `smoke:reference-assets` now checks those migration guards and exercises the single-asset CRUD route handler in-process.
+
 ## 现状
 
 - Reference images can appear in composer/editor UI, but the gap analysis records that homepage reference upload was historically only a preview/metadata expectation.
@@ -104,6 +106,20 @@ Response:
 }
 ```
 
+### Manage single asset
+
+`GET /api/reference-assets/:id` returns serialized metadata when the current viewer can read the asset.
+
+`PATCH /api/reference-assets/:id`
+
+```json
+{
+  "visibility": "public"
+}
+```
+
+`DELETE /api/reference-assets/:id` soft-deletes the owner/admin asset while preserving generation history links.
+
 ### Use during generation
 
 `POST /api/images/generate`
@@ -188,7 +204,7 @@ Storage path should be separate from generated output paths, for example `data/r
 
 Implemented first-slice checks:
 
-- `npm run smoke:reference-assets` statically verifies schema/index tokens, route/store exports, generation request wiring, frontend display/persist hooks, and hashed dist coverage.
+- `npm run smoke:reference-assets` statically verifies schema/index tokens, migration self-healing guards, route/store exports, generation request wiring, frontend display/persist hooks, hashed dist coverage, and in-process single-asset CRUD route behavior.
 - Deployment verification on 2026-05-31 confirmed `reference_assets`, `generation_reference_assets`, `idx_reference_assets_user_created`, `idx_reference_assets_sha256`, and `idx_generation_reference_assets_asset` exist after startup migration.
 
 ## 回滚

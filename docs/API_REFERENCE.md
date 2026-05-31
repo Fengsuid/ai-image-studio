@@ -179,6 +179,17 @@ The admin API is split by business domain under `src/routes/admin/`.
 | POST | `/api/images/generate` | Start a text-to-image generation request. |
 | POST | `/api/images/edit` | Start an image edit request. |
 
+## `src/routes/reference-assets.js`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/reference-assets` | List the current user's reference image assets. |
+| POST | `/api/reference-assets` | Create a durable reference image asset. |
+| GET | `/api/reference-assets/:id` | Get a readable reference asset metadata record. |
+| PATCH | `/api/reference-assets/:id` | Update a reference asset's visibility. |
+| DELETE | `/api/reference-assets/:id` | Soft-delete a reference asset. |
+| GET/HEAD | `/api/reference-assets/:id/file` | Download or view a reference asset file. |
+
 ## `src/routes/health.js`
 
 | Method | Endpoint | Description |

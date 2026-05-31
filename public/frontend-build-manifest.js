@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260531-frontend-a11y-v1",
+  "version": "20260531-reference-assets-index-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
+const require = createRequire(import.meta.url);
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 const readJson = (relativePath) => JSON.parse(read(relativePath));
 const failures = [];
@@ -65,6 +67,26 @@ assertIncludes(mysqlStore, [
   "INDEX idx_reference_assets_user_created (user_id, created_at)",
   "INDEX idx_reference_assets_sha256 (sha256)",
   "INDEX idx_generation_reference_assets_asset (asset_id)",
+  'addColumnIfMissing(db, "reference_assets", "user_id"',
+  'addColumnIfMissing(db, "reference_assets", "role"',
+  'addColumnIfMissing(db, "reference_assets", "filename"',
+  'addColumnIfMissing(db, "reference_assets", "stored_filename"',
+  'addColumnIfMissing(db, "reference_assets", "mime_type"',
+  'addColumnIfMissing(db, "reference_assets", "file_size"',
+  'addColumnIfMissing(db, "reference_assets", "width"',
+  'addColumnIfMissing(db, "reference_assets", "height"',
+  'addColumnIfMissing(db, "reference_assets", "sha256"',
+  'addColumnIfMissing(db, "reference_assets", "visibility"',
+  'addColumnIfMissing(db, "reference_assets", "status"',
+  'addColumnIfMissing(db, "reference_assets", "created_at"',
+  'addColumnIfMissing(db, "reference_assets", "updated_at"',
+  'addColumnIfMissing(db, "generation_reference_assets", "role"',
+  'addColumnIfMissing(db, "generation_reference_assets", "sort_order"',
+  'addColumnIfMissing(db, "generation_reference_assets", "public_visible"',
+  'addColumnIfMissing(db, "generation_reference_assets", "created_at"',
+  'addIndexIfMissing(db, "reference_assets", "idx_reference_assets_user_created", "(user_id, created_at)")',
+  'addIndexIfMissing(db, "reference_assets", "idx_reference_assets_sha256", "(sha256)")',
+  'addIndexIfMissing(db, "generation_reference_assets", "idx_generation_reference_assets_asset", "(asset_id)")',
   "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
   "FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE CASCADE",
   "FOREIGN KEY (asset_id) REFERENCES reference_assets(id) ON DELETE CASCADE",
@@ -93,6 +115,11 @@ assertIncludes(referenceRoute, [
   "function createReferenceAssetsRoute",
   'url.pathname === "/api/reference-assets"',
   'req.method === "POST"',
+  'req.method === "GET"',
+  'req.method === "PATCH"',
+  'req.method === "DELETE"',
+  "store.updateReferenceAssetVisibility",
+  "store.deleteReferenceAsset",
   "/^\\/api\\/reference-assets\\/([^/]+)\\/file$/",
   "validateImageDataUrl(imageData)",
   "store.createReferenceAsset",
@@ -217,6 +244,81 @@ assertIncludes(cssDist, [
   ".square-reference-assets",
   ".works-detail-reference-assets"
 ], "hashed CSS dist");
+
+async function exerciseReferenceAssetCrudRoute() {
+  const { createReferenceAssetsRoute } = require(path.join(root, "src/routes/reference-assets.js"));
+  const calls = [];
+  const asset = {
+    id: "asset_smoke",
+    userId: "user_smoke",
+    role: "reference",
+    filename: "reference.png",
+    storedFilename: "asset_smoke.png",
+    mimeType: "image/png",
+    fileSize: 128,
+    sha256: "0".repeat(64),
+    visibility: "private",
+    status: "active"
+  };
+  const store = {
+    async getReferenceAssetById(id) {
+      calls.push(`get:${id}`);
+      return id === asset.id ? asset : null;
+    },
+    async canReadReferenceAsset(candidate, user) {
+      calls.push(`canRead:${candidate.id}:${user.id}`);
+      return candidate.id === asset.id && user.id === asset.userId;
+    },
+    async updateReferenceAssetVisibility(id, visibility) {
+      calls.push(`visibility:${id}:${visibility}`);
+      return { ...asset, visibility };
+    },
+    async deleteReferenceAsset(id, user) {
+      calls.push(`delete:${id}:${user.id}`);
+      return id === asset.id && user.id === asset.userId ? { ...asset, status: "archived" } : null;
+    }
+  };
+  const httpError = (message, status = 500) => Object.assign(new Error(message), { status });
+  const route = createReferenceAssetsRoute({
+    store,
+    getCurrentUser: async () => ({ user: { id: asset.userId, role: "user" } }),
+    ensureAuthenticated: (current) => {
+      if (!current?.user) throw httpError("Unauthorized", 401);
+    },
+    ensureActiveAuthenticated: (current) => {
+      if (!current?.user) throw httpError("Unauthorized", 401);
+    },
+    withSecurityHeaders: (headers) => headers,
+    mimeTypes: new Map(),
+    referenceAssetDir: root,
+    httpError,
+    sendJson: (res, status, payload) => {
+      res.status = status;
+      res.payload = payload;
+    },
+    readJsonBody: async (req) => req.body || {},
+    sanitizePositiveInt: (value, fallback) => Number(value) || fallback,
+    randomId: () => asset.id,
+    validateImageDataUrl: () => ({ mime: "image/png", buffer: Buffer.from("smoke") })
+  });
+  async function invoke(method, pathname, body) {
+    const res = {};
+    const handled = await route({ method, body }, res, new URL(pathname, "http://smoke.local"));
+    assert(handled, `${method} ${pathname} must be handled`);
+    return res;
+  }
+  const get = await invoke("GET", `/api/reference-assets/${asset.id}`);
+  assert(get.status === 200 && get.payload?.asset?.id === asset.id, "single reference asset GET must return serialized metadata");
+  const patch = await invoke("PATCH", `/api/reference-assets/${asset.id}`, { visibility: "public" });
+  assert(patch.status === 200 && patch.payload?.asset?.visibility === "public", "single reference asset PATCH must update visibility");
+  const deleted = await invoke("DELETE", `/api/reference-assets/${asset.id}`);
+  assert(deleted.status === 200 && deleted.payload?.asset?.id === asset.id, "single reference asset DELETE must return serialized metadata");
+  assert(calls.includes(`canRead:${asset.id}:${asset.userId}`), "single reference asset GET must check read authorization");
+  assert(calls.includes(`visibility:${asset.id}:public`), "single reference asset PATCH must call updateReferenceAssetVisibility");
+  assert(calls.includes(`delete:${asset.id}:${asset.userId}`), "single reference asset DELETE must call deleteReferenceAsset");
+}
+
+await exerciseReferenceAssetCrudRoute();
 
 if (failures.length) {
   console.error("[reference-assets-smoke] FAIL:");

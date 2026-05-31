@@ -849,6 +849,26 @@ async function runMigrations() {
       CONSTRAINT fk_generation_reference_assets_asset FOREIGN KEY (asset_id) REFERENCES reference_assets(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  await addColumnIfMissing(db, "reference_assets", "user_id", "VARCHAR(32) NOT NULL DEFAULT '' AFTER id");
+  await addColumnIfMissing(db, "reference_assets", "role", "VARCHAR(24) NOT NULL DEFAULT 'reference' AFTER user_id");
+  await addColumnIfMissing(db, "reference_assets", "filename", "VARCHAR(255) NOT NULL DEFAULT 'reference-image' AFTER role");
+  await addColumnIfMissing(db, "reference_assets", "stored_filename", "VARCHAR(255) NOT NULL DEFAULT '' AFTER filename");
+  await addColumnIfMissing(db, "reference_assets", "mime_type", "VARCHAR(80) NOT NULL DEFAULT '' AFTER stored_filename");
+  await addColumnIfMissing(db, "reference_assets", "file_size", "INT UNSIGNED NOT NULL DEFAULT 0 AFTER mime_type");
+  await addColumnIfMissing(db, "reference_assets", "width", "INT UNSIGNED NULL AFTER file_size");
+  await addColumnIfMissing(db, "reference_assets", "height", "INT UNSIGNED NULL AFTER width");
+  await addColumnIfMissing(db, "reference_assets", "sha256", "CHAR(64) NOT NULL DEFAULT '' AFTER height");
+  await addColumnIfMissing(db, "reference_assets", "visibility", "VARCHAR(24) NOT NULL DEFAULT 'private' AFTER sha256");
+  await addColumnIfMissing(db, "reference_assets", "status", "VARCHAR(24) NOT NULL DEFAULT 'active' AFTER visibility");
+  await addColumnIfMissing(db, "reference_assets", "created_at", "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) AFTER status");
+  await addColumnIfMissing(db, "reference_assets", "updated_at", "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) AFTER created_at");
+  await addColumnIfMissing(db, "generation_reference_assets", "role", "VARCHAR(24) NOT NULL DEFAULT 'reference' AFTER asset_id");
+  await addColumnIfMissing(db, "generation_reference_assets", "sort_order", "INT NOT NULL DEFAULT 0 AFTER role");
+  await addColumnIfMissing(db, "generation_reference_assets", "public_visible", "TINYINT(1) NOT NULL DEFAULT 0 AFTER sort_order");
+  await addColumnIfMissing(db, "generation_reference_assets", "created_at", "DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) AFTER public_visible");
+  await addIndexIfMissing(db, "reference_assets", "idx_reference_assets_user_created", "(user_id, created_at)");
+  await addIndexIfMissing(db, "reference_assets", "idx_reference_assets_sha256", "(sha256)");
+  await addIndexIfMissing(db, "generation_reference_assets", "idx_generation_reference_assets_asset", "(asset_id)");
 
   await canvasCore.applySchema(db);
 

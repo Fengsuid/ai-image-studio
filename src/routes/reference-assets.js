@@ -130,6 +130,43 @@ function createReferenceAssetsRoute({
       return true;
     }
 
+    const assetMatch = url.pathname.match(/^\/api\/reference-assets\/([^/]+)$/);
+    if (assetMatch && req.method === "GET") {
+      const asset = await store.getReferenceAssetById(assetMatch[1]);
+      if (!asset) throw httpError("Reference asset not found", 404);
+      const current = await getCurrentUser(req);
+      if (!(await store.canReadReferenceAsset(asset, current?.user || {}))) {
+        throw httpError("Reference asset not found", 404);
+      }
+      sendJson(res, 200, { asset: serializeReferenceAsset(asset) });
+      return true;
+    }
+
+    if (assetMatch && req.method === "PATCH") {
+      const current = await getCurrentUser(req);
+      ensureActiveAuthenticated(current);
+      const asset = await store.getReferenceAssetById(assetMatch[1]);
+      if (!asset || (asset.userId !== current.user.id && current.user.role !== "admin")) {
+        throw httpError("Reference asset not found", 404);
+      }
+      const body = await readJsonBody(req);
+      if (!Object.hasOwn(body || {}, "visibility")) {
+        throw httpError("Please provide a visibility value", 400);
+      }
+      const updated = await store.updateReferenceAssetVisibility(asset.id, normalizeAssetVisibility(body.visibility));
+      sendJson(res, 200, { asset: serializeReferenceAsset(updated) });
+      return true;
+    }
+
+    if (assetMatch && req.method === "DELETE") {
+      const current = await getCurrentUser(req);
+      ensureActiveAuthenticated(current);
+      const deleted = await store.deleteReferenceAsset(assetMatch[1], current.user);
+      if (!deleted) throw httpError("Reference asset not found", 404);
+      sendJson(res, 200, { asset: serializeReferenceAsset(deleted) });
+      return true;
+    }
+
     const fileMatch = url.pathname.match(/^\/api\/reference-assets\/([^/]+)\/file$/);
     if (fileMatch && (req.method === "GET" || req.method === "HEAD")) {
       const asset = await store.getReferenceAssetById(fileMatch[1]);
