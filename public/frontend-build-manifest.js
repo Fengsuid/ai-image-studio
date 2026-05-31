@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260531-button-legacy-followup-v1",
+  "version": "20260531-multi-candidate-generation-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {

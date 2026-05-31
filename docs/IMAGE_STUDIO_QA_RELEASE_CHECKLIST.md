@@ -699,3 +699,18 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: container `smoke:mysql-health-config`, container `smoke:public -- http://127.0.0.1:3000`, and `/api/version` verification passed after deployment.
 - Known blockers: none for AIS-RLS-127 after the 2026-05-31 restore-drill follow-up. The original same-host restore failure remains as historical evidence that low-memory production hosts should not run a second MySQL restore container.
 - Rollback target: revert the AIS-RLS-127 feature/docs commits, restore `APP_VERSION=20260528-admin-js-split-v1`, redeploy app, and remove optional `MYSQL_*` pool tuning values if runtime behavior regresses.
+
+### 2026-05-31 AIS-RLS-120 Multi-candidate Generation Release
+
+- Task covered: `AIS-RLS-120` multi-candidate / branch generation from prompt.
+- Commit covered: final single-task AIS-RLS-120 release commit; exact short hash is recorded in the private deployment log and task output.
+- Files changed: `scripts/smoke/check-multi-candidate-generation.mjs`, `package.json`, `docs/specs/AIS-RLS-120-multi-candidate-generation.md`, `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md`, APP_VERSION/build manifest files, and public frontend build manifest outputs.
+- Runtime coverage: public composer already exposes candidate count `1..4`; text and image-edit generation requests send `n`; a single `generation_request` groups the provider call, and returned `generations` are kept as one front-end candidate set through `images` and `candidateIds`.
+- Candidate selection coverage: candidate thumbnails let users promote a candidate to the current main image/generation id, so publish, image-to-image continuation, Canvas insertion, zoom/download, and my-works detail actions use the selected candidate.
+- Queue and credits coverage: queued payloads preserve `request.n`, provider `n`, `totalCost`, and `costPerImage`; credits are reserved as `generationCreditCost * n`; missing provider results refund `costPerImage * missing`.
+- Smoke coverage: added `smoke:multi-candidate-generation` and included it in `npm run check`; the smoke verifies source + hashed app bundle UI hooks, candidate selection code, route-level sync/async `n` handling, queue payload preservation, and partial-success credit refund behavior.
+- Local checks: `npm run frontend:build`, focused `node --check` for changed JS, `npm run smoke:multi-candidate-generation`, `npm run check`, and `git diff --check` passed. Local bare `npm run smoke:public` without a running local server failed at `localhost:3000` fetch setup; release verification uses container and online smoke below.
+- Deployment note: production deployment updates runtime to `APP_VERSION=20260531-multi-candidate-generation-v1`; no database schema or data migration is included.
+- Online smoke: one-shot app container `npm run smoke:public -- http://<app-container>:3000`, `npm run smoke:multi-candidate-generation`, and `npm run smoke:frontend-build-tooling` passed; external `npm run smoke:public -- https://<host>` passed and reported `/api/version` as `20260531-multi-candidate-generation-v1`.
+- Known blockers: none for AIS-RLS-120. Full persistent candidate-group tables and progressive per-slot `running/failed` state remain future enhancements beyond the task-card acceptance.
+- Rollback target: revert the AIS-RLS-120 release commit, restore the prior `APP_VERSION=20260531-button-legacy-followup-v1`, redeploy from git, and rerun public plus multi-candidate smoke.

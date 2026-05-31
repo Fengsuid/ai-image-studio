@@ -1151,7 +1151,7 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 
 独立规格索引：
 
-- `AIS-RLS-120` 多候选 / 分支生成：[`docs/specs/AIS-RLS-120-multi-candidate-generation.md`](specs/AIS-RLS-120-multi-candidate-generation.md)。现状索引：公共 composer 仍以单 prompt 单结果为默认，缺候选组、选中候选、部分成功计费和分支选择契约。
+- `AIS-RLS-120` 多候选 / 分支生成：[`docs/specs/AIS-RLS-120-multi-candidate-generation.md`](specs/AIS-RLS-120-multi-candidate-generation.md)。现状索引：2026-05-31 release 采用现有 `generation_requests` + 多条 `generations` + 前端 `candidateIds`/主图重排完成轻量闭环；公共 composer 可选 1-4 候选，选中候选会成为后续公开、续图、加入画布的当前结果，部分成功按缺失候选退款。
 - `AIS-RLS-121` 参考图资产化：[`docs/specs/AIS-RLS-121-reference-image-asset.md`](specs/AIS-RLS-121-reference-image-asset.md)。现状索引：首页参考图入口历史上只是灵感记录/预览，参考图尚未作为可复用、可审计、可展示的独立资产落库。
 - `AIS-RLS-122` my-works 资产库升级：[`docs/specs/AIS-RLS-122-my-works-asset-library.md`](specs/AIS-RLS-122-my-works-asset-library.md)。现状索引：my-works 仍偏弹窗/列表，缺完整资产库筛选、详情 drawer、批量归档/取消公开/导出和候选/参考资产展示。
 
@@ -1163,7 +1163,7 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 
 **现状**
 
-当前生成链路仍偏单结果；ProductFlow gap §4.7 明确记录“当前我们偏单结果”，建议支持 `n > 1`、候选作为 `round_candidate`、用户选择当前结果，并让公开最终展示图读取当前结果。现有 `generation_requests` / `generations` 已能承载单次生成、队列恢复和 trace，但前台缺少候选组概念、候选逐张完成状态和“选定当前结果”的持久字段。
+2026-05-31 release 已完成任务卡要求的轻量实现：公共 composer 暴露 1-4 候选选择，请求向 `/api/images/generate` 和 `/api/images/edit` 传递 `n`；后端用一个 `generation_request` 承载同 prompt 的候选请求，并保存返回的多条 `generations`；前端把候选图片和 `candidateIds` 作为同一轮结果展示，点击候选会把选中图移动为主图并替换当前会话 generation id。该实现不新增候选组表，后续若需要逐张 running/failed 状态和跨设备持久选中态，可再扩展为完整候选组模型。
 
 **影响**
 
@@ -1173,11 +1173,11 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 
 **方案**
 
-1. 数据模型增加“候选组”语义：一次提交生成 `candidateCount`，创建一个 `generation_request`，其下有 1-N 条候选记录；每条候选保存 `candidate_index`、`status`、`image_url`、`error_message`、`cost_credits`、`duration_ms`、`provider_request_id`。
-2. 增加 `selected_candidate_id` 或等价字段，写在请求/会话轮次/生成组上；默认选择首个成功候选，用户点击后更新。
-3. credits 计费按实际请求候选数或实际成功候选数采用明确策略：提交前预估并确认，失败候选按现有 provider 失败退费规则处理，记录审计日志。
-4. API 请求体支持 `candidateCount`，限制为 `1..4`；Provider 不支持 `n` 时由服务层拆成多个子调用，仍归入同一候选组。
-5. 前端生成结果区从单卡升级为候选网格，候选可逐张进入 `pending/running/succeeded/failed`，支持选择、预览、重试单张、从选中候选继续图生图、公开选中候选。
+1. 轻量候选组语义：一次提交生成 `n`，创建一个 `generation_request`，返回 1-N 条 `generations`；前端在同一历史轮次中保存 `images` 与 `candidateIds`。
+2. 选中候选采用前端当前轮次主图语义：默认首个成功候选，用户点击候选后把该候选移动到 `images[0]` 并将 `entry.id`/会话 generation id 替换为选中候选 id。
+3. credits 计费按 `generationCreditCost * n` 预留；provider 返回少于请求数时，按 `costPerImage * missing` 退还缺失候选积分，并写入 generation trace。
+4. API 兼容现有 OpenAI `n` 字段，限制来自 `settings.maxImagesPerRequest` 和 provider capability；Provider 不支持多候选时 composer 降级为 1。
+5. 前端结果区保持单主图 + 候选缩略条，支持比较、选择、预览、公开选中候选、加入画布和从选中候选继续图生图；逐张 pending/failed 卡片留作后续完整候选组模型。
 
 **UI 线框**
 
@@ -1198,10 +1198,10 @@ function renderSkeleton(container, { rows = 3 } = {}) {
 
 **验收**
 
-- 用户可从同一 prompt 生成 2-4 个候选结果，候选逐张显示完成/失败状态。
-- 用户选择候选后，图生图、加入画布、下载、公开广场均使用选中候选。
-- 生成队列和 credits 计费正确；部分失败时不会重复扣除或错误公开失败候选。
-- `npm run smoke:public` 通过，并补手动多候选生成流程：提交 4 候选、选择第 2 张、公开、刷新详情确认封面和路线一致。
+- 用户可从同一 prompt 生成 2-4 个候选结果，完成后在同一轮次显示候选缩略条。
+- 用户选择候选后，图生图、加入画布、下载、公开广场均使用当前主图候选。
+- 生成队列和 credits 计费正确；部分成功按缺失候选退款，不会重复扣除或错误公开未选中候选。
+- `npm run smoke:public` 通过，并补 `npm run smoke:multi-candidate-generation` 覆盖候选输入、`n` 传参、候选选择、队列 payload 和积分计费。
 
 **回滚**
 

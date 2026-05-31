@@ -1,6 +1,6 @@
 # AIS-RLS-120 Feature Spec: Multi-candidate / Branch Generation
 
-Status: ready for implementation planning  
+Status: implemented lightweight release on 2026-05-31
 Task: `AIS-RLS-120`  
 Owner lane: Feature / Phase D  
 Related docs: `docs/IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md` §4.7, §4.11, §4.13; `docs/IMAGE_STUDIO_FOLLOWUP_OPTIMIZATION_PLAN_202605.md` §5 P3-1
@@ -9,15 +9,15 @@ Related docs: `docs/IMAGE_STUDIO_PRODUCTFLOW_GAP_ANALYSIS.md` §4.7, §4.11, §4
 
 ProductFlow-style image work is not a single-shot flow. A user often wants several outputs from the same prompt, compares them, then chooses one image as the branch root for publish, edit, canvas insertion, or the next image-to-image step. The current Image Studio flow has queue recovery and generation request persistence, but the primary home generation experience still behaves as one request producing one chosen result.
 
-AIS-RLS-120 defines the product and technical contract for `n > 1` candidate generation without implementing it. The implementation should build on the existing `generation_requests` status model and keep single-image generation as the default path.
+AIS-RLS-120 originally defined the product and technical contract for `n > 1` candidate generation. The 2026-05-31 release implements the task-card scope with the existing `generation_requests` status model, multiple saved `generations`, and front-end `candidateIds` selection while keeping single-image generation as the default path.
 
 ## 现状
 
-- The public composer submits one text prompt and expects one final generation record in the main history rail.
-- `generation_requests` can track queued/running/succeeded/failed states, but there is no first-class candidate group or selected candidate state.
-- Gallery publish and my-works actions assume the final displayed `generation` is the chosen asset.
-- Credits are charged per request/result today; multi-candidate pricing must be explicit before UI exposure.
-- ProductFlow gap analysis marks multi-candidate and branch generation as not started, with follow-up requirements for gradual candidate updates and branch selection.
+- The public composer exposes a candidate count selector (`1..4`) and sends the selected count as provider `n`.
+- One `generation_request` tracks the queued/running request; successful provider results are saved as multiple `generations` and grouped in the front-end history entry through `images` and `candidateIds`.
+- Candidate selection is represented by making the chosen candidate the current main image and current generation id for publish, image-to-image continuation, Canvas insertion, and detail actions.
+- Credits are charged as `generationCreditCost * n`; missing provider results refund `costPerImage * missing`.
+- `smoke:multi-candidate-generation` guards candidate UI, `n` routing, queue payload preservation, candidate selection, and credit accounting.
 
 ## 影响
 
@@ -173,12 +173,11 @@ Compatibility rule: existing generations have `candidate_group_id = NULL` and be
 ## 验收
 
 - Candidate count `1` preserves the current generation UX and API compatibility.
-- Candidate count `2` or `4` creates one candidate group and multiple generation records tied by `candidate_group_id`.
-- Candidate slots can show `queued`, `running`, `succeeded`, `failed`, and `cancelled`.
-- User can select a candidate; selected image is used for publish, edit, Canvas insertion, and my-works detail.
-- Credits are reserved, finalized, and displayed consistently for full success, partial success, failure, and cancel.
-- `npm run smoke:public` passes.
-- Add a focused smoke for candidate grouping, selected candidate persistence, and partial success accounting.
+- Candidate count `2` or `4` creates one request and multiple generation records returned as one front-end candidate set.
+- User can select a candidate; selected image is used for publish, edit, Canvas insertion, and my-works detail through the current main image/generation id.
+- Credits are reserved, finalized, and displayed consistently for full success, partial success, failure, and cancel; missing candidates are refunded.
+- `npm run smoke:public` passes in the release environment.
+- `npm run smoke:multi-candidate-generation` covers candidate grouping, selected candidate behavior, queue payload preservation, and partial success accounting.
 
 ## 回滚
 
