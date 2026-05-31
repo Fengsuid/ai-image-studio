@@ -117,6 +117,16 @@
     }));
   }
 
+  function reportRouteLoadError(routeName, error) {
+    global.ImageStudioClientErrorMonitor?.report?.({
+      kind: "lazy_route_error",
+      message: error?.message || `Failed to load route ${routeName}`,
+      source: "app-router",
+      routeSource: routeName,
+      stack: error?.stack || ""
+    });
+  }
+
   function bindCanvasShellEvents(context = canvasBindingContext) {
     if (context) canvasBindingContext = context;
     if (canvasShellEventsBound || !canvasBindingContext || !global.ImageStudioCanvas?.bindShellEvents) return;
@@ -181,6 +191,7 @@
   if (initialRoute) {
     void ensureRoute(initialRoute).catch((error) => {
       console.error("[app-router]", error);
+      reportRouteLoadError(initialRoute, error);
       document.dispatchEvent(new CustomEvent("imagestudio:route-load-error", {
         detail: { route: initialRoute, error }
       }));
@@ -191,6 +202,7 @@
     if (global.location.hash.startsWith("#/canvas")) {
       void ensureCanvas().catch((error) => {
         console.error("[app-router]", error);
+        reportRouteLoadError("canvas", error);
       });
     }
   });

@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260531-reference-assets-index-v1",
+  "version": "20260601-client-error-monitoring-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -135,6 +135,14 @@
     },
     "assets": [
       {
+        "source": "/client-error-monitor.js",
+        "entry": "/dist/client-error-monitor.bd6d619329b8.js",
+        "fileName": "client-error-monitor.bd6d619329b8.js",
+        "hash": "bd6d619329b8",
+        "bytes": 1803,
+        "lazy": false
+      },
+      {
         "source": "/cache-db.js",
         "entry": "/dist/cache-db.7fb6d9be5a85.js",
         "fileName": "cache-db.7fb6d9be5a85.js",
@@ -264,10 +272,10 @@
       },
       {
         "source": "/app-router.js",
-        "entry": "/dist/app-router.21666e2d04fd.js",
-        "fileName": "app-router.21666e2d04fd.js",
-        "hash": "21666e2d04fd",
-        "bytes": 3181,
+        "entry": "/dist/app-router.d61e9b818449.js",
+        "fileName": "app-router.d61e9b818449.js",
+        "hash": "d61e9b818449",
+        "bytes": 3388,
         "lazy": false
       },
       {

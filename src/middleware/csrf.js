@@ -21,6 +21,7 @@ function createCsrfMiddleware({
   function verifyCsrf(req) {
     if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return;
     if (req.url?.startsWith("/api/csp-report")) return;
+    if (req.url?.startsWith("/api/client-error")) return;
     const cookieToken = String(parseCookies(req.headers.cookie).csrf || "");
     const headerToken = String(req.headers["x-csrf-token"] || "");
     if (!cookieToken || !headerToken || !timingSafeEqual(cookieToken, headerToken)) {

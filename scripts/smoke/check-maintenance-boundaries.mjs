@@ -45,15 +45,17 @@ const routeHealth = createHealthRoute({
   }
 });
 
-assert.equal(await routeHealth({ method: "POST" }, {}, new URL("http://local/api/csp-report")), true);
+assert.equal(await routeHealth({ method: "POST", headers: { "user-agent": "maintenance-smoke" } }, {}, new URL("http://local/api/csp-report")), true);
 assert.equal(writes.at(-1).status, 204, "CSP reports should return no-content");
-assert.equal(readCount, 1, "CSP reports should consume and ignore the JSON body");
+assert.equal(readCount, 1, "CSP reports should consume the JSON body");
+assert.equal(rumEvents.length, 1, "CSP reports should be retained in the shared RUM buffer");
+assert.equal(rumEvents[0].name, "csp_report");
 
 assert.equal(await routeHealth({ method: "POST" }, {}, new URL("http://local/api/rum")), true);
 assert.equal(writes.at(-1).status, 204, "RUM reports should return no-content");
-assert.equal(rumEvents.length, 1, "RUM reports should be retained in the injected buffer");
-assert.equal(rumEvents[0].name, "largest-contentful-paint");
-assert.equal(rumEvents[0].createdAt, "2026-05-23T00:00:00.000Z");
+assert.equal(rumEvents.length, 2, "RUM reports should be retained in the injected buffer");
+assert.equal(rumEvents[1].name, "largest-contentful-paint");
+assert.equal(rumEvents[1].createdAt, "2026-05-23T00:00:00.000Z");
 
 assert.equal(await routeHealth({ method: "GET" }, {}, new URL("http://local/api/version")), true);
 assert.equal(writes.at(-1).payload.version, "smoke-version", "version route should use injected metadata");
