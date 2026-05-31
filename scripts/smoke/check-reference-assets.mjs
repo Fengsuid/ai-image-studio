@@ -22,6 +22,8 @@ const packageJson = readJson("package.json");
 const appSettings = read("src/config/app-settings.js");
 const frontendSource = read("src/frontend/app-build-manifest.mjs");
 const manifest = readJson("public/frontend-build-manifest.json");
+const appVersion = appSettings.match(/APP_VERSION\s*=\s*process\.env\.APP_VERSION\s*\|\|\s*"([^"]+)"/)?.[1] || "";
+const frontendVersion = frontendSource.match(/FRONTEND_BUILD_VERSION\s*=\s*"([^"]+)"/)?.[1] || "";
 const mysqlStore = read("src/mysql-store.js");
 const galleryStore = read("src/stores/gallery-store.js");
 const referenceRoute = read("src/routes/reference-assets.js");
@@ -48,12 +50,14 @@ assert(
 );
 assertIncludes(appSettings, [
   'REFERENCE_ASSET_DIR',
-  'APP_VERSION = process.env.APP_VERSION || "20260531-my-works-asset-library-v1"'
+  'APP_VERSION = process.env.APP_VERSION ||'
 ], "app settings");
 assertIncludes(frontendSource, [
-  'FRONTEND_BUILD_VERSION = "20260531-my-works-asset-library-v1"'
+  'FRONTEND_BUILD_VERSION = "'
 ], "frontend source manifest");
-assert(manifest.version === "20260531-my-works-asset-library-v1", "built frontend manifest version must match current release");
+assert(appVersion, "app settings must expose a default APP_VERSION");
+assert(frontendVersion, "frontend source manifest must expose FRONTEND_BUILD_VERSION");
+assert(manifest.version === frontendVersion, "built frontend manifest version must match frontend source release");
 
 assertIncludes(mysqlStore, [
   "CREATE TABLE IF NOT EXISTS reference_assets",

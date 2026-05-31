@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260531-my-works-asset-library-v1",
+  "version": "20260531-frontend-a11y-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -312,26 +312,26 @@
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.36c9d2111268.js",
-        "fileName": "app-auth.36c9d2111268.js",
-        "hash": "36c9d2111268",
-        "bytes": 27359,
+        "entry": "/dist/app-auth.9d8bcbb4ed7e.js",
+        "fileName": "app-auth.9d8bcbb4ed7e.js",
+        "hash": "9d8bcbb4ed7e",
+        "bytes": 27873,
         "lazy": false
       },
       {
         "source": "/app-settings.js",
-        "entry": "/dist/app-settings.96345b1ec651.js",
-        "fileName": "app-settings.96345b1ec651.js",
-        "hash": "96345b1ec651",
-        "bytes": 25834,
+        "entry": "/dist/app-settings.9c3c23a8a771.js",
+        "fileName": "app-settings.9c3c23a8a771.js",
+        "hash": "9c3c23a8a771",
+        "bytes": 26009,
         "lazy": false
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.b4d051c671df.js",
-        "fileName": "app.b4d051c671df.js",
-        "hash": "b4d051c671df",
-        "bytes": 183244,
+        "entry": "/dist/app.c540ea295060.js",
+        "fileName": "app.c540ea295060.js",
+        "hash": "c540ea295060",
+        "bytes": 183407,
         "lazy": false
       },
       {

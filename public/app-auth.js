@@ -84,9 +84,9 @@
             <p><i class="ri-gift-line"></i> ${text("authGift")}</p>
             <p class="auth-bonus"><i class="ri-flashlight-line"></i> ${text("authBonus")}</p>
           </div>
-          <div class="auth-tabs">
-            <button type="button" class="${!isRegister ? "active" : ""}" data-auth-mode="login">${text("submitLogin")}</button>
-            <button type="button" class="${isRegister ? "active" : ""}" data-auth-mode="register">${text("submitRegister")}</button>
+          <div class="auth-tabs" role="tablist" aria-label="${escapeHtml(isRegister ? text("registerTitle") : text("loginTitle"))}">
+            <button type="button" role="tab" aria-selected="${!isRegister ? "true" : "false"}" class="${!isRegister ? "active" : ""}" data-auth-mode="login">${text("submitLogin")}</button>
+            <button type="button" role="tab" aria-selected="${isRegister ? "true" : "false"}" class="${isRegister ? "active" : ""}" data-auth-mode="register">${text("submitRegister")}</button>
           </div>
           <form id="authForm" class="modal-form">
             ${isRegister ? `<label>${text("name")}<input id="authName" autocomplete="name"></label>` : ""}
@@ -270,7 +270,7 @@
               <h2>${text("myWorks")}</h2>
               <p>${state.lang === "zh" ? "按类型、日期、标签管理作品，批量导出或删除私有历史。" : "Manage works by type, date, and tag, then export or delete private history in bulk."}</p>
             </div>
-            <button class="btn btn--ghost btn--icon ghost-button works-refresh" type="button" data-works-refresh><i class="ri-refresh-line"></i></button>
+            <button class="btn btn--ghost btn--icon ghost-button works-refresh" type="button" data-works-refresh aria-label="${escapeHtml(state.lang === "zh" ? "刷新作品" : "Refresh works")}" title="${escapeHtml(state.lang === "zh" ? "刷新作品" : "Refresh works")}"><i class="ri-refresh-line"></i></button>
           </div>
           <div class="works-toolbar">
             <label class="works-search"><i class="ri-search-line"></i><input id="worksSearchInput" value="${escapeHtml(state.worksSearch || "")}" placeholder="${state.lang === "zh" ? "搜索提示词、标签或时间" : "Search prompt, tags, or date"}"></label>
@@ -298,8 +298,8 @@
               <button type="button" data-works-bulk="delete" class="works-danger-action"><i class="ri-delete-bin-6-line"></i>${text("worksBatchDelete")}</button>
             </div>
           </div>
-          <div class="works-filter-bar" role="tablist">
-            ${filters.map((filter) => `<button type="button" data-works-filter="${filter.id}" class="works-filter-btn${state.worksFilter === filter.id ? " active" : ""}">${escapeHtml(filter.label)}</button>`).join("")}
+          <div class="works-filter-bar" role="tablist" aria-label="${escapeHtml(state.lang === "zh" ? "作品类型筛选" : "Work type filters")}">
+            ${filters.map((filter) => `<button type="button" role="tab" aria-selected="${state.worksFilter === filter.id ? "true" : "false"}" data-works-filter="${filter.id}" class="works-filter-btn${state.worksFilter === filter.id ? " active" : ""}">${escapeHtml(filter.label)}</button>`).join("")}
           </div>
           <p class="works-mobile-hint">${state.lang === "zh" ? "左右滑动浏览作品，点击卡片打开详情。" : "Swipe through works. Tap a card to open details."}</p>
           <div id="worksGrid" class="works-grid"><div class="empty-message">${text("loadingPrompts")}</div></div>
@@ -324,7 +324,9 @@
         button.addEventListener("click", () => {
           state.worksFilter = button.dataset.worksFilter || "all";
           $$("[data-works-filter]", elements.modalLayer).forEach((other) => {
-            other.classList.toggle("active", other === button);
+            const active = other === button;
+            other.classList.toggle("active", active);
+            other.setAttribute("aria-selected", active ? "true" : "false");
           });
           loadMyWorks(false);
         });
@@ -676,7 +678,7 @@
       elements.modalLayer.insertAdjacentHTML("beforeend", `
         <div class="works-detail-backdrop" data-work-detail-close></div>
         <aside class="works-detail-drawer" role="dialog" aria-modal="true" aria-label="${escapeHtml(text("worksDetailTitle"))}" data-work-id="${escapeHtml(item.id)}">
-          <button class="works-detail-close" type="button" data-work-detail-close><i class="ri-close-line"></i></button>
+          <button class="works-detail-close" type="button" data-work-detail-close aria-label="${escapeHtml(text("close"))}"><i class="ri-close-line"></i></button>
           <div class="works-detail-stage" ${context.imageFallbackContainerAttrs()}>
             <img src="${escapeHtml(item.images[0])}" ${context.imageFallbackImgAttrs()} loading="lazy" decoding="async" alt="${escapeHtml(truncate(item.prompt, 100))}">
           </div>

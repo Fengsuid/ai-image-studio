@@ -15,11 +15,30 @@ function assert(condition, message) {
 const indexHtml = read("public/index.html");
 const adminHtml = read("public/admin.html");
 const appJs = read("public/app.js");
+const appAuthJs = read("public/app-auth.js");
+const appSettingsJs = read("public/app-settings.js");
 const adminDashboard = read("public/admin/dashboard.js");
 const themeNavJs = read("public/theme-mobile-nav.js");
 const tokensCss = read("public/css/00-tokens.css");
 const shellCss = read("public/css/03-layout-shell.css");
 const adminCss = read("public/css/09-admin.css");
+const frontendManifest = JSON.parse(read("public/frontend-build-manifest.json"));
+
+function hashedJsSource(source) {
+  const asset = frontendManifest.js?.assets?.find((item) => item.source === source);
+  assert(asset?.entry, `frontend manifest must include ${source}`);
+  return asset?.entry ? read(`public/${asset.entry.replace(/^\//, "")}`) : "";
+}
+
+const appJsDist = hashedJsSource("/app.js");
+const appAuthJsDist = hashedJsSource("/app-auth.js");
+const appSettingsJsDist = hashedJsSource("/app-settings.js");
+
+function assertAll(content, tokens, label) {
+  for (const token of tokens) {
+    assert(content.includes(token), `${label} must include ${token}`);
+  }
+}
 
 assert(indexHtml.includes('id="toastLayer"') && indexHtml.includes('role="status"') && indexHtml.includes('aria-live="polite"'), "public toast layer must announce status changes");
 assert(adminHtml.includes('id="adminToastLayer"') && adminHtml.includes('role="status"') && adminHtml.includes('aria-live="polite"'), "admin toast layer must announce status changes");
@@ -30,6 +49,54 @@ assert(appJs.includes("function onModalKeydown") && appJs.includes('event.key ==
 assert(appJs.includes("focusTarget?.focus") && appJs.includes('aria-modal", "true"'), "frontend modal must set dialog semantics and initial focus");
 assert(appJs.includes('button.setAttribute("aria-label", text("close"))'), "dynamic close buttons must receive aria-label");
 assert(appJs.includes('toast.setAttribute("role", "status")'), "dynamic toasts must expose status role");
+assertAll(appJs, [
+  'elements.accountEmailText.setAttribute("role"',
+  'elements.accountEmailText.setAttribute("aria-label"'
+], "app.js account email semantics");
+assertAll(appJsDist, [
+  "Click to copy full email",
+  'setAttribute("role"',
+  'setAttribute("aria-label"',
+  "presentation"
+], "hashed app.js account email semantics");
+
+assertAll(appAuthJs, [
+  'elements.accountEmailText?.addEventListener("click"',
+  'elements.accountEmailText?.addEventListener("keydown"',
+  '["Enter", " "].includes(event.key)',
+  "elements.accountEmailText.click()",
+  'class="auth-tabs" role="tablist"',
+  'role="tab" aria-selected',
+  'class="works-filter-bar" role="tablist"',
+  'role="tab" aria-selected="${state.worksFilter',
+  'other.setAttribute("aria-selected"',
+  "data-works-refresh aria-label",
+  "data-work-detail-close aria-label"
+], "app-auth split a11y interactions");
+assertAll(appAuthJsDist, [
+  "accountEmailText",
+  "addEventListener",
+  "keydown",
+  "Enter",
+  'class="auth-tabs" role="tablist"',
+  'role="tab" aria-selected',
+  'class="works-filter-bar" role="tablist"',
+  'setAttribute("aria-selected"',
+  "data-works-refresh aria-label",
+  "data-work-detail-close aria-label"
+], "hashed app-auth split a11y interactions");
+
+assertAll(appSettingsJs, [
+  'elements.langBtn.setAttribute("aria-label", label)',
+  'elements.langBtn.setAttribute("aria-pressed"',
+  'const label = lang === "zh" ? "切换到 English" : "Switch to Chinese"'
+], "app-settings language toggle a11y");
+assertAll(appSettingsJsDist, [
+  "Switch to Chinese",
+  "切换到 English",
+  'setAttribute("aria-label"',
+  'setAttribute("aria-pressed"'
+], "hashed app-settings language toggle a11y");
 
 assert(adminDashboard.includes("onKeydown") && adminDashboard.includes('event.key === "Escape"'), "admin confirmation dialog must support Escape close");
 assert(adminDashboard.includes('layer.setAttribute("aria-hidden", "false")') && adminDashboard.includes('layer.setAttribute("aria-hidden", "true")'), "admin confirmation layer must toggle aria-hidden");

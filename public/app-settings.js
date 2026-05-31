@@ -761,7 +761,14 @@ const i18n = {
       $$(".prompt-box").forEach((node) => {
         node.placeholder = text("placeholder");
       });
-      if (elements.langBtn) elements.langBtn.textContent = currentLang() === "zh" ? "中/EN" : "EN/中";
+      if (elements.langBtn) {
+        const lang = currentLang();
+        const label = lang === "zh" ? "切换到 English" : "Switch to Chinese";
+        elements.langBtn.textContent = lang === "zh" ? "中/EN" : "EN/中";
+        elements.langBtn.title = label;
+        elements.langBtn.setAttribute("aria-label", label);
+        elements.langBtn.setAttribute("aria-pressed", String(lang === "en"));
+      }
       updateDailyMetric();
     }
 

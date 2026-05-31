@@ -843,6 +843,8 @@ function updateNav() {
     elements.accountEmailText.textContent = maskContactEmail(accountEmail);
     elements.accountEmailText.title = accountEmail ? (state.lang === "zh" ? "点击复制完整邮箱" : "Click to copy full email") : "";
     elements.accountEmailText.tabIndex = accountEmail ? 0 : -1;
+    elements.accountEmailText.setAttribute("role", accountEmail ? "button" : "presentation");
+    elements.accountEmailText.setAttribute("aria-label", accountEmail ? elements.accountEmailText.title : "");
   }
   if (elements.accountContactText) elements.accountContactText.textContent = maskContactEmail(contactEmail) || text("contact");
   if (elements.accountContactBtn) elements.accountContactBtn.title = contactEmail ? `${text("contactCopy")} · ${maskContactEmail(contactEmail)}` : "";
