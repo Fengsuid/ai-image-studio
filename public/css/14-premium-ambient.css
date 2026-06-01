@@ -1,0 +1,67 @@
+/* AIS-RLS-132 premium ambient and glass surface refinements. */
+
+:root {
+  --premium-mesh-brand: color-mix(in srgb, var(--brand-500) 14%, transparent);
+  --premium-mesh-accent: color-mix(in srgb, var(--accent) 12%, transparent);
+  --premium-mesh-info: color-mix(in srgb, var(--color-info) 10%, transparent);
+  --premium-glass-surface: color-mix(in srgb, var(--surface-glass) 86%, transparent);
+  --premium-glass-border: color-mix(in srgb, var(--neutral-200) 50%, transparent);
+}
+
+.ambient {
+  background:
+    radial-gradient(ellipse 72% 48% at 12% 12%, var(--premium-mesh-brand), transparent 62%),
+    radial-gradient(ellipse 56% 42% at 86% 18%, var(--premium-mesh-accent), transparent 58%),
+    radial-gradient(ellipse 58% 52% at 48% 90%, var(--premium-mesh-info), transparent 62%),
+    linear-gradient(160deg, var(--bg) 0%, var(--surface) 100%);
+  animation: ambient-drift 30s var(--ease-soft, ease-in-out) infinite;
+}
+
+.topbar {
+  background: color-mix(in srgb, var(--surface-glass) 82%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--neutral-200) 46%, transparent);
+  backdrop-filter: blur(24px) saturate(1.22);
+  -webkit-backdrop-filter: blur(24px) saturate(1.22);
+}
+
+.hero-pathway,
+.account-menu,
+.modal,
+.works-detail-drawer,
+.chat-session-panel {
+  border-color: var(--premium-glass-border);
+  background: var(--premium-glass-surface);
+  backdrop-filter: blur(22px) saturate(1.18);
+  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--neutral-0) 34%, transparent) inset,
+    var(--shadow-lg);
+}
+
+.composer {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-glass) 94%, transparent), color-mix(in srgb, var(--surface-card) 84%, transparent));
+  border-color: var(--premium-glass-border);
+}
+
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--brand-400) 44%, transparent);
+}
+
+:root[data-theme="dark"] {
+  --premium-mesh-brand: color-mix(in srgb, var(--brand-400) 20%, transparent);
+  --premium-mesh-accent: color-mix(in srgb, var(--accent) 15%, transparent);
+  --premium-mesh-info: color-mix(in srgb, var(--color-info) 13%, transparent);
+  --premium-glass-surface: color-mix(in srgb, var(--surface-elev-1) 78%, transparent);
+  --premium-glass-border: color-mix(in srgb, var(--neutral-400) 22%, transparent);
+}
+
+:root[data-theme="dark"] .topbar {
+  background: color-mix(in srgb, var(--surface-elev-1) 76%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient {
+    animation: none;
+  }
+}

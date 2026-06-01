@@ -1,5 +1,5 @@
 {
-  "version": "20260601-lazy-load-state-machine-v1",
+  "version": "20260601-premium-polish-split-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.e2c89f60e518.css",
-    "file": "/dist/app.e2c89f60e518.css",
-    "hash": "e2c89f60e518",
-    "bytes": 323291,
+    "entry": "/dist/app.01bc98b323f3.css",
+    "file": "/dist/app.01bc98b323f3.css",
+    "hash": "01bc98b323f3",
+    "bytes": 331280,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -73,6 +73,9 @@
       "/css/11-mobile.css",
       "/css/12-animations.css",
       "/css/12-visual-polish.css",
+      "/css/14-premium-ambient.css",
+      "/css/14-premium-interactions.css",
+      "/css/14-premium-mobile.css",
       "/css/13-performance.css",
       "/css/06-gallery-mobile.css",
       "/css/11-mobile-shell.css",

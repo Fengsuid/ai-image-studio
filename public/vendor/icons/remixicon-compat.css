@@ -27,3 +27,7 @@
 .ri-command-line:before {
   content: "\f0d1";
 }
+
+.ri-delete-bin-6-line:before {
+  content: "\ec2a";
+}
