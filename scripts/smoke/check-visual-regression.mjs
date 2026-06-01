@@ -66,11 +66,11 @@ const scenarios = [
     theme: "light",
     viewport: "desktop1440",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
     topbarExpectation: { mode: "desktop", maxHeight: 60 },
     baseline: false,
-    manualReview: "AIS-RLS-135 evidence: 1440 desktop compact topbar with 8 main controls."
+    manualReview: "AIS-RLS-135 evidence: 1440 desktop compact topbar with visible workspace access."
   },
   {
     name: "home-topbar-density-light-768",
@@ -90,11 +90,11 @@ const scenarios = [
     theme: "light",
     viewport: "mobile375",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
     topbarExpectation: { mode: "mobile", maxHeight: 56 },
     baseline: false,
-    manualReview: "AIS-RLS-135 evidence: 375 mobile topbar with logo, search, and avatar only."
+    manualReview: "AIS-RLS-135 evidence: 375 mobile topbar with logo, search, workspace menu, and avatar."
   },
   {
     name: "home-topbar-density-dark-1440",
@@ -102,11 +102,11 @@ const scenarios = [
     theme: "dark",
     viewport: "desktop1440",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
     topbarExpectation: { mode: "desktop", maxHeight: 60 },
     baseline: false,
-    manualReview: "AIS-RLS-135 evidence: 1440 dark-mode compact topbar."
+    manualReview: "AIS-RLS-135 evidence: 1440 dark-mode compact topbar with visible workspace access."
   },
   {
     name: "gallery-library-light-desktop",
@@ -764,20 +764,30 @@ async function visualProbe(scenario, viewport, externalTarget) {
     const overflowVisible = visibleIds("#topbarOverflowBtn");
     const legacyVisible = visibleIds(".brand-btn, .nav-pill, .icon-pill, .dark-pill");
     if (legacyVisible.length) failures.push(`${pageLabel}: legacy topbar classes visible: ${legacyVisible.join(", ")}`);
+    if (!overflowVisible.includes("topbarOverflowBtn")) {
+      failures.push(`${pageLabel}: workspace overflow trigger missing`);
+    } else {
+      const overflowButton = document.querySelector("#topbarOverflowBtn");
+      overflowButton?.click();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const menuResult = visible("#topbarOverflowMenu");
+      if (!menuResult.ok) failures.push(`${pageLabel}: workspace overflow menu ${menuResult.reason}`);
+      for (const selector of ["#canvasWorkspaceBtn", "#agentWorkspaceBtn", "#topbarGithubLink"]) {
+        const entryResult = visible(selector);
+        if (!entryResult.ok) failures.push(`${pageLabel}: core workspace entry ${selector} ${entryResult.reason}`);
+      }
+    }
     if (scenario.topbarExpectation.mode === "desktop") {
       for (const id of ["topbarSearchBtn", "topbarGenerateBtn", "promptLibraryBtn", "topbarCheckinBtn", "topbarCreditsBtn", "themeToggle"]) {
         if (!mainVisible.includes(id)) failures.push(`${pageLabel}: desktop topbar control ${id} missing`);
       }
-      if (overflowVisible.length) failures.push(`${pageLabel}: desktop overflow trigger should be hidden at >=1280px`);
     } else if (scenario.topbarExpectation.mode === "tablet") {
-      if (!overflowVisible.includes("topbarOverflowBtn")) failures.push(`${pageLabel}: tablet overflow trigger missing`);
       if (!mainVisible.includes("topbarSearchBtn")) failures.push(`${pageLabel}: tablet search control missing`);
     } else if (scenario.topbarExpectation.mode === "mobile") {
       const allowed = new Set(["topbarSearchBtn"]);
       const unexpected = mainVisible.filter((id) => !allowed.has(id));
       if (!mainVisible.includes("topbarSearchBtn")) failures.push(`${pageLabel}: mobile search control missing`);
       if (unexpected.length) failures.push(`${pageLabel}: mobile topbar shows extra main controls: ${unexpected.join(", ")}`);
-      if (overflowVisible.length) failures.push(`${pageLabel}: mobile overflow trigger should be hidden`);
     }
   }
 

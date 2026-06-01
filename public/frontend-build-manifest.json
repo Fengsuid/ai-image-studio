@@ -1,5 +1,5 @@
 {
-  "version": "20260601-topbar-density-v1",
+  "version": "20260601-topbar-entry-hotfix-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.b42ded5367d0.css",
-    "file": "/dist/app.b42ded5367d0.css",
-    "hash": "b42ded5367d0",
-    "bytes": 333558,
+    "entry": "/dist/app.53565e630610.css",
+    "file": "/dist/app.53565e630610.css",
+    "hash": "53565e630610",
+    "bytes": 333916,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

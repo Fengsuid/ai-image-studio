@@ -85,6 +85,12 @@
     max-height: min(68svh, 440px);
   }
 
+  #canvasWorkspaceBtn,
+  #agentWorkspaceBtn,
+  #topbarGithubLink {
+    min-height: var(--touch-target);
+  }
+
   .account-menu {
     position: fixed;
     top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top) + 8px);

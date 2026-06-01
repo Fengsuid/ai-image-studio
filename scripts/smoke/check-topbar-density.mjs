@@ -38,6 +38,11 @@ function countMatches(source, pattern) {
   return (source.match(pattern) || []).length;
 }
 
+function cssRuleBlock(source, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\}`))?.[1] || "";
+}
+
 function assertHeaderButtonsUseBtn(header) {
   const interactivePattern = /<(button|a)\b[^>]*\bclass=(["'])([^"']+)\2[^>]*>/g;
   let match;
@@ -70,12 +75,20 @@ function checkSourceTopbar() {
   assert(header.includes('id="themeToggle"'), "topbar must expose dark-mode toggle as a main control");
   assert(countMatches(header, /\bdata-topbar-main\b/g) === 6, "topbar must have 6 data-topbar-main controls plus logo and auth slot");
   assert(countMatches(header, /\bdata-topbar-auth\b/g) === 2, "topbar must keep login/account as one auth slot with two states");
+  assert(header.includes('id="topbarOverflowBtn"'), "topbar must expose a visible overflow/workspace trigger");
+  assert(header.includes("data-topbar-core-menu"), "overflow trigger must be marked as the core workspace menu");
+  assert(/aria-label="[^"]*(?:画布|Canvas)[^"]*(?:Agent|GitHub)|aria-label="[^"]*Agent[^"]*(?:GitHub|画布|Canvas)/.test(header), "overflow trigger accessible name must mention core Canvas/Agent/GitHub entries");
+  assert(header.includes("topbar-overflow-label"), "desktop overflow trigger must include a visible text label for discoverability");
 
   const overflow = indexHtml.match(/<div id="topbarOverflowMenu"[\s\S]*?<\/div>\s*<div id="accountMenu"/)?.[0] || "";
   assert(overflow, "topbar overflow menu must live outside the header");
   assert(!header.includes('id="topbarOverflowMenu"'), "topbar overflow menu must not add nodes inside the header");
   assert(overflow.includes("primitive-modal--menu"), "topbar overflow menu must use primitive-modal--menu");
   assert(countMatches(overflow, /\bdata-topbar-overflow-item\b/g) >= 3, "topbar overflow must contain at least 3 low-frequency items");
+  assert(countMatches(overflow, /\bdata-topbar-core-entry\b/g) === 3, "topbar overflow must mark Canvas, Agent, and GitHub as core entries");
+  assert(overflow.includes('id="canvasWorkspaceBtn"') && overflow.includes("data-topbar-core-entry"), "overflow menu must include the Canvas workspace entry as a core entry");
+  assert(overflow.includes('id="agentWorkspaceBtn"') && overflow.includes('href="/agent"'), "overflow menu must include the Agent workspace link");
+  assert(overflow.includes('id="topbarGithubLink"') && overflow.includes("GitHub"), "overflow menu must include the GitHub link");
   assert(overflow.includes('role="menu"'), "topbar overflow menu must expose role=menu");
   assert(countMatches(overflow, /\brole="menuitem"/g) >= 3, "topbar overflow entries must expose role=menuitem");
   assert(header.includes('aria-controls="topbarOverflowMenu"'), "overflow trigger must point to its menu");
@@ -91,10 +104,14 @@ function checkCss() {
   assert(topbarCss.includes("max-height: calc(56px + env(safe-area-inset-top))"), "mobile topbar must cap height at 56px plus safe area");
   assert(topbarCss.includes("@media (min-width: 641px) and (max-width: 1279px)"), "CSS must define the tablet overflow range");
   assert(topbarCss.includes("@media (max-width: 640px)"), "CSS must define the mobile compact range");
-  assert(/\.topbar-overflow\s*{[\s\S]*?display:\s*none;/.test(topbarCss), "desktop overflow trigger must be hidden by default");
-  assert(/@media \(min-width: 641px\) and \(max-width: 1279px\)[\s\S]*?\.topbar-overflow\s*{[\s\S]*?display:\s*inline-flex;/.test(topbarCss), "overflow trigger must show in the 641-1279 range");
-  assert(/@media \(max-width: 640px\)[\s\S]*?\.topbar-tab,[\s\S]*?\.topbar-chip,[\s\S]*?\.topbar-icon,[\s\S]*?\.topbar-overflow,[\s\S]*?\.topbar-login span[\s\S]*?display:\s*none;/.test(topbarCss), "mobile range must hide tabs, chips, dark-mode icon, overflow, and login text");
+  const overflowBlock = cssRuleBlock(topbarCss, ".topbar-overflow");
+  assert(overflowBlock.includes("display: inline-flex;"), "desktop overflow/workspace trigger must be visible by default");
+  assert(!overflowBlock.includes("display: none;"), "desktop overflow/workspace trigger must not be hidden by default");
+  assert(/@media \(max-width: 640px\)[\s\S]*?\.topbar-overflow-label\s*{[\s\S]*?display:\s*none;/.test(topbarCss), "mobile range may hide only the overflow text label");
+  assert(!/\.topbar-overflow\s*,/.test(topbarCss), "mobile range must keep the overflow/workspace trigger visible");
+  assert(!/\.topbar-github\s*,/.test(topbarCss), "mobile range must not hide the GitHub core menu item");
   assert(!/#[a-fA-F0-9]{3,6}/.test(topbarCss), "topbar density CSS must not introduce hard-coded hex colors");
+  assert(mobileShell.includes("#canvasWorkspaceBtn") && mobileShell.includes("#agentWorkspaceBtn") && mobileShell.includes("#topbarGithubLink"), "mobile CSS must explicitly preserve Canvas, Agent, and GitHub touch targets");
   assert(!/\.brand-btn|\.nav-pill|\.dark-pill|\.icon-pill/.test(mobileShell), "mobile topbar shell must not target legacy topbar classes");
   assert(leaderboardResponsive.includes('.topbar:not([data-topbar-density="compact"])'), "legacy responsive topbar stacking must skip compact topbar");
 }

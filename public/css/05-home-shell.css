@@ -33,10 +33,21 @@
 
 .topbar-search,
 .topbar-icon,
-.topbar-overflow-toggle,
 .account-avatar {
   width: var(--btn-h, 40px);
   min-width: var(--btn-h, 40px);
+}
+
+.topbar-overflow-toggle {
+  width: auto;
+  min-width: var(--btn-h, 40px);
+  padding-inline: var(--space-sm);
+}
+
+.topbar-overflow-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar-brand {
@@ -93,7 +104,7 @@
 
 .topbar-overflow {
   position: relative;
-  display: none;
+  display: inline-flex;
 }
 
 .topbar-overflow-menu {
@@ -150,10 +161,6 @@
     padding-inline: var(--space-md);
   }
 
-  .topbar-overflow {
-    display: inline-flex;
-  }
-
   .topbar-overflow-menu,
   .account-menu {
     top: 60px;
@@ -182,13 +189,21 @@
   }
 
   .topbar-brand > span:last-child,
-  .topbar-github,
   .topbar-tab,
   .topbar-chip,
   .topbar-icon,
-  .topbar-overflow,
   .topbar-login span {
     display: none;
+  }
+
+  .topbar-overflow-label {
+    display: none;
+  }
+
+  .topbar-overflow-toggle {
+    width: var(--btn-h);
+    min-width: var(--btn-h);
+    padding: 0;
   }
 
   .topbar-login {

@@ -9,7 +9,7 @@
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <title>AI Image Studio</title>
-    <link rel="stylesheet" href="/dist/app.b42ded5367d0.css">
+    <link rel="stylesheet" href="/dist/app.53565e630610.css">
   </head>
   <body>
     <div id="app" class="app">
@@ -45,8 +45,9 @@
             <i class="ri-sun-line theme-icon-sun" aria-hidden="true"></i>
           </button>
           <div class="topbar-overflow">
-            <button id="topbarOverflowBtn" class="btn btn--ghost btn--icon topbar-overflow-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbarOverflowMenu" aria-label="更多入口">
+            <button id="topbarOverflowBtn" class="btn btn--ghost topbar-overflow-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbarOverflowMenu" aria-label="工作台入口：画布、Agent、GitHub" title="工作台入口：画布、Agent、GitHub" data-topbar-core-menu>
               <i class="ri-more-2-line" aria-hidden="true"></i>
+              <span class="topbar-overflow-label">工作台</span>
             </button>
           </div>
           <button id="loginBtn" class="btn btn--primary topbar-login" type="button" data-topbar-auth>
@@ -70,15 +71,15 @@
           <i class="ri-trophy-line" aria-hidden="true"></i>
           <span data-i18n="galleryLeaderboardPage">点赞排行榜</span>
         </button>
-        <button id="canvasWorkspaceBtn" class="btn btn--ghost topbar-menu-item" type="button" role="menuitem" data-topbar-overflow-item>
+        <button id="canvasWorkspaceBtn" class="btn btn--ghost topbar-menu-item" type="button" role="menuitem" data-topbar-overflow-item data-topbar-core-entry>
           <i class="ri-node-tree" aria-hidden="true"></i>
           <span data-i18n="openCanvasWorkspace">打开画布工作台</span>
         </button>
-        <a id="agentWorkspaceBtn" class="btn btn--ghost topbar-menu-item" href="/agent" role="menuitem">
+        <a id="agentWorkspaceBtn" class="btn btn--ghost topbar-menu-item" href="/agent" role="menuitem" data-topbar-core-entry>
           <i class="ri-robot-2-line" aria-hidden="true"></i>
           <span>Agent 创作</span>
         </a>
-        <a class="btn btn--ghost topbar-menu-item topbar-github" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer" role="menuitem">
+        <a id="topbarGithubLink" class="btn btn--ghost topbar-menu-item topbar-github" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer" role="menuitem" data-topbar-core-entry>
           <i class="ri-github-fill" aria-hidden="true"></i>
           <span>GitHub</span>
         </a>
