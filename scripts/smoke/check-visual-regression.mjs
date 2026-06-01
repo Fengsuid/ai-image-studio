@@ -12,8 +12,9 @@ import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-let targetArg = process.argv[2] || "";
-const outputRoot = process.argv[3] || path.join(rootDir, "docs/mobile-qa/visual-regression/runs");
+const cli = parseArgs(process.argv.slice(2));
+let targetArg = cli.target || "";
+const outputRoot = cli.outputRoot || path.join(rootDir, "docs/mobile-qa/visual-regression/runs");
 const baselineRoot = process.env.VISUAL_REGRESSION_BASELINE_DIR
   || path.join(rootDir, "docs/mobile-qa/baseline-local");
 const requireBaseline = process.env.VISUAL_REGRESSION_REQUIRE_BASELINE === "1";
@@ -28,7 +29,10 @@ let staticServer = null;
 
 const viewports = {
   mobile: { name: "390x844", width: 390, height: 844, mobile: true },
-  desktop: { name: "1280x720", width: 1280, height: 720, mobile: false }
+  mobile375: { name: "375x812", width: 375, height: 812, mobile: true },
+  tablet768: { name: "768x1024", width: 768, height: 1024, mobile: true },
+  desktop: { name: "1280x720", width: 1280, height: 720, mobile: false },
+  desktop1440: { name: "1440x900", width: 1440, height: 900, mobile: false }
 };
 
 const sampleIds = await discoverSampleIds(targetArg);
@@ -41,7 +45,7 @@ const scenarios = [
     viewport: "desktop",
     readySelector: "#homeView",
     requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button"],
-    coreButtons: ["#heroComposerMount .send-button", "#promptLibraryBtn", "#imageEditorBtn"],
+    coreButtons: ["#heroComposerMount .send-button", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn"],
     cardSelectors: [".example-card", ".recent-tile"],
     manualReview: "Home hero, composer hierarchy, prompt discovery cards."
   },
@@ -57,13 +61,61 @@ const scenarios = [
     manualReview: "Dark home hero, mobile composer, bottom navigation spacing."
   },
   {
+    name: "home-topbar-density-light-1440",
+    url: "/",
+    theme: "light",
+    viewport: "desktop1440",
+    readySelector: "#homeView",
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
+    topbarExpectation: { mode: "desktop", maxHeight: 60 },
+    baseline: false,
+    manualReview: "AIS-RLS-135 evidence: 1440 desktop compact topbar with 8 main controls."
+  },
+  {
+    name: "home-topbar-density-light-768",
+    url: "/",
+    theme: "light",
+    viewport: "tablet768",
+    readySelector: "#homeView",
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    topbarExpectation: { mode: "tablet", maxHeight: 60 },
+    baseline: false,
+    manualReview: "AIS-RLS-135 evidence: 768 tablet topbar with overflow menu trigger."
+  },
+  {
+    name: "home-topbar-density-light-375",
+    url: "/",
+    theme: "light",
+    viewport: "mobile375",
+    readySelector: "#homeView",
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#accountMenuBtn"],
+    topbarExpectation: { mode: "mobile", maxHeight: 56 },
+    baseline: false,
+    manualReview: "AIS-RLS-135 evidence: 375 mobile topbar with logo, search, and avatar only."
+  },
+  {
+    name: "home-topbar-density-dark-1440",
+    url: "/",
+    theme: "dark",
+    viewport: "desktop1440",
+    readySelector: "#homeView",
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#accountMenuBtn"],
+    topbarExpectation: { mode: "desktop", maxHeight: 60 },
+    baseline: false,
+    manualReview: "AIS-RLS-135 evidence: 1440 dark-mode compact topbar."
+  },
+  {
     name: "gallery-library-light-desktop",
     url: "/?view=library",
     theme: "light",
     viewport: "desktop",
     readySelector: "#libraryView",
     requiredVisible: ["#libraryView", "#librarySearchInput", "#promptGrid", ".prompt-library-card"],
-    coreButtons: ["#librarySearchForm button", "#leaderboardBtn"],
+    coreButtons: ["#librarySearchForm button", "#topbarSearchBtn", "#promptLibraryBtn"],
     cardSelectors: [".prompt-library-card"],
     manualReview: "Prompt library cards, filter chips, sort and gallery density."
   },
@@ -147,6 +199,36 @@ const scenarios = [
   }
 ];
 
+function parseArgs(args) {
+  const parsed = { target: "", outputRoot: "", filter: "" };
+  const positional = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--filter") {
+      parsed.filter = args[index + 1] || "";
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith("--filter=")) {
+      parsed.filter = arg.slice("--filter=".length);
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      throw new Error(`Unknown visual regression option: ${arg}`);
+    }
+    positional.push(arg);
+  }
+  parsed.target = positional[0] || "";
+  parsed.outputRoot = positional[1] || "";
+  return parsed;
+}
+
+function filterScenarios(source, filter) {
+  if (!filter) return source;
+  const normalized = filter.toLowerCase();
+  return source.filter((scenario) => scenario.name.toLowerCase().includes(normalized));
+}
+
 async function main() {
   if (!chromePath) {
     throw new Error("Chrome executable not found. Set CHROME_PATH to run visual regression smoke.");
@@ -202,7 +284,12 @@ async function main() {
     await cdp.send("Page.enable", {}, sessionId);
     await cdp.send("Runtime.enable", {}, sessionId);
 
-    for (const scenario of scenarios) {
+    const activeScenarios = filterScenarios(scenarios, cli.filter);
+    if (!activeScenarios.length) {
+      throw new Error(`No visual regression scenarios matched filter: ${cli.filter}`);
+    }
+
+    for (const scenario of activeScenarios) {
       const viewport = viewports[scenario.viewport] || viewports.desktop;
       if (browserWindow?.windowId) {
         await cdp.send("Browser.setWindowBounds", {
@@ -251,7 +338,16 @@ async function main() {
       await fs.writeFile(screenshotPath, Buffer.from(screenshot.data, "base64"));
       result.screenshot = screenshotName;
 
-      const comparison = await compareWithBaseline(screenshotName, screenshotPath);
+      const comparison = scenario.baseline === false
+        ? {
+            screenshot: screenshotName,
+            baseline: "",
+            status: "manual-evidence",
+            diffRatio: null,
+            differentPixels: null,
+            totalPixels: null
+          }
+        : await compareWithBaseline(screenshotName, screenshotPath);
       result.comparison = comparison;
       summary.comparisons.push(comparison);
       if (comparison.failure) result.failures.push(`${scenario.name}: ${comparison.failure}`);
@@ -650,6 +746,41 @@ async function visualProbe(scenario, viewport, externalTarget) {
     }
   }
 
+  if (scenario.topbarExpectation) {
+    const topbar = document.querySelector(".topbar");
+    const topbarResult = isElementVisible(topbar);
+    if (!topbarResult.ok) {
+      failures.push(`${pageLabel}: topbar ${topbarResult.reason}`);
+    } else {
+      const topbarHeight = Math.round(topbarResult.rect.height);
+      if (topbarHeight > scenario.topbarExpectation.maxHeight + 1) {
+        failures.push(`${pageLabel}: topbar height ${topbarHeight}px exceeds ${scenario.topbarExpectation.maxHeight}px`);
+      }
+    }
+    const visibleIds = (selector) => [...document.querySelectorAll(selector)]
+      .filter((el) => isElementVisible(el).ok)
+      .map((el) => el.id || String(el.className || el.tagName));
+    const mainVisible = visibleIds("[data-topbar-main]");
+    const overflowVisible = visibleIds("#topbarOverflowBtn");
+    const legacyVisible = visibleIds(".brand-btn, .nav-pill, .icon-pill, .dark-pill");
+    if (legacyVisible.length) failures.push(`${pageLabel}: legacy topbar classes visible: ${legacyVisible.join(", ")}`);
+    if (scenario.topbarExpectation.mode === "desktop") {
+      for (const id of ["topbarSearchBtn", "topbarGenerateBtn", "promptLibraryBtn", "topbarCheckinBtn", "topbarCreditsBtn", "themeToggle"]) {
+        if (!mainVisible.includes(id)) failures.push(`${pageLabel}: desktop topbar control ${id} missing`);
+      }
+      if (overflowVisible.length) failures.push(`${pageLabel}: desktop overflow trigger should be hidden at >=1280px`);
+    } else if (scenario.topbarExpectation.mode === "tablet") {
+      if (!overflowVisible.includes("topbarOverflowBtn")) failures.push(`${pageLabel}: tablet overflow trigger missing`);
+      if (!mainVisible.includes("topbarSearchBtn")) failures.push(`${pageLabel}: tablet search control missing`);
+    } else if (scenario.topbarExpectation.mode === "mobile") {
+      const allowed = new Set(["topbarSearchBtn"]);
+      const unexpected = mainVisible.filter((id) => !allowed.has(id));
+      if (!mainVisible.includes("topbarSearchBtn")) failures.push(`${pageLabel}: mobile search control missing`);
+      if (unexpected.length) failures.push(`${pageLabel}: mobile topbar shows extra main controls: ${unexpected.join(", ")}`);
+      if (overflowVisible.length) failures.push(`${pageLabel}: mobile overflow trigger should be hidden`);
+    }
+  }
+
   for (const selector of scenario.cardSelectors || []) {
     let cards = [...document.querySelectorAll(selector)].filter((el) => isElementVisible(el).ok);
     if (!cards.length) {
@@ -689,7 +820,7 @@ async function visualProbe(scenario, viewport, externalTarget) {
     if (whiteSurfaces.length) failures.push(`${pageLabel}: possible white surface in dark mode: ${whiteSurfaces.join(", ")}`);
   }
 
-  const textOverflow = [...document.querySelectorAll("button, .nav-pill, .bottom-nav-item, .dark-pill, .account-menu-item, .library-search button, .card-actions button, .admin-nav button")]
+  const textOverflow = [...document.querySelectorAll("button, .topbar-tab, .topbar-chip, .topbar-login, .topbar-menu-item, .bottom-nav-item, .account-menu-item, .library-search button, .card-actions button, .admin-nav button")]
     .filter((el) => {
       const result = isElementVisible(el);
       if (!result.ok) return false;

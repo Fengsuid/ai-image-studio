@@ -298,12 +298,19 @@ function checkCssModules() {
   assert(indexHtml.includes('class="btn btn--primary send-button"'), "public index must consume .btn on the composer send button");
   assert(indexHtml.includes('class="btn btn--secondary composer-options-button options-toggle"'), "public index must consume .btn on composer option buttons");
   assert(
-    indexHtml.includes('class="btn btn--ghost brand-btn"') &&
-      indexHtml.includes('class="btn btn--ghost nav-pill"') &&
-      indexHtml.includes('class="btn btn--ghost btn--icon icon-pill') &&
-      indexHtml.includes('class="btn btn--primary dark-pill"'),
-    "public index shell buttons must consume .btn variants while retaining legacy hook classes"
+    indexHtml.includes('class="btn btn--ghost topbar-brand"') &&
+      indexHtml.includes('class="btn btn--ghost btn--icon topbar-search"') &&
+      indexHtml.includes('class="btn btn--ghost topbar-tab"') &&
+      indexHtml.includes('class="btn btn--secondary topbar-chip') &&
+      indexHtml.includes('class="btn btn--ghost btn--icon topbar-icon') &&
+      indexHtml.includes('class="btn btn--primary topbar-login"') &&
+      indexHtml.includes('class="btn btn--ghost btn--icon account-avatar"'),
+    "public index compact topbar buttons must consume .btn variants"
   );
+  const header = indexHtml.match(/<header class="topbar"[\s\S]*?<\/header>/)?.[0] || "";
+  assert(header.includes('data-topbar-density="compact"'), "public topbar must opt into compact density");
+  assert(!/\b(?:brand-btn|nav-pill|icon-pill|dark-pill)\b/.test(header), "compact public topbar must not retain legacy shell button classes");
+  assert(indexHtml.includes('primitive-modal--menu topbar-overflow-menu'), "public topbar overflow must use the menu primitive hook");
   const legacyButtonGuardFiles = [
     "public/index.html",
     "public/app-auth.js",

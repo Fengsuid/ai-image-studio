@@ -208,7 +208,14 @@ const elements = {
   modalLayer: $("#modalLayer"),
   toastLayer: $("#toastLayer"),
   brandBtn: $("#brandBtn"),
+  topbarSearchBtn: $("#topbarSearchBtn"),
+  topbarGenerateBtn: $("#topbarGenerateBtn"),
   promptLibraryBtn: $("#promptLibraryBtn"),
+  topbarOverflowBtn: $("#topbarOverflowBtn"),
+  topbarOverflowMenu: $("#topbarOverflowMenu"),
+  topbarCheckinBtn: $("#topbarCheckinBtn"),
+  topbarCreditsBtn: $("#topbarCreditsBtn"),
+  topbarCreditsText: $("#topbarCreditsText"),
   imageEditorBtn: $("#imageEditorBtn"),
   canvasWorkspaceBtn: $("#canvasWorkspaceBtn"),
   openCanvasInlineBtn: $("#openCanvasInlineBtn"),
@@ -828,6 +835,8 @@ function updateNav() {
   elements.accountMenuWrap?.classList.toggle("hidden", !loggedIn);
   elements.logoutBtn?.classList.toggle("hidden", !loggedIn);
   elements.creditsBtn?.classList.toggle("hidden", !loggedIn);
+  elements.topbarCheckinBtn?.classList.toggle("hidden", !loggedIn);
+  elements.topbarCreditsBtn?.classList.toggle("hidden", !loggedIn);
   elements.myWorksBtn?.classList.toggle("hidden", !loggedIn);
   elements.notificationBtn?.classList.toggle("hidden", !loggedIn);
   elements.imageEditorBtn.classList.toggle("hidden", capabilities.imageEdit === false);
@@ -838,6 +847,7 @@ function updateNav() {
   elements.accountContactBtn?.classList.toggle("hidden", !contactEmail);
   elements.adminBtn?.classList.toggle("hidden", state.user?.role !== "admin");
   elements.creditsText.textContent = state.user ? `${text("credits")} ${state.user.credits}` : "0";
+  if (elements.topbarCreditsText) elements.topbarCreditsText.textContent = state.user ? `${text("credits")} ${state.user.credits}` : text("credits");
   if (elements.accountNameText) elements.accountNameText.textContent = state.user?.name || maskContactEmail(accountEmail) || text("user");
   if (elements.accountEmailText) {
     elements.accountEmailText.textContent = maskContactEmail(accountEmail);
@@ -5557,7 +5567,29 @@ function bindGlobalEvents() {
   elements.brandBtn.addEventListener("click", () => {
     openHomeHero({ scroll: true });
   });
+  elements.topbarSearchBtn?.addEventListener("click", () => {
+    navigate("library", { scrollTop: true });
+    setTimeout(() => elements.librarySearchInput?.focus(), 80);
+  });
+  elements.topbarGenerateBtn?.addEventListener("click", () => focusGenerationComposer());
   elements.promptLibraryBtn.addEventListener("click", () => navigate("library", { scrollTop: true }));
+  elements.topbarOverflowBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = elements.topbarOverflowMenu?.classList.contains("hidden");
+    elements.topbarOverflowMenu?.classList.toggle("hidden", !willOpen);
+    elements.topbarOverflowBtn?.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  });
+  document.addEventListener("click", (event) => {
+    if (!elements.topbarOverflowMenu || elements.topbarOverflowMenu.classList.contains("hidden")) return;
+    if (event.target.closest?.(".topbar-overflow, #topbarOverflowMenu")) return;
+    elements.topbarOverflowMenu.classList.add("hidden");
+    elements.topbarOverflowBtn?.setAttribute("aria-expanded", "false");
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    elements.topbarOverflowMenu?.classList.add("hidden");
+    elements.topbarOverflowBtn?.setAttribute("aria-expanded", "false");
+  });
   elements.leaderboardBtn?.addEventListener("click", () => navigate("leaderboard", { scrollTop: true }));
   elements.canvasWorkspaceBtn?.addEventListener("click", openCanvasWorkspace);
   elements.sessionDrawerToggle?.addEventListener("click", () => {

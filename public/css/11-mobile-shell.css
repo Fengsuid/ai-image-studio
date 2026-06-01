@@ -24,14 +24,14 @@
     padding: calc(6px + env(safe-area-inset-top)) var(--mobile-page-pad) 6px;
   }
 
-  .brand-btn {
+  .topbar-brand {
     flex: 0 0 auto;
     min-height: var(--touch-target);
     max-width: min(44vw, 170px);
     overflow: hidden;
   }
 
-  .brand-btn > span:last-child {
+  .topbar-brand > span:last-child {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -54,9 +54,12 @@
     padding-bottom: 0;
   }
 
-  .nav-pill,
-  .dark-pill,
-  .icon-pill,
+  .topbar-tab,
+  .topbar-chip,
+  .topbar-search,
+  .topbar-icon,
+  .topbar-overflow-toggle,
+  .topbar-login,
   .account-avatar {
     min-width: var(--touch-target);
     min-height: var(--touch-target);
@@ -65,42 +68,21 @@
     flex: 0 0 auto;
   }
 
-  .nav-pill span {
-    display: none;
-  }
-
-  .nav-pill i,
-  .dark-pill i,
-  .icon-pill i {
+  .topbar-tab i,
+  .topbar-chip i,
+  .topbar-search i,
+  .topbar-icon i,
+  .topbar-overflow-toggle i,
+  .topbar-login i {
     font-size: 18px;
     line-height: 1;
   }
 
-  #leaderboardBtn,
-  #promptLibraryBtn,
-  #imageEditorBtn,
-  #canvasWorkspaceBtn,
-  #agentWorkspaceBtn,
-  #contactBtn,
-  #langBtn {
-    display: none;
-  }
-
-  .github-pill {
-    width: var(--touch-target);
-    min-width: var(--touch-target);
-    padding: 0;
-    display: inline-flex;
-  }
-
-  .dark-pill {
-    min-width: 64px;
-    padding-inline: 13px;
-  }
-
-  .dark-pill span {
-    display: inline;
-    font-size: 13px;
+  .topbar-overflow-menu {
+    top: calc(var(--mobile-topbar-h) + env(safe-area-inset-top) + 8px);
+    right: var(--mobile-page-pad);
+    width: min(260px, calc(100vw - 32px));
+    max-height: min(68svh, 440px);
   }
 
   .account-menu {
@@ -389,22 +371,17 @@
     padding-inline: var(--mobile-page-pad-sm);
   }
 
-  .brand-btn {
+  .topbar-brand {
     max-width: var(--touch-target);
     padding: 0;
   }
 
-  .brand-btn > span:last-child {
+  .topbar-brand > span:last-child {
     display: none;
   }
 
   .top-actions {
     gap: 5px;
-  }
-
-  .dark-pill {
-    min-width: 60px;
-    padding-inline: 11px;
   }
 
   .account-menu {

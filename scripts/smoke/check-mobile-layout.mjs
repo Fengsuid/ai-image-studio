@@ -34,14 +34,14 @@ const pages = [
     url: "/",
     readySelector: "#homeView",
     requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button"],
-    coreButtons: ["#heroComposerMount .send-button", "#promptLibraryBtn", "#imageEditorBtn", "#loginBtn"],
+    coreButtons: ["#heroComposerMount .send-button", "#topbarSearchBtn", "#topbarGenerateBtn", "#loginBtn"],
   },
   {
     name: "chat-workspace",
     url: "/?workspace=1",
     readySelector: "#chatView",
     requiredVisible: ["#chatView", "#stickyComposerMount", "#stickyComposerMount .send-button"],
-    coreButtons: ["#stickyComposerMount .send-button", "#sessionDrawerToggle"],
+    coreButtons: ["#stickyComposerMount .send-button", "#topbarSearchBtn"],
     allowMissing: true,
   },
   {
@@ -49,7 +49,7 @@ const pages = [
     url: "/?view=library",
     readySelector: "#libraryView",
     requiredVisible: ["#libraryView", "#librarySearchInput", "#promptGrid"],
-    coreButtons: ["#librarySearchForm button", "#leaderboardBtn"],
+    coreButtons: ["#librarySearchForm button", "#topbarSearchBtn"],
   },
   {
     name: "leaderboard",
@@ -595,7 +595,7 @@ function layoutProbe(page, viewport) {
     }
   }
 
-  const textOverflow = [...document.querySelectorAll("button, .nav-pill, .dark-pill, .account-menu-item, .message-actions button, .library-search button")]
+  const textOverflow = [...document.querySelectorAll("button, .topbar-tab, .topbar-chip, .topbar-login, .topbar-menu-item, .account-menu-item, .message-actions button, .library-search button")]
     .filter((el) => {
       const style = getComputedStyle(el);
       if (style.display === "none" || style.visibility === "hidden") return false;

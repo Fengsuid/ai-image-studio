@@ -9,95 +9,121 @@
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <title>AI Image Studio</title>
-    <link rel="stylesheet" href="/dist/app.01bc98b323f3.css">
+    <link rel="stylesheet" href="/dist/app.b42ded5367d0.css">
   </head>
   <body>
     <div id="app" class="app">
       <div class="ambient" aria-hidden="true"></div>
 
-      <header class="topbar">
-        <button id="brandBtn" class="btn btn--ghost brand-btn" type="button">
+      <header class="topbar" data-topbar-density="compact">
+        <button id="brandBtn" class="btn btn--ghost topbar-brand" type="button">
           <span class="brand-dot"><i class="ri-sparkling-2-fill"></i></span>
           <span data-i18n="brand">AI Image Studio</span>
         </button>
         <nav class="top-actions" aria-label="主导航">
-          <button id="promptLibraryBtn" class="btn btn--ghost nav-pill" type="button">
+          <button id="topbarSearchBtn" class="btn btn--ghost btn--icon topbar-search" type="button" aria-label="搜索画廊" title="搜索画廊" data-topbar-main>
+            <i class="ri-search-line" aria-hidden="true"></i>
+          </button>
+          <button id="topbarGenerateBtn" class="btn btn--ghost topbar-tab" type="button" data-topbar-main>
+            <i class="ri-flashlight-line" aria-hidden="true"></i>
+            <span data-i18n="create">生成</span>
+          </button>
+          <button id="promptLibraryBtn" class="btn btn--ghost topbar-tab" type="button" data-topbar-main>
             <i class="ri-sparkling-2-fill sparkle-icon" aria-hidden="true"></i>
-            <span data-i18n="promptLibrary">画廊</span>
+            <span data-i18n="promptLibrary">社区</span>
           </button>
-          <button id="leaderboardBtn" class="btn btn--ghost nav-pill" type="button">
-            <i class="ri-trophy-line"></i>
-            <span data-i18n="galleryLeaderboardPage">点赞排行榜</span>
+          <button id="topbarCheckinBtn" class="btn btn--secondary topbar-chip hidden" type="button" data-topbar-main>
+            <i class="ri-calendar-check-line" aria-hidden="true"></i>
+            <span data-i18n="checkinToday">签到</span>
           </button>
-          <button id="imageEditorBtn" class="btn btn--ghost nav-pill" type="button">
-            <i class="ri-magic-line"></i>
-            <span data-i18n="imageEditor">图片编辑</span>
+          <button id="topbarCreditsBtn" class="btn btn--ghost topbar-chip hidden" type="button" data-topbar-main>
+            <i class="ri-coin-line" aria-hidden="true"></i>
+            <span id="topbarCreditsText">0</span>
           </button>
-          <button id="canvasWorkspaceBtn" class="btn btn--ghost nav-pill" type="button">
-            <i class="ri-node-tree"></i>
-            <span data-i18n="openCanvasWorkspace">打开画布工作台</span>
-          </button>
-          <a id="agentWorkspaceBtn" class="btn btn--ghost nav-pill" href="/agent">
-            <i class="ri-robot-2-line"></i>
-            <span>Agent 创作</span>
-          </a>
-          <button id="sessionDrawerToggle" class="btn btn--ghost nav-pill session-drawer-toggle hidden" type="button">
-            <i class="ri-chat-3-line"></i>
-            <span data-i18n="openChats">对话列表</span>
-          </button>
-          <button id="notificationBtn" class="btn btn--ghost nav-pill hidden notification-pill" type="button">
-            <i class="ri-notification-3-line"></i>
-            <span data-i18n="notifications">通知</span>
-            <b id="notificationBadge" class="notification-badge hidden">0</b>
-          </button>
-          <button id="contactBtn" class="btn btn--ghost btn--icon icon-pill contact-pill" type="button" title="联系管理员">
-            <i class="ri-customer-service-2-line"></i>
-          </button>
-          <a class="btn btn--ghost btn--icon icon-pill github-pill" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-            <i class="ri-github-fill"></i>
-          </a>
-          <button id="themeToggle" class="btn btn--ghost btn--icon icon-pill theme-toggle" type="button" title="切换深色模式" aria-label="切换深色模式">
+          <button id="themeToggle" class="btn btn--ghost btn--icon topbar-icon theme-toggle" type="button" title="切换深色模式" aria-label="切换深色模式" data-topbar-main>
             <i class="ri-moon-line theme-icon-moon" aria-hidden="true"></i>
             <i class="ri-sun-line theme-icon-sun" aria-hidden="true"></i>
           </button>
-          <button id="langBtn" class="btn btn--ghost btn--icon icon-pill" type="button" title="Language">中/EN</button>
-          <button id="loginBtn" class="btn btn--primary dark-pill" type="button">
-            <i class="ri-login-circle-line"></i>
+          <div class="topbar-overflow">
+            <button id="topbarOverflowBtn" class="btn btn--ghost btn--icon topbar-overflow-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbarOverflowMenu" aria-label="更多入口">
+              <i class="ri-more-2-fill" aria-hidden="true"></i>
+            </button>
+          </div>
+          <button id="loginBtn" class="btn btn--primary topbar-login" type="button" data-topbar-auth>
+            <i class="ri-login-circle-line" aria-hidden="true"></i>
             <span data-i18n="login">登录</span>
           </button>
-          <div id="accountMenuWrap" class="account-menu-wrap hidden">
-            <button id="accountMenuBtn" class="account-avatar" type="button" aria-haspopup="menu" aria-expanded="false" title="账号">
+          <div id="accountMenuWrap" class="account-menu-wrap hidden" data-topbar-auth>
+            <button id="accountMenuBtn" class="btn btn--ghost btn--icon account-avatar" type="button" aria-haspopup="menu" aria-expanded="false" title="账号">
               <span id="accountAvatarText">T</span>
             </button>
-            <div id="accountMenu" class="account-menu hidden" role="menu">
-              <div class="account-menu-head">
-                <span id="accountNameText">AI Image Studio</span>
-                <small id="accountEmailText"></small>
-              </div>
-              <button id="creditsBtn" class="account-menu-item" type="button" role="menuitem">
-                <i class="ri-coin-line"></i>
-                <span id="creditsText">0</span>
-              </button>
-              <button id="myWorksBtn" class="account-menu-item" type="button" role="menuitem">
-                <i class="ri-gallery-view-2"></i>
-                <span data-i18n="myWorks">我的作品</span>
-              </button>
-              <button id="adminBtn" class="account-menu-item hidden" type="button" role="menuitem">
-                <i class="ri-settings-3-line"></i>
-                <span data-i18n="admin">后台</span>
-              </button>
-              <button id="accountContactBtn" class="account-menu-item" type="button" role="menuitem">
-                <i class="ri-customer-service-2-line"></i>
-                <span id="accountContactText">联系管理员</span>
-              </button>
-              <button id="logoutBtn" class="account-menu-item danger" type="button" role="menuitem">
-                <i class="ri-logout-circle-r-line"></i>
-                <span data-i18n="logout">退出</span>
-              </button>
-            </div>
           </div>
         </nav>
       </header>
+
+      <div id="topbarOverflowMenu" class="primitive-modal primitive-modal--menu topbar-overflow-menu hidden" role="menu" aria-labelledby="topbarOverflowBtn">
+        <button id="imageEditorBtn" class="btn btn--ghost topbar-menu-item" type="button" role="menuitem" data-topbar-overflow-item>
+          <i class="ri-magic-line" aria-hidden="true"></i>
+          <span data-i18n="imageEditor">图片编辑</span>
+        </button>
+        <button id="leaderboardBtn" class="btn btn--ghost topbar-menu-item" type="button" role="menuitem" data-topbar-overflow-item>
+          <i class="ri-trophy-line" aria-hidden="true"></i>
+          <span data-i18n="galleryLeaderboardPage">点赞排行榜</span>
+        </button>
+        <button id="canvasWorkspaceBtn" class="btn btn--ghost topbar-menu-item" type="button" role="menuitem" data-topbar-overflow-item>
+          <i class="ri-node-tree" aria-hidden="true"></i>
+          <span data-i18n="openCanvasWorkspace">打开画布工作台</span>
+        </button>
+        <a id="agentWorkspaceBtn" class="btn btn--ghost topbar-menu-item" href="/agent" role="menuitem">
+          <i class="ri-robot-2-line" aria-hidden="true"></i>
+          <span>Agent 创作</span>
+        </a>
+        <a class="btn btn--ghost topbar-menu-item topbar-github" href="https://github.com/Fengsuid/ai-image-studio" target="_blank" rel="noopener noreferrer" role="menuitem">
+          <i class="ri-github-fill" aria-hidden="true"></i>
+          <span>GitHub</span>
+        </a>
+        <button id="sessionDrawerToggle" class="btn btn--ghost topbar-menu-item session-drawer-toggle hidden" type="button" role="menuitem">
+          <i class="ri-chat-3-line" aria-hidden="true"></i>
+          <span data-i18n="openChats">对话列表</span>
+        </button>
+        <button id="notificationBtn" class="btn btn--ghost topbar-menu-item hidden notification-pill" type="button" role="menuitem">
+          <i class="ri-notification-3-line" aria-hidden="true"></i>
+          <span data-i18n="notifications">通知</span>
+          <b id="notificationBadge" class="notification-badge hidden">0</b>
+        </button>
+        <button id="contactBtn" class="btn btn--ghost topbar-menu-item contact-pill" type="button" role="menuitem">
+          <i class="ri-customer-service-2-line" aria-hidden="true"></i>
+          <span>联系管理员</span>
+        </button>
+        <button id="langBtn" class="btn btn--ghost topbar-menu-item" type="button" role="menuitem" title="Language">中/EN</button>
+      </div>
+
+      <div id="accountMenu" class="account-menu hidden" role="menu">
+        <div class="account-menu-head">
+          <span id="accountNameText">AI Image Studio</span>
+          <small id="accountEmailText"></small>
+        </div>
+        <button id="creditsBtn" class="account-menu-item" type="button" role="menuitem">
+          <i class="ri-coin-line"></i>
+          <span id="creditsText">0</span>
+        </button>
+        <button id="myWorksBtn" class="account-menu-item" type="button" role="menuitem">
+          <i class="ri-gallery-view-2"></i>
+          <span data-i18n="myWorks">我的作品</span>
+        </button>
+        <button id="adminBtn" class="account-menu-item hidden" type="button" role="menuitem">
+          <i class="ri-settings-3-line"></i>
+          <span data-i18n="admin">后台</span>
+        </button>
+        <button id="accountContactBtn" class="account-menu-item" type="button" role="menuitem">
+          <i class="ri-customer-service-2-line"></i>
+          <span id="accountContactText">联系管理员</span>
+        </button>
+        <button id="logoutBtn" class="account-menu-item danger" type="button" role="menuitem">
+          <i class="ri-logout-circle-r-line"></i>
+          <span data-i18n="logout">退出</span>
+        </button>
+      </div>
 
       <aside class="chat-session-panel">
         <div class="chat-session-head">
@@ -548,8 +574,8 @@
     <script src="/dist/app-gallery.1371dffd2dc6.js" defer></script>
     <script src="/dist/app-reward-policy.033f4a267aaa.js" defer></script>
     <script src="/dist/app-credits-detail.126f97475f96.js" defer></script>
-    <script src="/dist/app-auth.9d8bcbb4ed7e.js" defer></script>
+    <script src="/dist/app-auth.73e9ec63e8f9.js" defer></script>
     <script src="/dist/app-settings.9c3c23a8a771.js" defer></script>
-    <script src="/dist/app.c540ea295060.js" defer></script>
+    <script src="/dist/app.021c2a6fb3e4.js" defer></script>
   </body>
 </html>

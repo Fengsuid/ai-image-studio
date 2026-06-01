@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260601-premium-polish-split-v1",
+  "version": "20260601-topbar-density-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.01bc98b323f3.css",
-    "file": "/dist/app.01bc98b323f3.css",
-    "hash": "01bc98b323f3",
-    "bytes": 331280,
+    "entry": "/dist/app.b42ded5367d0.css",
+    "file": "/dist/app.b42ded5367d0.css",
+    "hash": "b42ded5367d0",
+    "bytes": 333558,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -323,10 +323,10 @@
       },
       {
         "source": "/app-auth.js",
-        "entry": "/dist/app-auth.9d8bcbb4ed7e.js",
-        "fileName": "app-auth.9d8bcbb4ed7e.js",
-        "hash": "9d8bcbb4ed7e",
-        "bytes": 27873,
+        "entry": "/dist/app-auth.73e9ec63e8f9.js",
+        "fileName": "app-auth.73e9ec63e8f9.js",
+        "hash": "73e9ec63e8f9",
+        "bytes": 27985,
         "lazy": false
       },
       {
@@ -339,10 +339,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.c540ea295060.js",
-        "fileName": "app.c540ea295060.js",
-        "hash": "c540ea295060",
-        "bytes": 183407,
+        "entry": "/dist/app.021c2a6fb3e4.js",
+        "fileName": "app.021c2a6fb3e4.js",
+        "hash": "021c2a6fb3e4",
+        "bytes": 184950,
         "lazy": false
       },
       {

@@ -778,10 +778,12 @@
         elements.accountMenuBtn?.setAttribute("aria-expanded", willOpen ? "true" : "false");
       });
       document.addEventListener("click", (event) => {
-        if (!elements.accountMenuWrap || elements.accountMenuWrap.contains(event.target)) return;
+        if (elements.accountMenuWrap?.contains(event.target) || elements.accountMenu?.contains(event.target)) return;
         closeAccountMenu();
       });
       elements.loginBtn.addEventListener("click", () => openAuthModal("login"));
+      elements.topbarCheckinBtn?.addEventListener("click", submitCheckin);
+      elements.topbarCreditsBtn?.addEventListener("click", openCreditsModal);
       elements.logoutBtn.addEventListener("click", () => {
         closeAccountMenu();
         logout();

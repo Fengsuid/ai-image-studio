@@ -2,13 +2,13 @@
    Order chunk 15 of 23; keep import order stable until semantic CSS modules are refined. */
 
 @media (max-width: 860px) {
-  .topbar {
+  .topbar:not([data-topbar-density="compact"]) {
     align-items: flex-start;
     flex-direction: column;
     padding: 14px 16px;
   }
 
-  .top-actions {
+  .topbar:not([data-topbar-density="compact"]) .top-actions {
     width: 100%;
     justify-content: flex-start;
     overflow-x: auto;

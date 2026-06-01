@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260601-premium-polish-split-v1";
+export const FRONTEND_BUILD_VERSION = "20260601-topbar-density-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
