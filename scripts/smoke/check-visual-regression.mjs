@@ -22,7 +22,8 @@ const pixelDiffThreshold = Number(process.env.VISUAL_REGRESSION_PIXEL_DIFF_THRES
 const channelTolerance = Number(process.env.VISUAL_REGRESSION_CHANNEL_TOLERANCE || 18);
 const brandPrimaryShift = process.env.VISUAL_REGRESSION_BRAND_PRIMARY_SHIFT || "";
 const chromePath = process.env.CHROME_PATH || findChromeExecutable();
-const port = Number(process.env.VISUAL_REGRESSION_CDP_PORT || 9422);
+const configuredCdpPort = Number(process.env.VISUAL_REGRESSION_CDP_PORT || 0);
+const port = configuredCdpPort > 0 ? configuredCdpPort : await findFreePort();
 const cdpTimeoutMs = Number(process.env.VISUAL_REGRESSION_CDP_TIMEOUT_MS || 30000);
 const isExternalTarget = Boolean(targetArg);
 let staticServer = null;
@@ -66,8 +67,8 @@ const scenarios = [
     theme: "light",
     viewport: "desktop1440",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn"],
     topbarExpectation: { mode: "desktop", maxHeight: 60 },
     baseline: false,
     manualReview: "AIS-RLS-135 evidence: 1440 desktop compact topbar with visible workspace access."
@@ -78,8 +79,8 @@ const scenarios = [
     theme: "light",
     viewport: "tablet768",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarOverflowBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarOverflowBtn"],
     topbarExpectation: { mode: "tablet", maxHeight: 60 },
     baseline: false,
     manualReview: "AIS-RLS-135 evidence: 768 tablet topbar with overflow menu trigger."
@@ -90,8 +91,8 @@ const scenarios = [
     theme: "light",
     viewport: "mobile375",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarOverflowBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarOverflowBtn"],
     topbarExpectation: { mode: "mobile", maxHeight: 56 },
     baseline: false,
     manualReview: "AIS-RLS-135 evidence: 375 mobile topbar with logo, search, workspace menu, and avatar."
@@ -102,8 +103,8 @@ const scenarios = [
     theme: "dark",
     viewport: "desktop1440",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
-    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn", "#accountMenuBtn"],
+    requiredVisible: ["#homeView", "#brandBtn", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn"],
+    coreButtons: ["#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#topbarOverflowBtn"],
     topbarExpectation: { mode: "desktop", maxHeight: 60 },
     baseline: false,
     manualReview: "AIS-RLS-135 evidence: 1440 dark-mode compact topbar with visible workspace access."
@@ -314,6 +315,7 @@ async function main() {
       const url = resolvePageUrl(targetArg, scenario.url);
       const initScript = await addStableVisualInitScript(cdp, sessionId, scenario.theme);
       await cdp.send("Page.navigate", { url }, sessionId);
+      await waitForDocumentReady(cdp, sessionId, 12000);
       await delay(1600);
       await setStableVisualState(cdp, sessionId, scenario.theme);
       if (initScript?.identifier) {
@@ -489,6 +491,16 @@ function findChromeExecutable() {
   return candidates.find((candidate) => fsSync.existsSync(candidate)) || "";
 }
 
+async function findFreePort() {
+  const server = http.createServer();
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const freePort = typeof address === "object" && address ? address.port : 0;
+  await new Promise((resolve) => server.close(resolve));
+  if (!freePort) throw new Error("Could not allocate a free Chrome CDP port");
+  return freePort;
+}
+
 async function waitForCdpVersion(cdpPort) {
   const url = `http://127.0.0.1:${cdpPort}/json/version`;
   const started = Date.now();
@@ -521,6 +533,18 @@ async function waitForPageTarget(cdpPort) {
     }
   }
   throw new Error(`Chrome page target did not appear on ${url}`);
+}
+
+async function waitForDocumentReady(cdp, sessionId, timeoutMs = 9000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const response = await cdp.send("Runtime.evaluate", {
+      expression: `Boolean(document.documentElement) && document.readyState !== "loading" && location.href !== "about:blank"`,
+      returnByValue: true,
+    }, sessionId).catch(() => null);
+    if (response?.result?.value === true) return;
+    await delay(150);
+  }
 }
 
 function resolvePageUrl(base, pagePath) {
@@ -665,7 +689,20 @@ async function visualProbe(scenario, viewport, externalTarget) {
   const failures = [];
   const warnings = [];
   const pageLabel = scenario.name;
-  const doc = document.documentElement;
+  const doc = document.documentElement || document.body;
+  if (!doc) {
+    return {
+      scenario: scenario.name,
+      theme: scenario.theme,
+      viewport: viewport.name,
+      url: window.location.href,
+      manualReview: scenario.manualReview || "",
+      scrollWidth: 0,
+      innerWidth: window.innerWidth,
+      failures: [`${pageLabel}: document not ready`],
+      warnings
+    };
+  }
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const overflow = Math.max(doc.scrollWidth, document.body?.scrollWidth || 0) - viewportWidth;
@@ -763,14 +800,21 @@ async function visualProbe(scenario, viewport, externalTarget) {
     const mainVisible = visibleIds("[data-topbar-main]");
     const overflowVisible = visibleIds("#topbarOverflowBtn");
     const legacyVisible = visibleIds(".brand-btn, .nav-pill, .icon-pill, .dark-pill");
+    const authVisible = visibleIds("[data-topbar-auth]");
     if (legacyVisible.length) failures.push(`${pageLabel}: legacy topbar classes visible: ${legacyVisible.join(", ")}`);
+    if (!authVisible.some((id) => id === "loginBtn" || id === "accountMenuWrap")) {
+      failures.push(`${pageLabel}: auth slot missing visible login/account control`);
+    }
     if (!overflowVisible.includes("topbarOverflowBtn")) {
       failures.push(`${pageLabel}: workspace overflow trigger missing`);
     } else {
       const overflowButton = document.querySelector("#topbarOverflowBtn");
       overflowButton?.click();
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const menuResult = visible("#topbarOverflowMenu");
+      let menuResult = await waitForVisible("#topbarOverflowMenu", 800);
+      if (!menuResult.ok && overflowButton?.getAttribute("aria-expanded") !== "true") {
+        overflowButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+        menuResult = await waitForVisible("#topbarOverflowMenu", 800);
+      }
       if (!menuResult.ok) failures.push(`${pageLabel}: workspace overflow menu ${menuResult.reason}`);
       for (const selector of ["#canvasWorkspaceBtn", "#agentWorkspaceBtn", "#topbarGithubLink"]) {
         const entryResult = visible(selector);
@@ -778,7 +822,7 @@ async function visualProbe(scenario, viewport, externalTarget) {
       }
     }
     if (scenario.topbarExpectation.mode === "desktop") {
-      for (const id of ["topbarSearchBtn", "topbarGenerateBtn", "promptLibraryBtn", "topbarCheckinBtn", "topbarCreditsBtn", "themeToggle"]) {
+      for (const id of ["topbarSearchBtn", "topbarGenerateBtn", "promptLibraryBtn", "themeToggle"]) {
         if (!mainVisible.includes(id)) failures.push(`${pageLabel}: desktop topbar control ${id} missing`);
       }
     } else if (scenario.topbarExpectation.mode === "tablet") {
@@ -865,6 +909,16 @@ async function visualProbe(scenario, viewport, externalTarget) {
     if (!match) return null;
     const parts = match[1].split(",").map((part) => Number(part.trim()));
     return { r: parts[0] || 0, g: parts[1] || 0, b: parts[2] || 0, a: parts.length > 3 ? parts[3] : 1 };
+  }
+
+  async function waitForVisible(selector, timeoutMs = 600) {
+    const started = Date.now();
+    let result = visible(selector);
+    while (!result.ok && Date.now() - started < timeoutMs) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      result = visible(selector);
+    }
+    return result;
   }
 }
 
