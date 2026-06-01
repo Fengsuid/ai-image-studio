@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260601-client-error-monitoring-v1",
+  "version": "20260601-lazy-load-state-machine-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -25,10 +25,10 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.90ec654bf5c7.css",
-    "file": "/dist/app.90ec654bf5c7.css",
-    "hash": "90ec654bf5c7",
-    "bytes": 322627,
+    "entry": "/dist/app.e2c89f60e518.css",
+    "file": "/dist/app.e2c89f60e518.css",
+    "hash": "e2c89f60e518",
+    "bytes": 323291,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -272,10 +272,10 @@
       },
       {
         "source": "/app-router.js",
-        "entry": "/dist/app-router.d61e9b818449.js",
-        "fileName": "app-router.d61e9b818449.js",
-        "hash": "d61e9b818449",
-        "bytes": 3388,
+        "entry": "/dist/app-router.5ee30c7a69af.js",
+        "fileName": "app-router.5ee30c7a69af.js",
+        "hash": "5ee30c7a69af",
+        "bytes": 6263,
         "lazy": false
       },
       {

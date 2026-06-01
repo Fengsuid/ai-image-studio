@@ -3781,6 +3781,41 @@ html.theme-transitioning *::after {
   width: 62%;
 }
 
+.route-loading-shell,
+.route-error-shell {
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 80%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--neutral-0) 84%, transparent);
+}
+
+.route-loading-shell p,
+.route-error-shell p {
+  margin: 0;
+  color: var(--neutral-500);
+  line-height: 1.6;
+}
+
+.route-error-shell {
+  place-items: center;
+  text-align: center;
+}
+
+.route-error-shell > i {
+  font-size: 32px;
+  color: var(--danger-600);
+}
+
+.route-error-shell h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--neutral-900);
+}
+
 /* public/css/04-components-cards.css */
 /* Split from public/styles.css for AIS-RLS-071.
    Order chunk 7 of 22; keep import order stable until semantic CSS modules are refined. */

@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260601-client-error-monitoring-v1";
+export const FRONTEND_BUILD_VERSION = "20260601-lazy-load-state-machine-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

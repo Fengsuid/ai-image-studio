@@ -809,3 +809,18 @@ Record the outcome in the relevant development document or release note before m
 - Deployment health: app restart count is `0`, MySQL restart count is `0`, MySQL remains healthy, and no server-side temporary deployment package was left in the app directory.
 - Known blockers: none for AIS-RLS-125. `npm run check` retains only existing long-term `public/app.js` and `public/styles.css` frontend-boundary warnings.
 - Rollback target: revert this release commit, restore `APP_VERSION=20260531-reference-assets-index-v1` and prior hashed entries for `app-router`, remove the client error monitor script from public/admin HTML, redeploy from git, then rerun public plus client-error-monitoring smoke.
+
+### 2026-06-01 AIS-RLS-126 Lazy Load State Machine Release
+
+- Task covered: `AIS-RLS-126` lazy load module loading state machine with skeleton gate.
+- Commit covered: final AIS-RLS-126 release commit; short hash is recorded in the task output and private deployment log because this public release record is part of the same single-task commit.
+- Files changed: `public/app-router.js`, `public/css/04-components-skeleton.css`, `scripts/smoke/check-lazy-load-state-machine.mjs`, `package.json`, `public/admin.html`, APP_VERSION/build manifest files, `public/index.html`, and refreshed hashed `public/dist/*` assets.
+- Runtime coverage: lazy admin/canvas scripts now track `idle -> loading -> ready -> error` route and script states, emit `imagestudio:route-state`, render a target skeleton while loading, show a retryable error shell on failure, and reinject a failed dynamic script on retry instead of treating the stale failed script node as ready.
+- Script strategy: dynamic route scripts explicitly set `async=false`, `defer=true`, `data-route-source`, `data-route-name`, and `data-route-state`; failed script nodes are marked `error` and ignored by retry detection.
+- Smoke coverage: added `smoke:lazy-load-state-machine` and included it in `npm run check`; the smoke verifies source hooks, hashed dist coverage, skeleton/error CSS, admin cache-bust version, explicit script strategy, simulated admin script load failure, client-error reporting, retry reinjection, and final ready state.
+- Local checks: focused `node --check` for changed router/smoke files, `npm run smoke:lazy-load-state-machine`, `npm run smoke:frontend-build-tooling`, `npm run smoke:frontend-boundaries`, `npm run check`, and `git diff --check` passed. Local full public/auth admin smoke requires a running app plus admin/MySQL credentials, so deployed/container checks below are the release authority.
+- Deployment note: production deployment updates runtime to `APP_VERSION=20260601-lazy-load-state-machine-v1`, clears stale `public/dist`, extracts source plus generated assets together, rebuilds/restarts the app container, and makes no database schema or data changes.
+- Online smoke: container `npm run smoke:lazy-load-state-machine`, `npm run smoke:public -- http://<app-container>:3000`, and `npm run smoke:auth-admin -- http://<app-container>:3000` passed; external `npm run smoke:public -- https://<host>` passed; `/api/version` reports `20260601-lazy-load-state-machine-v1`.
+- Deployment health: app restart count is `0`, MySQL restart count is `0`, MySQL remains healthy, and no database schema/data migration is included.
+- Known blockers: none for AIS-RLS-126. `npm run check` retains only existing long-term `public/app.js` and `public/styles.css` frontend-boundary warnings.
+- Rollback target: revert this release commit, restore `APP_VERSION=20260601-client-error-monitoring-v1` and prior hashed entries `app.90ec654bf5c7.css` and `app-router.d61e9b818449.js`, redeploy from git, then rerun public, auth-admin, and lazy-load state-machine smoke.
