@@ -144,6 +144,17 @@ const scenarios = [
     manualReview: "Gallery detail modal, sticky actions, media stage and route cards."
   },
   {
+    name: "leaderboard-page-light-desktop",
+    url: "/?view=leaderboard",
+    theme: "light",
+    viewport: "desktop",
+    readySelector: "#leaderboardPage .gallery-rank-card",
+    requiredVisible: ["#leaderboardPage", ".gallery-rank-card"],
+    coreButtons: [".gallery-rank-tabs button", ".gallery-rank-card .rank-like"],
+    cardSelectors: [".gallery-rank-card"],
+    manualReview: "Leaderboard page rank cards, tabs, spotlight-safe card density."
+  },
+  {
     name: "prompt-detail-dark-desktop",
     url: "/?view=library",
     theme: "dark",
@@ -226,8 +237,8 @@ function parseArgs(args) {
 
 function filterScenarios(source, filter) {
   if (!filter) return source;
-  const normalized = filter.toLowerCase();
-  return source.filter((scenario) => scenario.name.toLowerCase().includes(normalized));
+  const filters = filter.toLowerCase().split(",").map((item) => item.trim()).filter(Boolean);
+  return source.filter((scenario) => filters.some((item) => scenario.name.toLowerCase().includes(item)));
 }
 
 async function main() {

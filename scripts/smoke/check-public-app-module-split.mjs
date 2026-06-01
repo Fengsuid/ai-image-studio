@@ -27,6 +27,7 @@ const packageJson = JSON.parse(read("package.json"));
 
 const moduleScripts = [
   "app-modules.js",
+  "app-motion.js",
   "app-session.js",
   "app-generation.js",
   "app-gallery.js",
@@ -45,6 +46,7 @@ for (const scriptName of moduleScripts) {
 
 const moduleSourceChecks = {
   "public/app-modules.js": ["global.AppModules", "register"],
+  "public/app-motion.js": ['register("motion"', "IntersectionObserver", "--mx", "--my", "motion-reveal"],
   "public/app-session.js": ['register("session"', "renderImageSessions"],
   "public/app-generation.js": ['register("generation"', "renderResultActions"],
   "public/app-gallery.js": ['register("gallery"', "renderLeaderboard"],
@@ -60,6 +62,11 @@ for (const [relativePath, snippets] of Object.entries(moduleSourceChecks)) {
 }
 
 assert(appJs.includes("window.AppModules?.session?.renderImageSessions"), "app.js should delegate session rendering through AppModules.session");
+assert(appJs.includes("window.AppModules?.motion?.observe"), "app.js should delegate motion observation through AppModules.motion");
+assert(appJs.includes("observeMotion(elements.recentMasonry)"), "app.js should observe motion after recent tile renders");
+assert(appJs.includes("observeMotion(elements.historyList)"), "app.js should observe motion after history list renders");
+assert(appJs.includes("observeMotion(elements.libraryView)"), "app.js should observe motion after prompt library renders");
+assert(appJs.includes("observeMotion(elements.leaderboardPage)"), "app.js should observe motion after leaderboard renders");
 assert(appJs.includes("window.AppModules?.generation?.renderResultActions"), "app.js should delegate result actions through AppModules.generation");
 assert(appJs.includes("window.AppModules?.gallery?.renderLeaderboard"), "app.js should delegate leaderboard rendering through AppModules.gallery");
 assert(appJs.includes("window.AppModules?.gallery?.createTagViewModel"), "app.js should delegate tag view models through AppModules.gallery");

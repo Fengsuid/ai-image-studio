@@ -1,5 +1,5 @@
 {
-  "version": "20260601-topbar-entry-hotfix-v1",
+  "version": "20260602-motion-library-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,16 +22,17 @@
       "/css/07-editor-mobile-detail.css",
       "/css/07-editor-mobile-narrow.css"
     ],
-    "entry": "/dist/app.53565e630610.css",
-    "file": "/dist/app.53565e630610.css",
-    "hash": "53565e630610",
-    "bytes": 333916,
+    "entry": "/dist/app.e6a234233683.css",
+    "file": "/dist/app.e6a234233683.css",
+    "hash": "e6a234233683",
+    "bytes": 334607,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
       "/css/00-tokens.css",
       "/css/00-tokens-typography.css",
       "/css/00-tokens-motion.css",
+      "/css/01-motion-library.css",
       "/css/01-reset-base.css",
       "/css/primitives/_button.css",
       "/css/primitives/_table.css",
@@ -263,6 +264,14 @@
         "lazy": false
       },
       {
+        "source": "/app-motion.js",
+        "entry": "/dist/app-motion.9af09538e19a.js",
+        "fileName": "app-motion.9af09538e19a.js",
+        "hash": "9af09538e19a",
+        "bytes": 1000,
+        "lazy": false
+      },
+      {
         "source": "/app-prompt-library.js",
         "entry": "/dist/app-prompt-library.0cbc364e260e.js",
         "fileName": "app-prompt-library.0cbc364e260e.js",
@@ -336,10 +345,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.021c2a6fb3e4.js",
-        "fileName": "app.021c2a6fb3e4.js",
-        "hash": "021c2a6fb3e4",
-        "bytes": 184950,
+        "entry": "/dist/app.74894b8d5dfe.js",
+        "fileName": "app.74894b8d5dfe.js",
+        "hash": "74894b8d5dfe",
+        "bytes": 185199,
         "lazy": false
       },
       {

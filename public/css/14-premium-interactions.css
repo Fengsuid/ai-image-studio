@@ -60,7 +60,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(circle at var(--spot-x, 50%) var(--spot-y, 0%), color-mix(in srgb, var(--brand-300) 18%, transparent), transparent 36%);
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--brand-300) 18%, transparent), transparent 36%);
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
 }

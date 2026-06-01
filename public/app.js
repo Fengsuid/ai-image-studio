@@ -1353,6 +1353,10 @@ function renderAll() {
   renderComposers();
   setView(state.view);
   window.ImageStudioHomeOnboarding?.init?.();
+  observeMotion(document);
+}
+function observeMotion(root = document) {
+  window.AppModules?.motion?.observe?.(root);
 }
 function renderCanvasShell() {
   const render = () => window.ImageStudioCanvas?.renderShell?.({
@@ -1700,6 +1704,7 @@ function renderRecentCreations() {
       if (item) openRecentPreview(item);
     });
   });
+  observeMotion(elements.recentMasonry);
 }
 function openRecentPreview(item) {
   const visual = item.image
@@ -2841,6 +2846,7 @@ function renderHistory() {
       if (item) openCanvasTargetModal(canvasPayloadFromGeneration(item, text("outputImage")));
     });
   });
+  observeMotion(elements.historyList);
 }
 function openPublishModal(item, publishOriginal = false) {
   if (!state.user) {
@@ -3405,6 +3411,7 @@ function renderLibrary() {
     renderLibrary();
   });
   bindPromptCards(elements.promptGrid);
+  observeMotion(elements.libraryView);
 }
 function renderGalleryLeaderboard() {
   return window.AppModules?.gallery?.renderLeaderboard?.({
@@ -3442,6 +3449,7 @@ function renderLeaderboardPage() {
   `;
   bindGalleryLeaderboardControls(elements.leaderboardPage);
   bindPromptCards(elements.leaderboardPage);
+  observeMotion(elements.leaderboardPage);
 }
 function bindGalleryLeaderboardControls(root = document) {
   $$("[data-rank-range]", root).forEach((button) => {
