@@ -7,21 +7,30 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { readPublicCssWithImports } from "./css-imports.mjs";
+import { createFrontendManifestHelper } from "./frontend-manifest-helper.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
-const buildManifest = JSON.parse(fs.readFileSync(path.join(rootDir, "public/frontend-build-manifest.json"), "utf8"));
-const lazyCanvasScripts = buildManifest.js?.lazyRoutes?.canvas?.scripts || [];
+const frontendManifest = createFrontendManifestHelper(rootDir);
 const styles = readPublicCssWithImports(rootDir);
-const canvas = fs.readFileSync(path.join(rootDir, "public/canvas.js"), "utf8");
+const canvasAsset = frontendManifest.lazyRouteAssetByFileName("canvas", "canvas.js");
+const canvas = frontendManifest.readPublicSourceForAsset(canvasAsset);
 
-const required = ["/canvas-nodes.js", "/canvas-geometry.js", "/canvas-layout.js", "/canvas-edges.js", "/canvas.js"];
+const required = ["canvas-nodes.js", "canvas-geometry.js", "canvas-layout.js", "canvas-edges.js", "canvas.js"];
 for (const src of required) {
-  assert(lazyCanvasScripts.includes(src), `frontend manifest canvas lazy route must reference ${src}`);
+  frontendManifest.lazyRouteAssetByFileName("canvas", src);
 }
-assert(!indexHtml.includes("/canvas.js"), "index.html must lazy-load canvas.js through app-router");
-assert(lazyCanvasScripts.indexOf("/canvas-layout.js") < lazyCanvasScripts.indexOf("/canvas.js"), "canvas-layout.js must load before canvas.js");
-assert(lazyCanvasScripts.indexOf("/canvas-edges.js") < lazyCanvasScripts.indexOf("/canvas.js"), "canvas-edges.js must load before canvas.js");
+assert(!indexHtml.includes(canvasAsset.entry), "index.html must lazy-load canvas.js through app-router");
+assert(
+  frontendManifest.lazyRouteIndexByFileName("canvas", "canvas-layout.js") <
+    frontendManifest.lazyRouteIndexByFileName("canvas", "canvas.js"),
+  "canvas-layout.js must load before canvas.js"
+);
+assert(
+  frontendManifest.lazyRouteIndexByFileName("canvas", "canvas-edges.js") <
+    frontendManifest.lazyRouteIndexByFileName("canvas", "canvas.js"),
+  "canvas-edges.js must load before canvas.js"
+);
 
 assert(styles.includes("width: min(1540px, calc(100vw - 32px));"), "canvas view must use the wide workbench layout");
 assert(styles.includes("grid-template-columns: minmax(176px, 220px) minmax(520px, 1fr) minmax(240px, 300px);"), "workspace must reserve board and inspector columns");
@@ -41,7 +50,8 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox.window;
 for (const file of ["canvas-nodes.js", "canvas-geometry.js", "canvas-layout.js", "canvas-edges.js"]) {
-  vm.runInNewContext(fs.readFileSync(path.join(rootDir, "public", file), "utf8"), sandbox, { filename: file });
+  const asset = frontendManifest.lazyRouteAssetByFileName("canvas", file);
+  vm.runInNewContext(frontendManifest.readPublicSourceForAsset(asset), sandbox, { filename: file });
 }
 
 const root = sandbox.window.ImageStudioCanvas;

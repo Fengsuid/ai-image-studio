@@ -1598,19 +1598,17 @@ gantt
 - Baseline 数：`ls docs/mobile-qa/baseline-local/*.png | wc -l`。
 - 矛盾点：`grep "☐ 待做" docs/*.md | grep -v archive | wc -l`。
 
-### 9.1 Known pre-existing smoke failures（暂不修，避免误读为回归）
+### 9.1 Known pre-existing smoke failures（AIS-RLS-160 已清理）
 
-以下 3 个 smoke 因硬编码 `/canvas.js`、`/canvas-nodes.js`、`app.js?v=` 等旧入口路径，自 AIS-RLS-111 引入 content-hashed bundle 后持续 fail，与 147 / 148 slice 抽取无关。审计已连续 3 次（首审 / 再审 / follow-up）记录但暂不修复，主控决策保持现状，后续若再需清代则单开 hashed-entry-smoke-migration 任务。
+以下 3 个 smoke 曾因硬编码 `/canvas.js`、`/canvas-nodes.js`、`app.js?v=` 等旧入口路径，自 AIS-RLS-111 引入 content-hashed bundle 后持续 fail，与 147 / 148 slice 抽取无关。AIS-RLS-160 已将它们迁移为读取 `public/frontend-build-manifest.json` 的 hashed entry / source lookup，不再作为 AIS-RLS-111 known pre-existing failure 标记。
 
-| smoke | 失败原因 | 引入时间 | 解耦验证 |
+| smoke | 原失败原因 | 当前状态 | 验证 |
 | --- | --- | --- | --- |
-| `smoke:canvas-module-boundaries` | 检查硬编码 `/canvas.js`、`/canvas-nodes.js` 路径，而 manifest 改为 hashed bundle | AIS-RLS-111 落地后 | 在 147 抽取前已 fail |
-| `smoke:canvas-layout-edges` | 同上，未读 `public/frontend-build-manifest.json` | AIS-RLS-111 落地后 | 同上 |
-| `smoke:canvas-v2:entry` | 检查 `app.js?v=` 查询串，已被 content-hashed 替代 | AIS-RLS-111 落地后 | 同上 |
+| `smoke:canvas-module-boundaries` | 检查硬编码 `/canvas.js`、`/canvas-nodes.js` 路径，而 manifest 改为 hashed bundle | 已改为共享 manifest helper 查询 canvas lazy route hashed asset，再读取对应 source 断言模块注册 | `npm run smoke:canvas-module-boundaries` |
+| `smoke:canvas-layout-edges` | 同上，未读 `public/frontend-build-manifest.json` | 已改为共享 manifest helper 查询 canvas lazy route hashed asset，再读取对应 source / CSS bundle 断言布局和边线行为 | `npm run smoke:canvas-layout-edges` |
+| `smoke:canvas-v2:entry` | 检查 `app.js?v=` 查询串，已被 content-hashed 替代 | 已改为验证 `public/index.html` 中 `/dist/app.<hash>.js`、`app-auth`、`generation-result-actions` 与 manifest 一致，并覆盖 Canvas v2 entry 逻辑 | `npm run smoke:canvas-v2:entry` |
 
-**审计 / 部署阅读规则**：本期任何 release record 看到上述三项 fail，**默认归入 known-pre-existing**，不计入"本次部署引入的回归"。若同时还有其他 canvas smoke fail，则必须独立分析。
-
-未来若决定清代，建议任务编号 `AIS-RLS-160 hashed-entry-smoke-migration`，把三个 smoke 改为读 `public/frontend-build-manifest.json` 解析 hashed entry。
+**审计 / 部署阅读规则**：AIS-RLS-160 之后，后续 release record 不应再把上述三项归入 AIS-RLS-111 known pre-existing failure；若任一项失败，按当前任务或当前部署回归独立分析。
 
 ---
 

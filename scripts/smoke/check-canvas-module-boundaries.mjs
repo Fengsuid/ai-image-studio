@@ -6,11 +6,11 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { createFrontendManifestHelper } from "./frontend-manifest-helper.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
-const buildManifest = JSON.parse(fs.readFileSync(path.join(rootDir, "public/frontend-build-manifest.json"), "utf8"));
-const lazyCanvasScripts = buildManifest.js?.lazyRoutes?.canvas?.scripts || [];
+const frontendManifest = createFrontendManifestHelper(rootDir);
 const modules = [
   { file: "canvas-layout.js", marker: "root.layout", exportName: "layout" },
   { file: "canvas-edges.js", marker: "root.edges", exportName: "edges", deps: ["canvas-nodes.js", "canvas-geometry.js"] },
@@ -18,9 +18,10 @@ const modules = [
   { file: "canvas-inspector.js", marker: "root.inspector", exportName: "inspector" }
 ];
 
-const canvasScriptIndex = lazyCanvasScripts.indexOf("/canvas.js");
-assert(canvasScriptIndex > 0, "frontend manifest canvas lazy route must reference /canvas.js");
-assert(!indexHtml.includes("/canvas.js"), "index.html must lazy-load /canvas.js through app-router");
+const canvasScriptIndex = frontendManifest.lazyRouteIndexByFileName("canvas", "canvas.js");
+const canvasAsset = frontendManifest.lazyRouteAssetByFileName("canvas", "canvas.js");
+assert(canvasScriptIndex > 0, "frontend manifest canvas lazy route must include the canvas entry");
+assert(!indexHtml.includes(canvasAsset.entry), "index.html must lazy-load the canvas entry through app-router");
 
 const sandbox = {
   window: { ImageStudioCanvas: {} },
@@ -32,17 +33,17 @@ const sandbox = {
 sandbox.globalThis = sandbox.window;
 
 for (const dep of ["canvas-nodes.js", "canvas-geometry.js"]) {
-  const code = fs.readFileSync(path.join(rootDir, "public", dep), "utf8");
+  const code = frontendManifest.readPublicSourceForAsset(frontendManifest.lazyRouteAssetByFileName("canvas", dep));
   vm.runInNewContext(code, sandbox, { filename: dep });
 }
 
 for (const module of modules) {
-  const src = `/${module.file}`;
-  const scriptIndex = lazyCanvasScripts.indexOf(src);
-  assert(scriptIndex > 0, `frontend manifest canvas lazy route must reference ${src}`);
-  assert(scriptIndex < canvasScriptIndex, `${src} must load before /canvas.js in the lazy route`);
+  const asset = frontendManifest.lazyRouteAssetByFileName("canvas", module.file);
+  const scriptIndex = frontendManifest.lazyRouteIndexByFileName("canvas", module.file);
+  assert(scriptIndex > 0, `frontend manifest canvas lazy route must include ${module.file}`);
+  assert(scriptIndex < canvasScriptIndex, `${module.file} must load before the canvas entry in the lazy route`);
 
-  const code = fs.readFileSync(path.join(rootDir, "public", module.file), "utf8");
+  const code = frontendManifest.readPublicSourceForAsset(asset);
   assert(code.includes(module.marker), `${module.file} must register ${module.marker}`);
   vm.runInNewContext(code, sandbox, { filename: module.file });
   assert(sandbox.window.ImageStudioCanvas[module.exportName], `${module.file} did not populate ImageStudioCanvas.${module.exportName}`);

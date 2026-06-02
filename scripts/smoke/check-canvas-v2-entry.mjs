@@ -5,12 +5,18 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { createFrontendManifestHelper } from "./frontend-manifest-helper.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
-const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
-const resultActions = fs.readFileSync(path.join(rootDir, "public/generation-result-actions.js"), "utf8");
+const frontendManifest = createFrontendManifestHelper(rootDir);
+const appAsset = frontendManifest.assetByFileName("app.js");
+const appAuthAsset = frontendManifest.assetByFileName("app-auth.js");
+const resultActionsAsset = frontendManifest.assetByFileName("generation-result-actions.js");
+const app = frontendManifest.readPublicSourceForAsset(appAsset);
+const appAuth = frontendManifest.readPublicSourceForAsset(appAuthAsset);
+const resultActions = frontendManifest.readPublicSourceForAsset(resultActionsAsset);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 
 assert.equal(
@@ -19,8 +25,10 @@ assert.equal(
   "root smoke:canvas-v2:entry script missing",
 );
 
-assert(/\/app\.js\?v=2026\d{4}-[a-z0-9-]+/.test(indexHtml), "app.js cache bust must include a dated release marker");
-assert(indexHtml.includes("/generation-result-actions.js?v=20260521-canvas-v2-entry-v1"), "result actions cache bust must include Canvas v2 entry release marker");
+assert(indexHtml.includes(`src="${appAsset.entry}"`), "public index must load the manifest hashed app.js entry");
+assert(indexHtml.includes(`src="${appAuthAsset.entry}"`), "public index must load the manifest hashed app-auth.js entry");
+assert(indexHtml.includes(`src="${resultActionsAsset.entry}"`), "public index must load the manifest hashed result actions entry");
+assert(!/src="[^"]*\.js\?v=/.test(indexHtml), "public index must not use legacy query-string JS cache busting");
 
 assert(server.includes("function canvasEntryMode()"), "server must expose a Canvas entry mode helper");
 assert(server.includes("process.env.CANVAS_ENTRY_MODE || process.env.CANVAS_V2_ENTRY_MODE || \"v2\""), "server flag must default main entries to Canvas v2");
@@ -34,7 +42,8 @@ assert(app.includes("function canvasV2ProjectUrl(projectId = \"\")"), "app must 
 assert(app.includes("`/canvas-v2/projects/${encodeURIComponent(projectId)}`"), "Canvas v2 project URLs must use /canvas-v2/projects/:id");
 assert(app.includes("window.location.assign(canvasV2ProjectUrl())"), "main Canvas workspace entry must navigate to Canvas v2");
 assert(app.includes("state.pendingAuthView = mode === \"v2\" ? \"canvas-v2\" : \"canvas\";"), "auth continuation must preserve Canvas v2 entry mode");
-assert(app.includes("pendingView === \"canvas-v2\""), "login continuation must understand the Canvas v2 route");
+assert(appAuth.includes("pendingView === \"canvas-v2\""), "login continuation must understand the Canvas v2 route");
+assert(appAuth.includes("global.location.assign(context.canvasV2ProjectUrl())"), "login continuation must navigate to Canvas v2 after auth");
 assert(app.includes("openCanvasProject(newCanvasId)"), "public canvas route duplicate must open through the entry switch");
 assert(app.includes("openNewCanvasWithPayload(canvasPayloadFromGeneration"), "gallery new-canvas action must use the Canvas v2 entry helper");
 assert(app.includes("elements.canvasWorkspaceBtn?.addEventListener(\"click\", openCanvasWorkspace)"), "top-nav Canvas button must use the entry switch");
@@ -44,7 +53,8 @@ assert(app.includes("elements.openCanvasInlineBtn?.classList.toggle(\"hidden\", 
 assert(app.includes("elements.canvasCreateBtn?.classList.toggle(\"hidden\", hideCanvasEntry)"), "hidden mode must hide old Canvas create button");
 assert(app.includes("canShowCanvasEntry ? `<button type=\"button\" data-square-add-canvas"), "gallery detail add-to-canvas must respect hidden mode");
 assert(app.includes("isCanvasEntryHidden() ? \"\" : `<button type=\"button\" data-prompt-add-canvas"), "prompt detail add-to-canvas must respect hidden mode");
-assert(app.includes("isCanvasEntryHidden() ? \"\" : `<button type=\"button\" data-work-detail-canvas"), "work detail add-to-canvas must respect hidden mode");
+assert(appAuth.includes("context.isCanvasEntryHidden() ? \"\" : `<button type=\"button\" data-work-detail-canvas"), "work detail add-to-canvas must respect hidden mode");
+assert(appAuth.includes("context.openCanvasTargetModal(context.canvasPayloadFromGeneration"), "work detail add-to-canvas must use the Canvas entry helper");
 assert(resultActions.includes("state.settings?.canvasEntryMode"), "result action menu must respect hidden mode");
 assert(resultActions.includes("canShowCanvasEntry ? `<button type=\"button\" data-add-generation-canvas"), "result action add-to-canvas must be suppressible");
 
