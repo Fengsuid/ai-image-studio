@@ -13,6 +13,11 @@ import path from "node:path";
 const argBase = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "";
 const baseUrl = (process.env.BASE_URL || argBase || "http://localhost:3000").replace(/\/+$/, "");
 const timeoutMs = Number.parseInt(process.env.SMOKE_TIMEOUT_MS || "20000", 10) || 20000;
+const cspExpectation = (() => {
+  const raw = String(process.env.SMOKE_EXPECT_CSP_ENFORCE || "").trim();
+  if (!raw) return "auto";
+  return /^(1|true|yes|on)$/i.test(raw) ? "enforce" : "report-only";
+})();
 const failures = [];
 
 function log(...parts) {
@@ -131,17 +136,35 @@ function assertBodyIncludesAny(body, snippets, message) {
   assert(snippets.some((snippet) => body.includes(snippet)), message);
 }
 
+function assertCspHeader(headers, pathLabel) {
+  const enforced = headers.get("content-security-policy");
+  const reportOnly = headers.get("content-security-policy-report-only");
+  if (cspExpectation === "enforce") {
+    assert(enforced, `${pathLabel} missing enforced CSP header`);
+    assert(!reportOnly, `${pathLabel} should not send CSP Report-Only when enforce is expected`);
+    return enforced || "";
+  }
+  if (cspExpectation === "auto") {
+    assert(Boolean(enforced || reportOnly), `${pathLabel} missing CSP header`);
+    assert(!(enforced && reportOnly), `${pathLabel} must not send both CSP enforce and Report-Only headers`);
+    return enforced || reportOnly || "";
+  }
+  assert(reportOnly, `${pathLabel} missing CSP Report-Only header`);
+  assert(!enforced, `${pathLabel} should not send enforced CSP when report-only is expected`);
+  return reportOnly || "";
+}
+
 async function checkHomeResources() {
   log("GET /");
   const home = await fetchText("/", "text/html,*/*");
+  const csp = assertCspHeader(home.headers, "/");
   assert(home.status === 200, `/ status=${home.status}`);
-  assert(home.headers.get("content-security-policy-report-only"), "/ missing CSP Report-Only header");
-  assert(!home.headers.get("content-security-policy-report-only").includes("fonts.googleapis.com"), "/ CSP should not allow Google Fonts");
-  assert(!home.headers.get("content-security-policy-report-only").includes("fonts.gstatic.com"), "/ CSP should not allow Google font assets");
-  assert(!home.headers.get("content-security-policy-report-only").includes("cdn.jsdelivr.net"), "/ CSP should not allow jsDelivr font/icon assets");
-  assert(home.headers.get("content-security-policy-report-only").includes("font-src 'self'"), "/ CSP font-src should be self-only");
-  assert(home.headers.get("content-security-policy-report-only").includes("media-src 'self'"), "/ CSP media-src should be self-only");
-  assert(!home.headers.get("content-security-policy-report-only").includes("media-src 'self' https:"), "/ CSP media-src must not allow remote HTTPS media");
+  assert(!csp.includes("fonts.googleapis.com"), "/ CSP should not allow Google Fonts");
+  assert(!csp.includes("fonts.gstatic.com"), "/ CSP should not allow Google font assets");
+  assert(!csp.includes("cdn.jsdelivr.net"), "/ CSP should not allow jsDelivr font/icon assets");
+  assert(csp.includes("font-src 'self'"), "/ CSP font-src should be self-only");
+  assert(csp.includes("media-src 'self'"), "/ CSP media-src should be self-only");
+  assert(!csp.includes("media-src 'self' https:"), "/ CSP media-src must not allow remote HTTPS media");
   assert(home.headers.get("x-content-type-options") === "nosniff", "/ missing nosniff header");
   assert(home.headers.get("cache-control") === "no-store", "/ HTML must be no-store");
   assert(typeof home.body === "string" && /\/dist\/app\.[a-f0-9]{12}\.css/.test(home.body), "/ missing hashed CSS bundle reference");
@@ -580,7 +603,7 @@ async function checkVersion() {
   log("GET /api/version");
   const { status, headers, body } = await fetchJson("/api/version");
   assert(status === 200, `/api/version status=${status}`);
-  assert(headers.get("content-security-policy-report-only"), "/api/version missing CSP Report-Only header");
+  assertCspHeader(headers, "/api/version");
   assert(headers.get("x-content-type-options") === "nosniff", "/api/version missing nosniff header");
   assert(body && typeof body === "object", "/api/version body is not an object");
   assert(typeof body?.version === "string" && body.version.length > 0, "/api/version missing version string");

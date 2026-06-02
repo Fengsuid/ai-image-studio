@@ -63,6 +63,7 @@ const { createReferenceAssetsRoute, serializeReferenceAsset } = require("./src/r
 const { createSessionMiddleware } = require("./src/middleware/session");
 const { createCsrfMiddleware } = require("./src/middleware/csrf");
 const { createAppAuth } = require("./src/middleware/app-auth");
+const { withSecurityHeaders } = require("./src/security-headers");
 const { buildCreativeRouteForGeneration, scrubRouteValue } = require("./src/creative-route");
 const { normalizeTextToImagePrompt } = require("./src/generation-prompt");
 
@@ -468,26 +469,6 @@ const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store"
 };
-
-const securityHeaders = {
-  "Content-Security-Policy-Report-Only": [
-    "default-src 'self'",
-    "img-src 'self' data: blob: https:",
-    "media-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
-    "font-src 'self'",
-    "script-src 'self'",
-    "connect-src 'self'",
-    "report-uri /api/csp-report"
-  ].join("; "),
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "X-Content-Type-Options": "nosniff"
-};
-
-function withSecurityHeaders(headers = {}) {
-  return { ...securityHeaders, ...headers };
-}
 
 function httpError(message, status = 400, details) {
   return Object.assign(new Error(message), { status, details });

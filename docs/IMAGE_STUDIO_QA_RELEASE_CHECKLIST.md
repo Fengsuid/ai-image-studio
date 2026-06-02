@@ -961,3 +961,15 @@ Record the outcome in the relevant development document or release note before m
 - Deployment note: `deployment_required=false`; no production deploy, APP_VERSION bump, image rebuild, database change, online smoke, or remote upload is required for this test-only cleanup.
 - Known blockers: none for AIS-RLS-160. Future release records should not mark these three smoke scripts as AIS-RLS-111 known pre-existing failures.
 - Rollback target: revert this release commit to restore the previous hard-coded smoke assertions.
+
+### 2026-06-02 AIS-RLS-118 CSP Enforce Rollout Start
+
+- Task covered: `AIS-RLS-118` gradual CSP enforce rollout via `CSP_ENFORCE`.
+- Commit covered: this AIS-RLS-118 rollout-start commit.
+- Files changed: new `src/security-headers.js`, new `scripts/smoke/check-csp-enforce.mjs`, `server.js`, `.env.example`, `src/config/app-settings.js`, `package.json`, `scripts/smoke/check-public-api.mjs`, and `scripts/smoke/check-canvas-v2.mjs`.
+- Acceptance coverage: runtime security headers now switch between `Content-Security-Policy` and `Content-Security-Policy-Report-Only` through `CSP_ENFORCE`; `CSP_ENFORCE=false` remains the rollback path; both header modes share the same tightened policy; public and Canvas v2 smokes can auto-detect either mode or hard-assert a mode with `SMOKE_EXPECT_CSP_ENFORCE`.
+- Local checks: focused `node --check` for changed server/helper/smoke/config files, `npm run smoke:csp-enforce`, `npm run check`, and `git diff --check` passed. Local `npm run smoke:public` without a running local app failed with `fetch failed`; a temporary local app start was blocked by local MySQL credentials (`ER_ACCESS_DENIED_ERROR` for `root@localhost` without password), so deployed container/external smoke are the release authority.
+- Deployment note: production rollout should set `APP_VERSION=20260602-csp-enforce-v1` and `CSP_ENFORCE=true`, rebuild/restart the app container, and make no database schema or data changes.
+- Online smoke pending: after deployment, require `curl -I https://<host>/` to show `Content-Security-Policy:` and not `Content-Security-Policy-Report-Only:`, plus `SMOKE_EXPECT_CSP_ENFORCE=true npm run smoke:public -- https://<host>`.
+- Known blocker: the Trellis task must remain active until 48h of CSP report volume has returned to background-noise level. This release record starts the enforce observation window; it does not by itself satisfy the 48h acceptance item.
+- Rollback target: set `CSP_ENFORCE=false`, restart the app, verify `Content-Security-Policy-Report-Only:` is restored, then rerun public smoke.

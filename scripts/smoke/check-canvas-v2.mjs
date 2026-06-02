@@ -7,6 +7,11 @@ import mysql from "mysql2/promise";
 const argBase = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "";
 const baseUrl = (process.env.BASE_URL || argBase || "http://localhost:3000").replace(/\/+$/, "");
 const timeoutMs = Number.parseInt(process.env.SMOKE_TIMEOUT_MS || "20000", 10) || 20000;
+const cspExpectation = (() => {
+  const raw = String(process.env.SMOKE_EXPECT_CSP_ENFORCE || "").trim();
+  if (!raw) return "auto";
+  return /^(1|true|yes|on)$/i.test(raw) ? "enforce" : "report-only";
+})();
 const failures = [];
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 const owner = {
@@ -31,6 +36,23 @@ function fail(message) {
 
 function assert(condition, message) {
   if (!condition) fail(message);
+}
+
+function assertCspHeader(headers, pathLabel) {
+  const enforced = headers.get("content-security-policy");
+  const reportOnly = headers.get("content-security-policy-report-only");
+  if (cspExpectation === "enforce") {
+    assert(enforced, `${pathLabel} missing enforced CSP header`);
+    assert(!reportOnly, `${pathLabel} should not send CSP Report-Only when enforce is expected`);
+    return;
+  }
+  if (cspExpectation === "auto") {
+    assert(Boolean(enforced || reportOnly), `${pathLabel} missing CSP header`);
+    assert(!(enforced && reportOnly), `${pathLabel} must not send both CSP enforce and Report-Only headers`);
+    return;
+  }
+  assert(reportOnly, `${pathLabel} missing CSP Report-Only header`);
+  assert(!enforced, `${pathLabel} should not send enforced CSP when report-only is expected`);
 }
 
 async function fetchText(pathSuffix, accept = "text/plain,*/*") {
@@ -254,7 +276,7 @@ async function checkCanvasV2Shell() {
   log(`base = ${baseUrl}`);
   const shell = await fetchText("/canvas-v2", "text/html,*/*");
   assert(shell.status === 200, `/canvas-v2 status=${shell.status}`);
-  assert(shell.headers.get("content-security-policy-report-only"), "/canvas-v2 missing CSP Report-Only header");
+  assertCspHeader(shell.headers, "/canvas-v2");
   assert(shell.headers.get("x-content-type-options") === "nosniff", "/canvas-v2 missing nosniff header");
   assert(shell.body.includes("Canvas v2"), "/canvas-v2 missing Canvas v2 marker");
   assert(shell.body.includes("data-canvas-v2-root"), "/canvas-v2 missing root mount");
