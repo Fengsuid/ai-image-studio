@@ -14,6 +14,7 @@ const announcements = read("public/admin/announcements.js");
 const settings = read("public/admin/settings.js");
 const canvas = read("public/admin/canvas.js");
 const commandPalette = read("public/admin/command-palette.js");
+const shellCss = read("public/css/09-admin-shell-polish.css");
 const overview = read("public/admin-overview.js");
 const users = read("public/admin-users.js");
 const providers = read("public/admin-providers.js");
@@ -59,6 +60,44 @@ assert(gallery.includes("window.AdminModules.squareReview"), "gallery module mus
 assert(gallery.includes("window.AdminModules.galleryFiles"), "gallery module must register galleryFiles");
 for (const [name, content] of Object.entries({ dashboard, prompts, announcements, settings, canvas, commandPalette })) {
   assert(content.split(/\r?\n/).length <= 400, `public/admin/${name}.js must stay <= 400 lines`);
+}
+assert(commandPalette.split(/\r?\n/).length <= 150, "public/admin/command-palette.js must stay <= 150 lines for AIS-RLS-144");
+for (const token of [
+  'document.documentElement.dataset.app !== "admin"',
+  "adminCommandPaletteBtn",
+  "primitive-modal--wide",
+  'data-flavor="palette"',
+  "data-command-query",
+  'role="listbox"',
+  "aria-selected",
+  "arrowdown",
+  "enter",
+  "escape",
+  'key === "/"',
+  "localStorage",
+  "admin.command.recentEntities",
+  "admin.recent.users",
+  "admin.recent.orders",
+  "admin.recent.prompts",
+  "matchMedia?.(\"(max-width: 760px)\")",
+  "global.AdminCommandPalette = { register, open, close, remember }"
+]) {
+  assert(commandPalette.includes(token), `AIS-RLS-144 command palette missing ${token}`);
+}
+assert(adminHtml.includes('id="adminCommandPaletteBtn" class="btn btn--ghost btn--icon"'), "admin topbar must expose a mobile-visible command palette icon button");
+for (const token of ["rememberDetail", "AdminCommandPalette?.remember?.(\"user\"", "AdminCommandPalette?.remember?.(\"order\"", "AdminCommandPalette?.remember?.(\"prompt\"", "showDetail, helpers"]) {
+  assert(dashboard.includes(token), `dashboard must persist/reopen recent command entities: ${token}`);
+}
+for (const token of [
+  ".admin-table tbody tr:hover",
+  "background: color-mix(in srgb, var(--brand-50) 50%, transparent)",
+  "box-shadow: inset 3px 0 var(--brand-600)",
+  ".admin-command-card[data-flavor=\"palette\"]",
+  ".admin-command-search",
+  ".admin-command-list",
+  ".admin-command-card[data-flavor=\"palette\"] footer"
+]) {
+  assert(shellCss.includes(token), `AIS-RLS-144 admin interaction CSS missing ${token}`);
 }
 assert(!fs.existsSync(path.join(rootDir, "src/routes/admin.js")), "legacy src/routes/admin.js must be deleted");
 assert(!fs.existsSync(path.join(rootDir, "src/routes/admin-users.js")), "legacy src/routes/admin-users.js must be deleted");

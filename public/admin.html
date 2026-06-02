@@ -6,7 +6,7 @@
     <title>ai-image-studio Admin</title>
     <link href="/vendor/icons/remixicon.min.css" rel="stylesheet">
     <link href="/vendor/icons/remixicon-compat.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css?v=20260602-admin-cards-v1">
+    <link rel="stylesheet" href="/styles.css?v=20260602-admin-interactions-v1">
   </head>
   <body class="admin-body">
     <div id="adminApp" class="admin-shell" data-admin-page="overview">
@@ -36,6 +36,7 @@
               <input id="adminGlobalSearch" type="search" placeholder="搜索模块、用户、提示词" aria-label="搜索后台内容">
             </label>
             <div class="admin-status admin-global-actions">
+              <button id="adminCommandPaletteBtn" class="btn btn--ghost btn--icon" type="button" aria-label="打开命令面板" title="命令面板"><i class="ri-command-line" aria-hidden="true"></i></button>
               <button class="btn btn--ghost btn--icon" type="button" aria-label="通知中心" title="通知中心"><i class="ri-notification-3-line"></i></button>
               <span id="adminStatus" class="admin-status-pill primitive-pill">Checking...</span>
               <span id="adminUserLabel" class="admin-user-chip primitive-pill">-</span>
@@ -66,9 +67,9 @@
     </div>
     <div id="adminConfirmLayer" class="admin-confirm-layer hidden" aria-live="polite" aria-hidden="true"></div>
     <div id="adminToastLayer" class="toast-layer" role="status" aria-live="polite" aria-atomic="true"></div>
-    <script src="/client-error-monitor.js?v=20260602-admin-cards-v1" defer></script>
-    <script src="/app-modules.js?v=20260602-admin-cards-v1" defer></script>
-    <script src="/frontend-build-manifest.js?v=20260602-admin-cards-v1" defer></script>
-    <script src="/app-router.js?v=20260602-admin-cards-v1" data-route-entry="admin" defer></script>
+    <script src="/client-error-monitor.js?v=20260602-admin-interactions-v1" defer></script>
+    <script src="/app-modules.js?v=20260602-admin-interactions-v1" defer></script>
+    <script src="/frontend-build-manifest.js?v=20260602-admin-interactions-v1" defer></script>
+    <script src="/app-router.js?v=20260602-admin-interactions-v1" data-route-entry="admin" defer></script>
   </body>
 </html>

@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260602-admin-cards-v1",
+  "version": "20260602-admin-interactions-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/mobile/_mobile-overrides.css",
       "/css/mobile/_mobile-editor.css"
     ],
-    "entry": "/dist/app.8ca20247ff8d.css",
-    "file": "/dist/app.8ca20247ff8d.css",
-    "hash": "8ca20247ff8d",
-    "bytes": 336743,
+    "entry": "/dist/app.56c64de8893d.css",
+    "file": "/dist/app.56c64de8893d.css",
+    "hash": "56c64de8893d",
+    "bytes": 338973,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -445,18 +445,18 @@
       },
       {
         "source": "/admin/command-palette.js",
-        "entry": "/dist/admin-command-palette.17a06c2d9ce3.js",
-        "fileName": "admin-command-palette.17a06c2d9ce3.js",
-        "hash": "17a06c2d9ce3",
-        "bytes": 2252,
+        "entry": "/dist/admin-command-palette.ebaed7c0e1d0.js",
+        "fileName": "admin-command-palette.ebaed7c0e1d0.js",
+        "hash": "ebaed7c0e1d0",
+        "bytes": 5327,
         "lazy": true
       },
       {
         "source": "/admin/dashboard.js",
-        "entry": "/dist/admin-dashboard.3ff3372e1de9.js",
-        "fileName": "admin-dashboard.3ff3372e1de9.js",
-        "hash": "3ff3372e1de9",
-        "bytes": 22421,
+        "entry": "/dist/admin-dashboard.a4dbc32930ca.js",
+        "fileName": "admin-dashboard.a4dbc32930ca.js",
+        "hash": "a4dbc32930ca",
+        "bytes": 22880,
         "lazy": true
       },
       {

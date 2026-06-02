@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260602-admin-cards-v1";
+export const FRONTEND_BUILD_VERSION = "20260602-admin-interactions-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

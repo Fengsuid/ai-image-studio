@@ -182,9 +182,30 @@ html[data-app="admin"] .admin-topbar {
 }
 
 .admin-table tbody tr:hover {
-  background: color-mix(in srgb, var(--brand-50) 56%, var(--neutral-0));
+  background: color-mix(in srgb, var(--brand-50) 50%, transparent);
   box-shadow: inset 3px 0 var(--brand-600);
 }
+
+.admin-command-layer { position: fixed; inset: 0; z-index: 120; display: grid; place-items: start center; padding: min(12vh, 96px) 16px 24px; background: color-mix(in srgb, var(--neutral-900) 34%, transparent); backdrop-filter: blur(8px); }
+
+.admin-command-card[data-flavor="palette"] { width: min(760px, calc(100vw - 32px)); max-height: min(680px, calc(100svh - 48px)); display: grid; gap: 12px; padding: 14px; overflow: hidden; border-color: color-mix(in srgb, var(--brand-600) 22%, var(--neutral-200)); background: color-mix(in srgb, var(--neutral-0) 96%, transparent); box-shadow: 0 32px 90px color-mix(in srgb, var(--neutral-900) 28%, transparent); }
+
+.admin-command-search { min-height: 44px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--neutral-200); border-radius: var(--radius-md); padding: 0 12px; background: var(--neutral-0); color: var(--neutral-500); }
+
+.admin-command-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--neutral-900); font: inherit; }
+
+.admin-command-list { display: grid; gap: 6px; max-height: min(440px, 54svh); overflow-y: auto; overscroll-behavior: contain; }
+
+.admin-command-list button { min-height: 46px; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid transparent; border-radius: var(--radius-md); padding: 8px 10px; background: transparent; color: var(--neutral-800); text-align: left; }
+
+.admin-command-list button.active,
+.admin-command-list button:hover { border-color: color-mix(in srgb, var(--brand-600) 28%, transparent); background: color-mix(in srgb, var(--brand-50) 50%, transparent); box-shadow: inset 3px 0 var(--brand-600); }
+
+.admin-command-list small { color: var(--neutral-500); font-weight: 700; }
+
+.admin-command-card[data-flavor="palette"] footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--neutral-500); font-size: 12px; }
+
+.admin-command-card[data-flavor="palette"] kbd { border: 1px solid var(--neutral-200); border-radius: var(--radius-sm); padding: 2px 6px; background: var(--neutral-50); color: var(--neutral-700); font: inherit; font-weight: 800; }
 
 .admin-empty-state,
 .admin-error-state,
@@ -368,7 +389,8 @@ html[data-app="admin"] .admin-topbar {
 }
 
 :root[data-theme="dark"] .admin-table tbody tr:hover {
-  background: color-mix(in srgb, var(--brand-600) 14%, transparent);
+  background: color-mix(in srgb, var(--brand-50) 50%, transparent);
+  box-shadow: inset 3px 0 var(--brand-600);
 }
 
 :root[data-theme="dark"] .admin-empty-state,
