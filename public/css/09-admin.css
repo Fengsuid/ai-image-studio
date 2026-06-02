@@ -370,7 +370,7 @@
   top: 0;
   right: 0;
   width: min(460px, 100vw);
-  height: 100vh;
+  height: 100svh;
   background: var(--neutral-0);
   border-left: 1px solid var(--neutral-200);
   box-shadow: -16px 0 40px color-mix(in srgb, var(--neutral-900) 16%, transparent);

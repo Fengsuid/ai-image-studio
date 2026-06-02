@@ -225,7 +225,7 @@
 .hero {
   max-width: 1200px;
   margin: 0 auto;
-  min-height: min(760px, calc(100vh - 74px));
+  min-height: min(760px, calc(100svh - 74px));
   padding: clamp(80px, 7vh, 110px) var(--space-xl) var(--space-2xl);
   display: flex;
   flex-direction: column;

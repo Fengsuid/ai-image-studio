@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260602-motion-library-v1";
+export const FRONTEND_BUILD_VERSION = "20260602-mobile-consolidation-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -16,13 +16,10 @@ export const frontendBuildManifest = Object.freeze({
     entryPattern: "/dist/app.<hash>.css",
     compatibilityEntry: "/styles.css",
     mobileModuleSources: [
-      "/css/06-gallery-mobile.css",
-      "/css/11-mobile-shell.css",
-      "/css/05-home-mobile.css",
-      "/css/07-editor-mobile.css",
-      "/css/07-editor-mobile-works.css",
-      "/css/07-editor-mobile-detail.css",
-      "/css/07-editor-mobile-narrow.css"
+      "/css/mobile/_safe-area.css",
+      "/css/mobile/_bottom-nav.css",
+      "/css/mobile/_mobile-overrides.css",
+      "/css/mobile/_mobile-editor.css"
     ]
   },
   js: {

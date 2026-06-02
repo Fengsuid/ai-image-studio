@@ -57,7 +57,7 @@ const scenarios = [
     viewport: "mobile",
     readySelector: "#homeView",
     requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button", ".bottom-nav"],
-    coreButtons: ["#heroComposerMount .send-button", "[data-mobile-nav-action='generate']"],
+    coreButtons: ["#heroComposerMount .send-button", "[data-mobile-nav-action='create']"],
     checkBottomNav: true,
     manualReview: "Dark home hero, mobile composer, bottom navigation spacing."
   },
@@ -127,7 +127,7 @@ const scenarios = [
     viewport: "mobile",
     readySelector: "#libraryView",
     requiredVisible: ["#libraryView", "#promptGrid", ".prompt-library-card", ".bottom-nav"],
-    coreButtons: ["#librarySearchForm button", "[data-mobile-nav-action='library']"],
+    coreButtons: ["#librarySearchForm button", "[data-mobile-nav-action='ranking']"],
     cardSelectors: [".prompt-library-card"],
     checkBottomNav: true,
     manualReview: "Dark gallery cards, mobile bottom nav, tag/filter wrapping."
@@ -779,6 +779,25 @@ async function visualProbe(scenario, viewport, externalTarget) {
       const navRect = navResult.rect;
       if (Math.abs(navRect.bottom - viewportHeight) > 2 || navRect.top < viewportHeight - 160) {
         failures.push(`${pageLabel}: bottom nav unexpected position (${Math.round(navRect.top)}..${Math.round(navRect.bottom)} / ${viewportHeight})`);
+      }
+      const actionRects = new Map();
+      for (const action of ["home", "ranking", "create", "notifications", "my"]) {
+        const selector = `[data-mobile-nav-action='${action}']`;
+        const actionResult = visible(selector);
+        if (!actionResult.ok) {
+          failures.push(`${pageLabel}: bottom nav action ${action} ${actionResult.reason}`);
+          continue;
+        }
+        const rect = actionResult.rect;
+        actionRects.set(action, rect);
+        if (rect.height < 40 || rect.width < 40) {
+          failures.push(`${pageLabel}: bottom nav action ${action} touch target ${Math.round(rect.width)}x${Math.round(rect.height)}`);
+        }
+      }
+      const createRect = actionRects.get("create");
+      const homeRect = actionRects.get("home");
+      if (createRect && homeRect && createRect.top > homeRect.top - 8) {
+        failures.push(`${pageLabel}: create FAB is not visibly raised above the bottom nav`);
       }
       const actionSelectors = ["#heroComposerMount .send-button", "#stickyComposerMount .send-button", ".square-preview-actions button", ".works-detail-actions button", "#editorPromptForm button"];
       for (const selector of actionSelectors) {

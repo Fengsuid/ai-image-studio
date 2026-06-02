@@ -2,7 +2,7 @@
 
 .credits-detail-modal {
   width: min(1060px, calc(100vw - 44px));
-  max-height: min(780px, calc(100vh - 44px));
+  max-height: min(780px, calc(100svh - 44px));
   overflow: hidden;
   padding: 26px 28px 22px;
   border-radius: 24px;
@@ -99,14 +99,14 @@
 }
 
 .credit-ledger-list {
-  max-height: min(500px, calc(100vh - 260px));
+  max-height: min(500px, calc(100svh - 260px));
   overflow: auto;
   padding-right: 4px;
   scrollbar-width: thin;
 }
 
 .reward-ledger-list {
-  max-height: min(360px, calc(100vh - 360px));
+  max-height: min(360px, calc(100svh - 360px));
   overflow: auto;
   padding-right: 4px;
   scrollbar-width: thin;

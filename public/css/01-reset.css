@@ -216,7 +216,7 @@
 }
 
 .canvas-workspace-view {
-  min-height: calc(100vh - 150px);
+  min-height: calc(100svh - 150px);
   display: grid;
   grid-template-columns: minmax(176px, 220px) minmax(520px, 1fr) minmax(240px, 300px);
   border: 1px solid rgba(148, 163, 184, 0.28);

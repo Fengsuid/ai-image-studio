@@ -259,7 +259,7 @@ button.tag-chip.active {
 }
 
 .admin-shell {
-  min-height: 100vh;
+  min-height: 100svh;
   display: grid;
   grid-template-columns: 256px minmax(0, 1fr);
 }
@@ -267,7 +267,7 @@ button.tag-chip.active {
 .admin-sidebar {
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100svh;
   background: #111827;
   color: #e5e7eb;
   padding: 18px 14px;

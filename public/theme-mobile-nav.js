@@ -56,9 +56,8 @@
   function actionToActive(action, state = {}) {
     if (action) return action;
     if (state.active) return state.active;
-    if (state.view === "library" || state.view === "leaderboard") return "library";
-    if (state.view === "editor") return "editor";
-    if (state.view === "home") return state.heroVisible === false ? "generate" : "home";
+    if (state.view === "leaderboard") return "ranking";
+    if (state.view === "home") return state.heroVisible === false ? "create" : "home";
     return "";
   }
 
@@ -74,29 +73,31 @@
 
   function runAction(action) {
     const app = window.ImageStudioAppActions || {};
-    if (action !== "generate" && action !== "works") {
+    if (action !== "create" && action !== "my" && action !== "notifications") {
       app.releaseSessionDrawerLock?.();
     }
     if (action === "home") {
       app.navigate?.("home", { scrollTop: true, scrollBehavior: "smooth" });
       return;
     }
-    if (action === "library") {
-      app.navigate?.("library", { scrollTop: true, scrollBehavior: "smooth" });
+    if (action === "ranking") {
+      app.navigate?.("leaderboard", { scrollTop: true, scrollBehavior: "smooth" });
       return;
     }
-    if (action === "generate") {
+    if (action === "create") {
       app.focusGenerationComposer?.();
       return;
     }
-    if (action === "editor") {
-      app.openImageEditor?.();
+    if (action === "notifications") {
+      if (app.isLoggedIn?.()) app.openNotificationsModal?.();
+      else app.openAuthModal?.("login");
+      setActive("notifications");
       return;
     }
-    if (action === "works") {
+    if (action === "my") {
       if (app.isLoggedIn?.()) app.openMyWorksModal?.();
       else app.openAuthModal?.("login");
-      setActive("works");
+      setActive("my");
     }
   }
 

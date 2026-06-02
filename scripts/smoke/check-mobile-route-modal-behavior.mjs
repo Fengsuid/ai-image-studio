@@ -12,15 +12,10 @@ const read = (file) => fs.readFileSync(path.join(rootDir, file), "utf8");
 const app = read("public/app.js");
 const galleryNormalize = read("public/gallery-normalize.js");
 const themeNav = read("public/theme-mobile-nav.js");
-const mobileEditorCss = [
-  read("public/css/07-editor-mobile.css"),
-  read("public/css/07-editor-mobile-works.css"),
-  read("public/css/07-editor-mobile-detail.css"),
-  read("public/css/07-editor-mobile-narrow.css")
-].join("\n");
+const mobileEditorCss = read("public/css/mobile/_mobile-editor.css");
 const galleryCss = read("public/css/06-gallery-leaderboard-responsive.css");
-const mobileGalleryCss = read("public/css/06-gallery-mobile.css");
-const mobileBottomSheetCss = read("public/css/11-mobile-bottom-sheet.css");
+const mobileGalleryCss = read("public/css/mobile/_mobile-overrides.css");
+const mobileBottomSheetCss = read("public/css/mobile/_bottom-nav.css");
 const modalPrimitiveCss = read("public/css/primitives/_modal.css");
 const server = read("server.js");
 const pkg = JSON.parse(read("package.json"));

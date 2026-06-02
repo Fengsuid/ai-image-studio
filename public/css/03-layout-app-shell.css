@@ -1,7 +1,7 @@
 /* App shell, ambient background and top navigation defaults split for AIS-RLS-133. */
 
 .app {
-  min-height: 100vh;
+  min-height: 100svh;
   position: relative;
   overflow-x: hidden;
 }

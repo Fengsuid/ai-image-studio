@@ -5554,6 +5554,7 @@ window.ImageStudioAppActions = {
   openImageEditor,
   openCanvasWorkspace,
   openMyWorksModal,
+  openNotificationsModal,
   openAuthModal,
   releaseSessionDrawerLock,
   openSessionDrawer,

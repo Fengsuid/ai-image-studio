@@ -83,7 +83,7 @@
 
 .works-workspace {
   width: min(1480px, calc(100vw - 24px));
-  height: min(920px, calc(100vh - 24px));
+  height: min(920px, calc(100svh - 24px));
   display: grid;
   grid-template-rows: auto auto auto auto minmax(0, 1fr);
   overflow: hidden;
@@ -434,12 +434,12 @@
   background: rgba(255, 255, 255, 0.92);
   padding: 14px;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
-  max-height: calc(100vh - 112px);
+  max-height: calc(100svh - 112px);
   overflow: auto;
 }
 
 .leaderboard-view {
-  min-height: 100vh;
+  min-height: 100svh;
   padding: 12px clamp(16px, 4vw, 42px) 72px;
   isolation: isolate;
 }

@@ -7,31 +7,20 @@
 
 @media (max-width: 768px) {
   .library-view,
-  .leaderboard-view {
-    padding-bottom: calc(40px + env(safe-area-inset-bottom));
-  }
+  .leaderboard-view { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 
   .leaderboard-view {
     overflow-x: hidden;
     padding: 10px max(10px, env(safe-area-inset-left)) calc(42px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
   }
 
-  .library-hero {
-    padding: 28px var(--mobile-page-pad) 22px;
-    gap: 12px;
-  }
+  .library-hero { padding: 28px var(--mobile-page-pad) 22px; gap: 12px; }
 
   .library-hero h1,
-  .leaderboard-page-head h1 {
-    font-size: clamp(32px, 10vw, 46px);
-    letter-spacing: 0;
-  }
+  .leaderboard-page-head h1 { font-size: clamp(32px, 10vw, 46px); letter-spacing: 0; }
 
   .library-hero p,
-  .leaderboard-page-head p {
-    max-width: 32rem;
-    font-size: 14px;
-  }
+  .leaderboard-page-head p { max-width: 32rem; font-size: 14px; }
 
   .library-mobile-leaderboard {
     display: flex;
@@ -62,15 +51,9 @@
   }
 
   .library-mobile-leaderboard span,
-  .library-mobile-leaderboard small {
-    min-width: 0;
-    display: block;
-    text-align: left;
-  }
+  .library-mobile-leaderboard small { min-width: 0; display: block; text-align: left; }
 
-  .library-mobile-leaderboard span {
-    font-weight: 900;
-  }
+  .library-mobile-leaderboard span { font-weight: 900; }
 
   .library-mobile-leaderboard small {
     margin-left: auto;
@@ -89,9 +72,7 @@
     border-radius: 16px;
   }
 
-  .library-search > span {
-    display: none;
-  }
+  .library-search > span { display: none; }
 
   .library-search > i {
     width: 36px;
@@ -101,11 +82,7 @@
     color: #64748b;
   }
 
-  .library-search input {
-    min-height: 44px;
-    padding: 0;
-    font-size: 16px;
-  }
+  .library-search input { min-height: 44px; padding: 0; font-size: 16px; }
 
   .library-search button {
     min-width: 64px;
@@ -127,9 +104,7 @@
     scrollbar-width: none;
   }
 
-  .tag-filters::-webkit-scrollbar {
-    display: none;
-  }
+  .tag-filters::-webkit-scrollbar { display: none; }
 
   .tag-filters button {
     flex: 0 0 auto;
@@ -139,33 +114,17 @@
     background: rgba(255, 255, 255, 0.58);
   }
 
-  .library-sort {
-    max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
+  .library-sort { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 
-  .library-sort::-webkit-scrollbar {
-    display: none;
-  }
+  .library-sort::-webkit-scrollbar { display: none; }
 
-  .library-sort button {
-    min-height: 38px;
-  }
+  .library-sort button { min-height: 38px; }
 
-  .prompt-grid {
-    max-width: 100%;
-    padding: 0 var(--mobile-page-pad);
-  }
+  .prompt-grid { max-width: 100%; padding: 0 var(--mobile-page-pad); }
 
-  .gallery-main-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
+  .gallery-main-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 
-  .prompt-card {
-    border-radius: 18px;
-  }
+  .prompt-card { border-radius: 18px; }
 
   .prompt-card h3 {
     display: -webkit-box;
@@ -181,19 +140,12 @@
     overflow: hidden;
   }
 
-  .card-actions {
-    flex-wrap: wrap;
-  }
+  .card-actions { flex-wrap: wrap; }
 
   .card-actions button,
-  .tiny-button {
-    min-height: 38px;
-  }
+  .tiny-button { min-height: 38px; }
 
-  .leaderboard-page {
-    width: 100%;
-    gap: 0;
-  }
+  .leaderboard-page { width: 100%; gap: 0; }
 
   .leaderboard-page-head {
     order: 0;
@@ -236,7 +188,7 @@
   .leaderboard-page .gallery-rank-tabs,
   .gallery-rank-tabs {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     overflow-x: auto;
     gap: 9px;
     margin: 0 -2px 12px;
@@ -268,7 +220,7 @@
   }
 
   .leaderboard-page .gallery-leaderboard-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
@@ -345,7 +297,7 @@
     justify-self: center !important;
     align-self: center !important;
     border-radius: 0;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(168px, 30svh) minmax(0, 1fr);
     overflow: hidden;
   }
@@ -436,4 +388,59 @@
   .square-preview-actions {
     position: static;
   }
+}
+
+/* Mobile home hero, composer, and recent-work layout overrides.
+   Migrated from public/mobile-home.css for AIS-RLS-114. */
+
+@media (max-width: 768px) {
+  .hero { min-height: calc(100svh - var(--mobile-topbar-h)); padding: clamp(42px, 7svh, 64px) var(--mobile-page-pad) 28px; align-items: center; gap: 12px; }
+
+  .hero::before { top: 72px; width: min(720px, 112vw); height: 260px; }
+
+  .hero-meta-row { max-width: 100%; flex-wrap: nowrap; gap: 6px; padding: 5px 8px; overflow: hidden; }
+
+  .hero-meta-row .config-chip,
+  .daily-metric { min-height: 32px; font-size: 12px; }
+
+  .daily-metric { min-width: 0; white-space: nowrap; }
+
+  #todayGeneratedText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+  .metric-dots { display: none; }
+
+  .hero h1 { width: min(100%, 520px); font-size: clamp(46px, 13vw, 72px); line-height: 0.92; letter-spacing: 0; }
+
+  .hero h1 span,
+  .hero h1 em {
+    letter-spacing: 0;
+  }
+
+  .hero h1 em { font-size: clamp(26px, 7vw, 38px); }
+
+  .hero-desc { max-width: 30rem; font-size: 14px; letter-spacing: 0; }
+
+  .hero .composer { width: 100%; max-width: 100%; border-radius: 18px; }
+
+  .hero .composer-mount { align-self: flex-start; position: relative; left: 0; width: calc(100vw - (var(--mobile-page-pad) * 2)); max-width: calc(100vw - (var(--mobile-page-pad) * 2)); transform: none; }
+
+  .hero .reviews { margin-top: 0; font-size: 12px; }
+
+  .recent-section { margin-top: 0; }
+}
+
+@media (max-width: 430px) {
+  .hero { padding: 34px var(--mobile-page-pad-sm) 24px; gap: 10px; }
+
+  .hero-meta-row { width: 100%; }
+
+  .hero h1 { font-size: clamp(42px, 12.5vw, 54px); }
+
+  .hero h1 em { font-size: clamp(24px, 7.5vw, 32px); }
+
+  .hero-desc { font-size: 13px; }
+
+  .hero .composer-settings-row .composer-public-toggle span { display: none; }
+
+  .hero .composer-mount { width: calc(100vw - (var(--mobile-page-pad-sm) * 2)); max-width: calc(100vw - (var(--mobile-page-pad-sm) * 2)); }
 }

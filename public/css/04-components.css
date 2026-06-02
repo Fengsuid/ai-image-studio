@@ -35,7 +35,7 @@
   width: min(74vh, 680px);
   height: min(74vh, 680px);
   max-width: 100%;
-  max-height: calc(100vh - 92px);
+  max-height: calc(100svh - 92px);
   object-fit: cover;
 }
 
@@ -161,7 +161,7 @@
 }
 
 .chat-view {
-  min-height: calc(100vh - 82px);
+  min-height: calc(100svh - 82px);
   padding: 18px clamp(16px, 4vw, 32px) 0;
   display: grid;
   grid-template-columns: var(--chat-rail-width) minmax(0, var(--chat-main-width));
@@ -186,7 +186,7 @@
   left: 16px;
   z-index: 42;
   width: var(--chat-rail-width);
-  height: calc(100vh - 116px);
+  height: calc(100svh - 116px);
   min-height: 360px;
   display: none;
   flex-direction: column;

@@ -88,27 +88,35 @@ const requiredCssModules = [
   "05-home-publish.css",
   "05-home.css",
   "05-home-composer.css",
-  "05-home-mobile.css",
   "06-gallery.css",
   "06-gallery-detail.css",
   "06-gallery-leaderboard.css",
   "06-gallery-leaderboard-responsive.css",
-  "06-gallery-mobile.css",
   "07-editor.css",
-  "07-editor-mobile.css",
-  "07-editor-mobile-works.css",
-  "07-editor-mobile-detail.css",
-  "07-editor-mobile-narrow.css",
   "08-chat.css",
   "09-admin.css",
   "09-admin-panels.css",
   "09-admin-diagnostics.css",
   "10-canvas.css",
   "10-canvas-tools.css",
-  "11-mobile.css",
-  "11-mobile-shell.css",
+  "mobile/_safe-area.css",
+  "mobile/_bottom-nav.css",
+  "mobile/_mobile-overrides.css",
+  "mobile/_mobile-editor.css",
   "12-animations.css",
   "12-visual-polish.css"
+];
+
+const legacyMobileCssModules = [
+  "05-home-mobile.css",
+  "06-gallery-mobile.css",
+  "07-editor-mobile.css",
+  "07-editor-mobile-works.css",
+  "07-editor-mobile-detail.css",
+  "07-editor-mobile-narrow.css",
+  "11-mobile.css",
+  "11-mobile-shell.css",
+  "11-mobile-bottom-sheet.css"
 ];
 
 function fail(message) {
@@ -154,6 +162,11 @@ function scriptPosition(html, scriptName) {
   const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const hashed = html.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`));
   return hashed?.index ?? -1;
+}
+
+function cssRuleBlock(source, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\}`))?.[1] || "";
 }
 
 function checkFileBudget(relativePath, budget) {
@@ -227,6 +240,14 @@ function checkCssModules() {
     assert(styles.includes(`/css/${cssFile}`), `public/styles.css must import ${cssFile}`);
   }
 
+  for (const cssFile of legacyMobileCssModules) {
+    assert(!exists(`public/css/${cssFile}`), `legacy mobile CSS module must be removed: public/css/${cssFile}`);
+    assert(!styles.includes(`/css/${cssFile}`), `public/styles.css must not import legacy mobile CSS ${cssFile}`);
+  }
+  for (const cssFile of ["mobile.css", "mobile-editor.css", "mobile-gallery.css"]) {
+    assert(!exists(`public/${cssFile}`), `legacy root mobile CSS must be removed: public/${cssFile}`);
+  }
+
   const imports = [...styles.matchAll(/@import url\("\/css\/([^"]+\.css)"\);/g)].map(
     (match) => match[1]
   );
@@ -251,6 +272,7 @@ function checkCssModules() {
       content.trimStart().startsWith("/*"),
       `${relativePath} should start with a short module header comment`
     );
+    assert(!content.includes("100vh"), `${relativePath} must use 100svh instead of 100vh`);
   }
 
   const tokens = read("public/css/00-tokens.css");
@@ -259,6 +281,41 @@ function checkCssModules() {
   const motionLibrary = read("public/css/01-motion-library.css");
   const premiumInteractions = read("public/css/14-premium-interactions.css");
   const buttonPrimitive = read("public/css/primitives/_button.css");
+  const mobileBottomNav = read("public/css/mobile/_bottom-nav.css");
+  const mobileOverrides = read("public/css/mobile/_mobile-overrides.css");
+  const modalPrimitive = read("public/css/primitives/_modal.css");
+  const bottomNavActions = [...read("public/index.html").matchAll(/data-mobile-nav-action="([^"]+)"/g)].map(
+    (match) => match[1]
+  );
+  assert(
+    JSON.stringify(bottomNavActions) === JSON.stringify(["home", "ranking", "create", "notifications", "my"]),
+    "mobile bottom nav must expose home/ranking/create/notifications/my in order"
+  );
+  assert(mobileBottomNav.includes(".bottom-nav-generate") && mobileBottomNav.includes("top: -12px"), "mobile bottom nav central create FAB must float +12px");
+  assert(
+    mobileBottomNav.includes("left: 50%;") &&
+      mobileBottomNav.includes("transform: translateX(-50%)") &&
+      mobileBottomNav.includes("bottom: calc(82px + env(safe-area-inset-bottom))"),
+    "mobile toast must be centered and docked above the safe-area bottom nav"
+  );
+  assert(
+    mobileBottomNav.includes("@media (max-width: 640px)") &&
+      mobileBottomNav.includes("align-items: end") &&
+      mobileBottomNav.includes("max-height: calc(100svh - 56px)") &&
+      mobileBottomNav.includes("border-radius: var(--radius-xl) var(--radius-xl) 0 0"),
+    "mobile modal bottom-sheet rules must be explicit at max-width 640px"
+  );
+  const squarePreviewMobileBlock = cssRuleBlock(mobileOverrides, ".square-preview-modal");
+  assert(
+    squarePreviewMobileBlock.includes("grid-template-columns: minmax(0, 1fr)"),
+    "square preview mobile modal must fold to minmax(0, 1fr)"
+  );
+  assert(
+    modalPrimitive.includes(".primitive-modal--keep-centered") &&
+      modalPrimitive.includes("grid-template-columns: minmax(0, 1fr)") &&
+      modalPrimitive.includes("max-height: calc(100svh - 56px)"),
+    "modal primitive must support keep-centered and mobile bottom-sheet split folding"
+  );
   assert(
     /--brand-600:\s*#[0-9a-fA-F]{6};/.test(tokens),
     "00-tokens.css must expose Token v2 --brand-600"

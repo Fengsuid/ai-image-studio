@@ -36,7 +36,7 @@
 }
 
 .editor-view {
-  min-height: calc(100vh - 82px);
+  min-height: calc(100svh - 82px);
   background:
     radial-gradient(circle at 18% 14%, rgba(59, 130, 246, 0.14), transparent 28%),
     radial-gradient(circle at 88% 12%, rgba(251, 146, 60, 0.16), transparent 26%),
@@ -115,7 +115,7 @@
 
 .editor-workspace {
   position: relative;
-  min-height: calc(100vh - 160px);
+  min-height: calc(100svh - 160px);
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -171,7 +171,7 @@
 }
 
 .editor-canvas-area {
-  min-height: calc(100vh - 160px);
+  min-height: calc(100svh - 160px);
   display: grid;
   place-items: center;
   padding: 118px 48px 150px;
@@ -284,7 +284,7 @@
 
 .editor-image-frame {
   max-width: min(76vw, 980px);
-  max-height: calc(100vh - 280px);
+  max-height: calc(100svh - 280px);
   display: grid;
   place-items: center;
 }
@@ -298,7 +298,7 @@
 .editor-image-scaler img {
   display: block;
   max-width: min(76vw, 980px);
-  max-height: calc(100vh - 280px);
+  max-height: calc(100svh - 280px);
   width: auto;
   height: auto;
   user-select: none;

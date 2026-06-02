@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260602-motion-library-v1",
+  "version": "20260602-mobile-consolidation-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -17,18 +17,15 @@
     "entryPattern": "/dist/app.<hash>.css",
     "compatibilityEntry": "/styles.css",
     "mobileModuleSources": [
-      "/css/06-gallery-mobile.css",
-      "/css/11-mobile-shell.css",
-      "/css/05-home-mobile.css",
-      "/css/07-editor-mobile.css",
-      "/css/07-editor-mobile-works.css",
-      "/css/07-editor-mobile-detail.css",
-      "/css/07-editor-mobile-narrow.css"
+      "/css/mobile/_safe-area.css",
+      "/css/mobile/_bottom-nav.css",
+      "/css/mobile/_mobile-overrides.css",
+      "/css/mobile/_mobile-editor.css"
     ],
-    "entry": "/dist/app.e6a234233683.css",
-    "file": "/dist/app.e6a234233683.css",
-    "hash": "e6a234233683",
-    "bytes": 334607,
+    "entry": "/dist/app.2a70dbe89e8a.css",
+    "file": "/dist/app.2a70dbe89e8a.css",
+    "hash": "2a70dbe89e8a",
+    "bytes": 332888,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -74,21 +71,16 @@
       "/css/10-canvas.css",
       "/css/10-canvas-tools.css",
       "/css/09-admin-shell-polish.css",
-      "/css/11-mobile.css",
       "/css/12-animations.css",
       "/css/12-visual-polish.css",
       "/css/14-premium-ambient.css",
       "/css/14-premium-interactions.css",
       "/css/14-premium-mobile.css",
       "/css/13-performance.css",
-      "/css/06-gallery-mobile.css",
-      "/css/11-mobile-shell.css",
-      "/css/11-mobile-bottom-sheet.css",
-      "/css/05-home-mobile.css",
-      "/css/07-editor-mobile.css",
-      "/css/07-editor-mobile-works.css",
-      "/css/07-editor-mobile-detail.css",
-      "/css/07-editor-mobile-narrow.css"
+      "/css/mobile/_safe-area.css",
+      "/css/mobile/_bottom-nav.css",
+      "/css/mobile/_mobile-overrides.css",
+      "/css/mobile/_mobile-editor.css"
     ]
   },
   "js": {
@@ -236,10 +228,10 @@
       },
       {
         "source": "/theme-mobile-nav.js",
-        "entry": "/dist/theme-mobile-nav.a80b4458e5a9.js",
-        "fileName": "theme-mobile-nav.a80b4458e5a9.js",
-        "hash": "a80b4458e5a9",
-        "bytes": 2297,
+        "entry": "/dist/theme-mobile-nav.f4dfdc7c4b38.js",
+        "fileName": "theme-mobile-nav.f4dfdc7c4b38.js",
+        "hash": "f4dfdc7c4b38",
+        "bytes": 2337,
         "lazy": false
       },
       {
@@ -348,10 +340,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.74894b8d5dfe.js",
-        "fileName": "app.74894b8d5dfe.js",
-        "hash": "74894b8d5dfe",
-        "bytes": 185199,
+        "entry": "/dist/app.02b52df3318b.js",
+        "fileName": "app.02b52df3318b.js",
+        "hash": "02b52df3318b",
+        "bytes": 185222,
         "lazy": false
       },
       {

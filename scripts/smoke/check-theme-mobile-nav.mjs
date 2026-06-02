@@ -29,10 +29,10 @@ const requiredIndexMarkers = [
   'id="themeToggle"',
   'id="bottomNav"',
   'data-mobile-nav-action="home"',
-  'data-mobile-nav-action="library"',
-  'data-mobile-nav-action="generate"',
-  'data-mobile-nav-action="editor"',
-  'data-mobile-nav-action="works"'
+  'data-mobile-nav-action="ranking"',
+  'data-mobile-nav-action="create"',
+  'data-mobile-nav-action="notifications"',
+  'data-mobile-nav-action="my"'
 ];
 
 for (const marker of requiredIndexMarkers) {
@@ -46,7 +46,11 @@ const requiredThemeMarkers = [
   "theme-transitioning",
   "ImageStudioThemeNav",
   "ImageStudioAppActions",
-  "focusGenerationComposer"
+  "focusGenerationComposer",
+  "openNotificationsModal",
+  "openMyWorksModal",
+  'navigate?.("leaderboard"',
+  'navigate?.("home"'
 ];
 
 for (const marker of requiredThemeMarkers) {

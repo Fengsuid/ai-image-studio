@@ -30,19 +30,15 @@ const required = [
   "03-layout.css",
   "04-components.css",
   "05-home.css",
-  "05-home-mobile.css",
   "06-gallery.css",
-  "06-gallery-mobile.css",
   "07-editor.css",
-  "07-editor-mobile.css",
-  "07-editor-mobile-works.css",
-  "07-editor-mobile-detail.css",
-  "07-editor-mobile-narrow.css",
   "08-chat.css",
   "09-admin.css",
   "10-canvas.css",
-  "11-mobile.css",
-  "11-mobile-shell.css",
+  "mobile/_safe-area.css",
+  "mobile/_bottom-nav.css",
+  "mobile/_mobile-overrides.css",
+  "mobile/_mobile-editor.css",
   "12-animations.css",
   "primitives/_button.css",
   "primitives/_drawer.css",
@@ -51,6 +47,25 @@ const required = [
 ];
 for (const file of required) {
   assert(fs.existsSync(path.join(cssDir, file)), `missing CSS module ${file}`);
+}
+
+const legacyMobileCss = [
+  "05-home-mobile.css",
+  "06-gallery-mobile.css",
+  "07-editor-mobile.css",
+  "07-editor-mobile-works.css",
+  "07-editor-mobile-detail.css",
+  "07-editor-mobile-narrow.css",
+  "11-mobile.css",
+  "11-mobile-shell.css",
+  "11-mobile-bottom-sheet.css"
+];
+for (const file of legacyMobileCss) {
+  assert(!fs.existsSync(path.join(cssDir, file)), `legacy mobile CSS should be removed: ${file}`);
+  assert(!styles.includes(`/css/${file}`), `styles.css must not import legacy mobile CSS ${file}`);
+}
+for (const file of ["mobile.css", "mobile-editor.css", "mobile-gallery.css"]) {
+  assert(!fs.existsSync(path.join(rootDir, "public", file)), `legacy root mobile CSS should be removed: ${file}`);
 }
 
 function listCssModules(dir, prefix = "") {

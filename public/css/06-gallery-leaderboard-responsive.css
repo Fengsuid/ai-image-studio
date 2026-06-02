@@ -24,7 +24,7 @@
   }
 
   .hero {
-    min-height: min(700px, calc(100vh - 96px));
+    min-height: min(700px, calc(100svh - 96px));
     padding: 126px 18px 36px;
     gap: 14px;
   }

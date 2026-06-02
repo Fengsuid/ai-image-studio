@@ -366,7 +366,7 @@
   right: 0;
   z-index: 80;
   width: min(480px, 100vw);
-  height: 100vh;
+  height: 100svh;
   overflow-y: auto;
   background: #fff;
   border-left: 1px solid #e2e8f0;
