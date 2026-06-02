@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260602-mobile-consolidation-v1",
+  "version": "20260602-admin-cards-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -22,10 +22,10 @@
       "/css/mobile/_mobile-overrides.css",
       "/css/mobile/_mobile-editor.css"
     ],
-    "entry": "/dist/app.2a70dbe89e8a.css",
-    "file": "/dist/app.2a70dbe89e8a.css",
-    "hash": "2a70dbe89e8a",
-    "bytes": 332888,
+    "entry": "/dist/app.8ca20247ff8d.css",
+    "file": "/dist/app.8ca20247ff8d.css",
+    "hash": "8ca20247ff8d",
+    "bytes": 336743,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -38,6 +38,7 @@
       "/css/primitives/_table.css",
       "/css/primitives/_drawer.css",
       "/css/primitives/_modal.css",
+      "/css/primitives/_card.css",
       "/css/03-layout-app-shell.css",
       "/css/05-home-shell.css",
       "/css/00-theme.css",
@@ -356,10 +357,10 @@
       },
       {
         "source": "/admin-overview.js",
-        "entry": "/dist/admin-overview.3861bc9a98dc.js",
-        "fileName": "admin-overview.3861bc9a98dc.js",
-        "hash": "3861bc9a98dc",
-        "bytes": 4542,
+        "entry": "/dist/admin-overview.b5e55ba789db.js",
+        "fileName": "admin-overview.b5e55ba789db.js",
+        "hash": "b5e55ba789db",
+        "bytes": 7266,
         "lazy": true
       },
       {

@@ -895,6 +895,213 @@ a {
   }
 }
 
+/* public/css/primitives/_card.css */
+/* AIS-RLS-143 card primitives for admin hero, stat, and empty states. */
+.primitive-card {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 92%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+}
+
+.primitive-card--hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  gap: var(--space-lg);
+  align-items: stretch;
+  padding: clamp(18px, 2.4vw, 26px);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--brand-50) 74%, var(--neutral-0)), var(--neutral-0) 54%),
+    var(--neutral-0);
+  box-shadow: var(--shadow-md);
+}
+
+.primitive-card--stat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "value value"
+    "hint hint"
+    "trend sparkline";
+  gap: 8px 12px;
+  min-height: 154px;
+  padding: 16px;
+}
+
+.primitive-card--stat > i {
+  grid-area: icon;
+}
+
+.primitive-card--stat > span {
+  grid-area: label;
+  align-self: center;
+  font-weight: 700;
+}
+
+.primitive-card--stat > strong {
+  grid-area: value;
+  align-self: end;
+  color: var(--neutral-900);
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: 0;
+}
+
+.primitive-card--stat > small {
+  grid-area: hint;
+}
+
+.primitive-card__trend {
+  grid-area: trend;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  align-self: end;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--neutral-300) 78%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--neutral-50) 84%, transparent);
+  color: var(--neutral-600);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.primitive-card__trend[data-trend="success"],
+.primitive-card__trend[data-trend="up"] {
+  border-color: color-mix(in srgb, var(--color-success) 32%, transparent);
+  background: color-mix(in srgb, var(--color-success) 10%, var(--neutral-0));
+  color: var(--color-success);
+}
+
+.primitive-card__trend[data-trend="warn"] {
+  border-color: color-mix(in srgb, var(--color-warn) 34%, transparent);
+  background: color-mix(in srgb, var(--color-warn) 10%, var(--neutral-0));
+  color: var(--color-warn);
+}
+
+.primitive-card__trend[data-trend="danger"] {
+  border-color: color-mix(in srgb, var(--color-danger) 34%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
+  color: var(--color-danger);
+}
+
+.primitive-card__sparkline {
+  grid-area: sparkline;
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: end;
+  gap: 3px;
+  min-width: 72px;
+  height: 30px;
+}
+
+.primitive-card__sparkline span {
+  width: 8px;
+  height: var(--spark, 40%);
+  min-height: 5px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--brand-400), var(--brand-600));
+  opacity: 0.72;
+}
+
+.primitive-card__sparkline span:last-child {
+  opacity: 1;
+}
+
+.primitive-card__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.primitive-card__actions .btn {
+  justify-content: flex-start;
+}
+
+.primitive-card--empty {
+  min-height: 178px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  border-style: dashed;
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--brand-50) 74%, transparent), transparent 46%),
+    var(--neutral-0);
+}
+
+.primitive-card__empty-illustration {
+  width: 86px;
+  height: 58px;
+  color: var(--brand-600);
+}
+
+.primitive-card--empty h3,
+.primitive-card--empty p {
+  margin: 0;
+}
+
+.primitive-card--empty p {
+  max-width: 38rem;
+  color: var(--neutral-500);
+  line-height: 1.6;
+}
+
+.primitive-card__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+:root[data-theme="dark"] .primitive-card {
+  border-color: color-mix(in srgb, var(--neutral-400) 24%, transparent);
+  background: color-mix(in srgb, var(--neutral-50) 88%, transparent);
+  color: var(--neutral-800);
+}
+
+:root[data-theme="dark"] .primitive-card--hero {
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--brand-600) 12%, transparent), transparent 32%),
+    color-mix(in srgb, var(--neutral-50) 90%, transparent);
+}
+
+@media (max-width: 760px) {
+  .primitive-card--hero,
+  .primitive-card--stat {
+    grid-template-columns: 1fr;
+  }
+
+  .primitive-card__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .primitive-card--stat {
+    grid-template-areas:
+      "icon"
+      "label"
+      "value"
+      "hint"
+      "trend"
+      "sparkline";
+  }
+
+  .primitive-card__sparkline {
+    justify-content: flex-start;
+  }
+}
+
 /* public/css/03-layout-app-shell.css */
 /* App shell, ambient background and top navigation defaults split for AIS-RLS-133. */
 
@@ -11238,15 +11445,6 @@ button.tag-chip.active {
   align-items: stretch;
 }
 
-.admin-overview-hero-copy,
-.admin-overview-hero-panel {
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, var(--neutral-0) 0%, var(--neutral-50) 100%);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--neutral-900) 4%, transparent);
-  min-width: 0;
-}
-
 .admin-overview-hero-copy {
   padding: 20px;
 }
@@ -11256,6 +11454,7 @@ button.tag-chip.active {
   display: grid;
   gap: 10px;
   align-content: start;
+  min-width: 0;
 }
 
 .admin-kicker {
@@ -11313,10 +11512,6 @@ button.tag-chip.active {
 
 .admin-dashboard-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.admin-stat {
-  border-color: var(--neutral-200);
 }
 
 .admin-stat[data-tone="teal"] i {
@@ -12484,10 +12679,7 @@ html[data-app="admin"] .admin-topbar {
 .admin-panel,
 .admin-stat,
 .admin-work-card {
-  border: 1px solid color-mix(in srgb, var(--neutral-300) 82%, transparent);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--neutral-0) 92%, transparent);
-  box-shadow: 0 16px 40px color-mix(in srgb, var(--neutral-900) 6%, transparent);
 }
 
 .admin-section-shell {
@@ -12668,8 +12860,6 @@ html[data-app="admin"] .admin-topbar {
 :root[data-theme="dark"] .admin-panel,
 :root[data-theme="dark"] .admin-stat,
 :root[data-theme="dark"] .admin-work-card,
-:root[data-theme="dark"] .admin-overview-hero-copy,
-:root[data-theme="dark"] .admin-overview-hero-panel,
 :root[data-theme="dark"] .admin-toolbar,
 :root[data-theme="dark"] .generation-diagnostics-toolbar,
 :root[data-theme="dark"] .admin-bulk-bar,
@@ -12680,13 +12870,6 @@ html[data-app="admin"] .admin-topbar {
   background: color-mix(in srgb, var(--neutral-50) 88%, transparent);
   color: var(--neutral-800);
   box-shadow: 0 18px 48px color-mix(in srgb, var(--neutral-0) 26%, transparent);
-}
-
-:root[data-theme="dark"] .admin-overview-hero-copy,
-:root[data-theme="dark"] .admin-overview-hero-panel {
-  background:
-    radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--brand-600) 12%, transparent), transparent 32%),
-    color-mix(in srgb, var(--neutral-50) 90%, transparent);
 }
 
 :root[data-theme="dark"] .admin-kicker,

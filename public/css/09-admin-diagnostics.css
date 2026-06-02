@@ -204,15 +204,6 @@
   align-items: stretch;
 }
 
-.admin-overview-hero-copy,
-.admin-overview-hero-panel {
-  border: 1px solid var(--neutral-200);
-  border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, var(--neutral-0) 0%, var(--neutral-50) 100%);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--neutral-900) 4%, transparent);
-  min-width: 0;
-}
-
 .admin-overview-hero-copy {
   padding: 20px;
 }
@@ -222,6 +213,7 @@
   display: grid;
   gap: 10px;
   align-content: start;
+  min-width: 0;
 }
 
 .admin-kicker {
@@ -279,10 +271,6 @@
 
 .admin-dashboard-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.admin-stat {
-  border-color: var(--neutral-200);
 }
 
 .admin-stat[data-tone="teal"] i {

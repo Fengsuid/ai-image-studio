@@ -38,7 +38,19 @@ for (const token of [
 }
 assert(skeletonCss.includes(".route-loading-shell"), "skeleton CSS must style route loading shell");
 assert(skeletonCss.includes(".route-error-shell"), "skeleton CSS must style route error shell");
-assert(adminHtml.includes("20260601-lazy-load-state-machine-v1"), "admin route cache-bust version must be bumped");
+const adminCacheBustVersion = manifest.version;
+assert(adminCacheBustVersion, "frontend manifest must expose a cache-bust version");
+for (const source of [
+  "/client-error-monitor.js",
+  "/app-modules.js",
+  "/frontend-build-manifest.js",
+  "/app-router.js"
+]) {
+  assert(
+    adminHtml.includes(`${source}?v=${adminCacheBustVersion}`),
+    `admin route cache-bust version must match manifest for ${source}`
+  );
+}
 assert(indexHtml.includes("/dist/app-router."), "public index must load hashed app-router");
 assert(manifest.js.assets.some((asset) => asset.source === "/app-router.js"), "manifest must include app-router asset");
 

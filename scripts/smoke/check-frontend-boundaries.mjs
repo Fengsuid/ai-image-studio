@@ -73,6 +73,7 @@ const requiredCssModules = [
   "00-tokens-motion.css",
   "01-motion-library.css",
   "primitives/_button.css",
+  "primitives/_card.css",
   "00-theme.css",
   "01-reset-base.css",
   "01-reset.css",

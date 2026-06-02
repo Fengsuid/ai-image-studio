@@ -189,24 +189,26 @@ const scenarios = [
   },
   {
     name: "admin-shell-light-desktop",
+    aliases: ["admin-dashboard"],
     url: "/admin#overview",
     theme: "light",
     viewport: "desktop",
     readySelector: "#adminContent .admin-panel, #adminContent .admin-auth-required",
     requiredVisible: ["#adminApp", ".admin-sidebar", ".admin-topbar", "#adminContent"],
     coreButtons: ["#adminRefreshBtn", "#adminSidebarToggle"],
-    cardSelectors: [".admin-panel", ".admin-stat"],
+    cardSelectors: [".primitive-card--hero", ".primitive-card--stat"],
     manualReview: "Admin overview shell, status pills, dashboard panels."
   },
   {
     name: "admin-shell-dark-mobile",
+    aliases: ["admin-dashboard"],
     url: "/admin#overview",
     theme: "dark",
     viewport: "mobile",
     readySelector: "#adminContent .admin-panel, #adminContent .admin-auth-required",
     requiredVisible: ["#adminApp", ".admin-topbar", "#adminContent"],
     coreButtons: ["#adminRefreshBtn", "#adminSidebarToggle"],
-    cardSelectors: [".admin-panel", ".admin-stat"],
+    cardSelectors: [".primitive-card--hero", ".primitive-card--stat"],
     manualReview: "Admin mobile shell and dark-mode panel colors."
   }
 ];
@@ -238,7 +240,10 @@ function parseArgs(args) {
 function filterScenarios(source, filter) {
   if (!filter) return source;
   const filters = filter.toLowerCase().split(",").map((item) => item.trim()).filter(Boolean);
-  return source.filter((scenario) => filters.some((item) => scenario.name.toLowerCase().includes(item)));
+  return source.filter((scenario) => {
+    const names = [scenario.name, ...(scenario.aliases || [])].map((item) => item.toLowerCase());
+    return filters.some((item) => names.some((name) => name.includes(item)));
+  });
 }
 
 async function main() {
@@ -374,7 +379,7 @@ async function main() {
     cdp.close();
   } finally {
     chrome.kill();
-    if (staticServer?.server) await new Promise((resolve) => staticServer.server.close(resolve));
+    if (staticServer?.server) await closeVisualServer(staticServer.server);
     await fs.rm(userDataDir, { recursive: true, force: true }).catch(() => null);
   }
 
@@ -1083,6 +1088,7 @@ function diffPng(left, right) {
 
 async function startVisualServer() {
   const publicDir = path.join(rootDir, "public");
+  const sockets = new Set();
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
@@ -1114,8 +1120,34 @@ async function startVisualServer() {
       response.end(String(error?.message || error));
     }
   });
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+  });
+  server.destroyOpenConnections = () => {
+    for (const socket of sockets) socket.destroy();
+  };
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   return { server, port: server.address().port };
+}
+
+async function closeVisualServer(server) {
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      server.closeAllConnections?.();
+      server.destroyOpenConnections?.();
+      finish();
+    }, 1500);
+    server.close(finish);
+    server.closeIdleConnections?.();
+  });
 }
 
 function promptImageFixturePath(url) {
