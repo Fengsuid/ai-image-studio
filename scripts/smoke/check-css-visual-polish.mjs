@@ -12,6 +12,8 @@ const cssEntry = fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8"
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const adminHtml = fs.readFileSync(path.join(rootDir, "public/admin.html"), "utf8");
 const serverJs = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
+const securityHeadersJs = fs.readFileSync(path.join(rootDir, "src/security-headers.js"), "utf8");
+const cspSource = `${serverJs}\n${securityHeadersJs}`;
 const cssImportPaths = [...cssEntry.matchAll(/@import\s+url\("([^"]+)"\);/g)].map((match) => match[1]);
 const cssModules = cssImportPaths.map((importPath) => {
   assert(importPath.startsWith("/css/"), `styles.css import should stay under /css: ${importPath}`);
@@ -85,7 +87,11 @@ assert.equal(
 });
 
 [
+  ".hero > .hero-blob",
   ".composer:focus-within",
+  ".hero .composer-mount.primitive-card--hero",
+  ".hero-blob--primary",
+  ".hero-blob--secondary",
   ".toast",
   ".modal-layer",
   ".recent-tile:hover",
@@ -96,7 +102,37 @@ assert.equal(
   assert(css.includes(selector), `styles.css missing visual polish selector ${selector}`);
 });
 
+[
+  "id=\"heroComposerMount\" class=\"composer-mount primitive-card--hero\"",
+  "class=\"hero-blob hero-blob--primary anim-floating-blob\"",
+  "class=\"hero-blob hero-blob--secondary anim-floating-blob\""
+].forEach((token) => {
+  assert(indexHtml.includes(token), `public index missing AIS-RLS-136 hero token ${token}`);
+});
+
+[
+  "font-family: var(--font-display)",
+  "linear-gradient(100deg, var(--brand-700) 0%, var(--brand-500) 52%, #8b5cf6 100%)",
+  "-webkit-background-clip: text",
+  "font-family: var(--font-body)",
+  "color: var(--neutral-500)",
+  "line-height: 1.5",
+  "background: var(--surface-glass)",
+  "backdrop-filter: blur(20px) saturate(140%)",
+  "box-shadow: var(--shadow-lg)",
+  "border: 1px solid color-mix(in srgb, var(--neutral-200) 60%, transparent)",
+  "animation: floating-blob 30s",
+  "color-mix(in srgb, var(--brand-400) 40%, transparent)",
+  "border-color: var(--brand-400)",
+  "border-color var(--dur-base)"
+].forEach((token) => {
+  assert(css.includes(token), `AIS-RLS-136 hero/composer polish missing ${token}`);
+});
+
+assert(/\.hero\s*>\s*\.hero-blob\s*\{[\s\S]*position:\s*absolute/.test(css), "AIS-RLS-136 hero blobs must stay out of the hero flex flow");
+
 assert(css.includes("@media (prefers-reduced-motion: reduce)"), "motion polish must respect reduced motion");
+assert(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.hero-blob[\s\S]*animation: none/.test(css), "AIS-RLS-136 hero blobs must stop for reduced motion");
 assert(!app.includes("ripple-wave"), "AIS-RLS-070 should avoid decorative JS growth in app.js");
 [
   "geist-latin.woff2",
@@ -119,9 +155,9 @@ assert(css.includes("/vendor/fonts/instrument-serif-latin.woff2"), "typography C
 assert(adminHtml.includes("/vendor/icons/remixicon.min.css"), "admin shell must load local Remixicon CSS");
 assert(adminHtml.includes("/vendor/icons/remixicon-compat.css"), "admin shell must load local Remixicon compatibility CSS");
 assert(!/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(`${indexHtml}\n${adminHtml}`), "HTML must not reference font or icon CDNs");
-assert(serverJs.includes("\"font-src 'self'\""), "CSP font-src must be self-only");
-assert(!/font-src[^"]*(?:fonts\.gstatic|cdn\.jsdelivr)/.test(serverJs), "CSP font-src must not allow external font CDNs");
-assert(!/style-src[^"]*(?:fonts\.googleapis|cdn\.jsdelivr)/.test(serverJs), "CSP style-src must not allow external style CDNs");
+assert(cspSource.includes("\"font-src 'self'\""), "CSP font-src must be self-only");
+assert(!/font-src[^"]*(?:fonts\.gstatic|cdn\.jsdelivr)/.test(cspSource), "CSP font-src must not allow external font CDNs");
+assert(!/style-src[^"]*(?:fonts\.googleapis|cdn\.jsdelivr)/.test(cspSource), "CSP style-src must not allow external style CDNs");
 const iconCss = `${fs.readFileSync(remixiconCssPath, "utf8")}\n${fs.readFileSync(remixiconCompatCssPath, "utf8")}`;
 assert(iconCss.includes("/vendor/icons/remixicon.woff2"), "Remixicon CSS must use an absolute self-hosted font URL");
 [

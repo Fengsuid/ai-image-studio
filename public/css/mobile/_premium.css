@@ -6,7 +6,8 @@
   }
 
   .hero {
-    padding-top: calc(var(--mobile-topbar-h, 56px) + env(safe-area-inset-top) + var(--space-lg));
+    padding-top: clamp(24px, 4svh, 42px);
+    justify-content: flex-start;
   }
 
   .hero-pathway {

@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260602-primitive-architecture-v1";
+export const FRONTEND_BUILD_VERSION = "20260602-visual-hero-composer-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

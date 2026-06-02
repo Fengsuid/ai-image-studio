@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260602-primitive-architecture-v1",
+  "version": "20260602-visual-hero-composer-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -23,10 +23,10 @@
       "/css/mobile/_mobile-editor.css",
       "/css/mobile/_premium.css"
     ],
-    "entry": "/dist/app.d88ff5c573aa.css",
-    "file": "/dist/app.d88ff5c573aa.css",
-    "hash": "d88ff5c573aa",
-    "bytes": 295075,
+    "entry": "/dist/app.95bfd7dbde6f.css",
+    "file": "/dist/app.95bfd7dbde6f.css",
+    "hash": "95bfd7dbde6f",
+    "bytes": 297250,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

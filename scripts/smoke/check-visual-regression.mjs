@@ -45,9 +45,11 @@ const scenarios = [
     theme: "light",
     viewport: "desktop",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button"],
+    requiredVisible: ["#homeView", "#heroComposerMount.primitive-card--hero", "#heroComposerMount .send-button", ".hero-blob--primary", ".hero-blob--secondary"],
     coreButtons: ["#heroComposerMount .send-button", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn"],
-    cardSelectors: [".example-card", ".recent-tile"],
+    viewportVisible: [".hero h1", "#heroComposerMount.primitive-card--hero", "#heroComposerMount .send-button"],
+    cardSelectors: ["#heroComposerMount.primitive-card--hero", ".example-card", ".recent-tile"],
+    resetScrollBeforeScreenshot: true,
     manualReview: "Home hero, composer hierarchy, prompt discovery cards."
   },
   {
@@ -56,9 +58,11 @@ const scenarios = [
     theme: "dark",
     viewport: "mobile",
     readySelector: "#homeView",
-    requiredVisible: ["#homeView", "#heroComposerMount", "#heroComposerMount .send-button", ".bottom-nav"],
+    requiredVisible: ["#homeView", "#heroComposerMount.primitive-card--hero", "#heroComposerMount .send-button", ".hero-blob--primary", ".hero-blob--secondary", ".bottom-nav"],
     coreButtons: ["#heroComposerMount .send-button", "[data-mobile-nav-action='create']"],
+    viewportVisible: [".hero h1", "#heroComposerMount.primitive-card--hero", "#heroComposerMount .send-button"],
     checkBottomNav: true,
+    resetScrollBeforeScreenshot: true,
     manualReview: "Dark home hero, mobile composer, bottom navigation spacing."
   },
   {
@@ -350,6 +354,12 @@ async function main() {
       await delay(180);
 
       const result = await evaluateScenario(cdp, sessionId, scenario, viewport);
+      if (scenario.resetScrollBeforeScreenshot) {
+        await cdp.send("Runtime.evaluate", {
+          expression: "window.scrollTo(0, 0); new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+          awaitPromise: true,
+        }, sessionId).catch(() => null);
+      }
       const screenshotName = `${scenario.name}.png`;
       const screenshot = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, sessionId);
       const screenshotPath = path.join(outputDir, screenshotName);
@@ -749,6 +759,20 @@ async function visualProbe(scenario, viewport, externalTarget) {
 
   const missingLevel = externalTarget && scenario.allowMissingExternal ? "warning" : "failure";
   for (const selector of scenario.requiredVisible || []) recordVisibility(selector, missingLevel);
+
+  for (const selector of scenario.viewportVisible || []) {
+    const result = visible(selector);
+    if (!result.ok) {
+      failures.push(`${pageLabel}: viewport selector ${selector} ${result.reason}`);
+      continue;
+    }
+    const rect = result.rect;
+    const verticallyVisible = rect.bottom > 0 && rect.top < viewportHeight;
+    const horizontallyVisible = rect.right > 0 && rect.left < viewportWidth;
+    if (!verticallyVisible || !horizontallyVisible) {
+      failures.push(`${pageLabel}: viewport selector ${selector} outside initial viewport (${Math.round(rect.left)},${Math.round(rect.top)} ${Math.round(rect.right)}x${Math.round(rect.bottom)} / ${viewportWidth}x${viewportHeight})`);
+    }
+  }
 
   for (const selector of scenario.coreButtons || []) {
     const result = visible(selector);

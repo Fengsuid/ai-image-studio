@@ -394,7 +394,12 @@
    Migrated from public/mobile-home.css for AIS-RLS-114. */
 
 @media (max-width: 768px) {
-  .hero { min-height: calc(100svh - var(--mobile-topbar-h)); padding: clamp(42px, 7svh, 64px) var(--mobile-page-pad) 28px; align-items: center; gap: 12px; }
+  .hero {
+    min-height: calc(100svh - var(--mobile-topbar-h));
+    padding: clamp(24px, 4svh, 42px) var(--mobile-page-pad) calc(var(--mobile-bottom-bar-h) + env(safe-area-inset-bottom) + 24px);
+    align-items: center;
+    gap: 10px;
+  }
 
   .hero::before { top: 72px; width: min(720px, 112vw); height: 260px; }
 
@@ -422,6 +427,8 @@
 
   .hero .composer { width: 100%; max-width: 100%; border-radius: 18px; }
 
+  .hero .composer-mount.primitive-card--hero { padding: 10px; }
+
   .hero .composer-mount { align-self: flex-start; position: relative; left: 0; width: calc(100vw - (var(--mobile-page-pad) * 2)); max-width: calc(100vw - (var(--mobile-page-pad) * 2)); transform: none; }
 
   .hero .reviews { margin-top: 0; font-size: 12px; }
@@ -430,7 +437,7 @@
 }
 
 @media (max-width: 430px) {
-  .hero { padding: 34px var(--mobile-page-pad-sm) 24px; gap: 10px; }
+  .hero { padding: 22px var(--mobile-page-pad-sm) calc(var(--mobile-bottom-bar-h) + env(safe-area-inset-bottom) + 20px); gap: 8px; }
 
   .hero-meta-row { width: 100%; }
 

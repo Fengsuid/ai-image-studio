@@ -237,12 +237,58 @@
 
 /* ── AIS-RLS-136 — Hero Instrument Serif + Composer glass ── */
 
-/* Hero title: use Instrument Serif for the italic tagline */
+.hero > .hero-blob {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: var(--radius-pill);
+  filter: blur(38px);
+  opacity: 0.72;
+  animation: floating-blob 30s var(--ease-in-out) infinite;
+}
+
+.hero-blob--primary {
+  top: clamp(82px, 12vh, 138px);
+  left: max(0px, calc(50% - 520px));
+  width: min(440px, 54vw);
+  height: min(300px, 38vw);
+  background: radial-gradient(circle at 44% 42%, color-mix(in srgb, var(--brand-500) 28%, transparent), transparent 68%);
+}
+
+.hero-blob--secondary {
+  right: max(0px, calc(50% - 560px));
+  bottom: clamp(110px, 17vh, 188px);
+  width: min(360px, 48vw);
+  height: min(260px, 34vw);
+  background: radial-gradient(circle at 56% 46%, color-mix(in srgb, #8b5cf6 24%, transparent), transparent 68%);
+  animation-delay: -15s;
+}
+
+.hero h1,
+.hero h1 span,
 .hero h1 em {
   font-family: var(--font-display);
+}
+
+.hero h1 span,
+.hero h1 em {
+  color: transparent;
+  background: linear-gradient(100deg, var(--brand-700) 0%, var(--brand-500) 52%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.hero h1 em {
   font-style: italic;
   font-weight: 400;
   letter-spacing: -0.02em;
+}
+
+.hero-desc {
+  color: var(--neutral-500);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  opacity: 1;
 }
 
 /* Hero pathway polish */
@@ -269,6 +315,26 @@
 }
 
 /* Composer glass card upgrade */
+.hero .composer-mount.primitive-card--hero {
+  display: block;
+  position: relative;
+  z-index: 2;
+  width: min(960px, calc(100vw - 32px));
+  padding: 12px;
+  border-radius: var(--radius-2xl);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
+}
+
+.hero .composer-mount.primitive-card--hero:focus-within {
+  border-color: var(--brand-400);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--brand-400) 14%, transparent),
+    var(--shadow-lg);
+}
+
 .composer {
   background: var(--surface-glass);
   border: 1px solid color-mix(in srgb, var(--neutral-200) 60%, transparent);
@@ -283,7 +349,12 @@
 }
 
 .hero .composer {
+  padding: 0;
+  border: 0;
   border-radius: var(--radius-xl);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 /* Focus glow: purple halo on interaction */
@@ -338,6 +409,16 @@
   box-shadow:
     0 1px 0 0 color-mix(in srgb, var(--neutral-300) 8%, transparent) inset,
     var(--shadow-lg);
+}
+
+:root[data-theme="dark"] .hero-blob {
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-400) 40%, transparent), transparent 68%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-blob {
+    animation: none;
+  }
 }
 
 :root[data-theme="dark"] .composer:focus-within {

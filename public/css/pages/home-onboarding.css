@@ -5,16 +5,7 @@
 }
 
 .hero::after {
-  content: "";
-  position: absolute;
-  inset: auto 8% 10% 8%;
-  height: 180px;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 36%),
-    radial-gradient(circle at 76% 48%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 34%);
-  filter: blur(42px);
-  opacity: 0.78;
+  display: none;
 }
 
 .hero-pathway,
@@ -199,6 +190,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-blob,
   .hero::after,
   .hero .config-chip,
   .hero .daily-metric,

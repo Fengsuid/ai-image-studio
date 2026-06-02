@@ -9,7 +9,7 @@
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <title>AI Image Studio</title>
-    <link rel="stylesheet" href="/dist/app.d88ff5c573aa.css">
+    <link rel="stylesheet" href="/dist/app.95bfd7dbde6f.css">
   </head>
   <body>
     <div id="app" class="app">
@@ -144,6 +144,8 @@
 
       <main id="homeView" class="home-view">
         <section class="hero">
+          <div class="hero-blob hero-blob--primary anim-floating-blob" aria-hidden="true"></div>
+          <div class="hero-blob hero-blob--secondary anim-floating-blob" aria-hidden="true"></div>
           <div class="hero-video-layer" aria-hidden="true">
             <video muted loop playsinline preload="none" poster="/hero/hero-poster.webp">
               <source src="/hero/hero.mp4" type="video/mp4">
@@ -182,7 +184,7 @@
               </div>
             </div>
           </div>
-          <div id="heroComposerMount" class="composer-mount">
+          <div id="heroComposerMount" class="composer-mount primitive-card--hero">
             <form class="composer composer-fallback" data-composer-fallback>
               <div class="composer-bar">
                 <textarea class="prompt-box" rows="2" placeholder="输入提示词（Prompt），让想象落地..."></textarea>
