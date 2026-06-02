@@ -106,7 +106,7 @@
 }
 
 @media (max-width: 760px) {
-  .primitive-drawer:not(.admin-sidebar) {
+  .primitive-drawer:not([data-primitive-drawer-static="true"]) {
     top: auto;
     bottom: 0;
     left: 0;

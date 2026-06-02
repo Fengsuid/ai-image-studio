@@ -8,7 +8,7 @@ Do not add new feature flows directly to public/app.js. Keep it as the legacy st
 
 Do not add new admin flows directly to `public/admin/dashboard.js`. Add or extend a focused `public/admin/*.js` domain module or an `admin-*.js` render module and expose it through `AdminDomains` or `AdminModules`.
 
-Keep `public/styles.css` as the compatibility import entry only. New CSS belongs in `public/css/*.css`, scoped by the owning visual domain.
+Keep `public/styles.css` as the compatibility import entry only. New CSS belongs in the `public/css` token, primitive, page, or mobile layer scoped by the owning visual domain.
 
 ## Public App Modules
 
@@ -45,24 +45,26 @@ Use `AdminModules` for admin surface area:
 
 ## CSS Modules
 
-Use the existing CSS split:
+Use the AIS-RLS-146 CSS architecture:
 
 | Area | Owner |
 | --- | --- |
-| Tokens, theme, reset, type | `public/css/00-*.css`, `01-reset.css`, `02-typography.css` |
-| Shared primitives | `public/css/primitives/_*.css` |
-| Shell, topbar, layout, composer shell | `public/css/03-*.css` |
-| Shared cards, forms, modals, controls | `public/css/04-*.css` |
-| Home and composer refinements | `public/css/05-*.css` |
-| Gallery, detail modal, leaderboard | `public/css/06-*.css` |
-| Image editor | `public/css/07-editor.css`, `public/css/mobile/_mobile-editor.css` |
-| Chat workspace | `public/css/08-chat.css`, `public/css/mobile/_safe-area.css` |
-| Admin | `public/css/09-*.css` |
-| Canvas | `public/css/10-*.css` |
-| Mobile safe area, bottom nav, global overrides | `public/css/mobile/_safe-area.css`, `_bottom-nav.css`, `_mobile-overrides.css`, `_mobile-editor.css` |
-| Motion and visual polish | `public/css/12-*.css` |
+| Tokens and theme aliases | `public/css/00-*.css`, `public/css/tokens.css` |
+| Shared primitives only | `public/css/primitives/_*.css` |
+| Reset and typography consumers | `public/css/pages/reset*.css`, `public/css/pages/typography.css` |
+| Shell, topbar, layout, composer shell | `public/css/pages/layout*.css`, `public/css/pages/home-shell.css`, `public/css/pages/home-composer.css` |
+| Shared page components and reference assets | `public/css/pages/components*.css`, `public/css/pages/reference-assets.css` |
+| Home refinements | `public/css/pages/home*.css` |
+| Gallery, detail modal, leaderboard | `public/css/pages/gallery*.css`, `public/css/pages/works-carousel.css` |
+| Image editor | `public/css/pages/editor.css`, `public/css/mobile/_mobile-editor.css` |
+| Chat workspace | `public/css/pages/chat.css`, `public/css/mobile/_safe-area.css` |
+| Admin | `public/css/pages/admin*.css` |
+| Canvas | `public/css/pages/canvas*.css` |
+| Motion primitives and utilities | `public/css/primitives/_motion*.css` |
+| Premium and performance polish | `public/css/pages/premium*.css`, `public/css/pages/visual-polish.css`, `public/css/pages/performance.css` |
+| Mobile safe area, bottom nav, global overrides | `public/css/mobile/_safe-area.css`, `_bottom-nav.css`, `_mobile-overrides.css`, `_mobile-editor.css`, `_premium.css` |
 
-Avoid dumping view-specific rules into shared component files unless the selector is reused across multiple views.
+Avoid dumping view-specific rules into primitives. `public/css/primitives/_*.css` may define reusable `.btn` or `.primitive-*` APIs only; page selectors belong in `public/css/pages/*.css`, and mobile overrides belong in `public/css/mobile/_*.css`.
 
 ## Checks
 
@@ -71,6 +73,7 @@ Avoid dumping view-specific rules into shared component files unless the selecto
 - Entry file growth budgets for `public/app.js`, `public/admin/*.js`, and `public/styles.css`.
 - `AppModules` and `AdminModules` registration and script loading order.
 - CSS module import order and per-file line budget.
+- Primitive boundaries through `npm run smoke:css-primitive-boundaries`: page files may consume but not define `.btn` or `.primitive-*`, primitive files must not contain page-scope selectors, and consumer-layer hard-coded hex stays within the task budget.
 - This document stays present and points future work to the correct modules.
 
 The current budgets are intentionally near the existing file sizes. They prevent new uncontrolled growth while the long-term targets in `docs/CODE_MAINTENANCE_OPTIMIZATION.md` remain the refactor direction.

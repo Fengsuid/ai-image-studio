@@ -34,7 +34,7 @@
     background:
       radial-gradient(circle at 88% 20%, rgba(250, 204, 21, 0.24), transparent 28%),
       linear-gradient(135deg, rgba(255, 251, 235, 0.92), rgba(255, 255, 255, 0.76));
-    color: #78350f;
+    color: var(--legacy-color-78350f);
     box-shadow: 0 14px 32px rgba(146, 64, 14, 0.12);
   }
 
@@ -45,8 +45,8 @@
     display: grid;
     place-items: center;
     border-radius: 13px;
-    background: #111827;
-    color: #facc15;
+    background: var(--legacy-color-111827);
+    color: var(--legacy-color-facc15);
     font-size: 18px;
   }
 
@@ -57,7 +57,7 @@
 
   .library-mobile-leaderboard small {
     margin-left: auto;
-    color: #92400e;
+    color: var(--legacy-color-92400e);
     font-size: 12px;
     font-weight: 700;
   }
@@ -79,7 +79,7 @@
     height: 44px;
     display: grid;
     place-items: center;
-    color: #64748b;
+    color: var(--legacy-color-64748b);
   }
 
   .library-search input { min-height: 44px; padding: 0; font-size: 16px; }

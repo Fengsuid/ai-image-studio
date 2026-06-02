@@ -1,0 +1,102 @@
+/* AIS-RLS-137 motion library: reusable keyframes, utilities, and card spotlight primitives. */
+
+@keyframes shimmer {
+  from {
+    background-position: -420px 0;
+  }
+
+  to {
+    background-position: 420px 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-rise, 12px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spring-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.62;
+  }
+}
+
+@keyframes floating-blob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(10px, -12px, 0) scale(1.04);
+  }
+}
+
+.anim-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer var(--dur-slower) linear infinite;
+}
+
+.anim-fade-up {
+  animation: fade-up var(--dur-slow) var(--ease-out) both;
+}
+
+.anim-spring-in {
+  animation: spring-in var(--dur-base) var(--ease-spring) both;
+}
+
+.anim-pulse-soft {
+  animation: pulse-soft var(--dur-slower) var(--ease-in-out) infinite;
+}
+
+.anim-floating-blob {
+  animation: floating-blob var(--dur-floating-blob, 30s) var(--ease-in-out) infinite;
+}
+
+.motion-reveal {
+  opacity: 0;
+}
+
+.motion-reveal.is-visible {
+  animation: fade-up var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--motion-stagger, 0) * 60ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-shimmer,
+  .anim-fade-up,
+  .anim-spring-in,
+  .anim-pulse-soft,
+  .anim-floating-blob,
+  .motion-reveal.is-visible {
+    animation: none;
+  }
+
+  .motion-reveal {
+    opacity: 1;
+  }
+}

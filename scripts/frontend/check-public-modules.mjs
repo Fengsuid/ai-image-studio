@@ -14,7 +14,8 @@ assert.deepEqual(frontendBuildManifest.css?.mobileModuleSources, [
   "/css/mobile/_safe-area.css",
   "/css/mobile/_bottom-nav.css",
   "/css/mobile/_mobile-overrides.css",
-  "/css/mobile/_mobile-editor.css"
+  "/css/mobile/_mobile-editor.css",
+  "/css/mobile/_premium.css"
 ]);
 assert.equal(frontendBuildManifest.js?.bundler, "scripts/frontend/js-bundle.mjs");
 assert.equal(frontendBuildManifest.js?.entryPattern, "/dist/<name>.<hash>.js");

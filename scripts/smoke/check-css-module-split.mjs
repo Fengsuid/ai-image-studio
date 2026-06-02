@@ -25,25 +25,62 @@ assert(fs.existsSync(cssDir), "public/css directory must exist");
 
 const required = [
   "00-tokens.css",
-  "01-reset.css",
-  "02-typography.css",
-  "03-layout.css",
-  "04-components.css",
-  "05-home.css",
-  "06-gallery.css",
-  "07-editor.css",
-  "08-chat.css",
-  "09-admin.css",
-  "10-canvas.css",
+  "00-tokens-typography.css",
+  "00-tokens-motion.css",
+  "00-theme.css",
+  "tokens.css",
+  "primitives/_motion.css",
+  "primitives/_motion-utilities.css",
+  "primitives/_button.css",
+  "primitives/_form.css",
+  "primitives/_pill.css",
+  "primitives/_toast.css",
+  "primitives/_table.css",
+  "primitives/_drawer.css",
+  "primitives/_modal.css",
+  "primitives/_card.css",
+  "pages/reset-base.css",
+  "pages/reset.css",
+  "pages/typography.css",
+  "pages/layout.css",
+  "pages/layout-shell.css",
+  "pages/layout-app-shell.css",
+  "pages/components.css",
+  "pages/components-skeleton.css",
+  "pages/components-cards.css",
+  "pages/reference-assets.css",
+  "pages/components-modals.css",
+  "pages/components-forms.css",
+  "pages/home-shell.css",
+  "pages/home-publish.css",
+  "pages/home.css",
+  "pages/home-onboarding.css",
+  "pages/home-composer.css",
+  "pages/gallery.css",
+  "pages/credits-detail.css",
+  "pages/works-carousel.css",
+  "pages/prompt-library-polish.css",
+  "pages/gallery-detail.css",
+  "pages/gallery-leaderboard.css",
+  "pages/gallery-leaderboard-responsive.css",
+  "pages/editor.css",
+  "pages/chat.css",
+  "pages/chat-polish.css",
+  "pages/admin.css",
+  "pages/admin-panels.css",
+  "pages/admin-diagnostics.css",
+  "pages/canvas.css",
+  "pages/canvas-tools.css",
+  "pages/admin-shell-polish.css",
+  "pages/visual-polish.css",
+  "pages/premium-ambient.css",
+  "pages/premium-interactions.css",
+  "pages/performance.css",
   "mobile/_safe-area.css",
   "mobile/_bottom-nav.css",
   "mobile/_mobile-overrides.css",
   "mobile/_mobile-editor.css",
-  "12-animations.css",
-  "primitives/_button.css",
-  "primitives/_drawer.css",
-  "primitives/_modal.css",
-  "primitives/_table.css"
+  "mobile/_premium.css"
 ];
 for (const file of required) {
   assert(fs.existsSync(path.join(cssDir, file)), `missing CSS module ${file}`);
@@ -93,10 +130,13 @@ for (const file of cssFiles) {
 const imported = [...styles.matchAll(/@import url\("\/css\/([^"]+\.css)"\);/g)].map((match) => match[1]);
 assert.equal(imported.length, cssFiles.length, "styles.css import count must match public/css files");
 assert.deepEqual([...imported].sort(), cssFiles, "styles.css imports must match public/css files");
+assert(imported.indexOf("00-theme.css") < imported.indexOf("tokens.css"), "token bridge must load after base token files");
+assert(imported.indexOf("tokens.css") < imported.indexOf("primitives/_motion.css"), "primitive layer must load after token layer");
 assert(imported.indexOf("primitives/_button.css") < imported.indexOf("primitives/_modal.css"), "modal primitive must load after button primitive");
-assert(imported.indexOf("primitives/_modal.css") < imported.indexOf("04-components-modals.css"), "modal primitive must load before legacy modal feature CSS");
-assert(imported.indexOf("primitives/_drawer.css") < imported.indexOf("09-admin.css"), "drawer primitive must load before admin feature CSS");
-assert(imported.indexOf("primitives/_table.css") < imported.indexOf("09-admin.css"), "table primitive must load before admin feature CSS");
+assert(imported.indexOf("primitives/_modal.css") < imported.indexOf("pages/components-modals.css"), "modal primitive must load before legacy modal feature CSS");
+assert(imported.indexOf("primitives/_drawer.css") < imported.indexOf("pages/admin.css"), "drawer primitive must load before admin feature CSS");
+assert(imported.indexOf("primitives/_table.css") < imported.indexOf("pages/admin.css"), "table primitive must load before admin feature CSS");
+assert(imported.indexOf("pages/performance.css") < imported.indexOf("mobile/_safe-area.css"), "mobile layer must load after page layer");
 
 function stylesheetHrefs(html) {
   return [...html.matchAll(/<link\b[^>]*>/g)]

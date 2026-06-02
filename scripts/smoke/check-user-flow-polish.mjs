@@ -13,10 +13,10 @@ const app = read("public/app.js");
 const appAuth = read("public/app-auth.js");
 const html = read("public/index.html");
 const creditsRoute = read("src/routes/credits.js");
-const chatCss = read("public/css/08-chat-polish.css");
-const homeCss = read("public/css/05-home.css");
-const worksCarouselCss = read("public/css/06-works-carousel.css");
-const creditsCss = read("public/css/06-credits-detail.css");
+const chatCss = read("public/css/pages/chat-polish.css");
+const homeCss = read("public/css/pages/home.css");
+const worksCarouselCss = read("public/css/pages/works-carousel.css");
+const creditsCss = read("public/css/pages/credits-detail.css");
 const pkg = JSON.parse(read("package.json"));
 
 assert(html.includes('id="chatScrollTopBtn"'), "chat view must render a scroll-top button");

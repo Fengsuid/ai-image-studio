@@ -264,8 +264,8 @@
 
   .chat-session-head .chat-session-close {
     display: grid;
-    background: #f1f5f9;
-    color: #334155;
+    background: var(--legacy-color-f1f5f9);
+    color: var(--legacy-color-334155);
   }
 
   .chat-session-list {

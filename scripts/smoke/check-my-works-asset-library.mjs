@@ -17,7 +17,7 @@ const manifest = readJson("public/frontend-build-manifest.json");
 const app = read("public/app.js");
 const appAuth = read("public/app-auth.js");
 const imagesRoute = read("src/routes/images.js");
-const worksCss = read("public/css/06-works-carousel.css");
+const worksCss = read("public/css/pages/works-carousel.css");
 
 assert.equal(
   packageJson.scripts["smoke:my-works-asset-library"],

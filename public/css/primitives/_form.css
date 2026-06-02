@@ -1,0 +1,80 @@
+/* AIS-RLS-146 form primitive: reusable field, control and action layout hooks. */
+.primitive-field {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.primitive-field > label,
+.primitive-field__label {
+  color: var(--neutral-700);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+.primitive-field__hint,
+.primitive-field__error {
+  color: var(--neutral-500);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.primitive-field__error {
+  color: var(--color-danger);
+}
+
+.primitive-input,
+.primitive-select,
+.primitive-textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--neutral-900);
+  font: 600 var(--fs-base)/1.45 var(--font-body);
+  padding: 0 var(--space-md);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.primitive-textarea {
+  min-height: 112px;
+  padding-block: var(--space-sm);
+  resize: vertical;
+}
+
+.primitive-input:focus,
+.primitive-select:focus,
+.primitive-textarea:focus,
+.primitive-input:focus-visible,
+.primitive-select:focus-visible,
+.primitive-textarea:focus-visible {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 18%, transparent);
+  outline: none;
+}
+
+.primitive-input[aria-invalid="true"],
+.primitive-select[aria-invalid="true"],
+.primitive-textarea[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 14%, transparent);
+}
+
+.primitive-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+:root[data-theme="dark"] .primitive-input,
+:root[data-theme="dark"] .primitive-select,
+:root[data-theme="dark"] .primitive-textarea {
+  border-color: var(--border-subtle);
+  background: var(--surface-elev-1);
+  color: var(--text-primary);
+}

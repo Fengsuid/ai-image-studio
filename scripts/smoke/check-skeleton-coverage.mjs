@@ -11,7 +11,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 
 const app = read("public/app.js");
 const styles = read("public/styles.css");
-const skeletonCss = read("public/css/04-components-skeleton.css");
+const skeletonCss = read("public/css/pages/components-skeleton.css");
 
 function functionBody(source, name) {
   const start = source.indexOf(`function ${name}`);
@@ -68,7 +68,7 @@ for (const snippet of [
   assert(functionBody(app, "renderInitialListSkeletons").includes(snippet), `initial skeleton gate missing ${snippet}`);
 }
 
-assert(styles.includes('/css/04-components-skeleton.css'), "styles.css must import the skeleton CSS module");
+assert(styles.includes('/css/pages/components-skeleton.css'), "styles.css must import the skeleton CSS module");
 for (const selector of [
   ".skeleton-list",
   ".skeleton-card",

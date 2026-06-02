@@ -1,0 +1,360 @@
+/* AIS-RLS-135 — Public topbar density governance + hero shell.
+   Consumes 133 space tokens + 134 btn primitive height. */
+
+/* ── Topbar density overrides ─────────────────────────────── */
+
+.topbar {
+  min-height: 56px;
+  max-height: 60px;
+  padding: var(--space-xs) var(--space-xl);
+  gap: var(--space-sm);
+}
+
+.top-actions {
+  gap: var(--space-2xs);
+}
+
+.topbar-brand,
+.topbar-tab,
+.topbar-chip,
+.topbar-icon,
+.topbar-overflow-toggle,
+.topbar-login,
+.account-avatar {
+  --btn-h: 40px;
+  min-height: var(--btn-h, 40px);
+  border-radius: var(--radius-pill);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.topbar-search,
+.topbar-icon,
+.account-avatar {
+  width: var(--btn-h, 40px);
+  min-width: var(--btn-h, 40px);
+}
+
+.topbar-overflow-toggle {
+  width: auto;
+  min-width: var(--btn-h, 40px);
+  padding-inline: var(--space-sm);
+}
+
+.topbar-overflow-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-brand {
+  flex: 0 0 auto;
+  gap: var(--space-xs);
+  max-width: min(28vw, 220px);
+  font-size: var(--fs-md);
+  font-weight: 900;
+}
+
+.topbar-brand > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-dot {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+
+.topbar-tab,
+.topbar-chip,
+.topbar-login {
+  padding-inline: var(--space-sm);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+.topbar-chip {
+  max-width: 150px;
+}
+
+.topbar-chip span,
+.topbar-tab span,
+.topbar-login span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-avatar {
+  width: var(--btn-h, 40px);
+  height: var(--btn-h, 40px);
+  padding: 0;
+  color: var(--neutral-0);
+  background: linear-gradient(135deg, var(--neutral-900) 0%, var(--brand-600) 56%, var(--accent) 100%);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--brand-600) 18%, transparent);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.topbar-overflow {
+  position: relative;
+  display: inline-flex;
+}
+
+.topbar-overflow-menu {
+  position: fixed;
+  top: 64px;
+  right: var(--space-xl);
+  z-index: 90;
+  display: grid;
+  gap: var(--space-2xs);
+  width: min(260px, calc(100vw - 32px));
+  max-height: min(70vh, 460px);
+  padding: var(--space-xs);
+  overflow: auto;
+}
+
+.account-menu {
+  position: fixed;
+  top: 64px;
+  right: var(--space-xl);
+}
+
+.topbar-menu-item {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 38px;
+  border-radius: var(--radius-md);
+}
+
+.topbar-menu-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-tab:hover,
+.topbar-chip:hover,
+.topbar-brand:hover,
+.topbar-search:hover,
+.topbar-icon:hover,
+.topbar-overflow-toggle:hover,
+.topbar-menu-item:hover,
+.account-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-login:hover,
+.send-button:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+@media (min-width: 641px) and (max-width: 1279px) {
+  .topbar {
+    padding-inline: var(--space-md);
+  }
+
+  .topbar-overflow-menu,
+  .account-menu {
+    top: 60px;
+    right: var(--space-md);
+  }
+
+  .topbar-chip span,
+  .topbar-tab span {
+    max-width: 82px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    min-height: calc(56px + env(safe-area-inset-top));
+    max-height: calc(56px + env(safe-area-inset-top));
+    padding: calc(6px + env(safe-area-inset-top)) var(--mobile-page-pad, 16px) 6px;
+  }
+
+  .top-actions {
+    gap: var(--space-2xs);
+  }
+
+  .topbar-brand {
+    max-width: calc(100vw - 156px);
+  }
+
+  .topbar-brand > span:last-child,
+  .topbar-tab,
+  .topbar-chip,
+  .topbar-icon,
+  .topbar-login span {
+    display: none;
+  }
+
+  .topbar-overflow-label {
+    display: none;
+  }
+
+  .topbar-overflow-toggle {
+    width: var(--btn-h);
+    min-width: var(--btn-h);
+    padding: 0;
+  }
+
+  .topbar-login {
+    --btn-h: 40px;
+    width: var(--btn-h);
+    min-width: var(--btn-h);
+    padding: 0;
+    border-radius: var(--radius-pill);
+  }
+
+  .account-menu {
+    top: calc(56px + env(safe-area-inset-top) + 8px);
+    right: var(--mobile-page-pad, 16px);
+  }
+}
+
+/* ── Hero shell ───────────────────────────────────────────── */
+
+.hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: min(760px, calc(100svh - 74px));
+  padding: clamp(80px, 7vh, 110px) var(--space-xl) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(var(--space-sm), 2vh, var(--space-lg));
+  position: relative;
+}
+
+/* ── AIS-RLS-136 — Hero Instrument Serif + Composer glass ── */
+
+/* Hero title: use Instrument Serif for the italic tagline */
+.hero h1 em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Hero pathway polish */
+.hero-pathway {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.hero-pathway span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.hero-pathway b {
+  width: 20px;
+  height: 1px;
+  background: var(--neutral-300);
+  display: block;
+}
+
+/* Composer glass card upgrade */
+.composer {
+  background: var(--surface-glass);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 60%, transparent);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--legacy-color-ffffff) 48%, transparent) inset,
+    var(--shadow-lg);
+  backdrop-filter: blur(24px) saturate(1.4);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.hero .composer {
+  border-radius: var(--radius-xl);
+}
+
+/* Focus glow: purple halo on interaction */
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--brand-400) 42%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--legacy-color-ffffff) 32%, transparent) inset,
+    0 0 0 3px color-mix(in srgb, var(--brand-400) 14%, transparent),
+    var(--shadow-xl);
+}
+
+/* Discovery chips upgrade */
+.home-discovery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.home-discovery button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 36px;
+  padding: 0 var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 72%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.home-discovery button:hover {
+  transform: translateY(-1px);
+  background: var(--surface-card);
+  border-color: color-mix(in srgb, var(--brand-400) 36%, transparent);
+  color: var(--text-primary);
+}
+
+/* Dark mode composer overrides */
+:root[data-theme="dark"] .composer {
+  background: color-mix(in srgb, var(--surface-elev-1) 82%, transparent);
+  border-color: var(--border-subtle);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--neutral-300) 8%, transparent) inset,
+    var(--shadow-lg);
+}
+
+:root[data-theme="dark"] .composer:focus-within {
+  border-color: color-mix(in srgb, var(--brand-400) 38%, transparent);
+  box-shadow:
+    0 1px 0 0 color-mix(in srgb, var(--neutral-300) 6%, transparent) inset,
+    0 0 0 3px color-mix(in srgb, var(--brand-400) 12%, transparent),
+    var(--shadow-xl);
+}
+
+:root[data-theme="dark"] .home-discovery button {
+  background: color-mix(in srgb, var(--surface-elev-1) 72%, transparent);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .home-discovery button:hover {
+  background: var(--surface-elev-2);
+  color: var(--text-primary);
+}

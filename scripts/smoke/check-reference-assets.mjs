@@ -39,8 +39,8 @@ const appAuth = read("public/app-auth.js");
 const referenceImages = read("public/reference-images.js");
 const galleryNormalize = read("public/gallery-normalize.js");
 const renderStamp = read("public/render-stamp.js");
-const referenceAssetsCss = read("public/css/04-reference-assets.css");
-const galleryCss = read("public/css/06-gallery.css");
+const referenceAssetsCss = read("public/css/pages/reference-assets.css");
+const galleryCss = read("public/css/pages/gallery.css");
 
 assert(
   packageJson.scripts?.["smoke:reference-assets"] === "node scripts/smoke/check-reference-assets.mjs",

@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260602-admin-interactions-v1";
+export const FRONTEND_BUILD_VERSION = "20260602-primitive-architecture-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,
@@ -19,7 +19,8 @@ export const frontendBuildManifest = Object.freeze({
       "/css/mobile/_safe-area.css",
       "/css/mobile/_bottom-nav.css",
       "/css/mobile/_mobile-overrides.css",
-      "/css/mobile/_mobile-editor.css"
+      "/css/mobile/_mobile-editor.css",
+      "/css/mobile/_premium.css"
     ]
   },
   js: {

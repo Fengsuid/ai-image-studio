@@ -1,0 +1,15 @@
+/* AIS-RLS-146 token layer bridge. Source scales remain in 00-* token files. */
+:root {
+  --token-color-brand: var(--brand-600);
+  --token-color-brand-strong: var(--brand-700);
+  --token-color-surface: var(--surface);
+  --token-color-surface-raised: var(--surface-raised);
+  --token-color-border: var(--border-subtle);
+  --token-color-text: var(--text-primary);
+  --token-color-text-muted: var(--text-secondary);
+  --token-radius-control: var(--radius-md);
+  --token-radius-surface: var(--radius-lg);
+  --token-shadow-surface: var(--shadow-md);
+  --token-motion-fast: var(--dur-fast);
+  --token-motion-base: var(--dur-base);
+}

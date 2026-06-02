@@ -20,8 +20,8 @@ const appSettingsJs = read("public/app-settings.js");
 const adminDashboard = read("public/admin/dashboard.js");
 const themeNavJs = read("public/theme-mobile-nav.js");
 const tokensCss = read("public/css/00-tokens.css");
-const shellCss = read("public/css/03-layout-shell.css");
-const adminCss = read("public/css/09-admin.css");
+const shellCss = read("public/css/pages/layout-shell.css");
+const adminCss = read("public/css/pages/admin.css");
 const frontendManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 
 function hashedJsSource(source) {

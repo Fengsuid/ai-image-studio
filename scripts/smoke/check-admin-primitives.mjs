@@ -15,7 +15,7 @@ const tableCss = read("public/css/primitives/_table.css");
 const drawerCss = read("public/css/primitives/_drawer.css");
 const modalCss = read("public/css/primitives/_modal.css");
 const cardCss = read("public/css/primitives/_card.css");
-const galleryCss = read("public/css/06-gallery.css");
+const galleryCss = read("public/css/pages/gallery.css");
 const adminHtml = read("public/admin.html");
 const indexHtml = read("public/index.html");
 const app = read("public/app.js");
@@ -38,13 +38,13 @@ for (const primitive of [
   "/css/primitives/_drawer.css",
   "/css/primitives/_modal.css",
   "/css/primitives/_card.css",
-  "/css/03-layout-app-shell.css"
+  "/css/pages/layout-app-shell.css"
 ]) {
   assert(styles.includes(primitive), `styles.css must import ${primitive}`);
 }
-assert(styles.indexOf("/css/primitives/_button.css") < styles.indexOf("/css/03-layout-app-shell.css"), "primitive layer must stay before layout");
-assert(styles.indexOf("/css/primitives/_modal.css") < styles.indexOf("/css/03-layout-app-shell.css"), "modal primitive must stay before layout");
-assert(styles.indexOf("/css/primitives/_card.css") < styles.indexOf("/css/03-layout-app-shell.css"), "card primitive must stay before layout");
+assert(styles.indexOf("/css/primitives/_button.css") < styles.indexOf("/css/pages/layout-app-shell.css"), "primitive layer must stay before layout");
+assert(styles.indexOf("/css/primitives/_modal.css") < styles.indexOf("/css/pages/layout-app-shell.css"), "modal primitive must stay before layout");
+assert(styles.indexOf("/css/primitives/_card.css") < styles.indexOf("/css/pages/layout-app-shell.css"), "card primitive must stay before layout");
 
 for (const token of [
   ".primitive-table",

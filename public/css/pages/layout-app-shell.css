@@ -1,0 +1,310 @@
+/* App shell, ambient background and top navigation defaults split for AIS-RLS-133. */
+
+.app {
+  min-height: 100svh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 16%, rgba(96, 165, 250, 0.16), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(244, 114, 182, 0.13), transparent 30%),
+    radial-gradient(circle at 50% 92%, rgba(251, 191, 36, 0.12), transparent 34%),
+    linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+}
+
+.app.editor-mode {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 46%, var(--surface) 100%);
+}
+
+.app.editor-mode .ambient {
+  display: none;
+}
+
+.app.editor-mode .topbar {
+  background: rgba(248, 250, 252, 0.9);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.app.editor-mode .brand-btn,
+.app.editor-mode .nav-pill,
+.app.editor-mode .icon-pill {
+  color: var(--legacy-color-334155);
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.app.editor-mode .brand-btn {
+  color: var(--legacy-color-0f172a);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 34px;
+  background: rgba(255, 255, 255, 0.58);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.46);
+  backdrop-filter: blur(20px);
+}
+
+.brand-btn,
+.nav-pill,
+.dark-pill,
+.icon-pill,
+.tool-button,
+.send-button,
+.composer-options-button,
+.ghost-button {
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.brand-btn {
+  background: transparent;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+
+.brand-btn > span:last-child {
+  color: transparent;
+  background: linear-gradient(90deg, var(--legacy-color-6d28d9) 0%, var(--legacy-color-db2777) 46%, var(--legacy-color-2563eb) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.brand-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--dark);
+  color: var(--legacy-color-ffffff);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.nav-pill,
+.icon-pill {
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--legacy-color-515866);
+  border: 1px solid rgba(226, 232, 240, 0.76);
+  padding: 0 14px;
+  font-size: 13px;
+  backdrop-filter: blur(12px);
+  text-decoration: none;
+}
+
+.icon-pill {
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.contact-pill,
+.github-pill {
+  color: var(--legacy-color-334155);
+}
+
+.github-pill {
+  text-decoration: none;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--legacy-color-0f172a);
+  border-color: rgba(226, 232, 240, 0.76);
+}
+
+.github-pill:hover,
+.contact-pill:hover,
+.icon-pill:hover,
+.nav-pill:hover,
+.dark-pill:hover,
+.account-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.account-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.account-avatar {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(226, 232, 240, 0.72);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--legacy-color-0f172a) 0%, var(--legacy-color-6d28d9) 46%, var(--legacy-color-db2777) 100%);
+  color: var(--legacy-color-ffffff);
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  letter-spacing: 0;
+  box-shadow: 0 12px 28px rgba(109, 40, 217, 0.18);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 80;
+  width: 246px;
+  padding: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.86);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(22px);
+}
+
+.account-menu-head {
+  display: grid;
+  gap: 3px;
+  padding: 10px 10px 12px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.78);
+  margin-bottom: 6px;
+}
+
+.account-menu-head span {
+  color: var(--legacy-color-0f172a);
+  font-size: 14px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-head small {
+  color: var(--legacy-color-64748b);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-item {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--legacy-color-334155);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.account-menu-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-item:hover {
+  background: rgba(241, 245, 249, 0.92);
+}
+
+.account-menu-item.danger {
+  color: var(--legacy-color-b91c1c);
+}
+
+.sparkle-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+  font-size: 15px;
+}
+
+.notification-pill {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  border: 2px solid var(--legacy-color-ffffff);
+  border-radius: 999px;
+  background: var(--legacy-color-ef4444);
+  color: var(--legacy-color-ffffff);
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dark-pill {
+  background: linear-gradient(180deg, var(--legacy-color-3a3a3a) 0%, var(--legacy-color-1a1a1a) 100%);
+  color: var(--legacy-color-ffffff);
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.nav-pill:hover,
+.icon-pill:hover,
+.brand-btn:hover {
+  transform: translateY(-1px);
+  background: var(--legacy-color-ffffff);
+  color: var(--ink);
+}
+
+.dark-pill:hover,
+.send-button:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.home-view,
+.chat-view,
+.library-view,
+.leaderboard-view,
+.canvas-view {
+  position: relative;
+  z-index: 10;
+}

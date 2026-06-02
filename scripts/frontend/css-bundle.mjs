@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import * as esbuild from "esbuild";
 
 const PUBLIC_CSS_IMPORT_RE = /@import\s+url\("\/css\/([^"]+\.css)"\);/g;
 const VENDOR_CSS = [
@@ -40,9 +41,15 @@ async function bundledCss(root, sources) {
   const chunks = [];
   for (const source of sources) {
     const content = normalizeLineEndings(await readText(source.absolutePath));
-    chunks.push(`/* ${source.relativePath.replace(/\\/g, "/")} */\n${content.trimEnd()}\n`);
+    const result = await esbuild.transform(content, {
+      loader: "css",
+      minify: true,
+      legalComments: "none",
+      target: "es2020"
+    });
+    chunks.push(`/* ${source.relativePath.replace(/\\/g, "/")} */\n${normalizeLineEndings(result.code).trimEnd()}\n`);
   }
-  return `${chunks.join("\n")}\n`;
+  return `${chunks.join("\n").trimEnd()}\n`;
 }
 
 async function cleanPreviousBundles(distDir, currentFileName) {

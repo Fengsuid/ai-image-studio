@@ -11,7 +11,7 @@ const index = read("public/index.html");
 const app = read("public/app.js");
 const homeModule = read("public/home-onboarding.js");
 const styles = read("public/styles.css");
-const css = read("public/css/05-home-onboarding.css");
+const css = read("public/css/pages/home-onboarding.css");
 const packageJson = JSON.parse(read("package.json"));
 
 function scriptPosition(html, scriptName) {
@@ -31,7 +31,7 @@ assert(scriptPosition(index, "home-onboarding.js") >= 0, "index.html must load h
 assert(scriptPosition(index, "home-onboarding.js") < scriptPosition(index, "app.js"), "home-onboarding.js must load before app.js");
 assert(index.includes("hero-pathway"), "home hero must expose generation path hints");
 assert(index.includes("homeDiscovery"), "home hero must expose prompt discovery");
-assert(styles.includes('/css/05-home-onboarding.css'), "styles.css must import home onboarding CSS");
+assert(styles.includes('/css/pages/home-onboarding.css'), "styles.css must import home onboarding CSS");
 
 for (const token of [
   "imageStudio.homeOnboarding.v1",

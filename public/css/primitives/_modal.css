@@ -68,12 +68,6 @@
   grid-template-columns: minmax(0, 1fr) 380px;
 }
 
-.square-preview-modal.primitive-modal--split {
-  border-radius: 16px;
-  background: #050814;
-  color: #e5edf8;
-}
-
 .primitive-modal--keep-centered {
   width: min(360px, calc(100vw - 32px));
 }

@@ -96,10 +96,10 @@ function checkSourceTopbar() {
 }
 
 function checkCss() {
-  const homeShell = read("public/css/05-home-shell.css");
+  const homeShell = read("public/css/pages/home-shell.css");
   const topbarCss = homeShell.split("/* ── Hero shell")[0] || homeShell;
   const mobileShell = read("public/css/mobile/_safe-area.css");
-  const leaderboardResponsive = read("public/css/06-gallery-leaderboard-responsive.css");
+  const leaderboardResponsive = read("public/css/pages/gallery-leaderboard-responsive.css");
   assert(topbarCss.includes("max-height: 60px"), "desktop topbar must cap height at 60px");
   assert(topbarCss.includes("max-height: calc(56px + env(safe-area-inset-top))"), "mobile topbar must cap height at 56px plus safe area");
   assert(topbarCss.includes("@media (min-width: 641px) and (max-width: 1279px)"), "CSS must define the tablet overflow range");

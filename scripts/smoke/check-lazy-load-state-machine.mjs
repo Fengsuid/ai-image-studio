@@ -11,7 +11,7 @@ const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 const routerSource = read("public/app-router.js");
 const packageJson = JSON.parse(read("package.json"));
-const skeletonCss = read("public/css/04-components-skeleton.css");
+const skeletonCss = read("public/css/pages/components-skeleton.css");
 const indexHtml = read("public/index.html");
 const adminHtml = read("public/admin.html");
 const manifest = JSON.parse(read("public/frontend-build-manifest.json"));

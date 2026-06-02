@@ -1,0 +1,446 @@
+/* Split from public/styles.css for AIS-RLS-071.
+   Order chunk 15 of 22; keep import order stable until semantic CSS modules are refined. */
+
+
+
+/* ==========================================================================
+   exec4 P0 — 解释型公开弹窗
+   ========================================================================== */
+
+.publish-notice-modal {
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+  display: grid;
+  gap: var(--gap-md);
+}
+
+.publish-notice-head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.publish-notice-head h2 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.publish-notice-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--legacy-color-7c3aed);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.publish-notice-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--legacy-color-334155);
+}
+
+.publish-notice-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--legacy-color-475569);
+  cursor: pointer;
+}
+
+.publish-notice-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   exec4 P0 — 编辑器状态条（计时 / 失败再试 / 取消）
+   ========================================================================== */
+
+.editor-status-bar {
+  margin: 0 24px 12px;
+  padding: 12px 14px;
+  background: var(--legacy-color-ffffff);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 8px;
+}
+
+.editor-status-bar.hidden {
+  display: none;
+}
+
+.editor-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.editor-status-row[hidden] {
+  display: none;
+}
+
+.editor-status-row i {
+  color: var(--legacy-color-4338ca);
+  font-size: 18px;
+}
+
+.editor-status-row .spinning {
+  animation: spin 1.1s linear infinite;
+}
+
+.editor-status-label {
+  flex: 0 1 auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--legacy-color-1e293b);
+}
+
+.editor-status-elapsed {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--legacy-color-4338ca);
+  background: rgba(67, 56, 202, 0.08);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.editor-status-cancel,
+.editor-status-retry,
+.editor-status-dismiss {
+  margin-left: auto;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: var(--legacy-color-ffffff);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor-status-cancel:hover,
+.editor-status-retry:hover {
+  background: var(--legacy-color-111827);
+  color: var(--legacy-color-ffffff);
+  border-color: var(--legacy-color-111827);
+}
+
+.editor-status-dismiss {
+  margin-left: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+.editor-status-failure {
+  align-items: flex-start;
+}
+
+.editor-status-failure i {
+  color: var(--red);
+  margin-top: 2px;
+}
+
+.editor-status-failure-body {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 220px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--legacy-color-1e293b);
+}
+
+.editor-status-failure-body strong {
+  color: var(--red);
+  font-size: 13px;
+}
+
+.editor-status-failure-body span {
+  word-break: break-word;
+}
+
+.editor-status-failure-body em {
+  color: var(--legacy-color-64748b);
+  font-style: normal;
+  font-size: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   exec4 P0 — 广场详情路线展示
+   ========================================================================== */
+
+.square-route {
+  background: var(--legacy-color-f8fafc);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-md);
+  display: grid;
+  gap: 12px;
+}
+
+.square-route-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+}
+
+.square-route-head h3 {
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: 0.02em;
+  color: var(--legacy-color-1e293b);
+  text-transform: uppercase;
+}
+
+.square-route-head h3 em {
+  font-style: normal;
+  margin-left: 6px;
+  color: var(--legacy-color-6366f1);
+  font-weight: 700;
+}
+
+.square-route-toggle {
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: var(--legacy-color-ffffff);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.square-route-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.square-route-step {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: var(--legacy-color-ffffff);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.square-route-step:hover,
+.square-route-step:focus-visible {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: var(--legacy-color-f1f5ff);
+  outline: none;
+}
+
+.square-route-step.active {
+  border-color: var(--legacy-color-4338ca);
+  background: rgba(67, 56, 202, 0.08);
+}
+
+.square-route-step.hidden {
+  display: none;
+}
+
+.square-route-thumb {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--legacy-color-e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--legacy-color-64748b);
+}
+
+.square-route-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.square-route-thumb em {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--legacy-color-ffffff);
+  background: rgba(15, 23, 42, 0.72);
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+
+.square-route-body {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.square-route-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--legacy-color-1e293b);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.square-route-body span {
+  font-size: 11px;
+  color: var(--legacy-color-94a3b8);
+}
+
+@media (max-width: 768px) {
+  .square-route {
+    padding: 12px;
+  }
+  .square-route-step {
+    grid-template-columns: 64px 1fr;
+  }
+  .square-route-thumb {
+    width: 64px;
+    height: 64px;
+  }
+  .editor-status-bar {
+    margin: 0 12px 10px;
+    padding: 10px;
+  }
+  .publish-notice-modal {
+    padding: 18px;
+  }
+}
+
+
+/* ==========================================================================
+   exec4 P1 — 续图上下文条
+   ========================================================================== */
+
+.continuation-toggle {
+  margin: 0 0 10px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--legacy-color-f4f6f8);
+  color: var(--legacy-color-1e293b);
+  border: 1px solid var(--legacy-color-edf0f3);
+  border-radius: 16px;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.continuation-toggle:hover {
+  border-color: var(--legacy-color-dbe2ea);
+}
+
+.continuation-toggle.active {
+  background: var(--legacy-color-f8fafc);
+  border-color: var(--legacy-color-dbe2ea);
+}
+
+.continuation-toggle.disabled {
+  color: var(--legacy-color-64748b);
+}
+
+.composer-context-chip {
+  flex: 1 1 270px;
+  min-width: 220px;
+  min-height: 44px;
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 14px;
+}
+
+.composer-context-chip .context-badge {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--legacy-color-475569);
+  background: var(--legacy-color-ffffff);
+}
+
+.composer-context-chip .continuation-toggle-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.composer-context-chip .continuation-toggle-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+.composer-context-chip .continuation-toggle-close {
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+}
+
+.continuation-toggle-main,
+.continuation-toggle-close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.continuation-toggle-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  text-align: left;
+}
+
+.continuation-toggle-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--legacy-color-ffffff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--legacy-color-475467);
+  font-size: 16px;
+  border: 1px solid var(--legacy-color-e5e7eb);
+  flex: 0 0 auto;
+}

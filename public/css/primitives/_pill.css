@@ -1,0 +1,52 @@
+/* AIS-RLS-146 pill primitive: compact labels, status chips and counters. */
+.primitive-pill {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--neutral-300) 70%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--neutral-50) 86%, transparent);
+  color: var(--neutral-700);
+  padding: 0 var(--space-sm);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.primitive-pill[data-tone="brand"],
+.primitive-pill--brand {
+  border-color: color-mix(in srgb, var(--brand-400) 44%, transparent);
+  background: color-mix(in srgb, var(--brand-50) 88%, transparent);
+  color: var(--brand-700);
+}
+
+.primitive-pill[data-tone="success"],
+.primitive-pill--success {
+  border-color: color-mix(in srgb, var(--color-success) 34%, transparent);
+  background: color-mix(in srgb, var(--color-success) 10%, var(--neutral-0));
+  color: var(--color-success);
+}
+
+.primitive-pill[data-tone="warn"],
+.primitive-pill--warn {
+  border-color: color-mix(in srgb, var(--color-warn) 34%, transparent);
+  background: color-mix(in srgb, var(--color-warn) 10%, var(--neutral-0));
+  color: var(--color-warn);
+}
+
+.primitive-pill[data-tone="danger"],
+.primitive-pill--danger {
+  border-color: color-mix(in srgb, var(--color-danger) 34%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--neutral-0));
+  color: var(--color-danger);
+}
+
+:root[data-theme="dark"] .primitive-pill {
+  border-color: color-mix(in srgb, var(--neutral-500) 30%, transparent);
+  background: color-mix(in srgb, var(--neutral-100) 72%, transparent);
+  color: var(--neutral-800);
+}

@@ -13,7 +13,7 @@ const index = read("public/index.html");
 const app = read("public/app.js");
 const module = read("public/app-prompt-library.js");
 const styles = read("public/styles.css");
-const css = read("public/css/06-prompt-library-polish.css");
+const css = read("public/css/pages/prompt-library-polish.css");
 const packageJson = JSON.parse(read("package.json"));
 
 assert.equal(
@@ -25,7 +25,7 @@ assert.equal(
 assert(index.includes("/app-prompt-library.js"), "index.html must load app-prompt-library.js");
 assert(index.indexOf("/app-modules.js") < index.indexOf("/app-prompt-library.js"), "app-modules.js must load before prompt library module");
 assert(index.indexOf("/app-prompt-library.js") < index.indexOf("/app.js"), "app-prompt-library.js must load before app.js");
-assert(styles.includes('/css/06-prompt-library-polish.css'), "styles.css must import prompt library polish CSS");
+assert(styles.includes('/css/pages/prompt-library-polish.css'), "styles.css must import prompt library polish CSS");
 
 for (const token of [
   "AppModules?.register?.(\"promptLibrary\"",

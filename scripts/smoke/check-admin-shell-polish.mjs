@@ -16,11 +16,12 @@ const polish = read("public/admin-shell-polish.js");
 const buildManifest = JSON.parse(read("public/frontend-build-manifest.json"));
 const lazyAdminScripts = buildManifest.js?.lazyRoutes?.admin?.scripts || [];
 const styles = read("public/styles.css");
-const adminCss = read("public/css/09-admin.css");
-const shellCss = read("public/css/09-admin-shell-polish.css");
+const adminCss = read("public/css/pages/admin.css");
+const shellCss = read("public/css/pages/admin-shell-polish.css");
 const drawerPrimitiveCss = read("public/css/primitives/_drawer.css");
 const modalPrimitiveCss = read("public/css/primitives/_modal.css");
 const tablePrimitiveCss = read("public/css/primitives/_table.css");
+const pillPrimitiveCss = read("public/css/primitives/_pill.css");
 
 assert.equal(
   packageJson.scripts["smoke:admin-shell-polish"],
@@ -35,14 +36,15 @@ assert(
   lazyAdminScripts.indexOf("/admin-shell-polish.js") < lazyAdminScripts.indexOf("/admin/dashboard.js"),
   "admin shell polish must load before dashboard entry"
 );
-assert(styles.includes('@import url("/css/09-admin-shell-polish.css");'), "styles.css must import admin shell polish CSS");
+assert(styles.includes('@import url("/css/pages/admin-shell-polish.css");'), "styles.css must import admin shell polish CSS");
 assert(styles.includes('@import url("/css/primitives/_drawer.css");'), "styles.css must import drawer primitive CSS");
 assert(styles.includes('@import url("/css/primitives/_modal.css");'), "styles.css must import modal primitive CSS");
 assert(styles.includes('@import url("/css/primitives/_table.css");'), "styles.css must import table primitive CSS");
-assert(styles.indexOf("/css/primitives/_drawer.css") < styles.indexOf("/css/09-admin.css"), "drawer primitive must load before admin CSS");
-for (const upstreamCss of ["/css/09-admin-diagnostics.css", "/css/10-canvas-tools.css"]) {
+assert(styles.includes('@import url("/css/primitives/_pill.css");'), "styles.css must import pill primitive CSS");
+assert(styles.indexOf("/css/primitives/_drawer.css") < styles.indexOf("/css/pages/admin.css"), "drawer primitive must load before admin CSS");
+for (const upstreamCss of ["/css/pages/admin-diagnostics.css", "/css/pages/canvas-tools.css"]) {
   assert(
-    styles.indexOf(upstreamCss) < styles.indexOf("/css/09-admin-shell-polish.css"),
+    styles.indexOf(upstreamCss) < styles.indexOf("/css/pages/admin-shell-polish.css"),
     `admin shell polish CSS should override ${upstreamCss}`
   );
 }
@@ -87,8 +89,9 @@ for (const token of [".modal-layer", ".modal", "modalIn", "ais-slide-up-sheet"])
   assert(modalPrimitiveCss.includes(token), `modal primitive CSS missing ${token}`);
 }
 
-assert(!read("public/css/06-gallery.css").includes("@keyframes modalIn"), "gallery CSS must not own modalIn keyframes");
+assert(!read("public/css/pages/gallery.css").includes("@keyframes modalIn"), "gallery CSS must not own modalIn keyframes");
 assert(tablePrimitiveCss.includes(".primitive-table-wrap"), "table primitive CSS missing wrapper primitive");
+assert(pillPrimitiveCss.includes(".primitive-pill"), "pill primitive CSS missing .primitive-pill");
 
 for (const token of [
   "sidebarState",
@@ -132,7 +135,6 @@ for (const token of [
   ".admin-sidebar-backdrop:not(.hidden)",
   "transform: translateX(-105%)",
   "admin-sidebar-drawer-open",
-  ".primitive-pill",
   ".admin-sr-only"
 ]) {
   assert(shellCss.includes(token), `AIS-RLS-141 shell CSS missing ${token}`);
@@ -161,8 +163,8 @@ for (const status of [
 assert(!adminDashboard.includes("AdminShellPolish"), "admin dashboard should not own shell polish wiring");
 
 for (const relativePath of [
-  "public/css/09-admin.css",
-  "public/css/09-admin-shell-polish.css"
+  "public/css/pages/admin.css",
+  "public/css/pages/admin-shell-polish.css"
 ]) {
   const lines = read(relativePath).split(/\r?\n/).length;
   assert(lines < 500, `${relativePath} should stay below 500 lines (${lines})`);

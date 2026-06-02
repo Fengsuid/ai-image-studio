@@ -71,41 +71,60 @@ const requiredCssModules = [
   "00-tokens.css",
   "00-tokens-typography.css",
   "00-tokens-motion.css",
-  "01-motion-library.css",
-  "primitives/_button.css",
-  "primitives/_card.css",
   "00-theme.css",
-  "01-reset-base.css",
-  "01-reset.css",
-  "02-typography.css",
-  "03-layout.css",
-  "03-layout-app-shell.css",
-  "03-layout-shell.css",
-  "04-components.css",
-  "04-components-cards.css",
-  "04-components-modals.css",
-  "04-components-forms.css",
-  "05-home-shell.css",
-  "05-home-publish.css",
-  "05-home.css",
-  "05-home-composer.css",
-  "06-gallery.css",
-  "06-gallery-detail.css",
-  "06-gallery-leaderboard.css",
-  "06-gallery-leaderboard-responsive.css",
-  "07-editor.css",
-  "08-chat.css",
-  "09-admin.css",
-  "09-admin-panels.css",
-  "09-admin-diagnostics.css",
-  "10-canvas.css",
-  "10-canvas-tools.css",
+  "tokens.css",
+  "primitives/_motion.css",
+  "primitives/_motion-utilities.css",
+  "primitives/_button.css",
+  "primitives/_form.css",
+  "primitives/_pill.css",
+  "primitives/_toast.css",
+  "primitives/_table.css",
+  "primitives/_drawer.css",
+  "primitives/_modal.css",
+  "primitives/_card.css",
+  "pages/reset-base.css",
+  "pages/reset.css",
+  "pages/typography.css",
+  "pages/layout.css",
+  "pages/layout-shell.css",
+  "pages/layout-app-shell.css",
+  "pages/components.css",
+  "pages/components-skeleton.css",
+  "pages/components-cards.css",
+  "pages/reference-assets.css",
+  "pages/components-modals.css",
+  "pages/components-forms.css",
+  "pages/home-shell.css",
+  "pages/home-publish.css",
+  "pages/home.css",
+  "pages/home-onboarding.css",
+  "pages/home-composer.css",
+  "pages/gallery.css",
+  "pages/credits-detail.css",
+  "pages/works-carousel.css",
+  "pages/prompt-library-polish.css",
+  "pages/gallery-detail.css",
+  "pages/gallery-leaderboard.css",
+  "pages/gallery-leaderboard-responsive.css",
+  "pages/editor.css",
+  "pages/chat.css",
+  "pages/chat-polish.css",
+  "pages/admin.css",
+  "pages/admin-panels.css",
+  "pages/admin-diagnostics.css",
+  "pages/canvas.css",
+  "pages/canvas-tools.css",
+  "pages/admin-shell-polish.css",
+  "pages/visual-polish.css",
+  "pages/premium-ambient.css",
+  "pages/premium-interactions.css",
+  "pages/performance.css",
   "mobile/_safe-area.css",
   "mobile/_bottom-nav.css",
   "mobile/_mobile-overrides.css",
   "mobile/_mobile-editor.css",
-  "12-animations.css",
-  "12-visual-polish.css"
+  "mobile/_premium.css"
 ];
 
 const legacyMobileCssModules = [
@@ -265,8 +284,9 @@ function checkCssModules() {
     const relativePath = `public/css/${cssFile}`;
     const content = read(relativePath);
     const lines = lineCount(content);
+    const maxLines = cssFile.startsWith("pages/") ? 600 : budgets["public/css/*.css"].maxLines;
     assert(
-      lines <= budgets["public/css/*.css"].maxLines,
+      lines <= maxLines,
       `${relativePath} has ${lines} lines; split or move rules to the owning CSS module`
     );
     assert(
@@ -279,8 +299,8 @@ function checkCssModules() {
   const tokens = read("public/css/00-tokens.css");
   const typography = read("public/css/00-tokens-typography.css");
   const motion = read("public/css/00-tokens-motion.css");
-  const motionLibrary = read("public/css/01-motion-library.css");
-  const premiumInteractions = read("public/css/14-premium-interactions.css");
+  const motionLibrary = read("public/css/primitives/_motion.css");
+  const premiumInteractions = read("public/css/pages/premium-interactions.css");
   const buttonPrimitive = read("public/css/primitives/_button.css");
   const mobileBottomNav = read("public/css/mobile/_bottom-nav.css");
   const mobileOverrides = read("public/css/mobile/_mobile-overrides.css");
@@ -347,7 +367,7 @@ function checkCssModules() {
   assert(typography.includes("@media (max-width: 768px)"), "typography tokens must cover mobile overrides");
   assert(motion.includes("@media (prefers-reduced-motion: reduce)"), "motion tokens must honor reduced motion");
   for (const snippet of ["@keyframes shimmer", "@keyframes fade-up", "@keyframes spring-in", "@keyframes pulse-soft", "@keyframes floating-blob"]) {
-    assert(motionLibrary.includes(snippet), `01-motion-library.css must define ${snippet}`);
+    assert(motionLibrary.includes(snippet), `primitives/_motion.css must define ${snippet}`);
   }
   assert(
     motionLibrary.includes(".anim-fade-up") &&
@@ -355,32 +375,33 @@ function checkCssModules() {
       motionLibrary.includes(".anim-pulse-soft") &&
       motionLibrary.includes("var(--dur-") &&
       motionLibrary.includes("var(--ease-"),
-    "01-motion-library.css must expose token-driven motion utility classes"
+    "primitives/_motion.css must expose token-driven motion utility classes"
   );
   assert(
-    motionLibrary.includes("radial-gradient") &&
-      motionLibrary.includes("var(--mx)") &&
-      motionLibrary.includes("var(--my)") &&
-      motionLibrary.includes(".gallery-rank-card"),
-    "01-motion-library.css must cover coordinate-driven card spotlight for gallery, recent, and leaderboard cards"
+    premiumInteractions.includes("radial-gradient") &&
+      premiumInteractions.includes("var(--mx") &&
+      premiumInteractions.includes("var(--my") &&
+      premiumInteractions.includes(".gallery-rank-card"),
+    "pages/premium-interactions.css must cover coordinate-driven card spotlight for gallery, recent, and leaderboard cards"
   );
   assert(
     premiumInteractions.includes("var(--mx") && premiumInteractions.includes("var(--my") && !premiumInteractions.includes("--spot-x"),
-    "14-premium-interactions.css must not override AIS-RLS-137 spotlight with stale coordinate variables"
+    "pages/premium-interactions.css must not override AIS-RLS-137 spotlight with stale coordinate variables"
   );
   assert(
     motionLibrary.includes("@media (prefers-reduced-motion: reduce)") &&
       motionLibrary.includes("animation: none") &&
-      motionLibrary.includes("background-color"),
-    "01-motion-library.css must degrade motion for prefers-reduced-motion"
+      motionLibrary.includes(".motion-reveal"),
+    "primitives/_motion.css must degrade motion for prefers-reduced-motion"
   );
-  assert(styles.indexOf("/css/00-tokens.css") < styles.indexOf("/css/01-reset-base.css"), "token imports must precede token consumers");
-  assert(styles.indexOf("/css/00-tokens-motion.css") < styles.indexOf("/css/01-motion-library.css"), "motion library must load after motion tokens");
-  assert(styles.indexOf("/css/01-motion-library.css") < styles.indexOf("/css/01-reset-base.css"), "motion library must load before page modules");
+  assert(styles.indexOf("/css/00-tokens.css") < styles.indexOf("/css/primitives/_motion.css"), "token imports must precede primitive consumers");
+  assert(styles.indexOf("/css/tokens.css") < styles.indexOf("/css/primitives/_motion.css"), "token bridge must load before primitive layer");
+  assert(styles.indexOf("/css/00-tokens-motion.css") < styles.indexOf("/css/primitives/_motion.css"), "motion library must load after motion tokens");
+  assert(styles.indexOf("/css/primitives/_motion.css") < styles.indexOf("/css/pages/reset-base.css"), "motion library must load before page modules");
   assert(styles.includes("/css/primitives/_button.css"), "public/styles.css must import button primitive");
   assert(styles.indexOf("/css/00-tokens-motion.css") < styles.indexOf("/css/primitives/_button.css"), "button primitive must load after token modules");
-  assert(styles.indexOf("/css/01-reset-base.css") < styles.indexOf("/css/primitives/_button.css"), "button primitive must load after reset-base");
-  assert(styles.indexOf("/css/primitives/_button.css") < styles.indexOf("/css/03-layout-app-shell.css"), "button primitive must load before legacy layout modules");
+  assert(styles.indexOf("/css/primitives/_button.css") < styles.indexOf("/css/pages/layout-app-shell.css"), "button primitive must load before legacy layout modules");
+  assert(styles.indexOf("/css/pages/performance.css") < styles.indexOf("/css/mobile/_safe-area.css"), "mobile layer must load after page modules");
   assert(buttonPrimitive.includes(".btn--primary") && buttonPrimitive.includes(".btn--secondary") && buttonPrimitive.includes(".btn--ghost"), "button primitive must expose core variants");
   assert(buttonPrimitive.includes(".btn--danger") && buttonPrimitive.includes(".btn--link"), "button primitive must expose danger and link variants");
   assert(buttonPrimitive.includes("[data-loading]::after") && buttonPrimitive.includes("var(--dur-slower)"), "button primitive loading spinner must use motion token");

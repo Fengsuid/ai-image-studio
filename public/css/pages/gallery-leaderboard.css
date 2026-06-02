@@ -1,0 +1,222 @@
+/* Split from public/styles.css for AIS-RLS-071.
+   Order chunk 14 of 22; keep import order stable until semantic CSS modules are refined. */
+
+
+.editor-prompt-bar input::placeholder {
+  color: var(--legacy-color-94a3b8);
+}
+
+.editor-public-toggle,
+.editor-source-toggle {
+  flex: 0 0 auto;
+  color: var(--legacy-color-334155);
+}
+
+.editor-prompt-bar button[type="submit"] {
+  min-width: 132px;
+  height: 54px;
+  gap: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--legacy-color-7c3aed), var(--legacy-color-db2777));
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: inset -4px -6px 25px rgba(201, 201, 201, 0.08), inset 4px 4px 10px rgba(29, 29, 29, 0.24);
+}
+
+.editor-prompt-bar button[type="submit"]:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 390px) 1fr;
+  gap: 18px;
+}
+
+.admin-card {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--legacy-color-ffffff);
+  padding: 18px;
+}
+
+.admin-card h3 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+.admin-switch {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 9px !important;
+  color: var(--legacy-color-273140) !important;
+}
+
+.admin-switch input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--dark);
+}
+
+.users-table-wrap {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+}
+
+.users-table th,
+.users-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.users-table th {
+  color: var(--legacy-color-8b94a1);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.users-table input,
+.users-table select {
+  min-width: 86px;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.user-action-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-conversations-modal {
+  max-width: min(880px, calc(100vw - 32px));
+}
+
+.admin-conversations-user {
+  color: var(--legacy-color-64748b);
+  margin: -6px 0 14px;
+}
+
+.admin-conversation-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(62vh, 620px);
+  overflow: auto;
+}
+
+.admin-conversation-card {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--legacy-color-e2e8f0);
+  border-radius: 12px;
+  background: var(--legacy-color-ffffff);
+}
+
+.admin-conversation-card img,
+.admin-conversation-card > span {
+  width: 74px;
+  height: 74px;
+  border-radius: 10px;
+  background: var(--legacy-color-eef2f7);
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  color: var(--legacy-color-94a3b8);
+}
+
+.admin-conversation-card strong,
+.admin-conversation-card small,
+.admin-conversation-card p {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-conversation-card strong {
+  color: var(--legacy-color-0f172a);
+  white-space: nowrap;
+}
+
+.admin-conversation-card small {
+  color: var(--legacy-color-94a3b8);
+  font-size: 12px;
+  margin: 3px 0 6px;
+}
+
+.admin-conversation-card p {
+  margin: 0;
+  color: var(--legacy-color-64748b);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.user-cell strong {
+  display: block;
+}
+
+.user-cell span {
+  color: var(--legacy-color-8b94a1);
+  font-size: 12px;
+}
+
+.toast-layer {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 100;
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 230px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--legacy-color-273140);
+  box-shadow: 0 14px 44px rgba(15, 23, 42, 0.15);
+  padding: 12px 14px;
+  animation: toastIn 0.22s ease-out both;
+  font-size: 13px;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.65s ease-out both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

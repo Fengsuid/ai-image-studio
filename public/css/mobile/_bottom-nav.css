@@ -54,7 +54,7 @@
   width: 26px;
   height: 4px;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--brand), #14b8a6, var(--accent), var(--brand));
+  background: linear-gradient(90deg, var(--brand), var(--legacy-color-14b8a6), var(--accent), var(--brand));
   background-size: 200% 100%;
   animation: ais-progress-flow 1.6s linear infinite;
 }

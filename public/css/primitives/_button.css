@@ -1,10 +1,11 @@
 /* AIS-RLS-134 button primitive; legacy skins keep final visuals. */
-.btn{--btn-h:40px;--btn-px:var(--space-md);--btn-bg:var(--surface-card);--btn-fg:var(--neutral-700);--btn-bd:var(--neutral-200);--btn-spin:var(--btn-fg);position:relative;display:inline-flex;align-items:center;justify-content:center;gap:var(--space-xs);min-height:var(--btn-h);min-width:0;padding:0 var(--btn-px);border:1px solid var(--btn-bd);border-radius:var(--radius-lg);background:var(--btn-bg);color:var(--btn-fg);font:800 var(--fs-base)/1 var(--font-body);letter-spacing:0;text-decoration:none;white-space:nowrap;cursor:pointer;transition:transform var(--dur-fast) var(--ease-spring),box-shadow var(--dur-fast) var(--ease-out),background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
+.btn{--btn-h:40px;--btn-px:var(--space-md);--btn-bg:var(--surface-card);--btn-fg:var(--neutral-700);--btn-bd:var(--neutral-200);--btn-spin:var(--btn-fg);position:relative;display:inline-flex;align-items:center;justify-content:center;gap:var(--space-xs);min-height:var(--btn-h);min-width:0;padding:0 var(--btn-px);border:1px solid var(--btn-bd);border-radius:var(--radius-lg);background:var(--btn-bg);color:var(--btn-fg);font:800 var(--fs-base)/1 var(--font-body);letter-spacing:0;text-decoration:none;white-space:nowrap;cursor:pointer;will-change:transform;transition:transform var(--dur-fast) var(--ease-spring),box-shadow var(--dur-fast) var(--ease-out),background var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out)}
 .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
 .btn:active{transform:translateY(0)}
 .btn:focus-visible{outline:2px solid var(--brand-400);outline-offset:2px}
 .btn:disabled,.btn[aria-disabled="true"]{cursor:not-allowed;opacity:.58;transform:none;box-shadow:none}
-.btn--primary{--btn-bg:var(--brand-600);--btn-fg:var(--neutral-0);--btn-bd:transparent;--btn-spin:var(--neutral-0)}
+.btn--primary{--btn-bg:var(--brand-600);--btn-fg:var(--neutral-0);--btn-bd:transparent;--btn-spin:var(--neutral-0);box-shadow:0 12px 30px color-mix(in srgb,var(--brand-600) 24%,transparent),0 1px 0 color-mix(in srgb,var(--neutral-0) 24%,transparent) inset}
+.btn--primary:hover{filter:saturate(1.05);box-shadow:0 18px 44px color-mix(in srgb,var(--brand-600) 28%,transparent),0 1px 0 color-mix(in srgb,var(--neutral-0) 28%,transparent) inset}
 .btn--secondary{--btn-bg:var(--brand-50);--btn-fg:var(--brand-700);--btn-bd:transparent}
 .btn--ghost{--btn-bg:transparent;--btn-fg:var(--neutral-600);--btn-bd:transparent}
 .btn--danger{--btn-bg:var(--color-danger);--btn-fg:var(--neutral-0);--btn-bd:transparent;--btn-spin:var(--neutral-0)}

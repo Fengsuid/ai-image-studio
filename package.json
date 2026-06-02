@@ -100,6 +100,7 @@
     "smoke:gallery-detail-media": "node scripts/smoke/check-gallery-detail-media.mjs",
     "smoke:css-visual-polish": "node scripts/smoke/check-css-visual-polish.mjs",
     "smoke:css-module-split": "node scripts/smoke/check-css-module-split.mjs",
+    "smoke:css-primitive-boundaries": "node scripts/smoke/check-css-primitive-boundaries.mjs",
     "smoke:frontend-visual-system-polish": "node scripts/smoke/check-frontend-visual-system-polish.mjs",
     "smoke:theme-mobile-nav": "node scripts/smoke/check-theme-mobile-nav.mjs",
     "smoke:frontend-build-tooling": "node scripts/smoke/check-frontend-build-tooling.mjs",

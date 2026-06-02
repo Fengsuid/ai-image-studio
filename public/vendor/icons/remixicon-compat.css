@@ -31,3 +31,7 @@
 .ri-delete-bin-6-line:before {
   content: "\ec2a";
 }
+
+.ri-receipt-line:before {
+  content: "\ecef";
+}

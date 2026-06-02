@@ -1,0 +1,71 @@
+/* Desktop-only horizontal layout for the My Works shelf. */
+
+.works-toolbar {
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+}
+
+.works-library-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.works-library-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 8px;
+  background: var(--legacy-color-ffffff);
+  color: var(--legacy-color-475569);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.works-library-filters select {
+  min-width: 112px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--legacy-color-0f172a);
+  font: inherit;
+}
+
+.works-bulk-actions .works-danger-action {
+  border-color: rgba(248, 113, 113, 0.42);
+  color: var(--legacy-color-b91c1c);
+}
+
+@media (min-width: 861px) {
+  .works-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    padding: 4px 8px 14px 0;
+  }
+
+  .works-grid::-webkit-scrollbar {
+    height: 9px;
+  }
+
+  .works-grid::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.18);
+  }
+
+  .work-card {
+    flex: 0 0 clamp(280px, 24vw, 360px);
+    scroll-snap-align: start;
+  }
+
+  .work-visual {
+    height: 260px;
+    min-height: 260px;
+  }
+}
