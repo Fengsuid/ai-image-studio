@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260602-visual-hero-composer-v1",
+  "version": "20260618-admin-user-create-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -410,10 +410,10 @@
       },
       {
         "source": "/admin/users.js",
-        "entry": "/dist/admin-users.f826c642f180.js",
-        "fileName": "admin-users.f826c642f180.js",
-        "hash": "f826c642f180",
-        "bytes": 5468,
+        "entry": "/dist/admin-users.663d95613e3e.js",
+        "fileName": "admin-users.663d95613e3e.js",
+        "hash": "663d95613e3e",
+        "bytes": 7333,
         "lazy": true
       },
       {

@@ -3,6 +3,62 @@
 
   const domains = global.AdminDomains || (global.AdminDomains = {});
 
+  function showTemporaryPassword(core, response) {
+    const { escapeHtml, openDrawer } = core;
+    openDrawer("一次性临时密码", `<section class="admin-temp-password"><p>该密码只会返回一次。</p><div class="admin-copy-row"><code>${escapeHtml(response.temporaryPassword || "")}</code><button type="button" data-copy-temp-password>复制</button></div></section>`);
+    core.$("[data-copy-temp-password]")?.addEventListener("click", () => navigator.clipboard?.writeText(response.temporaryPassword || "").catch(() => null));
+  }
+
+  function createUserDrawer(core) {
+    const { state, api, escapeHtml, openDrawer, recordAudit, refreshAndRender, closeDrawer } = core;
+    const defaultCredits = state.settings?.defaultCredits ?? 10;
+    openDrawer("新建用户", `
+      <form id="drawerCreateUserForm" class="admin-form-grid single">
+        <label>邮箱<input name="email" type="email" autocomplete="off" required></label>
+        <label>姓名<input name="name" autocomplete="off"></label>
+        <label>角色<select name="role"><option value="user" selected>user</option><option value="admin">admin</option></select></label>
+        <label>状态<select name="status"><option value="active" selected>active</option><option value="disabled">disabled</option></select></label>
+        <label>积分<input name="credits" type="number" min="0" value="${escapeHtml(defaultCredits)}"></label>
+        <label class="admin-check"><input name="generatePassword" type="checkbox" checked>生成临时密码</label>
+        <label>自定义密码<input name="password" type="password" autocomplete="new-password" minlength="8" placeholder="取消勾选后填写" disabled></label>
+        <label>备注<input name="note" value="Admin created user"></label>
+        <button type="submit">创建用户</button>
+      </form>
+    `);
+    const generateInput = core.$("[name='generatePassword']");
+    const passwordInput = core.$("[name='password']");
+    const syncPasswordMode = () => {
+      if (!passwordInput) return;
+      passwordInput.disabled = Boolean(generateInput?.checked);
+      if (passwordInput.disabled) passwordInput.value = "";
+    };
+    generateInput?.addEventListener("change", syncPasswordMode);
+    syncPasswordMode();
+    core.$("#drawerCreateUserForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const generatePassword = form.get("generatePassword") === "on";
+      const payload = {
+        email: form.get("email"),
+        name: form.get("name"),
+        role: form.get("role"),
+        status: form.get("status"),
+        credits: form.get("credits"),
+        generatePassword,
+        note: form.get("note")
+      };
+      if (!generatePassword) payload.password = form.get("password");
+      const response = await api("/api/admin/users", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      recordAudit("create_user", response.user?.id || "", response.user?.email || payload.email);
+      await refreshAndRender();
+      if (response.temporaryPassword) showTemporaryPassword(core, response);
+      else closeDrawer();
+    });
+  }
+
   async function userDrawer(core, user) {
     if (!user) return;
     const { api, escapeHtml, fmtNumber, fmtDate, openDrawer, confirmAction, recordAudit, refreshAndRender, closeDrawer } = core;
@@ -47,14 +103,13 @@
       const response = await api(`/api/admin/users/${encodeURIComponent(user.id)}/reset-password`, { method: "POST", body: JSON.stringify({ generatePassword: true, note: "Admin reset password" }) });
       recordAudit("reset_user_password", user.id, user.email);
       await refreshAndRender();
-      openDrawer("一次性临时密码", `<section class="admin-temp-password"><p>该密码只会返回一次。</p><div class="admin-copy-row"><code>${escapeHtml(response.temporaryPassword || "")}</code><button type="button" data-copy-temp-password>复制</button></div></section>`);
-      core.$("[data-copy-temp-password]")?.addEventListener("click", () => navigator.clipboard?.writeText(response.temporaryPassword || "").catch(() => null));
+      showTemporaryPassword(core, response);
     });
   }
 
   function bind(core) {
     const { state, api, confirmAction, recordAudit, refreshAndRender, render } = core;
-    core.$("[data-create-user]")?.addEventListener("click", () => userDrawer(core, { id: "", name: "", email: "", role: "user", status: "active", credits: state.settings?.defaultCredits ?? 10 }));
+    core.$("[data-create-user]")?.addEventListener("click", () => createUserDrawer(core));
     document.querySelectorAll("[data-user-select]").forEach((input) => input.addEventListener("change", () => {
       input.checked ? state.selectedUsers.add(input.dataset.userSelect) : state.selectedUsers.delete(input.dataset.userSelect);
       render();
@@ -77,5 +132,5 @@
     });
   }
 
-  domains.users = { bind, userDrawer };
+  domains.users = { bind, userDrawer, createUserDrawer };
 })(window);

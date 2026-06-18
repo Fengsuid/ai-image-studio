@@ -14,6 +14,7 @@ const announcements = read("public/admin/announcements.js");
 const settings = read("public/admin/settings.js");
 const canvas = read("public/admin/canvas.js");
 const commandPalette = read("public/admin/command-palette.js");
+const usersDomain = read("public/admin/users.js");
 const shellCss = read("public/css/pages/admin-shell-polish.css");
 const overview = read("public/admin-overview.js");
 const users = read("public/admin-users.js");
@@ -62,6 +63,16 @@ for (const [name, content] of Object.entries({ dashboard, prompts, announcements
   assert(content.split(/\r?\n/).length <= 400, `public/admin/${name}.js must stay <= 400 lines`);
 }
 assert(commandPalette.split(/\r?\n/).length <= 150, "public/admin/command-palette.js must stay <= 150 lines for AIS-RLS-144");
+for (const token of [
+  "function createUserDrawer",
+  'api("/api/admin/users",',
+  'method: "POST"',
+  'form.get("generatePassword") === "on"',
+  'domains.users = { bind, userDrawer, createUserDrawer }'
+]) {
+  assert(usersDomain.includes(token), `admin user creation flow missing ${token}`);
+}
+assert(!usersDomain.includes('userDrawer(core, { id: ""'), "create user action must not reuse edit drawer with an empty id");
 for (const token of [
   'document.documentElement.dataset.app !== "admin"',
   "adminCommandPaletteBtn",
