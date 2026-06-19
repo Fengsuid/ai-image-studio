@@ -15,6 +15,7 @@ const indexHtml = read("public/index.html");
 const adminHtml = read("public/admin.html");
 const styles = read("public/styles.css");
 const appJs = read("public/app.js");
+const adminDashboardJs = read("public/admin/dashboard.js");
 const performanceJs = read("public/frontend-performance.js");
 const performanceCss = read("public/css/pages/performance.css");
 
@@ -120,6 +121,8 @@ assert(indexHtml.includes('src="/hero/hero.mp4"'), "hero video must use the loca
 assert(!/cloudfront\.net|https:\/\/[^"]+\.mp4/.test(indexHtml), "hero video must not depend on remote media");
 assert(!indexHtml.includes("<video autoplay"), "hero video should not autoplay before runtime budget checks");
 assert(styles.includes('@import url("/css/pages/performance.css");'), "styles.css must import performance CSS");
+assert(!adminDashboardJs.includes("/api/prompts?includeHidden=1&includeNoImage=1&limit=2000"), "admin dashboard must not load 2000 prompts on startup");
+assert(adminDashboardJs.includes("/api/prompts?includeHidden=1&includeNoImage=1&limit=500"), "admin dashboard should keep prompt startup payload bounded");
 assert(stat("public/hero/hero.mp4").size < 2 * 1024 * 1024, "hero MP4 must stay under 2 MB");
 assert(stat("public/hero/hero-poster.webp").size < 60 * 1024, "hero poster must stay under 60 KB");
 

@@ -323,10 +323,36 @@
     if (!image || !key) return false;
     const cached = await getImageBlob(key);
     if (!cached?.blob) return false;
+    releaseImageObjectUrl(image);
     const url = URL.createObjectURL(cached.blob);
     image.dataset.cacheObjectUrl = url;
     image.src = url;
     return true;
+  }
+
+  function releaseImageObjectUrl(image) {
+    const url = image?.dataset?.cacheObjectUrl || "";
+    if (!url) return false;
+    URL.revokeObjectURL(url);
+    delete image.dataset.cacheObjectUrl;
+    return true;
+  }
+
+  function releaseNodeObjectUrls(node) {
+    if (!node?.querySelectorAll) return;
+    if (node.matches?.("img[data-cache-object-url]")) releaseImageObjectUrl(node);
+    node.querySelectorAll("img[data-cache-object-url]").forEach(releaseImageObjectUrl);
+  }
+
+  function installObjectUrlCleanup() {
+    if (!global.MutationObserver || !global.document?.body) return;
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.removedNodes.forEach(releaseNodeObjectUrls);
+      }
+    });
+    observer.observe(global.document.body, { childList: true, subtree: true });
+    global.addEventListener?.("pagehide", () => releaseNodeObjectUrls(global.document.body));
   }
 
   function setAvailabilityForTests(value) {
@@ -352,7 +378,13 @@
     cacheImageElement,
     cacheImageUrl,
     preferCachedImage,
+    releaseImageObjectUrl,
     setAvailabilityForTests,
     unavailableReason
   };
+  if (global.document?.readyState === "loading") {
+    global.document.addEventListener("DOMContentLoaded", installObjectUrlCleanup, { once: true });
+  } else {
+    installObjectUrlCleanup();
+  }
 })(window);

@@ -42,6 +42,7 @@ for (const token of [
   "clearUserCache",
   "scrubForCache",
   "cacheImageUrl",
+  "releaseImageObjectUrl",
   "unavailableReason",
   "setAvailabilityForTests"
 ]) {
@@ -60,6 +61,8 @@ assert(cacheDb.includes("/source-file"), "source-file image guard missing");
 assert(cacheDb.includes("data:|blob:"), "blob/data URL guard missing");
 assert(cacheDb.includes("lastAccessedAt"), "LRU access timestamp missing");
 assert(cacheDb.includes("DEFAULT_MAX_BYTES"), "capacity limit missing");
+assert(cacheDb.includes("URL.revokeObjectURL"), "cached image object URLs must be released");
+assert(cacheDb.includes("MutationObserver"), "removed cached image nodes must be cleaned up");
 
 const cacheScriptIndex = scriptPosition(indexHtml, "cache-db.js");
 const appScriptIndex = scriptPosition(indexHtml, "app.js");

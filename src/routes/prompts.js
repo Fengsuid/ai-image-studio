@@ -27,16 +27,27 @@ function createPromptsRoute({
       const includeHidden = current?.user?.role === "admin" && url.searchParams.get("includeHidden") === "1";
       const includeNoImage = current?.user?.role === "admin" && url.searchParams.get("includeNoImage") === "1";
       const limit = sanitizePositiveInt(url.searchParams.get("limit"), 500, 2000);
+      const offset = Math.max(0, Math.min(8000, Number.parseInt(url.searchParams.get("offset"), 10) || 0));
       const requestedSort = url.searchParams.get("sort") || "default";
       const sort = ["hot", "new", "used", "liked"].includes(requestedSort) ? requestedSort : "default";
-      const prompts = await store.listPrompts({
+      const page = await store.listPrompts({
         includeHidden,
-        limit,
+        limit: Math.min(limit + 1, 2000),
+        offset,
         sort,
         currentUserId: current?.user?.id || "",
         requireImage: !includeNoImage
       });
-      sendJson(res, 200, { prompts });
+      const prompts = page.slice(0, limit);
+      sendJson(res, 200, {
+        prompts,
+        pagination: {
+          limit,
+          offset,
+          count: prompts.length,
+          hasMore: page.length > limit
+        }
+      });
       return true;
     }
 

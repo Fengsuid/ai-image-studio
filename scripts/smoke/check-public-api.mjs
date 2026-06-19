@@ -692,10 +692,14 @@ async function checkPublicGallery() {
 }
 
 async function checkPrompts() {
-  log("GET /api/prompts?limit=3");
-  const { status, body } = await fetchJson("/api/prompts?limit=3");
+  log("GET /api/prompts?limit=3&offset=1");
+  const { status, body } = await fetchJson("/api/prompts?limit=3&offset=1");
   assert(status === 200, `/api/prompts status=${status}`);
   assert(body && Array.isArray(body.prompts), "/api/prompts missing prompts array");
+  assert(body && body.pagination && typeof body.pagination === "object", "/api/prompts missing pagination object");
+  assert.equal(Number(body.pagination.limit), 3, "/api/prompts pagination.limit invalid");
+  assert.equal(Number(body.pagination.offset), 1, "/api/prompts pagination.offset invalid");
+  assert(typeof body.pagination.hasMore === "boolean", "/api/prompts pagination.hasMore invalid");
   if (!Array.isArray(body?.prompts)) return;
   log(`/api/prompts returned ${body.prompts.length} item(s)`);
   assert(body.prompts.length > 0, "/api/prompts returned zero entries (seed missing?)");

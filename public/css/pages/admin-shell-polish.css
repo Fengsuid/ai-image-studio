@@ -360,22 +360,9 @@ html[data-app="admin"] .admin-topbar { min-height: 0; display: grid; grid-templa
 
   html[data-app="admin"] .admin-topbar .btn { --btn-h: 40px; }
 
-  .admin-main, .admin-content, .admin-panel, .admin-table-wrap {
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  .admin-icon-button, .admin-theme-toggle, .admin-sidebar-toggle {
-    width: 40px;
-    height: 40px;
-    min-height: 40px;
-    min-width: 40px;
-  }
-
-  .admin-topbar, .admin-status, .admin-toolbar, .generation-diagnostics-toolbar, .admin-bulk-bar {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
+  .admin-main, .admin-content, .admin-panel, .admin-table-wrap { max-width: 100%; min-width: 0; }
+  .admin-icon-button, .admin-theme-toggle, .admin-sidebar-toggle { width: 40px; height: 40px; min-height: 40px; min-width: 40px; }
+  .admin-topbar, .admin-status, .admin-toolbar, .generation-diagnostics-toolbar, .admin-bulk-bar { grid-template-columns: 1fr; align-items: stretch; }
 
   .admin-table th, .admin-table td { white-space: nowrap; }
 

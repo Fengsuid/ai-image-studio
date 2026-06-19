@@ -54,7 +54,11 @@ const state = {
     : "hot",
   promptItems: [],
   promptVisible: 20,
+  promptPageSize: 120,
+  promptNextOffset: 0,
+  promptHasMore: false,
   promptLoading: true,
+  promptLoadingMore: false,
   promptLibraryMeta: {
     fallbackUsed: false,
     error: "",
@@ -642,6 +646,7 @@ function markImageUnavailable(image) {
   if (!image || image.dataset.imageFailed === "1") return;
   if (image.dataset.removeOnImageError === "1") {
     image.dataset.imageFailed = "1";
+    cacheDb()?.releaseImageObjectUrl?.(image);
     const card = image.closest(".prompt-card");
     if (card) {
       card.remove();
@@ -651,6 +656,7 @@ function markImageUnavailable(image) {
   const fallbackSrc = image.dataset.fallbackSrc || "";
   if (fallbackSrc && image.getAttribute("src") !== fallbackSrc) {
     image.dataset.imageFailed = "1";
+    cacheDb()?.releaseImageObjectUrl?.(image);
     image.removeAttribute("srcset");
     image.setAttribute("src", fallbackSrc);
     image.classList.add("prompt-cover-fallback-image");
@@ -661,6 +667,7 @@ function markImageUnavailable(image) {
     return;
   }
   image.dataset.imageFailed = "1";
+  cacheDb()?.releaseImageObjectUrl?.(image);
   image.removeAttribute("src");
   image.removeAttribute("srcset");
   image.setAttribute("aria-hidden", "true");
@@ -3333,12 +3340,22 @@ function renderLibrary() {
     offline: state.promptLibraryMeta?.offline || navigator.onLine === false,
     ctx
   }) || "";
+  const canRevealLoaded = visible.length < filtered.length;
+  const canFetchMore = !state.promptLibraryMeta?.fallbackUsed && state.promptHasMore;
+  const loadMoreHtml = (canRevealLoaded || canFetchMore) ? `
+    <div class="load-more-wrap">
+      <button id="loadMorePrompts" type="button" ${state.promptLoadingMore ? "disabled" : ""}>
+        ${state.promptLoadingMore ? (state.lang === "zh" ? "加载中" : "Loading") : text("loadMore")}
+        <span>(${visible.length}/${filtered.length}${canFetchMore ? "+" : ""})</span>
+      </button>
+    </div>
+  ` : "";
   const cardsHtml = visible.map(promptCardHtml).join("")
-    + (visible.length < filtered.length ? `<div class="load-more-wrap"><button id="loadMorePrompts" type="button">${text("loadMore")} <span>(${visible.length}/${filtered.length})</span></button></div>` : "");
+    + loadMoreHtml;
   if (state.promptLoading) {
     renderSkeleton(elements.promptGrid, { rows: 6, variant: "card", label: text("promptLibrary") });
   } else {
-    elements.promptGrid.innerHTML = filtered.length
+    elements.promptGrid.innerHTML = filtered.length || canFetchMore
         ? `${sourceNotice}<div class="gallery-main-grid">${cardsHtml}</div>`
         : selectedInfo
           ? `${sourceNotice}${emptyTagMessageHtml(selectedInfo)}`
@@ -3406,9 +3423,18 @@ function renderLibrary() {
       renderLibrary();
     });
   });
-  $("#loadMorePrompts")?.addEventListener("click", () => {
-    state.promptVisible += 20;
-    renderLibrary();
+  $("#loadMorePrompts")?.addEventListener("click", async () => {
+    if (state.promptLoadingMore) return;
+    const nextVisible = state.promptVisible + 20;
+    if (state.promptVisible < filtered.length) {
+      state.promptVisible = nextVisible;
+      renderLibrary();
+      return;
+    }
+    if (state.promptHasMore && !state.promptLibraryMeta?.fallbackUsed) {
+      state.promptVisible = nextVisible;
+      await loadPromptLibrary({ append: true });
+    }
   });
   bindPromptCards(elements.promptGrid);
   observeMotion(elements.libraryView);
@@ -4914,36 +4940,60 @@ function getTagCounts(source = getPromptSource()) {
   }
   return counts;
 }
-async function loadPromptLibrary() {
-  state.promptLoading = true;
-  state.promptLibraryMeta = {
-    fallbackUsed: false,
-    error: "",
-    offline: navigator.onLine === false,
-    permissionDenied: false
-  };
-  renderSkeleton(elements.promptGrid, { rows: 6, variant: "card", label: text("promptLibrary") });
-  if (state.view === "library") renderLibrary();
+function promptLibraryRequestUrl({ offset = 0 } = {}) {
+  const params = new URLSearchParams({
+    sort: ["hot", "new", "used", "liked"].includes(state.librarySort) ? state.librarySort : "hot",
+    limit: String(state.promptPageSize || 120),
+    offset: String(Math.max(0, Number(offset) || 0))
+  });
+  if (state.user?.role === "admin") params.set("includeHidden", "1");
+  return `/api/prompts?${params.toString()}`;
+}
+function preparePromptLibraryItems(items = []) {
+  return uniquePromptDisplayItems(items).map((prompt) => ({
+    ...prompt,
+    colors: prompt.colors || tagColor(prompt.tags?.[0] || prompt.tag || "other")
+  }));
+}
+async function loadPromptLibrary({ append = false } = {}) {
+  const offset = append ? state.promptNextOffset : 0;
+  if (append) {
+    if (state.promptLoadingMore || !state.promptHasMore || state.promptLibraryMeta?.fallbackUsed) return;
+    state.promptLoadingMore = true;
+    if (state.view === "library") renderLibrary();
+  } else {
+    state.promptLoading = true;
+    state.promptLoadingMore = false;
+    state.promptNextOffset = 0;
+    state.promptHasMore = false;
+    state.promptLibraryMeta = {
+      fallbackUsed: false,
+      error: "",
+      offline: navigator.onLine === false,
+      permissionDenied: false
+    };
+    renderSkeleton(elements.promptGrid, { rows: 6, variant: "card", label: text("promptLibrary") });
+    if (state.view === "library") renderLibrary();
+  }
   let items = [];
   let usedFallback = false;
   let lastError = null;
+  let hasMore = false;
   try {
-    const sort = ["hot", "new", "used", "liked"].includes(state.librarySort) ? state.librarySort : "hot";
-    const data = await api(state.user?.role === "admin"
-      ? `/api/prompts?includeHidden=1&sort=${encodeURIComponent(sort)}&limit=2000`
-      : `/api/prompts?sort=${encodeURIComponent(sort)}&limit=2000`);
+    const data = await api(promptLibraryRequestUrl({ offset }));
     items = Array.isArray(data?.prompts) ? data.prompts : [];
+    hasMore = data?.pagination?.hasMore === true;
   } catch (error) {
     lastError = error;
-    usedFallback = true;
+    usedFallback = !append;
     state.promptLibraryMeta = {
-      fallbackUsed: true,
+      fallbackUsed: !append,
       error: error.message || "",
       offline: navigator.onLine === false,
       permissionDenied: [401, 403].includes(Number(error.status || 0))
     };
   }
-  if (!items.length) {
+  if (!append && !items.length) {
     try {
       const data = await fetch("/prompts.json", { cache: "force-cache" }).then((response) => response.json());
       items = Array.isArray(data?.prompts) ? data.prompts : [];
@@ -4952,9 +5002,10 @@ async function loadPromptLibrary() {
       if (!lastError) lastError = error;
     }
   }
-  if (!items.length) {
+  if (!items.length && !append) {
     state.promptItems = [];
     state.promptLoading = false;
+    state.promptLoadingMore = false;
     state.promptLibraryMeta = {
       fallbackUsed: true,
       error: lastError?.message || "",
@@ -4965,13 +5016,26 @@ async function loadPromptLibrary() {
     renderAll();
     return;
   }
-  state.promptItems = uniquePromptDisplayItems(items).map((prompt) => ({
-    ...prompt,
-    colors: prompt.colors || tagColor(prompt.tags?.[0] || prompt.tag || "other")
-  }));
+  if (append && !items.length) {
+    state.promptHasMore = false;
+    state.promptLoadingMore = false;
+    state.promptLibraryMeta = {
+      ...state.promptLibraryMeta,
+      error: lastError?.message || state.promptLibraryMeta?.error || "",
+      offline: navigator.onLine === false,
+      permissionDenied: [401, 403].includes(Number(lastError?.status || 0))
+    };
+    if (lastError) showToast(lastError.message || String(lastError), "ri-error-warning-line");
+    if (state.view === "library") renderLibrary();
+    return;
+  }
+  state.promptItems = preparePromptLibraryItems(append ? [...state.promptItems, ...items] : items);
+  state.promptNextOffset = offset + items.length;
+  state.promptHasMore = !usedFallback && hasMore;
   state.promptLoading = false;
+  state.promptLoadingMore = false;
   state.promptLibraryMeta = {
-    fallbackUsed: usedFallback,
+    fallbackUsed: usedFallback || state.promptLibraryMeta?.fallbackUsed === true,
     error: lastError?.message || "",
     offline: navigator.onLine === false,
     permissionDenied: [401, 403].includes(Number(lastError?.status || 0))

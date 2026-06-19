@@ -492,9 +492,11 @@ function createPromptStore({ getPool, toIso }) {
     return getPromptAuditRecordById(id);
   }
 
-  async function listPrompts({ includeHidden = false, limit = 500, sort = "default", currentUserId = "", requireImage = false } = {}) {
+  async function listPrompts({ includeHidden = false, limit = 500, offset = 0, sort = "default", currentUserId = "", requireImage = false } = {}) {
     const safeLimit = Math.max(1, Math.min(2000, Number(limit) || 500));
-    const selectLimit = Math.min(8000, Math.max(safeLimit, safeLimit * 4));
+    const safeOffset = Math.max(0, Math.min(8000, Number(offset) || 0));
+    const uniqueTarget = safeOffset + safeLimit;
+    const selectLimit = Math.min(8000, Math.max(uniqueTarget + 1, (uniqueTarget + 1) * 4));
     const where = [];
     if (!includeHidden) where.push("p.status = 'active'");
     if (requireImage) where.push("(p.preview <> '' OR p.image <> '')");
@@ -519,7 +521,7 @@ function createPromptStore({ getPool, toIso }) {
          LIMIT ${selectLimit}`,
       currentUserId ? [currentUserId] : []
     );
-    return uniquePromptsForDisplay(rows.map(mapPrompt), safeLimit);
+    return uniquePromptsForDisplay(rows.map(mapPrompt), uniqueTarget).slice(safeOffset, uniqueTarget);
   }
 
   async function getPromptById(id) {

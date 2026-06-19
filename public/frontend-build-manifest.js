@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260618-admin-user-create-v1",
+  "version": "20260619-memory-prompt-paging-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -146,10 +146,10 @@
       },
       {
         "source": "/cache-db.js",
-        "entry": "/dist/cache-db.7fb6d9be5a85.js",
-        "fileName": "cache-db.7fb6d9be5a85.js",
-        "hash": "7fb6d9be5a85",
-        "bytes": 6299,
+        "entry": "/dist/cache-db.cd1be9d848eb.js",
+        "fileName": "cache-db.cd1be9d848eb.js",
+        "hash": "cd1be9d848eb",
+        "bytes": 6936,
         "lazy": false
       },
       {
@@ -346,10 +346,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.02b52df3318b.js",
-        "fileName": "app.02b52df3318b.js",
-        "hash": "02b52df3318b",
-        "bytes": 185222,
+        "entry": "/dist/app.792e3b86b56e.js",
+        "fileName": "app.792e3b86b56e.js",
+        "hash": "792e3b86b56e",
+        "bytes": 186988,
         "lazy": false
       },
       {
@@ -458,10 +458,10 @@
       },
       {
         "source": "/admin/dashboard.js",
-        "entry": "/dist/admin-dashboard.a4dbc32930ca.js",
-        "fileName": "admin-dashboard.a4dbc32930ca.js",
-        "hash": "a4dbc32930ca",
-        "bytes": 22880,
+        "entry": "/dist/admin-dashboard.6282398ca294.js",
+        "fileName": "admin-dashboard.6282398ca294.js",
+        "hash": "6282398ca294",
+        "bytes": 22879,
         "lazy": true
       },
       {
