@@ -139,11 +139,12 @@
 /* Dark: same mesh, slightly boosted saturation */
 :root[data-theme="dark"] .ambient {
   background:
-    radial-gradient(at 18% 22%, rgba(139, 92, 246, 0.20), transparent 50%),
-    radial-gradient(at 80% 16%, rgba(56, 130, 246, 0.18), transparent 50%),
-    radial-gradient(at 24% 84%, rgba(34, 211, 238, 0.14), transparent 50%),
-    radial-gradient(at 82% 80%, rgba(236, 72, 153, 0.14), transparent 50%),
+    radial-gradient(at 18% 22%, color-mix(in srgb, var(--brand-400) 24%, transparent), transparent 50%),
+    radial-gradient(at 80% 16%, rgba(56, 130, 246, 0.2), transparent 50%),
+    radial-gradient(at 24% 84%, rgba(34, 211, 238, 0.16), transparent 50%),
+    radial-gradient(at 82% 80%, rgba(236, 72, 153, 0.16), transparent 50%),
     linear-gradient(160deg, var(--bg) 0%, var(--surface) 100%);
+  filter: brightness(1.12);
 }
 
 /* Ambient drift — slow position animation */
@@ -409,7 +410,8 @@
 }
 
 :root[data-theme="dark"] .hero-blob {
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-400) 40%, transparent), transparent 68%);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-400) 45%, transparent), transparent 68%);
+  filter: blur(42px) brightness(1.12);
 }
 
 /* Gallery leaderboard */

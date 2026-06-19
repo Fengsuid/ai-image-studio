@@ -1,4 +1,4 @@
-export const FRONTEND_BUILD_VERSION = "20260619-memory-prompt-paging-v1";
+export const FRONTEND_BUILD_VERSION = "20260619-visual-dark-mode-v1";
 
 export const frontendBuildManifest = Object.freeze({
   version: FRONTEND_BUILD_VERSION,

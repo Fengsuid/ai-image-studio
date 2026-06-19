@@ -4,7 +4,7 @@ const CSP_POLICY = [
   "media-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'sha256-Uo+5wss4OrAt98qVKAzkKoEC3P0AJe7a/g6/8hOhVUw='",
   "connect-src 'self'",
   "report-uri /api/csp-report"
 ].join("; ");

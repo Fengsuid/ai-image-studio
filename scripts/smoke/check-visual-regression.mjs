@@ -66,6 +66,19 @@ const scenarios = [
     manualReview: "Dark home hero, mobile composer, bottom navigation spacing."
   },
   {
+    name: "home-composer-dark-1440",
+    url: "/",
+    theme: "dark",
+    viewport: "desktop1440",
+    readySelector: "#homeView",
+    requiredVisible: ["#homeView", "#heroComposerMount.primitive-card--hero", "#heroComposerMount .send-button", ".hero-blob--primary", ".hero-blob--secondary"],
+    coreButtons: ["#heroComposerMount .send-button", "#topbarSearchBtn", "#topbarGenerateBtn", "#promptLibraryBtn", "#themeToggle"],
+    viewportVisible: [".hero h1", "#heroComposerMount.primitive-card--hero", "#heroComposerMount .send-button"],
+    cardSelectors: ["#heroComposerMount.primitive-card--hero", ".example-card", ".recent-tile"],
+    resetScrollBeforeScreenshot: true,
+    manualReview: "Dark 1440 home hero glass, ambient drift, and composer surface."
+  },
+  {
     name: "home-topbar-density-light-1440",
     url: "/",
     theme: "light",
@@ -137,6 +150,17 @@ const scenarios = [
     manualReview: "Dark gallery cards, mobile bottom nav, tag/filter wrapping."
   },
   {
+    name: "gallery-library-dark-1440",
+    url: "/?view=library",
+    theme: "dark",
+    viewport: "desktop1440",
+    readySelector: "#libraryView",
+    requiredVisible: ["#libraryView", "#promptGrid", ".prompt-library-card"],
+    coreButtons: ["#librarySearchForm button", "#promptLibraryBtn", "#themeToggle"],
+    cardSelectors: [".prompt-library-card"],
+    manualReview: "Dark 1440 gallery list cards and library hero surfaces."
+  },
+  {
     name: "gallery-detail-modal-light-mobile",
     url: `/?view=library&modal=square&gallery=${encodeURIComponent(sampleIds.galleryId)}`,
     theme: "light",
@@ -170,6 +194,17 @@ const scenarios = [
     manualReview: "Prompt detail modal in dark mode; no leftover white panels."
   },
   {
+    name: "leaderboard-page-dark-1440",
+    url: "/?view=leaderboard",
+    theme: "dark",
+    viewport: "desktop1440",
+    readySelector: "#leaderboardPage .gallery-rank-card",
+    requiredVisible: ["#leaderboardPage", ".gallery-rank-card"],
+    coreButtons: [".gallery-rank-tabs button", ".gallery-rank-card .rank-like"],
+    cardSelectors: [".gallery-rank-card"],
+    manualReview: "Dark 1440 leaderboard cards, tabs, and page head."
+  },
+  {
     name: "editor-light-mobile",
     url: "/?view=editor",
     theme: "light",
@@ -181,6 +216,17 @@ const scenarios = [
     manualReview: "Editor image stage, prompt bar and publish controls."
   },
   {
+    name: "editor-dark-mobile",
+    url: "/?view=editor",
+    theme: "dark",
+    viewport: "mobile375",
+    readySelector: "#editorView",
+    postReadyAction: "seedEditorImage",
+    requiredVisible: ["#editorView", "#editorPromptForm", "#editorImageFrame", "#editorSourceImage"],
+    coreButtons: ["#editorPromptForm button", ".editor-publish-panel .square-toggle"],
+    manualReview: "Dark mobile editor stage, prompt bar, and publish controls."
+  },
+  {
     name: "my-works-dark-mobile",
     url: `/?view=library&modal=works&work=${encodeURIComponent(sampleIds.workId)}`,
     theme: "dark",
@@ -190,6 +236,17 @@ const scenarios = [
     coreButtons: [".works-detail-close", ".works-detail-actions button", ".works-detail-actions a"],
     allowMissingExternal: true,
     manualReview: "My works drawer, action bar, detail image and dark-mode surfaces."
+  },
+  {
+    name: "chat-workspace-dark-1440",
+    url: "/?workspace=1",
+    theme: "dark",
+    viewport: "desktop1440",
+    readySelector: "#chatView",
+    requiredVisible: ["#chatView", "#historyList", "#stickyComposerMount"],
+    coreButtons: ["#stickyComposerMount .send-button", "#chatScrollTopBtn"],
+    viewportVisible: ["#stickyComposerMount"],
+    manualReview: "Dark 1440 chat workspace surfaces, sticky composer, and history list."
   },
   {
     name: "admin-shell-light-desktop",
@@ -214,6 +271,18 @@ const scenarios = [
     coreButtons: ["#adminRefreshBtn", "#adminSidebarToggle"],
     cardSelectors: [".primitive-card--hero", ".primitive-card--stat"],
     manualReview: "Admin mobile shell and dark-mode panel colors."
+  },
+  {
+    name: "admin-shell-dark-1440",
+    aliases: ["admin-dashboard"],
+    url: "/admin#overview",
+    theme: "dark",
+    viewport: "desktop1440",
+    readySelector: "#adminContent .admin-panel, #adminContent .admin-auth-required",
+    requiredVisible: ["#adminApp[data-sidebar-state='expanded']", ".admin-sidebar", ".admin-topbar", "#adminContent"],
+    coreButtons: ["#adminRefreshBtn", "#adminSidebarToggle"],
+    cardSelectors: [".primitive-card--hero", ".primitive-card--stat"],
+    manualReview: "Admin dark 1440 shell, cards, and table/header surfaces."
   }
 ];
 

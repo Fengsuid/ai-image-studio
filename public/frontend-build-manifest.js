@@ -2,7 +2,7 @@
   "use strict";
 
   const manifest = Object.freeze({
-  "version": "20260619-memory-prompt-paging-v1",
+  "version": "20260619-visual-dark-mode-v1",
   "sourceRoot": "src/frontend",
   "outputs": [
     {
@@ -23,10 +23,10 @@
       "/css/mobile/_mobile-editor.css",
       "/css/mobile/_premium.css"
     ],
-    "entry": "/dist/app.95bfd7dbde6f.css",
-    "file": "/dist/app.95bfd7dbde6f.css",
-    "hash": "95bfd7dbde6f",
-    "bytes": 297250,
+    "entry": "/dist/app.f5ba5a12417a.css",
+    "file": "/dist/app.f5ba5a12417a.css",
+    "hash": "f5ba5a12417a",
+    "bytes": 298278,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",
@@ -234,10 +234,10 @@
       },
       {
         "source": "/theme-mobile-nav.js",
-        "entry": "/dist/theme-mobile-nav.f4dfdc7c4b38.js",
-        "fileName": "theme-mobile-nav.f4dfdc7c4b38.js",
-        "hash": "f4dfdc7c4b38",
-        "bytes": 2337,
+        "entry": "/dist/theme-mobile-nav.6b11e31ff9d2.js",
+        "fileName": "theme-mobile-nav.6b11e31ff9d2.js",
+        "hash": "6b11e31ff9d2",
+        "bytes": 2401,
         "lazy": false
       },
       {
@@ -402,10 +402,10 @@
       },
       {
         "source": "/admin-shell-polish.js",
-        "entry": "/dist/admin-shell-polish.4c966f012f22.js",
-        "fileName": "admin-shell-polish.4c966f012f22.js",
-        "hash": "4c966f012f22",
-        "bytes": 4513,
+        "entry": "/dist/admin-shell-polish.80705d14fa44.js",
+        "fileName": "admin-shell-polish.80705d14fa44.js",
+        "hash": "80705d14fa44",
+        "bytes": 4657,
         "lazy": true
       },
       {
@@ -458,10 +458,10 @@
       },
       {
         "source": "/admin/dashboard.js",
-        "entry": "/dist/admin-dashboard.6282398ca294.js",
-        "fileName": "admin-dashboard.6282398ca294.js",
-        "hash": "6282398ca294",
-        "bytes": 22879,
+        "entry": "/dist/admin-dashboard.4499832d9341.js",
+        "fileName": "admin-dashboard.4499832d9341.js",
+        "hash": "4499832d9341",
+        "bytes": 23095,
         "lazy": true
       },
       {

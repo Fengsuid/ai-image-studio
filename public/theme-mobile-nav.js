@@ -22,6 +22,14 @@
     return systemPrefersDark() ? "dark" : "light";
   }
 
+  function syncLegacyThemeKey(theme) {
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {
+      // Legacy admin key stays best-effort only.
+    }
+  }
+
   function applyTheme(theme, { persist = false, transition = false } = {}) {
     if (!VALID_THEMES.has(theme)) return;
     if (transition) root.classList.add("theme-transitioning");
@@ -33,6 +41,7 @@
       } catch {
         // Theme preference is progressive enhancement.
       }
+      syncLegacyThemeKey(theme);
     }
     updateThemeToggle();
     if (transition) {

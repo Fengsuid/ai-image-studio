@@ -36,6 +36,7 @@ assert(!reportOnlyHeaders["Content-Security-Policy"], "CSP_ENFORCE=false must no
 for (const policy of [enforceHeaders["Content-Security-Policy"], reportOnlyHeaders["Content-Security-Policy-Report-Only"]]) {
   assert.equal(policy, CSP_POLICY, "enforce and report-only modes must share the same policy");
   assert(policy.includes("script-src 'self'"), "CSP must keep scripts self-only");
+  assert(policy.includes("'sha256-Uo+5wss4OrAt98qVKAzkKoEC3P0AJe7a/g6/8hOhVUw='"), "CSP must allow the early theme bootstrap hash");
   assert(policy.includes("font-src 'self'"), "CSP must keep fonts self-only");
   assert(policy.includes("media-src 'self'"), "CSP must keep media self-only");
   assert(!policy.includes("fonts.googleapis.com"), "CSP must not allow Google Fonts");

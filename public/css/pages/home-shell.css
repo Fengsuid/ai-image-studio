@@ -404,7 +404,7 @@
 
 /* Dark mode composer overrides */
 :root[data-theme="dark"] .composer {
-  background: color-mix(in srgb, var(--surface-elev-1) 82%, transparent);
+  background: color-mix(in srgb, var(--neutral-800) 78%, transparent);
   border-color: var(--border-subtle);
   box-shadow:
     0 1px 0 0 color-mix(in srgb, var(--neutral-300) 8%, transparent) inset,
@@ -412,7 +412,8 @@
 }
 
 :root[data-theme="dark"] .hero-blob {
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-400) 40%, transparent), transparent 68%);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-400) 45%, transparent), transparent 68%);
+  filter: blur(42px) brightness(1.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -430,7 +431,7 @@
 }
 
 :root[data-theme="dark"] .home-discovery button {
-  background: color-mix(in srgb, var(--surface-elev-1) 72%, transparent);
+  background: color-mix(in srgb, var(--neutral-800) 74%, transparent);
   border-color: var(--border-subtle);
   color: var(--text-secondary);
 }

@@ -158,23 +158,23 @@
     --paper-solid: #111827;
     --dark: #f8fafc;
     --brand-50: #172554; --brand-100: #1e3a8a; --brand-200: #1e40af; --brand-300: #1d4ed8; --brand-400: #2563eb; --brand-500: #3b82f6; --brand-600: #60a5fa; --brand-700: #93c5fd; --brand-800: #bfdbfe; --brand-900: #dbeafe;
-    --neutral-0: #020617; --neutral-50: #0f172a; --neutral-100: #111827; --neutral-200: #1e293b; --neutral-300: #334155; --neutral-400: #475569; --neutral-500: #64748b; --neutral-600: #94a3b8; --neutral-700: #cbd5e1; --neutral-800: #e2e8f0; --neutral-900: #f8fafc;
+    --neutral-0: #ffffff; --neutral-50: #f8fafc; --neutral-100: #f1f5f9; --neutral-200: #e2e8f0; --neutral-300: #cbd5e1; --neutral-400: #94a3b8; --neutral-500: #64748b; --neutral-600: #475569; --neutral-700: #334155; --neutral-800: #1e293b; --neutral-900: #0f172a;
     --color-success: #4ade80; --color-warn: #fbbf24; --color-danger: #fb7185; --color-info: #38bdf8;
-    --surface-canvas: #0f172a; --surface-card: #111827; --surface-elev-1: #1e293b; --surface-elev-2: #263241; --surface-glass: rgba(15, 23, 42, 0.76); --surface-overlay: rgba(2, 6, 23, 0.7);
+    --surface-canvas: #0f172a; --surface-card: var(--neutral-800); --surface-elev-1: color-mix(in srgb, var(--neutral-800) 92%, var(--neutral-900)); --surface-elev-2: color-mix(in srgb, var(--neutral-700) 32%, var(--neutral-800)); --surface-glass: color-mix(in srgb, var(--neutral-800) 78%, transparent); --surface-overlay: color-mix(in srgb, var(--neutral-900) 64%, transparent);
     --bg: #070b13;
     --brand: #60a5fa;
     --brand-strong: #93c5fd;
     --brand-soft: rgba(96, 165, 250, 0.18);
     --accent: #fb923c;
     --accent-soft: rgba(251, 146, 60, 0.14);
-    --surface: #0f172a;
-    --surface-raised: #111827;
-    --surface-glass: rgba(15, 23, 42, 0.76);
-    --border: #263241;
-    --border-subtle: rgba(148, 163, 184, 0.18);
+    --surface: var(--neutral-900);
+    --surface-raised: var(--neutral-800);
+    --border: color-mix(in srgb, var(--neutral-700) 44%, var(--neutral-800));
+    --border-subtle: color-mix(in srgb, var(--neutral-400) 22%, transparent);
     --text-primary: #f8fafc;
     --text-secondary: #cbd5e1;
     --text-tertiary: #7c8798;
+    --text-on-brand: #020617;
     --shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
     --shadow-soft: 0 6px 24px rgba(0, 0, 0, 0.28);
     --shadow-modal: 0 32px 96px rgba(0, 0, 0, 0.52);
@@ -198,23 +198,23 @@
   --paper-solid: #111827;
   --dark: #f8fafc;
   --brand-50: #172554; --brand-100: #1e3a8a; --brand-200: #1e40af; --brand-300: #1d4ed8; --brand-400: #2563eb; --brand-500: #3b82f6; --brand-600: #60a5fa; --brand-700: #93c5fd; --brand-800: #bfdbfe; --brand-900: #dbeafe;
-  --neutral-0: #020617; --neutral-50: #0f172a; --neutral-100: #111827; --neutral-200: #1e293b; --neutral-300: #334155; --neutral-400: #475569; --neutral-500: #64748b; --neutral-600: #94a3b8; --neutral-700: #cbd5e1; --neutral-800: #e2e8f0; --neutral-900: #f8fafc;
+  --neutral-0: #ffffff; --neutral-50: #f8fafc; --neutral-100: #f1f5f9; --neutral-200: #e2e8f0; --neutral-300: #cbd5e1; --neutral-400: #94a3b8; --neutral-500: #64748b; --neutral-600: #475569; --neutral-700: #334155; --neutral-800: #1e293b; --neutral-900: #0f172a;
   --color-success: #4ade80; --color-warn: #fbbf24; --color-danger: #fb7185; --color-info: #38bdf8;
-  --surface-canvas: #0f172a; --surface-card: #111827; --surface-elev-1: #1e293b; --surface-elev-2: #263241; --surface-glass: rgba(15, 23, 42, 0.76); --surface-overlay: rgba(2, 6, 23, 0.7);
+  --surface-canvas: #0f172a; --surface-card: var(--neutral-800); --surface-elev-1: color-mix(in srgb, var(--neutral-800) 92%, var(--neutral-900)); --surface-elev-2: color-mix(in srgb, var(--neutral-700) 32%, var(--neutral-800)); --surface-glass: color-mix(in srgb, var(--neutral-800) 78%, transparent); --surface-overlay: color-mix(in srgb, var(--neutral-900) 64%, transparent);
   --bg: #070b13;
   --brand: #60a5fa;
   --brand-strong: #93c5fd;
   --brand-soft: rgba(96, 165, 250, 0.18);
   --accent: #fb923c;
   --accent-soft: rgba(251, 146, 60, 0.14);
-  --surface: #0f172a;
-  --surface-raised: #111827;
-  --surface-glass: rgba(15, 23, 42, 0.76);
-  --border: #263241;
-  --border-subtle: rgba(148, 163, 184, 0.18);
+  --surface: var(--neutral-900);
+  --surface-raised: var(--neutral-800);
+  --border: color-mix(in srgb, var(--neutral-700) 44%, var(--neutral-800));
+  --border-subtle: color-mix(in srgb, var(--neutral-400) 22%, transparent);
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-tertiary: #7c8798;
+  --text-on-brand: #020617;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
   --shadow-soft: 0 6px 24px rgba(0, 0, 0, 0.28);
   --shadow-modal: 0 32px 96px rgba(0, 0, 0, 0.52);
@@ -246,7 +246,7 @@
 
 :root[data-theme="dark"] .topbar,
 :root[data-theme="dark"] .app.editor-mode .topbar {
-  background: rgba(15, 23, 42, 0.72);
+  background: color-mix(in srgb, var(--surface-glass) 92%, transparent);
   border-bottom-color: var(--border-subtle);
 }
 
@@ -257,7 +257,7 @@
 :root[data-theme="dark"] .tool-button,
 :root[data-theme="dark"] .ghost-button {
   color: var(--text-primary);
-  background: rgba(15, 23, 42, 0.72);
+  background: color-mix(in srgb, var(--surface-glass) 92%, transparent);
   border-color: var(--border-subtle);
 }
 
@@ -265,25 +265,25 @@
 :root[data-theme="dark"] textarea,
 :root[data-theme="dark"] select {
   color: var(--text-primary);
-  background-color: rgba(15, 23, 42, 0.72);
+  background-color: color-mix(in srgb, var(--surface-glass) 92%, transparent);
   border-color: var(--border);
 }
 
 :root[data-theme="dark"] .works-detail-drawer {
-  background: #0f172a;
+  background: var(--surface-card);
   color: var(--text-primary);
   border-color: var(--border-subtle);
 }
 
 :root[data-theme="dark"] .works-detail-stage,
 :root[data-theme="dark"] .works-detail-body {
-  background: rgba(15, 23, 42, 0.78);
+  background: color-mix(in srgb, var(--surface-glass) 94%, transparent);
   border-color: var(--border-subtle);
 }
 
 :root[data-theme="dark"] .works-detail-close {
   color: var(--text-primary);
-  background: rgba(15, 23, 42, 0.88);
+  background: color-mix(in srgb, var(--surface-glass) 96%, transparent);
   border-color: var(--border-subtle);
 }
 

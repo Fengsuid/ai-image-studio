@@ -5,12 +5,15 @@
   if (!doc) return;
 
   const root = doc.documentElement;
-  const themeStorageKey = "theme";
+  const themeStorageKey = "imageStudio.theme";
+  const legacyThemeStorageKey = "theme";
 
   function preferredTheme() {
     try {
       const stored = global.localStorage?.getItem(themeStorageKey);
       if (stored === "dark" || stored === "light") return stored;
+      const legacy = global.localStorage?.getItem(legacyThemeStorageKey);
+      if (legacy === "dark" || legacy === "light") return legacy;
     } catch {
       // Storage can be unavailable in hardened browser contexts.
     }
@@ -34,8 +37,10 @@
   function applyTheme(theme) {
     const nextTheme = theme === "dark" ? "dark" : "light";
     root.dataset.theme = nextTheme;
+    root.style.colorScheme = nextTheme;
     try {
       global.localStorage?.setItem(themeStorageKey, nextTheme);
+      global.localStorage?.setItem(legacyThemeStorageKey, nextTheme);
     } catch {
       // Ignore persistence failures; the immediate UI state is still applied.
     }

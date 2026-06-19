@@ -28,6 +28,9 @@ function scriptPosition(html, scriptName) {
 const requiredIndexMarkers = [
   'id="themeToggle"',
   'id="bottomNav"',
+  'imageStudio.theme',
+  "document.documentElement",
+  "dataset.theme",
   'data-mobile-nav-action="home"',
   'data-mobile-nav-action="ranking"',
   'data-mobile-nav-action="create"',
@@ -42,6 +45,7 @@ if (scriptPosition(index, "theme-mobile-nav.js") < 0) fail("index.html missing t
 
 const requiredThemeMarkers = [
   "imageStudio.theme",
+  'localStorage.setItem("theme", theme)',
   "prefers-color-scheme: dark",
   "theme-transitioning",
   "ImageStudioThemeNav",

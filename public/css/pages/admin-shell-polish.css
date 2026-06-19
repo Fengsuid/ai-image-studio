@@ -247,21 +247,21 @@ html[data-app="admin"] .admin-topbar { min-height: 0; display: grid; grid-templa
   color: var(--brand-700);
 }
 
-:root[data-theme="dark"] .admin-body { background: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--brand-600) 18%, transparent), transparent 30%), radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 28%), linear-gradient(180deg, var(--neutral-0) 0%, var(--neutral-50) 100%); color: var(--neutral-800); }
+:root[data-theme="dark"] .admin-body { background: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--brand-600) 18%, transparent), transparent 30%), radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 28%), linear-gradient(180deg, var(--neutral-900) 0%, var(--neutral-800) 100%); color: var(--text-primary); }
 
 :root[data-theme="dark"] .admin-panel, :root[data-theme="dark"] .admin-stat, :root[data-theme="dark"] .admin-work-card, :root[data-theme="dark"] .admin-toolbar, :root[data-theme="dark"] .generation-diagnostics-toolbar, :root[data-theme="dark"] .admin-bulk-bar, :root[data-theme="dark"] .admin-table-wrap, :root[data-theme="dark"] .admin-drawer, :root[data-theme="dark"] .admin-confirm-card {
   border-color: color-mix(in srgb, var(--neutral-400) 24%, transparent);
-  background: color-mix(in srgb, var(--neutral-50) 88%, transparent);
-  color: var(--neutral-800);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--neutral-0) 26%, transparent);
+  background: color-mix(in srgb, var(--surface-card) 90%, transparent);
+  color: var(--text-primary);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--neutral-900) 64%, transparent);
 }
 
 :root[data-theme="dark"] .admin-kicker, :root[data-theme="dark"] .admin-overview-meta, :root[data-theme="dark"] .admin-overview-hero-copy p, :root[data-theme="dark"] .admin-overview-hero-row span, :root[data-theme="dark"] .admin-panel-head span, :root[data-theme="dark"] .admin-issue small, :root[data-theme="dark"] .admin-quick-link span, :root[data-theme="dark"] .admin-stat span, :root[data-theme="dark"] .admin-stat small, :root[data-theme="dark"] #adminPageDescription {
-  color: var(--neutral-600);
+  color: var(--text-secondary);
 }
 
 :root[data-theme="dark"] .admin-overview-hero-copy h2, :root[data-theme="dark"] .admin-overview-hero-row strong, :root[data-theme="dark"] .admin-quick-link strong, :root[data-theme="dark"] .admin-issue strong, :root[data-theme="dark"] .admin-issue p, :root[data-theme="dark"] .admin-stat strong {
-  color: var(--neutral-900);
+  color: var(--text-primary);
 }
 
 :root[data-theme="dark"] .admin-status .ok {
@@ -283,8 +283,8 @@ html[data-app="admin"] .admin-topbar { min-height: 0; display: grid; grid-templa
 
 :root[data-theme="dark"] .admin-table th, :root[data-theme="dark"] .admin-drawer-head, :root[data-theme="dark"] .admin-list-meta, :root[data-theme="dark"] .admin-overview-hero-row, :root[data-theme="dark"] .admin-quick-link, :root[data-theme="dark"] .admin-issue, :root[data-theme="dark"] .admin-icon-button {
   border-color: color-mix(in srgb, var(--neutral-400) 22%, transparent);
-  background: color-mix(in srgb, var(--neutral-200) 92%, transparent);
-  color: var(--neutral-800);
+  background: color-mix(in srgb, var(--surface-elev-2) 92%, transparent);
+  color: var(--text-primary);
 }
 
 :root[data-theme="dark"] .admin-table td, :root[data-theme="dark"] .admin-table th {

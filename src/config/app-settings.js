@@ -8,7 +8,7 @@ const SOURCE_DIR = path.join(DATA_DIR, "sources");
 const REFERENCE_ASSET_DIR = path.join(DATA_DIR, "reference-assets");
 
 const PORT = Number(process.env.PORT || 3000);
-const APP_VERSION = process.env.APP_VERSION || "20260619-memory-prompt-paging-v1";
+const APP_VERSION = process.env.APP_VERSION || "20260619-visual-dark-mode-v1";
 const SERVER_STARTED_AT = new Date().toISOString();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_BYTES = Math.max(
