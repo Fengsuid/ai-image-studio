@@ -697,8 +697,8 @@ async function checkPrompts() {
   assert(status === 200, `/api/prompts status=${status}`);
   assert(body && Array.isArray(body.prompts), "/api/prompts missing prompts array");
   assert(body && body.pagination && typeof body.pagination === "object", "/api/prompts missing pagination object");
-  assert.equal(Number(body.pagination.limit), 3, "/api/prompts pagination.limit invalid");
-  assert.equal(Number(body.pagination.offset), 1, "/api/prompts pagination.offset invalid");
+  assert(Number(body.pagination.limit) === 3, "/api/prompts pagination.limit invalid");
+  assert(Number(body.pagination.offset) === 1, "/api/prompts pagination.offset invalid");
   assert(typeof body.pagination.hasMore === "boolean", "/api/prompts pagination.hasMore invalid");
   if (!Array.isArray(body?.prompts)) return;
   log(`/api/prompts returned ${body.prompts.length} item(s)`);
