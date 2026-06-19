@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
-日期：2026-05-20
-状态：已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-05-25，`AIS-RLS-111` 已完成）。
+日期：2026-06-19
+状态：入口状态已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-06-19，182 done / 9 blocked / 0 active）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -29,11 +29,13 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 ## 2. 当前优先执行
 
-当前真实 Trellis 中没有 `active` 任务；按 2026-05-25 审核顺序，下一个应执行任务为：
+当前真实 Trellis 中没有 `active` 或 `status=ready` 任务；所有未完成任务均为 `blocked`。当前没有可自动启动的下一项。
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-112` Self-host Geist + Instrument Serif + Remixicon under /vendor/ | Frontend | `AIS-RLS-111` 已完成，继续推进第三方字体/图标本地化；需保留 hashed asset cache 策略 |
+| 1 | `AIS-RLS-118` Gradual enforce CSP via CSP_ENFORCE flag with hashed canary | Security | Blocked: code/deploy records exist, but finish requires 48h CSP report-volume evidence returning to background noise |
+| 2 | `AIS-RLS-139` 视觉重设计 Phase 7: 移动端 4 文件合并 + 底部导航 + svh + 弹窗 bottom-sheet | Frontend Visual | Blocked: automated/release records exist, but finish requires actual-device QA on iOS 17 Safari, Android 14 Chrome, Pixel 6 Chrome, and iPad Air Safari |
+| 3 | `AIS-RLS-151`, `AIS-RLS-154` ~ `AIS-RLS-159` | Canvas / Agent / Storage | Blocked by their stated upstream/product gates; do not bypass dependency or evidence gates |
 
 ## 3. 全量 Trellis 任务表
 
