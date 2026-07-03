@@ -56,6 +56,12 @@ assert(appModule.includes("listCanvasProjects"), "app module must list canvas pr
 assert(appModule.includes("createCanvasProject"), "app module must create canvas projects");
 assert(appModule.includes("updateCanvasProject"), "app module must save canvas projects");
 assert(appModule.includes("deleteCanvasProject"), "app module must delete canvas projects");
+assert(appModule.includes("exportCanvasProjectZip"), "app module must export canvas projects as zip");
+assert(appModule.includes("importCanvasProject"), "app module must import canvas projects through backend validation");
+assert(appModule.includes("saveCanvasDraft"), "app module must persist local drafts");
+assert(appModule.includes("readCanvasDraft"), "app module must read IndexedDB local drafts");
+assert(appModule.includes("restoreLocalDraft"), "app module must expose local draft conflict recovery");
+assert(appModule.includes("toggle-shortcuts"), "app module must wire the shortcuts cheat sheet");
 assert(appModule.includes("installEditorController"), "app module must install Canvas v2 editor interactions");
 assert(appModule.includes("generateCanvasOutput"), "app module must call backend canvas generation adapter");
 assert(appModule.includes("saveCurrentCanvasForGeneration"), "app module must save before generation");
@@ -73,6 +79,9 @@ assert(apiModule.includes("POST"), "api adapter must expose POST writes");
 assert(apiModule.includes("PATCH"), "api adapter must expose PATCH writes");
 assert(apiModule.includes("DELETE"), "api adapter must expose DELETE writes");
 assert(apiModule.includes("/generate"), "api adapter must expose backend canvas generate route");
+assert(apiModule.includes("format=zip"), "api adapter must expose zip canvas export route");
+assert(apiModule.includes("/import"), "api adapter must expose backend canvas import route");
+assert(apiModule.includes("application/zip"), "api adapter must request zip downloads as binary");
 assert(apiModule.includes("outputNodeId"), "api adapter must send output node selector");
 assert(!apiModule.includes("openai.com"), "api adapter must not call OpenAI directly");
 assert(!apiModule.includes("apiKey"), "api adapter must not handle provider API keys");
@@ -82,6 +91,9 @@ const shellModule = fs.readFileSync(publicPath(resolveAssetPath(appModulePath, s
 assert(shellModule.includes("data-canvas-action"), "shell module must render CRUD action controls");
 assert(shellModule.includes("data-canvas-title-input"), "shell module must render title editing input");
 assert(shellModule.includes("data-canvas-save-status"), "shell module must render save status");
+assert(shellModule.includes("data-canvas-shortcuts"), "shell module must render shortcuts cheat sheet");
+assert(shellModule.includes("restore-local-draft"), "shell module must render local draft recovery");
+assert(shellModule.includes("本地草稿"), "shell module must render local draft status");
 assert(shellModule.includes("renderEditor"), "shell module must render the Canvas v2 editor");
 const editorImport = shellModule.match(/\bfrom\s*["'](\.\.\/editor\/view\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
 assert(editorImport, "shell module must import hashed editor renderer");
@@ -92,6 +104,7 @@ assert(editorModule.includes("data-canvas-minimap"), "editor renderer must expos
 assert(editorModule.includes("data-canvas-port"), "editor renderer must expose node ports");
 assert(editorModule.includes("data-canvas-node-resize"), "editor renderer must expose resize handles");
 assert(editorModule.includes("generate-output"), "editor renderer must expose output generation controls");
+assert(editorModule.includes("generate-selected-outputs"), "editor renderer must expose selected parallel generation controls");
 assert(editorModule.includes("data-canvas-output-status"), "editor renderer must expose output generation status");
 assert(css.includes(".canvas-v2-shell"), "canvas-v2 CSS must style the shell");
 assert(css.includes(".canvas-v2-project-list"), "canvas-v2 CSS must style project list");
@@ -99,6 +112,15 @@ assert(css.includes(".canvas-v2-editor-stage"), "canvas-v2 CSS must style editor
 assert(css.includes(".canvas-v2-node"), "canvas-v2 CSS must style editor nodes");
 assert(css.includes(".canvas-v2-edge"), "canvas-v2 CSS must style editor edges");
 assert(css.includes(".canvas-v2-minimap"), "canvas-v2 CSS must style minimap");
+assert(css.includes(".canvas-v2-shortcuts"), "canvas-v2 CSS must style shortcuts cheat sheet");
+assert(css.includes(".canvas-v2-warning"), "canvas-v2 CSS must style local draft conflict warnings");
+
+const draftImport = appModule.match(/\bfrom\s*["'](\.\.\/features\/drafts\/cache-db\.[a-f0-9]{12}\.js)["']/)?.[1] || "";
+assert(draftImport, "app module must import hashed IndexedDB draft adapter");
+const draftModule = fs.readFileSync(publicPath(resolveAssetPath(appModulePath, draftImport)), "utf8");
+assert(draftModule.includes("indexedDB"), "draft adapter must use IndexedDB");
+assert(draftModule.includes("saveCanvasDraft"), "draft adapter must expose saveCanvasDraft");
+assert(draftModule.includes("readCanvasDraft"), "draft adapter must expose readCanvasDraft");
 
 console.log("[canvas-v2-static-smoke] OK: scripts, route wiring, and build output verified");
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 export const CANVAS_V1_SCHEMA = "ai-image-studio.canvas.v1";
 
 export function createEmptyCanvasDocument(title) {

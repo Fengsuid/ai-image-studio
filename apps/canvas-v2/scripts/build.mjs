@@ -108,15 +108,23 @@ function toPosix(value) {
 
 function renderIndex({ mainFile, cssFile }) {
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-app="canvas-v2" data-density="compact">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title>Canvas v2 | ai-image-studio</title>
+    <script>(()=>{const k="imageStudio.theme",r=document.documentElement,s=()=>window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;let t="";try{const e=localStorage.getItem(k);t=e==="dark"||e==="light"?e:""}catch{}t||(t=s()?"dark":"light"),r.dataset.theme=t,r.style.colorScheme=t;})();</script>
+    <link rel="stylesheet" href="/css/00-tokens.css">
+    <link rel="stylesheet" href="/css/00-tokens-typography.css">
+    <link rel="stylesheet" href="/css/00-tokens-motion.css">
+    <link rel="stylesheet" href="/css/00-theme.css">
+    <link rel="stylesheet" href="/css/primitives/_toast.css">
+    <link rel="stylesheet" href="/css/primitives/_drawer.css">
+    <link rel="stylesheet" href="/css/primitives/_modal.css">
     <link rel="stylesheet" href="/canvas-v2/assets/${cssFile}">
   </head>
-  <body>
+  <body data-app="canvas-v2">
     <div data-canvas-v2-root>
       <main class="canvas-v2-shell" data-status="booting">
         <h1>Canvas v2</h1>

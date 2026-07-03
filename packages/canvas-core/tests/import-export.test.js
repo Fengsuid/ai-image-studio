@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createCanvasExport,
+  createCanvasZipExport,
   normalizeCanvasImport,
   validateCanvasData,
   FORMAT
@@ -41,6 +42,14 @@ describe("createCanvasExport", () => {
       createCanvasExport({ ...sampleCanvas, coverUrl: "data:image/png;base64,abc" })
     ).toThrow(/embedded base64/i);
   });
+
+  it("can produce a zip package for browser downloads", async () => {
+    const buffer = await createCanvasZipExport(sampleCanvas, { exportedAt: "2026-05-25T00:00:00.000Z", fetchImages: false });
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.subarray(0, 4).toString("hex")).toBe("504b0304");
+    expect(buffer.includes(Buffer.from("manifest.json"))).toBe(true);
+    expect(buffer.includes(Buffer.from("images/manifest.json"))).toBe(true);
+  });
 });
 
 describe("normalizeCanvasImport round-trip", () => {
@@ -62,6 +71,37 @@ describe("normalizeCanvasImport round-trip", () => {
         }
       })
     ).toThrow(/missing node/i);
+  });
+
+  it("accepts Canvas v2 source/target edge fields", () => {
+    const imported = normalizeCanvasImport({
+      dataJson: {
+        nodes: [
+          { id: "a", type: "prompt", x: 0, y: 0, prompt: "Prompt" },
+          { id: "b", type: "output", x: 100, y: 0, content: "Output" }
+        ],
+        edges: [{ id: "edge_ab", source: "a", target: "b" }]
+      }
+    });
+    expect(imported.edgeCount).toBe(1);
+    expect(imported.dataJson.edges[0]).toMatchObject({ sourceId: "a", targetId: "b" });
+  });
+
+  it("rejects cyclic canvas graphs", () => {
+    expect(() =>
+      normalizeCanvasImport({
+        dataJson: {
+          nodes: [
+            { id: "a", type: "prompt", x: 0, y: 0, data: {} },
+            { id: "b", type: "output", x: 100, y: 0, data: {} }
+          ],
+          edges: [
+            { sourceId: "a", targetId: "b" },
+            { sourceId: "b", targetId: "a" }
+          ]
+        }
+      })
+    ).toThrow(/cycles/i);
   });
 
   it("rejects embedded base64 image data inside node payloads", () => {
@@ -142,6 +182,21 @@ describe("validateCanvasData", () => {
     ).toThrow(/sourceId and targetId/i);
   });
 
+  it("rejects cyclic graphs during import and export validation", () => {
+    expect(() =>
+      validateCanvasData({
+        nodes: [
+          { id: "a", type: "prompt", x: 0, y: 0, data: {} },
+          { id: "b", type: "text", x: 10, y: 0, data: {} }
+        ],
+        edges: [
+          { sourceId: "a", targetId: "b" },
+          { sourceId: "b", targetId: "a" }
+        ]
+      })
+    ).toThrow(/cycles/i);
+  });
+
   it("rejects more than 10000 nodes", () => {
     const nodes = Array.from({ length: 10001 }, (_, i) => ({ id: `n${i}`, type: "text", x: 0, y: 0, data: {} }));
     expect(() => validateCanvasData({ nodes, edges: [] })).toThrow(/cannot exceed 10000/i);
@@ -154,6 +209,43 @@ describe("validateCanvasData", () => {
         edges: []
       })
     ).toThrow(/embedded base64|embedded file/i);
+  });
+});
+
+describe("createCanvasZipExport", () => {
+  it("creates a zip with canvas JSON and image reference manifest", async () => {
+    const exported = await createCanvasZipExport(sampleCanvas, { exportedAt: "2026-05-25T00:00:00.000Z", fetchImages: false });
+    expect(exported).toBeInstanceOf(Uint8Array);
+    expect(exported.subarray(0, 4).toString("hex")).toBe("504b0304");
+    expect(exported.includes("Round-Trip.canvas.json")).toBe(true);
+    expect(exported.includes("images/manifest.json")).toBe(true);
+  });
+
+  it("packages inline image data as zip assets while JSON export still rejects it", async () => {
+    const inlineCanvas = {
+      ...sampleCanvas,
+      dataJson: {
+        ...sampleCanvas.dataJson,
+        nodes: sampleCanvas.dataJson.nodes.map((node) => node.id === "node_image"
+          ? { ...node, data: { ...node.data, imageUrl: "data:image/png;base64,aGVsbG8=" } }
+          : node)
+      }
+    };
+    expect(() => createCanvasExport(inlineCanvas)).toThrow(/embedded|base64/i);
+    const exported = await createCanvasZipExport(inlineCanvas, { exportedAt: "2026-05-25T00:00:00.000Z" });
+    expect(exported.includes("assets/images/image-001.png")).toBe(true);
+    expect(exported.includes("imageAssetCount")).toBe(true);
+  });
+
+  it("packages resolved image references as zip assets", async () => {
+    const exported = await createCanvasZipExport(sampleCanvas, {
+      exportedAt: "2026-05-25T00:00:00.000Z",
+      resolveImageReference: async (reference) => reference.includes("/api/images/")
+        ? "data:image/png;base64,aGVsbG8="
+        : null
+    });
+    expect(exported.includes("assets/images/image-001.png")).toBe(true);
+    expect(exported.includes("included")).toBe(true);
   });
 });
 
@@ -175,10 +267,12 @@ describe("roundtrip invariants", () => {
     }
     const edges = [];
     for (let i = 0; i < edgeCount; i += 1) {
+      const sourceIndex = i % Math.max(1, nodeCount - 1);
+      const targetIndex = sourceIndex + 1 + Math.floor(i / Math.max(1, nodeCount - 1)) % (nodeCount - sourceIndex - 1);
       edges.push({
         id: `e${i}`,
-        sourceId: `n${i % nodeCount}`,
-        targetId: `n${(i + 1) % nodeCount}`
+        sourceId: `n${sourceIndex}`,
+        targetId: `n${targetIndex}`
       });
     }
     return {

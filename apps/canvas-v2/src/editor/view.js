@@ -46,6 +46,8 @@ export function renderEditor(state, { hasProject }) {
           <button type="button" data-canvas-editor-action="connect-selected" ${disabled}>连接选中</button>
           <button type="button" data-canvas-editor-action="duplicate-selection" ${disabled}>复制粘贴</button>
           <button type="button" data-canvas-editor-action="delete-selection" ${disabled}>删除</button>
+          <button type="button" data-canvas-editor-action="generate-selected-outputs" ${disabled}>并行生成选中</button>
+          <button type="button" data-canvas-editor-action="generate-all-outputs" ${disabled}>生成全部输出</button>
           <button type="button" data-canvas-editor-action="seed-100" ${disabled}>100 节点检查</button>
         </div>
       </div>

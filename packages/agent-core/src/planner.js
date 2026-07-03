@@ -158,9 +158,10 @@ function buildPrompt({ request, intent, direction, style, index }) {
     `Create image ${index + 1} for: ${intent}.`,
     `Original brief: ${request}.`,
     `Direction: ${direction.title}; ${direction.angle}.`,
+    index > 0 ? `If available, keep continuity with upstream reference step[${index}].output.image_url.` : "",
     `Palette: ${palette}. Mood: ${mood}. Visual language: ${language}.`,
     "Keep the image production-ready, coherent as part of one series, with no accidental logos, no unreadable text, and no UI chrome."
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }
 
 function buildQuestions(request) {

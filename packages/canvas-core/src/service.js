@@ -215,6 +215,7 @@ function createService({
     const edges = Array.isArray(canvasData.edges)
       ? canvasData.edges.map(normalizeGenerationEdge).filter((edge) => edge.sourceId && edge.targetId && nodeIds.has(edge.sourceId) && nodeIds.has(edge.targetId))
       : [];
+    assertCanvasGenerationAcyclic(edges);
     const byId = new Map(nodes.map((node) => [String(node.id || ""), node]));
     const outputNode = byId.get(String(selectors.outputNodeId || "")) || nodes.find((node) => node.type === "output");
     const incoming = (id) => edges.filter((edge) => String(edge.targetId || "") === String(id || ""));
@@ -287,9 +288,29 @@ function createService({
     return { canvas };
   }
 
-  async function exportCanvas(user, canvasId) {
+  async function resolveZipImageReference(reference, { user, canvas }) {
+    const text = String(reference || "").trim();
+    if (!text || text.startsWith("data:image/")) return text;
+    const routeReference = canvasImageReference(text);
+    if (!routeReference.id) return null;
+    return resolveCanvasImageData({
+      imageData: text,
+      sourceImageId: routeReference.id,
+      user,
+      canvas
+    });
+  }
+
+  async function exportCanvas(user, canvasId, { format = "json", baseUrl = "", fetchHeaders = {} } = {}) {
     const canvas = await store.getCanvasProjectById(canvasId);
     if (!canReadCanvas(user, canvas)) throw httpError("Canvas not found", 404);
+    if (format === "zip") {
+      return canvasImportExport.createCanvasZipExport(canvas, {
+        baseUrl,
+        fetchHeaders,
+        resolveImageReference: (reference) => resolveZipImageReference(reference, { user, canvas })
+      });
+    }
     return canvasImportExport.createCanvasExport(canvas);
   }
 
@@ -328,6 +349,7 @@ function createService({
       id: randomId("can_"),
       userId: user.id
     });
+    await recordCanvasFork(source.id);
     return {
       canvas,
       duplicated: {
@@ -336,6 +358,43 @@ function createService({
         edgeCount: payload.edgeCount
       }
     };
+  }
+
+  async function fork(user, canvasId, body) {
+    const result = await duplicate(user, canvasId, body);
+    return {
+      canvas: result.canvas,
+      forked: {
+        sourceCanvasId: result.duplicated.sourceCanvasId,
+        nodeCount: result.duplicated.nodeCount,
+        edgeCount: result.duplicated.edgeCount
+      }
+    };
+  }
+
+  async function snapshots(user, canvasId, { limit = 20 } = {}) {
+    const canvas = await store.getCanvasProjectById(canvasId);
+    if (!canManageCanvas(user, canvas)) throw httpError("Canvas not found", 404);
+    if (typeof store.listCanvasProjectSnapshots !== "function") return { snapshots: [] };
+    return { snapshots: await store.listCanvasProjectSnapshots(canvas.id, { limit }) };
+  }
+
+  async function restoreSnapshot(user, canvasId, snapshotId) {
+    const canvas = await store.getCanvasProjectById(canvasId);
+    if (!canManageCanvas(user, canvas)) throw httpError("Canvas not found", 404);
+    if (typeof store.restoreCanvasProjectSnapshot !== "function") throw httpError("Canvas snapshots are not configured", 501);
+    const restored = await store.restoreCanvasProjectSnapshot(canvas.id, snapshotId);
+    if (!restored) throw httpError("Canvas snapshot not found", 404);
+    return { canvas: restored, restored: { snapshotId: Number(snapshotId || 0) } };
+  }
+
+  async function recordCanvasFork(canvasId) {
+    if (typeof store.incrementCanvasForkStats !== "function") return;
+    try {
+      await store.incrementCanvasForkStats(canvasId);
+    } catch (error) {
+      if (!/unknown column|ER_BAD_FIELD_ERROR/i.test(String(error?.message || error))) throw error;
+    }
   }
 
   async function templates(user, limit) {
@@ -459,7 +518,10 @@ function createService({
         canvasId: canvas.id,
         generationIds: saved.map((generation) => generation.id),
         outputNodeId: plan.outputNodeId,
-        configNodeId: plan.configNodeId
+        configNodeId: plan.configNodeId,
+        status: "succeeded",
+        requestId: auditId,
+        candidateCount: saved.length
       });
       await store.updateGenerationRequest(auditId, {
         status: "succeeded",
@@ -517,8 +579,11 @@ function createService({
     create,
     exportCanvas,
     importCanvas,
+    snapshots,
+    restoreSnapshot,
     assistant,
     duplicate,
+    fork,
     templates,
     get,
     update,
@@ -529,6 +594,29 @@ function createService({
     isCanvasReferenceAlwaysPublic,
     canvasGenerationPlan
   };
+}
+
+function assertCanvasGenerationAcyclic(edges = []) {
+  const visiting = new Set();
+  const visited = new Set();
+  const outgoing = new Map();
+  for (const edge of edges) {
+    if (!outgoing.has(edge.sourceId)) outgoing.set(edge.sourceId, []);
+    outgoing.get(edge.sourceId).push(edge.targetId);
+  }
+  function visit(id) {
+    if (visited.has(id)) return;
+    if (visiting.has(id)) {
+      const error = new Error("Canvas graph cannot contain cycles");
+      error.status = 400;
+      throw error;
+    }
+    visiting.add(id);
+    for (const target of outgoing.get(id) || []) visit(target);
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const id of outgoing.keys()) visit(id);
 }
 
 module.exports = {

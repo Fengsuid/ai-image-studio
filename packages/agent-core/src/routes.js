@@ -107,7 +107,7 @@ async function maybeDecorateSession(session, decorateAgentSession) {
 }
 
 function assertReadableAgentSession(session, userId, httpError) {
-  if (!session || session.userId !== userId || session.status === "deleted") {
+  if (!session || session.userId !== userId || session.status === "deleted" || session.deletedAt) {
     throw httpError("Agent session not found", 404);
   }
   return session;
@@ -124,6 +124,9 @@ function createAgentSessionRoute({
   decorateAgentSession,
   generateAgentBatch,
   exportAgentCanvas,
+  resumeAgentSession,
+  retryAgentStep,
+  exportAgentSessionArchive,
   store
 }) {
   return async function handleAgentSessionRoute(req, res, url) {
@@ -131,7 +134,11 @@ function createAgentSessionRoute({
       const current = await getCurrentUser(req);
       ensureAuthenticated(current);
       const limit = sanitizePositiveInt(url.searchParams.get("limit"), 50, 200);
-      const sessions = await store.listAgentSessionsForUser(current.user.id, { limit });
+      const status = cleanText(url.searchParams.get("status"), { max: 32 });
+      const sessions = await store.listAgentSessionsForUser(current.user.id, {
+        limit,
+        status: SESSION_STATUSES.has(status) ? status : ""
+      });
       sendJson(res, 200, { sessions });
       return true;
     }
@@ -183,6 +190,83 @@ function createAgentSessionRoute({
       const deleted = await store.deleteAgentSessionForUser(sessionMatch[1], current.user.id);
       if (!deleted) throw httpError("Agent session not found", 404);
       sendJson(res, 200, { ok: true });
+      return true;
+    }
+
+    const exportMatch = url.pathname.match(/^\/api\/agent-sessions\/([^/]+)\/export$/);
+    if (exportMatch && req.method === "GET") {
+      const current = await getCurrentUser(req);
+      ensureAuthenticated(current);
+      if (typeof exportAgentSessionArchive !== "function") throw httpError("Agent session export is not configured", 501);
+      const session = assertReadableAgentSession(
+        await store.getAgentSessionForUser(exportMatch[1], current.user.id),
+        current.user.id,
+        httpError
+      );
+      const decorated = await maybeDecorateSession(session, decorateAgentSession);
+      const format = String(url.searchParams.get("format") || "json").toLowerCase();
+      const exported = await exportAgentSessionArchive({
+        session: decorated,
+        format,
+        baseUrl: requestBaseUrl(req),
+        fetchHeaders: req.headers?.cookie ? { cookie: req.headers.cookie } : {}
+      });
+      if (format === "zip") {
+        res.writeHead(200, {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="agent-session-${exportMatch[1]}.zip"`,
+          "Cache-Control": "no-store"
+        });
+        res.end(exported);
+      } else {
+        sendJson(res, 200, exported);
+      }
+      return true;
+    }
+
+    const resumeMatch = url.pathname.match(/^\/api\/agent-sessions\/([^/]+)\/resume$/);
+    if (resumeMatch && req.method === "POST") {
+      const current = await getCurrentUser(req);
+      ensureAuthenticated(current);
+      if (typeof resumeAgentSession !== "function") throw httpError("Agent session resume is not configured", 501);
+      const session = assertReadableAgentSession(
+        await store.getAgentSessionForUser(resumeMatch[1], current.user.id),
+        current.user.id,
+        httpError
+      );
+      const result = await resumeAgentSession({ currentUser: current.user, session });
+      const refreshed = assertReadableAgentSession(
+        await store.getAgentSessionForUser(resumeMatch[1], current.user.id),
+        current.user.id,
+        httpError
+      );
+      sendJson(res, 200, { session: await maybeDecorateSession(refreshed, decorateAgentSession), ...result });
+      return true;
+    }
+
+    const stepRetryMatch = url.pathname.match(/^\/api\/agent-sessions\/([^/]+)\/steps\/([^/]+)\/retry$/);
+    if (stepRetryMatch && req.method === "POST") {
+      const current = await getCurrentUser(req);
+      ensureAuthenticated(current);
+      if (typeof retryAgentStep !== "function") throw httpError("Agent step retry is not configured", 501);
+      const body = await readJsonBody(req);
+      const session = assertReadableAgentSession(
+        await store.getAgentSessionForUser(stepRetryMatch[1], current.user.id),
+        current.user.id,
+        httpError
+      );
+      const result = await retryAgentStep({
+        currentUser: current.user,
+        session,
+        stepId: stepRetryMatch[2],
+        note: cleanText(body.note, { max: 1000 })
+      });
+      const refreshed = assertReadableAgentSession(
+        await store.getAgentSessionForUser(stepRetryMatch[1], current.user.id),
+        current.user.id,
+        httpError
+      );
+      sendJson(res, 202, { session: await maybeDecorateSession(refreshed, decorateAgentSession), ...result });
       return true;
     }
 
@@ -357,6 +441,34 @@ function createAgentSessionRoute({
       const current = await getCurrentUser(req);
       ensureAuthenticated(current);
       const body = await readJsonBody(req);
+      const retryStepId = cleanText(body.retryStepId || body.stepId, { max: 64 });
+      if (body.action === "retry_step" || retryStepId) {
+        if (typeof retryAgentStep !== "function") throw httpError("Agent step retry is not configured", 501);
+        const session = assertReadableAgentSession(
+          await store.getAgentSessionForUser(messageMatch[1], current.user.id),
+          current.user.id,
+          httpError
+        );
+        const result = await retryAgentStep({
+          currentUser: current.user,
+          session,
+          stepId: retryStepId,
+          note: cleanText(body.content || body.note, { max: 1000 })
+        });
+        const updated = assertReadableAgentSession(
+          await store.createAgentMessageForUser(messageMatch[1], current.user.id, {
+            id: randomId("ams_"),
+            role: "user",
+            content: cleanText(body.content || `重试 Agent 步骤 ${retryStepId}`, { max: 20000, fallback: `重试 Agent 步骤 ${retryStepId}` }),
+            attachments: [{ kind: "agent_step_retry", stepId: retryStepId, requestId: result.retry?.requestId || "" }],
+            steps: []
+          }),
+          current.user.id,
+          httpError
+        );
+        sendJson(res, 202, { session: await maybeDecorateSession(updated, decorateAgentSession), ...result });
+        return true;
+      }
       const input = cleanAgentMessageInput(body);
       const session = assertReadableAgentSession(
         await store.createAgentMessageForUser(messageMatch[1], current.user.id, {
@@ -373,6 +485,14 @@ function createAgentSessionRoute({
 
     return false;
   };
+}
+
+function requestBaseUrl(req) {
+  const host = String(req.headers?.["x-forwarded-host"] || req.headers?.host || "").split(",")[0].trim();
+  if (!host) return "";
+  const proto = String(req.headers?.["x-forwarded-proto"] || "").split(",")[0].trim()
+    || (req.socket?.encrypted ? "https" : "http");
+  return `${proto}://${host}`;
 }
 
 module.exports = {

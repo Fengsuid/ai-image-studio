@@ -51,7 +51,7 @@
 
 ## 2. HTTP 端点表
 
-前缀冻结 `/api/canvases/*`，共 11 路由匹配。新端点只能在此前缀下增加；新增也需 SemVer Minor + INTERFACE.md 同步。
+前缀冻结 `/api/canvases/*`。新端点只能在此前缀下增加；新增也需 SemVer Minor + INTERFACE.md 同步。
 
 | Method | Path | 鉴权 | 说明 |
 | --- | --- | --- | --- |
@@ -61,10 +61,13 @@
 | GET | `/api/canvases/:id` | user | 详情 |
 | PATCH | `/api/canvases/:id` | user（owner） | 更新 |
 | DELETE | `/api/canvases/:id` | user（owner） | 删除 |
-| GET | `/api/canvases/:id/export` | user（owner） | JSON 导出 |
+| GET/POST | `/api/canvases/:id/export?format=json\|zip` | user（owner） | JSON / ZIP 导出 |
 | POST | `/api/canvases/:id/import` | user（owner） | JSON 导入 |
+| GET | `/api/canvases/:id/snapshots` | user（owner） | 最近 20 版快照列表 |
+| POST | `/api/canvases/:id/snapshots/:snapshotId/restore` | user（owner） | 恢复指定快照 |
 | POST | `/api/canvases/:id/assistant` | user（owner） | 助手指令 |
 | POST | `/api/canvases/:id/duplicate` | user | 复制（公开模板可被非 owner 复制） |
+| POST | `/api/canvases/:id/fork` | user | fork/copy 并更新 fork 统计 |
 | POST | `/api/canvases/:id/generate` | user（owner） | 触发生成 |
 
 返回体使用 `sendJson` 写入；错误经 `httpError(msg, status)` 抛出，由主项目顶层拦截。
@@ -78,9 +81,12 @@
 | 表 | DDL 文件 | 外键 | 索引 |
 | --- | --- | --- | --- |
 | `canvas_projects` | `schema/001-canvas-projects.sql` | `user_id → users.id ON DELETE CASCADE` | `(user_id, updated_at)`, `(visibility, updated_at)`, `(is_template, updated_at)`, `(status, updated_at)` |
-| `canvas_generation_links` | `schema/002-canvas-generation-links.sql` | `canvas_id → canvas_projects.id`, `generation_id → generations.id` | `(canvas_id)`, `(generation_id)` |
+| `canvas_generation_links` | `schema/002-canvas-generation-links.sql` | `canvas_id → canvas_projects.id`, `generation_id → generations.id` | `(canvas_id)`, `(generation_id)`, `(canvas_id, status, updated_at)` |
+| `canvas_project_payloads` | `schema/003-canvas-project-payloads.sql` | `canvas_id → canvas_projects.id ON DELETE CASCADE` | `PRIMARY KEY(canvas_id)` |
+| `canvas_project_snapshots` | `schema/004-canvas-project-snapshots.sql` | `canvas_id → canvas_projects.id ON DELETE CASCADE` | `(canvas_id, version_no)`, `(canvas_id, created_at)` |
+| `canvas_node_images` | `schema/005-canvas-node-images.sql` | `canvas_id → canvas_projects.id ON DELETE CASCADE` | `(canvas_id)`, `(image_url(191))` |
 
-未来如新增表，必须在 `schema/` 下新增编号文件，且在本节登记。
+Payload split migration lives at `schema/migrations/202605-payload-split.sql` and is idempotent. During the 7-day dual-write window, `canvas_projects.data_json` stays synchronized with `canvas_project_payloads.data` for rollback.
 
 ### 3.2 store 接口契约（由主项目 `src/stores/canvas-store.js` 提供，画布 agent 不直接持有 DB 连接）
 
@@ -88,12 +94,13 @@
 
 - `listCanvasProjects(userId, options)`、`getCanvasProjectById(id)`、`getCanvasProjectForGeneration(generationId)`
 - `createCanvasProject(data)`、`updateCanvasProject(id, patch)`、`deleteCanvasProject(id)`
+- `listCanvasProjectSnapshots(id, options)`、`restoreCanvasProjectSnapshot(id, snapshotId)`
 - `linkCanvasGeneration(canvasId, generationId, nodeId)`、`unlinkCanvasGeneration(...)`
 - `listCanvasTemplates(limit)`
 
 ### 3.3 schema 迁移策略
 
-主项目 init 时按编号顺序执行 `packages/canvas-core/schema/*.sql`；幂等使用 `CREATE TABLE IF NOT EXISTS` + `SHOW COLUMNS LIKE` 模式。`mysql-store.js` 不再持有 canvas 表 DDL。
+主项目 init 时通过顶层 `migrations.runAll(db)` 按 slice 顺序执行 `packages/canvas-core/schema/*.sql`；幂等使用 `CREATE TABLE IF NOT EXISTS` + `SHOW COLUMNS LIKE` 模式。`mysql-store.js` 不再持有 canvas 表 DDL，也不直接调用 `canvasCore.applySchema(db)`。
 
 ---
 
@@ -191,5 +198,6 @@ npm run test           # vitest 单测（service / import-export 纯函数）
 ## 10. 变更日志
 
 - 2026-05-25 v1.0.0：AIS-RLS-147 完成 canvas 后端 slice 抽取；`src/canvas-service.js`、`src/canvas-assistant.js`、`src/canvas-import-export.js`、`src/routes/canvases.js`、`src/stores/canvas-store.js` 与 `src/mysql-store.js` 原 canvas DDL 块整体迁入 `packages/canvas-core/`；`server.js` 通过 `require("@ai-image-studio/canvas-core")` 装配 `createService`/`createRoutes`，`src/mysql-store.js` 通过 `canvasCore.createCanvasStore` + `canvasCore.applySchema(db)` 接入；HTTP 前缀 `/api/canvases/*` 保持冻结；新增 vitest 套件 27 条与 `npm run --workspace @ai-image-studio/canvas-core check` 语法门禁。
+- 2026-07-02 v1.2.0（AIS-RLS-158）：Canvas schema 执行入口迁入顶层 `migrations.runAll(db)`；`mysql-store.js` 只保留 canvas store facade 注入，不再直接调用 `canvasCore.applySchema(db)`。
 - 2026-05-25 v1.0.0（草案）：初版冻结草案，待 `AIS-RLS-147`（slice 抽取）完成后正式发布 v1.0.0
 

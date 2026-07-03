@@ -56,6 +56,20 @@ async function request(path, { method = "GET", body, expected = 200, rawBody = u
   return data;
 }
 
+async function requestRaw(path, { method = "GET", expected = 200 } = {}) {
+  const headers = { Accept: "application/zip" };
+  if (csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())) headers["X-CSRF-Token"] = csrfToken;
+  const cookies = cookieHeader();
+  if (cookies) headers.Cookie = cookies;
+  const response = await fetch(`${base}${path}`, { method, headers });
+  storeCookies(response.headers);
+  const body = Buffer.from(await response.arrayBuffer());
+  if (response.status !== expected) {
+    throw new Error(`${method} ${path} expected ${expected}, got ${response.status}: ${body.toString("utf8").slice(0, 240)}`);
+  }
+  return { body, contentType: response.headers.get("content-type") || "" };
+}
+
 function mysqlConfig() {
   return {
     host: process.env.MYSQL_HOST || "127.0.0.1",
@@ -168,6 +182,12 @@ async function main() {
   assert(exported.format === "ai-image-studio.canvas.v1", "export format mismatch");
   assert(exported.canvas?.dataJson?.nodes?.length === 2, "export should include nodes");
   assert(exported.canvas?.dataJson?.edges?.length === 1, "export should include edges");
+
+  const zipped = await requestRaw(`/api/canvases/${encodeURIComponent(createdCanvasId)}/export?format=zip`, { method: "POST" });
+  assert(zipped.contentType.includes("application/zip"), "zip export content type mismatch");
+  assert(zipped.body.subarray(0, 4).toString("hex") === "504b0304", "zip export should start with PK header");
+  assert(zipped.body.includes("images/manifest.json"), "zip export should include image manifest");
+  assert(zipped.body.includes("/api/images/gen_smoke/file"), "zip export should include referenced image URL");
 
   exported.canvas.title = "Canvas IO Imported";
   exported.canvas.dataJson.nodes[0].x = 88;

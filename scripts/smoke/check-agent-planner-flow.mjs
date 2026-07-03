@@ -124,6 +124,7 @@ function staticChecks() {
   assert(planner.includes('"ai-image-studio.agent-plan.v1"'), "planner must declare frozen plan format");
   assert(planner.includes("confirmationRequired: true"), "planner must require confirmation");
   assert(planner.includes("nextAction: \"confirm_plan_before_batch_generation\""), "planner must point at confirmation step");
+  assert(planner.includes("step[${index}].output.image_url"), "planner must support upstream step image refs");
   assert(planner.includes("function summarizeAgentPlan"), "planner must export summarizeAgentPlan");
   assert(routes.includes("/plan"), "routes must expose /plan endpoint");
   assert(routes.includes('action === "confirm"'), "routes must support plan confirmation action");

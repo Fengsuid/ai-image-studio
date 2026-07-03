@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 // Verifies the standalone canvas history controller without requiring a browser.
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
 global.window = {};
 await import("../../public/canvas-nodes.js");
 await import("../../public/canvas-history.js");
@@ -14,6 +20,13 @@ function assert(condition, message) {
     console.error("[canvas-history-smoke] FAIL:", message);
   }
 }
+
+const storeSource = fs.readFileSync(path.join(rootDir, "packages/canvas-core/src/store.js"), "utf8");
+const routeSource = fs.readFileSync(path.join(rootDir, "packages/canvas-core/src/routes.js"), "utf8");
+assert(storeSource.includes("listCanvasProjectSnapshots"), "canvas store must list persisted snapshots");
+assert(storeSource.includes("restoreCanvasProjectSnapshot"), "canvas store must restore persisted snapshots");
+assert(storeSource.includes("CANVAS_SNAPSHOT_RETAIN = 20"), "canvas snapshots must retain exactly 20 versions");
+assert(routeSource.includes("/snapshots"), "canvas routes must expose snapshot endpoints");
 
 let current = {
   nodes: [

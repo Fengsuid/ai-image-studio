@@ -154,6 +154,35 @@ describe("canReadCanvas / canManageCanvas", () => {
   });
 });
 
+describe("canvas snapshots", () => {
+  const owner = { id: "u1", role: "user" };
+  const canvas = { id: "can_a", userId: "u1", visibility: "private" };
+
+  it("lists snapshots for the owner", async () => {
+    const service = makeService({
+      store: {
+        getCanvasProjectById: async () => canvas,
+        listCanvasProjectSnapshots: async () => [{ id: 1, versionNo: 1 }]
+      }
+    });
+    const result = await service.snapshots(owner, canvas.id);
+    expect(result.snapshots).toEqual([{ id: 1, versionNo: 1 }]);
+  });
+
+  it("restores a snapshot through the store", async () => {
+    const restored = { ...canvas, dataJson: { nodes: [] } };
+    const service = makeService({
+      store: {
+        getCanvasProjectById: async () => canvas,
+        restoreCanvasProjectSnapshot: async () => restored
+      }
+    });
+    const result = await service.restoreSnapshot(owner, canvas.id, 1);
+    expect(result.canvas).toBe(restored);
+    expect(result.restored.snapshotId).toBe(1);
+  });
+});
+
 describe("canvasGenerationPlan", () => {
   const service = makeService();
   const dataJson = {
@@ -173,5 +202,20 @@ describe("canvasGenerationPlan", () => {
     expect(plan.prompt).toContain("teapot");
     expect(plan.size).toBe("1024x1024");
     expect(plan.quality).toBe("high");
+  });
+
+  it("rejects cyclic saved graphs before generation planning", () => {
+    expect(() =>
+      service.canvasGenerationPlan({
+        nodes: [
+          { id: "p1", type: "prompt", x: 0, y: 0, data: { prompt: "cycle prompt" } },
+          { id: "o1", type: "output", x: 100, y: 0, data: {} }
+        ],
+        edges: [
+          { sourceId: "p1", targetId: "o1" },
+          { sourceId: "o1", targetId: "p1" }
+        ]
+      }, { outputNodeId: "o1" })
+    ).toThrow(/cycles/i);
   });
 });

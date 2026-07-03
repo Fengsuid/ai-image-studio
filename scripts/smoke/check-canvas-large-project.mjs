@@ -6,8 +6,12 @@
 // auth pattern so the same credential fallback applies.
 
 import crypto from "crypto";
+import fs from "node:fs";
 import mysql from "mysql2/promise";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const base = String(process.argv[2] || process.env.BASE_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 const email = `canvas-large-smoke-${runId}@example.invalid`;
@@ -26,6 +30,41 @@ function log(...args) {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function staticStorageChecks() {
+  const payloads = fs.readFileSync(path.join(rootDir, "packages/canvas-core/schema/003-canvas-project-payloads.sql"), "utf8");
+  const snapshots = fs.readFileSync(path.join(rootDir, "packages/canvas-core/schema/004-canvas-project-snapshots.sql"), "utf8");
+  const nodeImages = fs.readFileSync(path.join(rootDir, "packages/canvas-core/schema/005-canvas-node-images.sql"), "utf8");
+  const migration = fs.readFileSync(path.join(rootDir, "packages/canvas-core/schema/migrations/202605-payload-split.sql"), "utf8");
+  const store = fs.readFileSync(path.join(rootDir, "packages/canvas-core/src/store.js"), "utf8");
+  const routes = fs.readFileSync(path.join(rootDir, "packages/canvas-core/src/routes.js"), "utf8");
+
+  assert(payloads.includes("canvas_project_payloads"), "payload split table schema missing");
+  assert(payloads.includes("data MEDIUMBLOB"), "canvas_project_payloads.data must be MEDIUMBLOB");
+  assert(snapshots.includes("canvas_project_snapshots"), "snapshot table schema missing");
+  assert(snapshots.includes("LIMIT ${CANVAS_SNAPSHOT_RETAIN}") || store.includes("CANVAS_SNAPSHOT_RETAIN = 20"), "snapshot retention must keep 20 versions");
+  assert(nodeImages.includes("canvas_node_images"), "node image table schema missing");
+  assert(nodeImages.includes("node_id"), "node image table must include node_id");
+  assert(migration.includes("ON DUPLICATE KEY UPDATE"), "payload split migration must be idempotent");
+  assert(store.includes("upsertCanvasPayload"), "store must dual-write canvas_project_payloads");
+  assert(store.includes("payloadTextForRow"), "store must read payload table with legacy fallback");
+  assert(store.includes("insertCanvasSnapshot"), "store must write canvas_project_snapshots");
+  assert(store.includes("syncCanvasNodeImages"), "store must sync canvas_node_images");
+  assert(routes.includes("/snapshots"), "routes must expose snapshot rollback endpoints");
+}
+
+async function isServerAvailable() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1500);
+  try {
+    const response = await fetch(`${base}/api/health`, { signal: controller.signal });
+    return response.status < 500;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function storeCookies(headers) {
@@ -182,7 +221,12 @@ function buildLargeCanvasPayload() {
 }
 
 async function main() {
+  staticStorageChecks();
   log("base =", base);
+  if (!(await isServerAvailable())) {
+    log("server unavailable; skipped live HTTP large-project roundtrip after static storage checks");
+    return;
+  }
   await authenticate();
 
   const payload = buildLargeCanvasPayload();

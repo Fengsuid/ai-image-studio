@@ -117,24 +117,37 @@ export function installEditorController(root, api) {
     const state = api.getState();
     if (!state.currentProjectId) return;
     const key = event.key.toLowerCase();
-    if (event.ctrlKey && key === "a") {
+    const commandKey = event.ctrlKey || event.metaKey;
+    if (commandKey && key === "a") {
       event.preventDefault();
       api.setState({ selectedNodeIds: state.document.nodes.map((node) => node.id), selectedEdgeIds: [] });
-    } else if (event.ctrlKey && key === "z" && !event.shiftKey) {
+    } else if (commandKey && key === "z" && !event.shiftKey) {
       event.preventDefault();
       api.undoDocument?.();
-    } else if ((event.ctrlKey && key === "z" && event.shiftKey) || (event.ctrlKey && key === "y")) {
+    } else if ((commandKey && key === "z" && event.shiftKey) || (commandKey && key === "y")) {
       event.preventDefault();
       api.redoDocument?.();
-    } else if (event.ctrlKey && key === "c") {
+    } else if (commandKey && key === "c") {
       event.preventDefault();
       api.setState({ clipboard: copySelection(state.document, state.selectedNodeIds || []) });
-    } else if (event.ctrlKey && key === "v") {
+    } else if (commandKey && key === "v") {
       event.preventDefault();
       pasteFromState(api);
-    } else if (event.ctrlKey && key === "d") {
+    } else if (commandKey && key === "d") {
       event.preventDefault();
       duplicateFromState(api);
+    } else if (key === "b") {
+      event.preventDefault();
+      api.setState({ editorTool: "box-select", selectionRect: null });
+    } else if (key === "v") {
+      event.preventDefault();
+      api.setState({ editorTool: "pan", selectionRect: null });
+    } else if (key === "+" || key === "=") {
+      event.preventDefault();
+      zoomBy(api, 1.16);
+    } else if (key === "-" || key === "_") {
+      event.preventDefault();
+      zoomBy(api, 0.86);
     } else if (event.key === "Delete" || event.key === "Backspace") {
       event.preventDefault();
       deleteFromState(api);
@@ -209,6 +222,15 @@ function handleEditorAction(event, action, api) {
   } else if (name === "generate-output") {
     const outputNodeId = action.dataset.canvasOutputNodeId || "";
     void api.runOutputGeneration?.(outputNodeId);
+  } else if (name === "generate-selected-outputs") {
+    const selected = new Set(state.selectedNodeIds || []);
+    const outputNodeIds = state.document.nodes
+      .filter((node) => node.type === "output" && selected.has(node.id))
+      .map((node) => node.id);
+    void api.runOutputGenerationBatch?.(outputNodeIds);
+  } else if (name === "generate-all-outputs") {
+    const outputNodeIds = state.document.nodes.filter((node) => node.type === "output").map((node) => node.id);
+    void api.runOutputGenerationBatch?.(outputNodeIds);
   }
 }
 

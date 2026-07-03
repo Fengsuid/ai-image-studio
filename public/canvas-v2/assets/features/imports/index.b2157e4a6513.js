@@ -1,4 +1,5 @@
-import { normalizeCanvasDocument, CANVAS_V1_SCHEMA } from "../../adapters/canvas-schema.8fae55d925c4.js";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { normalizeCanvasDocument, CANVAS_V1_SCHEMA } from "../../adapters/canvas-schema.494d72108692.js";
 
 export function parseImportedJson(text) {
   let parsed;
@@ -12,20 +13,21 @@ export function parseImportedJson(text) {
     return { error: "导入数据格式无效：期望 JSON 对象。", document: null };
   }
 
-  const dataJson = parsed.dataJson || parsed;
+  const exportedCanvas = parsed.canvas && typeof parsed.canvas === "object" ? parsed.canvas : null;
+  const dataJson = exportedCanvas?.dataJson || parsed.dataJson || parsed;
 
   if (dataJson.schema && dataJson.schema !== CANVAS_V1_SCHEMA) {
     return { error: `不支持的 schema：${dataJson.schema}，期望 ${CANVAS_V1_SCHEMA}。`, document: null };
   }
 
-  const title = dataJson.title || parsed.title || "Imported canvas";
+  const title = dataJson.title || exportedCanvas?.title || parsed.title || "Imported canvas";
   const document = normalizeCanvasDocument(dataJson, title);
 
   if (!document.nodes.length && !document.edges.length) {
     return { error: "导入的画布为空：没有有效节点或连线。", document: null };
   }
 
-  return { error: "", document };
+  return { error: "", document, payload: parsed };
 }
 
 export function triggerFileImport() {

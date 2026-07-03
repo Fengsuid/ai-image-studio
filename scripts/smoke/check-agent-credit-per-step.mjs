@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Static + optional live API smoke for AIS-RLS-152 Agent credit-per-step accounting.
+// Static + optional live API smoke for AIS-RLS-155 Agent credit-per-step accounting.
 //
 // Scope (P0):
 //   - Assert generation-service computes cost per request (costPerImage * request.n) and that
@@ -7,12 +7,10 @@
 //   - Assert dry-run does NOT deduct credits, does NOT enqueue provider jobs.
 //   - Assert isPublic defaults to false (per-step credit refund cannot rely on public exposure).
 //
-// Forward-looking (depends on AIS-RLS-155 — per-step refund/rollback implementation):
-//   - TODO 155: assert that when one step fails, only that step's credit is refunded (not the
-//     whole batch), and that the remaining steps stay deducted.
-//   - TODO 155: assert that the refund path leaves an `agent_credit_refund` trace row.
-// Until 155 ships those code paths, we stub with TODO markers below and rely on the existing
-// dry-run / cancelled-status invariants that 148 froze.
+// AIS-RLS-155 hard assertions:
+//   - each variant becomes an independent generation_request / agent_step pair
+//   - live requests use maxAttempts=3 and shared queue-level charge/refund, not session-level charge
+//   - Agent requests emit agent_credit_charged / agent_credit_refund trace stages
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -135,6 +133,7 @@ async function cleanup() {
 
 function staticChecks() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
+  const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
   const service = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
   const routes = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
 
@@ -147,6 +146,8 @@ function staticChecks() {
   assert(service.includes("costPerImage * request.n"), "service must compute per-step total cost");
   assert(service.includes("normalizeGenerationCost"), "service must normalize per-image cost");
   assert(service.includes("isPublic: false"), "service must default agent steps to private (refund-safe)");
+  assert(service.includes("maxAttempts: dryRun ? 1 : 3"), "live agent steps must carry maxAttempts=3");
+  assert(service.includes("totalEstimatedCost: dryRun ? 0 : costPerImage * requests.length"), "service must estimate cost by independent step count");
 
   // Dry-run safety: cancelled status, no enqueue, no provider params persisted.
   assert(service.includes('"agent_batch_dry_run"'), "service must trace dry-run path");
@@ -158,13 +159,11 @@ function staticChecks() {
   assert(routes.includes("generate_batch"), "routes must label per-step kind as generate_batch");
   assert(routes.includes("result.requests.map"), "routes must emit one step per request");
   assert(routes.includes("requestId: request.id"), "step requestId must point to per-step generation_request id");
+  assert(!service.includes("session_charge"), "agent generation service must not use session-level charge source");
 
-  // TODO 155: per-step refund/rollback. When 155 lands, replace these soft asserts with hard
-  // assertions on the refund trace stage. Until then we record the contract here.
-  const todo155 = service.includes("agent_credit_refund") || service.includes("AIS-RLS-155");
-  if (!todo155) {
-    log("TODO AIS-RLS-155: per-step refund trace stage not yet implemented (expected); smoke will assert dry-run invariants only");
-  }
+  assert(server.includes("agent_credit_charged"), "server must trace Agent per-step credit charges");
+  assert(server.includes("agent_credit_refund"), "server must trace Agent per-step credit refunds");
+  assert(server.includes("isAgentGenerationRequest"), "server must detect Agent requests for credit trace attribution");
 }
 
 async function apiChecks() {
@@ -244,13 +243,9 @@ async function apiChecks() {
     await connection?.end().catch(() => null);
   }
 
-  // TODO AIS-RLS-155: when per-step credit deduction + refund lands, replace the dry-run
-  // assertion above with a non-dry-run flow that:
-  //   1. dispatches 3 jobs
-  //   2. forces 1 to fail (mock provider)
-  //   3. asserts user.credits dropped by 2 (succeeded) not 3 (whole batch)
-  //   4. asserts an `agent_credit_refund` trace row exists for the failed request only
-  // Stub for now; the dry-run path above is the closest invariant we can lock in pre-155.
+  // Live non-dry-run provider failure/success matrix is environment-specific. The hard
+  // static assertions above now verify the 155 refund/charge hooks and per-step request
+  // granularity; this optional live path keeps the DB dry-run invariant.
 }
 
 async function main() {

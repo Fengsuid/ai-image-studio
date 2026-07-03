@@ -15,10 +15,16 @@ function createAgentGenerationService({
   queuePayloadForTextGeneration,
   enqueueGenerationJob,
   runQueuedTextGeneration,
+  recoveredGenerationJobFromRequest,
   traceGeneration,
   safeJsonSummary,
   defaultModel
 }) {
+  const AGENT_SESSION_FORMAT = "ai-image-studio.agent-session.v1";
+  const TERMINAL_STEP_STATUSES = new Set(["succeeded", "failed", "cancelled", "skipped", "expired"]);
+  const RETRYABLE_STEP_STATUSES = new Set(["pending", "running", "failed", "cancelled", "expired"]);
+  const ZIP_FETCH_TIMEOUT_MS = 5000;
+
   function normalizeAgentBatchQuality(value) {
     const quality = String(value || "").trim().toLowerCase();
     if (quality === "standard") return "auto";
@@ -57,6 +63,7 @@ function createAgentGenerationService({
       firstGenerationId,
       generationIds,
       imageUrl: firstGenerationId ? `/api/images/${firstGenerationId}/file` : "",
+      image_url: firstGenerationId ? `/api/images/${firstGenerationId}/file` : "",
       errorMessage: request.errorMessage || "",
       errorCode: request.errorCode || "",
       errorStage: request.errorStage || request.failureStage || "",
@@ -107,6 +114,7 @@ function createAgentGenerationService({
             queueStatus: summary.queueStatus,
             generationIds: summary.generationIds,
             imageUrl: summary.imageUrl,
+            image_url: summary.image_url,
             errorMessage: summary.errorMessage
           }
         };
@@ -114,12 +122,14 @@ function createAgentGenerationService({
     };
   }
 
-  function agentVariantGenerationRequest({ variant, index, plan, body, settings, session }) {
-    const prompt = cleanPrompt(variant.prompt || plan.userRequest || body.prompt || body.message || "");
+  function agentVariantGenerationRequest({ variant, index, plan, body, settings, session, stepRefs }) {
+    const promptResult = resolveAgentStepReferences(variant.prompt || plan.userRequest || body.prompt || body.message || "", stepRefs);
+    const prompt = cleanPrompt(promptResult.prompt);
     return {
       model: String(settings.model || defaultModel).trim() || defaultModel,
       title: sanitizeGenerationTitle(variant.title || body.title, prompt),
       prompt,
+      upstreamRefs: promptResult.refs,
       n: 1,
       size: normalizeImageSize(variant.size || body.size || "1024x1536"),
       quality: normalizeAgentBatchQuality(variant.quality || body.quality),
@@ -137,9 +147,49 @@ function createAgentGenerationService({
           id: variant.id || `variant_${index + 1}`,
           type: "agent_variant",
           prompt
-        }
+        },
+        ...promptResult.refs.map((ref) => ({
+          id: ref.ref,
+          type: "agent_step_ref",
+          prompt: ref.value
+        }))
       ]),
       publicTags: []
+    };
+  }
+
+  function collectAgentStepImageRefs(session = {}) {
+    const refs = new Map();
+    const steps = Array.isArray(session.steps) ? session.steps : [];
+    let outputIndex = 0;
+    for (const step of steps) {
+      if (step?.kind !== "generate_batch") continue;
+      outputIndex += 1;
+      const imageUrl = cleanAgentValue(
+        step.output?.image_url || step.output?.imageUrl || (step.generationId ? `/api/images/${step.generationId}/file` : ""),
+        500
+      );
+      if (!imageUrl) continue;
+      refs.set(`step[${outputIndex}].output.image_url`, imageUrl);
+      refs.set(`step[${outputIndex}].output.imageUrl`, imageUrl);
+      if (step.id) {
+        refs.set(`step["${step.id}"].output.image_url`, imageUrl);
+        refs.set(`step['${step.id}'].output.image_url`, imageUrl);
+      }
+    }
+    return refs;
+  }
+
+  function resolveAgentStepReferences(prompt, stepRefs = new Map()) {
+    const refs = [];
+    const text = cleanAgentValue(prompt, 5000).replace(/step\[(\d+|["'][^"']+["'])\]\.output\.(image_url|imageUrl)/g, (match) => {
+      const value = stepRefs.get(match) || "";
+      refs.push({ ref: match, value });
+      return value || match;
+    });
+    return {
+      prompt: text,
+      refs: refs.filter((ref) => ref.value)
     };
   }
 
@@ -155,8 +205,9 @@ function createAgentGenerationService({
     const settings = await store.getSettings();
     const costPerImage = normalizeGenerationCost(settings.generationCreditCost ?? 1);
     const requests = [];
+    const stepRefs = collectAgentStepImageRefs(session);
     for (const [index, variant] of variants.entries()) {
-      const request = agentVariantGenerationRequest({ variant, index, plan, body, settings, session });
+      const request = agentVariantGenerationRequest({ variant, index, plan, body, settings, session, stepRefs });
       const openaiRequest = {
         model: request.model,
         prompt: request.prompt,
@@ -178,6 +229,8 @@ function createAgentGenerationService({
         variantTitle: variant.title || "",
         dryRun,
         prompt: variant.prompt,
+        resolvedPrompt: request.prompt,
+        upstreamRefs: request.upstreamRefs,
         size: variant.size,
         quality: variant.quality
       });
@@ -198,7 +251,7 @@ function createAgentGenerationService({
         isPublic: false,
         status: dryRun ? "cancelled" : "pending",
         queueStatus: dryRun ? "cancelled" : "queued",
-        maxAttempts: dryRun ? 1 : 2,
+        maxAttempts: dryRun ? 1 : 3,
         finishedAt: dryRun ? new Date() : null,
         latencyMs: dryRun ? 0 : null,
         jobType: dryRun ? "agent-batch-dry-run" : "text-generation",
@@ -265,6 +318,7 @@ function createAgentGenerationService({
         prompt: request.prompt,
         size: request.size,
         quality: request.quality,
+        upstreamRefs: request.upstreamRefs,
         status: dryRun ? "cancelled" : "pending",
         queueStatus: dryRun ? "cancelled" : "queued",
         variant: {
@@ -285,6 +339,123 @@ function createAgentGenerationService({
       generationCost: costPerImage,
       totalEstimatedCost: dryRun ? 0 : costPerImage * requests.length
     };
+  }
+
+  async function resumeAgentSession({ currentUser, session }) {
+    const steps = agentStepsForResume(session);
+    const resumed = [];
+    const skipped = [];
+    for (const step of steps) {
+      const result = await requeueAgentStep({ currentUser, session, step, mode: "resume" }).catch((error) => ({ error }));
+      if (result?.error) {
+        skipped.push({ stepId: step.id, reason: String(result.error.message || result.error).slice(0, 200) });
+      } else if (result?.queued) {
+        resumed.push(result);
+      } else {
+        skipped.push({ stepId: step.id, reason: result?.reason || "not resumable" });
+      }
+    }
+    return {
+      resumed,
+      skipped,
+      resumedCount: resumed.length,
+      credits: await store.getUserCredits(currentUser.id)
+    };
+  }
+
+  async function retryAgentStep({ currentUser, session, stepId, note = "" }) {
+    const step = (Array.isArray(session.steps) ? session.steps : []).find((item) => item.id === stepId);
+    if (!step) throw httpError("Agent step not found", 404);
+    if (!RETRYABLE_STEP_STATUSES.has(String(step.status || "pending"))) {
+      throw httpError("Agent step is not retryable", 400);
+    }
+    const result = await requeueAgentStep({ currentUser, session, step, mode: "manual_retry", note });
+    if (!result?.queued) throw httpError(result?.reason || "Agent step could not be retried", 400);
+    return {
+      retry: result,
+      credits: await store.getUserCredits(currentUser.id)
+    };
+  }
+
+  function agentStepsForResume(session = {}) {
+    return (Array.isArray(session.steps) ? session.steps : [])
+      .filter((step) => step?.kind === "generate_batch" && step.requestId)
+      .filter((step) => ["pending", "running"].includes(String(step.status || "pending")));
+  }
+
+  async function requeueAgentStep({ currentUser, session, step, mode, note = "" }) {
+    if (typeof recoveredGenerationJobFromRequest !== "function") {
+      throw httpError("Agent step recovery is not configured", 501);
+    }
+    const request = await store.getGenerationRequestById(step.requestId).catch(() => null);
+    if (!request || request.userId !== currentUser.id || request.userId !== session.userId) {
+      throw httpError("Agent generation request not found", 404);
+    }
+    if (!request.queuePayloadJson) return { queued: false, stepId: step.id, requestId: request.id, reason: "missing queue payload" };
+    const requestStatus = agentStepStatusFromRequest(request);
+    if (mode === "resume" && TERMINAL_STEP_STATUSES.has(requestStatus)) {
+      await updateAgentStepSafe(currentUser.id, step.id, {
+        status: requestStatus,
+        generationId: request.firstGenerationId || step.generationId || "",
+        output: {
+          ...(step.output || {}),
+          request: {
+            ...(step.output?.request || {}),
+            ...agentRequestStatusPayload(request)
+          }
+        }
+      });
+      return { queued: false, stepId: step.id, requestId: request.id, reason: `already ${requestStatus}` };
+    }
+
+    const resetAttempts = mode === "manual_retry";
+    await store.updateGenerationRequest(request.id, {
+      status: "pending",
+      queueStatus: "queued",
+      attemptCount: resetAttempts ? 0 : request.attemptCount,
+      maxAttempts: 3,
+      lockedBy: null,
+      lockedAt: null,
+      startedAt: null,
+      finishedAt: null,
+      retryAfterAt: null,
+      errorMessage: null,
+      errorCode: null,
+      errorStage: null,
+      failureStage: null
+    });
+    const updatedRequest = await store.getGenerationRequestById(request.id);
+    const job = await recoveredGenerationJobFromRequest(updatedRequest);
+    if (!job) return { queued: false, stepId: step.id, requestId: request.id, reason: "recovery job unavailable" };
+    const queue = enqueueGenerationJob(job, { persistQueued: false });
+    await updateAgentStepSafe(currentUser.id, step.id, {
+      status: "running",
+      output: {
+        ...(step.output || {}),
+        retry: {
+          mode,
+          note,
+          queuedAt: nowIso(),
+          maxAttempts: 3
+        }
+      }
+    });
+    await traceGeneration(request.id, mode === "resume" ? "agent_session_resume_queued" : "agent_step_retry_queued", {
+      userId: currentUser.id,
+      data: { agentSessionId: session.id, stepId: step.id, mode, queue }
+    });
+    return {
+      queued: true,
+      mode,
+      stepId: step.id,
+      requestId: request.id,
+      queue
+    };
+  }
+
+  async function updateAgentStepSafe(userId, stepId, patch) {
+    if (typeof store.updateAgentStepForUser !== "function") return null;
+    return store.updateAgentStepForUser(stepId, userId, patch);
   }
 
   function generatedRequestsFromAgentSession(session = {}) {
@@ -445,11 +616,235 @@ function createAgentGenerationService({
     return { canvas: canvasProjectForAgentResponse(canvas) };
   }
 
+  async function exportAgentSessionArchive({ session, format = "json", baseUrl = "", fetchHeaders = {} }) {
+    const exported = {
+      format: AGENT_SESSION_FORMAT,
+      exportedAt: nowIso(),
+      session
+    };
+    if (format !== "zip") return exported;
+
+    const imageAssets = await collectAgentZipImageAssets(session, { baseUrl, fetchHeaders });
+    const safeTitle = safeZipName(session.title || session.id || "agent-session");
+    return createZipBuffer([
+      {
+        name: "manifest.json",
+        content: JSON.stringify({
+          format: AGENT_SESSION_FORMAT,
+          exportedAt: exported.exportedAt,
+          sessionId: session.id,
+          title: session.title,
+          messageCount: Array.isArray(session.messages) ? session.messages.length : 0,
+          stepCount: Array.isArray(session.steps) ? session.steps.length : 0,
+          imageAssetCount: imageAssets.filter((asset) => asset.status === "included").length,
+          imageReferenceCount: imageAssets.length
+        }, null, 2)
+      },
+      {
+        name: "images/manifest.json",
+        content: JSON.stringify({ references: imageAssets.map(zipAssetManifestEntry) }, null, 2)
+      },
+      {
+        name: `${safeTitle || "agent-session"}.agent-session.json`,
+        content: JSON.stringify(exported, null, 2)
+      },
+      ...imageAssets
+        .filter((asset) => asset.status === "included" && asset.content)
+        .map((asset) => ({ name: asset.path, content: asset.content }))
+    ]);
+  }
+
+  async function collectAgentZipImageAssets(session = {}, options = {}) {
+    const references = collectAgentSessionImageReferences(session);
+    const assets = [];
+    for (const reference of references) {
+      const resolved = await fetchZipImageAsset(reference.url, options);
+      if (resolved?.content) {
+        const path = `assets/images/image-${String(assets.filter((item) => item.status === "included").length + 1).padStart(3, "0")}.${extensionForMime(resolved.mime)}`;
+        assets.push({
+          path,
+          source: reference.url,
+          context: reference.context,
+          mime: resolved.mime,
+          bytes: resolved.content.length,
+          status: "included",
+          content: resolved.content
+        });
+      } else {
+        assets.push({
+          path: "",
+          source: reference.url,
+          context: reference.context,
+          mime: "",
+          bytes: 0,
+          status: "failed",
+          error: resolved?.error || "unavailable"
+        });
+      }
+    }
+    return assets;
+  }
+
+  function collectAgentSessionImageReferences(session = {}) {
+    const refs = [];
+    const seen = new Set();
+    const add = (url, context) => {
+      const text = cleanAgentValue(url, 500);
+      if (!text || seen.has(text)) return;
+      seen.add(text);
+      refs.push({ url: text, context });
+    };
+    for (const [index, step] of (Array.isArray(session.steps) ? session.steps : []).entries()) {
+      add(step.output?.image_url || step.output?.imageUrl, `steps[${index}].output.image_url`);
+      for (const generationId of step.output?.generationIds || []) add(`/api/images/${generationId}/file`, `steps[${index}].output.generationIds`);
+      if (step.generationId) add(`/api/images/${step.generationId}/file`, `steps[${index}].generationId`);
+    }
+    return refs;
+  }
+
+  async function fetchZipImageAsset(reference, { baseUrl = "", fetchHeaders = {} } = {}) {
+    if (typeof fetch !== "function") return { error: "fetch unavailable" };
+    const url = absoluteFetchUrl(reference, baseUrl);
+    if (!url) return { error: "relative reference requires baseUrl" };
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), ZIP_FETCH_TIMEOUT_MS) : 0;
+    try {
+      const response = await fetch(url, { headers: fetchHeaders, signal: controller?.signal });
+      if (!response.ok) return { error: `HTTP ${response.status}` };
+      const mime = String(response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+      if (!mime.startsWith("image/")) return { error: `Unsupported content type: ${mime || "unknown"}` };
+      return {
+        content: Buffer.from(await response.arrayBuffer()),
+        mime
+      };
+    } catch (error) {
+      return { error: String(error?.message || error).slice(0, 500) };
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  }
+
   return {
     decorateAgentSession,
     generateAgentBatch,
-    exportAgentCanvas
+    resumeAgentSession,
+    retryAgentStep,
+    exportAgentCanvas,
+    exportAgentSessionArchive
   };
+}
+
+function absoluteFetchUrl(reference, baseUrl) {
+  const text = String(reference || "").trim();
+  if (!text) return "";
+  if (/^https?:\/\//i.test(text)) return text;
+  if (!baseUrl) return "";
+  try {
+    return new URL(text, baseUrl).toString();
+  } catch {
+    return "";
+  }
+}
+
+function zipAssetManifestEntry(asset) {
+  return {
+    path: asset.path,
+    source: asset.source,
+    context: asset.context,
+    mime: asset.mime,
+    bytes: asset.bytes,
+    status: asset.status,
+    error: asset.error || ""
+  };
+}
+
+function extensionForMime(mime) {
+  const normalized = String(mime || "").toLowerCase();
+  if (normalized.includes("png")) return "png";
+  if (normalized.includes("jpeg") || normalized.includes("jpg")) return "jpg";
+  if (normalized.includes("webp")) return "webp";
+  if (normalized.includes("gif")) return "gif";
+  return "bin";
+}
+
+function safeZipName(value) {
+  return String(value || "agent-session")
+    .trim()
+    .replace(/[^a-z0-9._-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function createZipBuffer(entries = []) {
+  const fileRecords = [];
+  const chunks = [];
+  let offset = 0;
+  for (const entry of entries) {
+    const name = Buffer.from(String(entry.name || "entry.txt"), "utf8");
+    const content = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(String(entry.content || ""), "utf8");
+    const crc = crc32(content);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(dosTime(new Date("2026-01-01T00:00:00.000Z")), 10);
+    local.writeUInt16LE(dosDate(new Date("2026-01-01T00:00:00.000Z")), 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(content.length, 18);
+    local.writeUInt32LE(content.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    chunks.push(local, name, content);
+    fileRecords.push({ name, content, crc, offset });
+    offset += local.length + name.length + content.length;
+  }
+
+  const centralStart = offset;
+  for (const record of fileRecords) {
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(0, 10);
+    central.writeUInt16LE(dosTime(new Date("2026-01-01T00:00:00.000Z")), 12);
+    central.writeUInt16LE(dosDate(new Date("2026-01-01T00:00:00.000Z")), 14);
+    central.writeUInt32LE(record.crc, 16);
+    central.writeUInt32LE(record.content.length, 20);
+    central.writeUInt32LE(record.content.length, 24);
+    central.writeUInt16LE(record.name.length, 28);
+    central.writeUInt32LE(record.offset, 42);
+    chunks.push(central, record.name);
+    offset += central.length + record.name.length;
+  }
+
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(fileRecords.length, 8);
+  end.writeUInt16LE(fileRecords.length, 10);
+  end.writeUInt32LE(offset - centralStart, 12);
+  end.writeUInt32LE(centralStart, 16);
+  chunks.push(end);
+  return Buffer.concat(chunks);
+}
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let index = 0; index < 8; index += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function dosTime(date) {
+  return (date.getUTCHours() << 11) | (date.getUTCMinutes() << 5) | Math.floor(date.getUTCSeconds() / 2);
+}
+
+function dosDate(date) {
+  return ((date.getUTCFullYear() - 1980) << 9) | ((date.getUTCMonth() + 1) << 5) | date.getUTCDate();
 }
 
 module.exports = {

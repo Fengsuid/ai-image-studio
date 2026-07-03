@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS canvas_projects (
   cover_url VARCHAR(500) NOT NULL DEFAULT '',
   visibility VARCHAR(16) NOT NULL DEFAULT 'private',
   is_template TINYINT(1) NOT NULL DEFAULT 0,
+  fork_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_forked_at DATETIME(3) NULL,
   data_json LONGTEXT NOT NULL,
   node_count INT UNSIGNED NOT NULL DEFAULT 0,
   edge_count INT UNSIGNED NOT NULL DEFAULT 0,
@@ -19,6 +21,7 @@ CREATE TABLE IF NOT EXISTS canvas_projects (
   INDEX idx_canvas_projects_user_updated (user_id, updated_at),
   INDEX idx_canvas_projects_visibility_updated (visibility, updated_at),
   INDEX idx_canvas_projects_template_updated (is_template, updated_at),
+  INDEX idx_canvas_projects_forks (fork_count, last_forked_at),
   INDEX idx_canvas_projects_status_updated (status, updated_at),
   CONSTRAINT fk_canvas_projects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -26,3 +29,5 @@ CREATE TABLE IF NOT EXISTS canvas_projects (
 -- Idempotent column backfill (matches mysql-store.js SHOW COLUMNS guard pattern).
 -- Runners must execute this conditionally (e.g., via SHOW COLUMNS LIKE 'is_template').
 -- ALTER TABLE canvas_projects ADD COLUMN is_template TINYINT(1) NOT NULL DEFAULT 0 AFTER visibility;
+-- ALTER TABLE canvas_projects ADD COLUMN fork_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER is_template;
+-- ALTER TABLE canvas_projects ADD COLUMN last_forked_at DATETIME(3) NULL AFTER fork_count;

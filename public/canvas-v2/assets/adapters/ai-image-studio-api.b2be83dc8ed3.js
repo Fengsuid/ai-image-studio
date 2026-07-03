@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 export class ApiError extends Error {
   constructor(message, status, payload) {
     super(message);
@@ -84,11 +85,43 @@ export async function exportCanvasProject(canvasId) {
   return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/export`);
 }
 
+export async function exportCanvasProjectZip(canvasId) {
+  const headers = new Headers({ Accept: "application/zip" });
+  const csrf = readCsrfCookie();
+  if (csrf) headers.set("X-CSRF-Token", csrf);
+  const response = await fetch(`/api/canvases/${encodeURIComponent(canvasId)}/export?format=zip`, {
+    method: "POST",
+    headers,
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonResponse(response).catch(() => null);
+    throw new ApiError(payload?.error || `Canvas v2 ZIP export failed with HTTP ${response.status}`, response.status, payload);
+  }
+  return {
+    blob: await response.blob(),
+    filename: filenameFromDisposition(response.headers.get("Content-Disposition")) || `canvas-${canvasId}.zip`,
+  };
+}
+
+export async function importCanvasProject(canvasId, payload) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/import`, jsonRequest("POST", payload));
+}
+
+export async function forkCanvasProject(canvasId, payload = {}) {
+  return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/fork`, jsonRequest("POST", payload));
+}
+
 export async function generateCanvasOutput(canvasId, payload) {
   return apiFetch(`/api/canvases/${encodeURIComponent(canvasId)}/generate`, jsonRequest("POST", {
     outputNodeId: payload?.outputNodeId || "",
     configNodeId: payload?.configNodeId || "",
   }));
+}
+
+function filenameFromDisposition(value) {
+  const match = String(value || "").match(/filename="?([^";]+)"?/i);
+  return match ? match[1] : "";
 }
 
 function jsonRequest(method, payload) {

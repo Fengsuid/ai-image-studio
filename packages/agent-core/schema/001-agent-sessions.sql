@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS agent_sessions (
   data_json LONGTEXT NULL,
   created_at DATETIME(3) NOT NULL,
   updated_at DATETIME(3) NOT NULL,
+  deleted_at DATETIME(3) NULL,
   INDEX idx_agent_sessions_user_updated (user_id, updated_at),
   INDEX idx_agent_sessions_status_updated (status, updated_at),
   CONSTRAINT fk_agent_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

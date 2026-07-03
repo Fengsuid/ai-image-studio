@@ -1,4 +1,5 @@
-import { createCanvasV2App } from "./app/create-app.0b13412f8199.js";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { createCanvasV2App } from "./app/create-app.983f9d572319.js";
 
 const root = document.querySelector("[data-canvas-v2-root]");
 

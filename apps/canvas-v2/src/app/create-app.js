@@ -4,12 +4,15 @@ import {
   ApiError,
   createCanvasProject,
   deleteCanvasProject,
+  exportCanvasProjectZip,
   exportCanvasProject,
+  forkCanvasProject,
   generateCanvasOutput,
   getCanvasProject,
   getCurrentAuth,
   getHealth,
   listCanvasProjects,
+  importCanvasProject,
   updateCanvasProject,
 } from "../adapters/ai-image-studio-api.js";
 import {
@@ -25,8 +28,10 @@ import {
 } from "../features/generation/flow.js";
 import { createHistory, pushHistory, undo, redo, canUndo, canRedo } from "../features/history/index.js";
 import { triggerFileImport } from "../features/imports/index.js";
+import { deleteCanvasDraft, readCanvasDraft, saveCanvasDraft } from "../features/drafts/cache-db.js";
 
 const SAVE_DEBOUNCE_MS = 700;
+const MAX_PARALLEL_GENERATIONS = 3;
 
 export function createCanvasV2App(root) {
   let state = createShellState();
@@ -96,6 +101,7 @@ export function createCanvasV2App(root) {
     documentRevision += 1;
     state = { ...state, document: result.current, dirty: true, saveStatus: "unsaved", canUndo: canUndo(history), canRedo: canRedo(history) };
     render();
+    void persistLocalDraft(result.current);
     scheduleSave();
   }
 
@@ -106,6 +112,7 @@ export function createCanvasV2App(root) {
     documentRevision += 1;
     state = { ...state, document: result.current, dirty: true, saveStatus: "unsaved", canUndo: canUndo(history), canRedo: canRedo(history) };
     render();
+    void persistLocalDraft(result.current);
     scheduleSave();
   }
 
@@ -116,6 +123,9 @@ export function createCanvasV2App(root) {
       const result = await getCanvasProject(canvasId);
       const canvas = result.canvas;
       const doc = documentFromCanvas(canvas);
+      const draft = await readCanvasDraft(canvas.id);
+      const draftDocument = draft?.document ? normalizeCanvasDocument(draft.document, doc.title) : null;
+      const hasDraftConflict = Boolean(draftDocument && isDraftNewerThanCanvas(draft, canvas));
       history = createHistory(doc);
       setState({
         currentProjectId: canvas.id,
@@ -131,9 +141,34 @@ export function createCanvasV2App(root) {
         selectionRect: null,
         canUndo: false,
         canRedo: false,
+        localDraft: hasDraftConflict ? { ...draft, document: draftDocument } : null,
+        draftStatus: hasDraftConflict ? "conflict" : "idle",
+        draftSummary: hasDraftConflict ? `IndexedDB 草稿 ${formatTime(draft.savedAt)}` : "",
+        conflictSummary: hasDraftConflict ? "发现此画布的本地草稿，可选择恢复或保留远端版本。" : "",
+        conflictDiff: hasDraftConflict ? draftDiffSummary(draftDocument, doc, draft, canvas) : "",
       });
       updateRoute(canvas.id);
     } catch (error) {
+      const draft = await readCanvasDraft(canvasId).catch(() => null);
+      if (draft?.document) {
+        const doc = normalizeCanvasDocument(draft.document, draft.document.title || "Offline canvas draft");
+        history = createHistory(doc);
+        setState({
+          currentProjectId: canvasId,
+          document: doc,
+          projectLoading: false,
+          dirty: true,
+          saveStatus: "error",
+          saveError: "远端画布暂时不可用，已载入本地草稿。",
+          localDraft: { ...draft, document: doc },
+          draftStatus: "saved",
+          draftSummary: `IndexedDB ${formatTime(draft.savedAt)}`,
+          conflictSummary: "",
+          conflictDiff: "",
+        });
+        updateRoute(canvasId);
+        return;
+      }
       setState({
         projectLoading: false,
         saveStatus: "error",
@@ -148,6 +183,7 @@ export function createCanvasV2App(root) {
       const result = await listCanvasProjects({ scope: "mine", limit: 50 });
       const projects = Array.isArray(result.canvases) ? result.canvases : [];
       setState({ projects, projectsLoading: false });
+      void refreshTemplates();
       if (openInitial) {
         const routeProjectId = projectIdFromRoute();
         const target = routeProjectId || projects[0]?.id || "";
@@ -158,6 +194,23 @@ export function createCanvasV2App(root) {
         projectsLoading: false,
         errorMessage: errorMessage(error),
       });
+    }
+  }
+
+  async function refreshTemplates() {
+    setState({ templatesLoading: true });
+    try {
+      const [marketResult, mineResult] = await Promise.all([
+        listCanvasProjects({ scope: "templates", limit: 24 }),
+        listCanvasProjects({ scope: "my-templates", limit: 24 }),
+      ]);
+      setState({
+        templateMarket: Array.isArray(marketResult.canvases) ? marketResult.canvases : [],
+        myTemplates: Array.isArray(mineResult.canvases) ? mineResult.canvases : [],
+        templatesLoading: false,
+      });
+    } catch (error) {
+      setState({ templatesLoading: false, saveError: errorMessage(error) });
     }
   }
 
@@ -178,7 +231,10 @@ export function createCanvasV2App(root) {
         selectedEdgeIds: [],
         connectionSourceId: "",
         selectionRect: null,
+        localDraft: null,
+        conflictSummary: "",
       });
+      void deleteCanvasDraft(canvas.id);
       updateRoute(canvas.id);
     } catch (error) {
       setState({ saveStatus: "error", saveError: errorMessage(error) });
@@ -206,6 +262,7 @@ export function createCanvasV2App(root) {
         dirty: false,
         saveStatus: "saved",
       });
+      void deleteCanvasDraft(state.currentProjectId);
     } catch (error) {
       setState({ saveStatus: "error", saveError: errorMessage(error), dirty: true });
     }
@@ -227,6 +284,7 @@ export function createCanvasV2App(root) {
       saveError: "",
     };
     render();
+    void deleteCanvasDraft(state.currentProjectId);
   }
 
   async function deleteCurrentProject() {
@@ -258,8 +316,10 @@ export function createCanvasV2App(root) {
   async function exportCurrentProject() {
     if (!state.currentProjectId) return;
     try {
-      const exported = await exportCanvasProject(state.currentProjectId);
-      setState({ exportSummary: `${exported.format || "unknown"} · ${exported.canvas?.dataJson?.nodes?.length || 0} nodes` });
+      const jsonExport = await exportCanvasProject(state.currentProjectId);
+      const zipped = await exportCanvasProjectZip(state.currentProjectId);
+      downloadBlob(zipped.blob, zipped.filename);
+      setState({ exportSummary: `ZIP · ${jsonExport.canvas?.dataJson?.nodes?.length || 0} nodes · ${zipped.filename}` });
     } catch (error) {
       setState({ exportSummary: "", saveError: errorMessage(error) });
     }
@@ -274,9 +334,15 @@ export function createCanvasV2App(root) {
     const title = result.document.title || "Imported canvas";
     setState({ saveStatus: "saving", saveError: "" });
     try {
-      const payload = canvasPayloadFromDocument(result.document, title);
-      const created = await createCanvasProject(payload);
-      const canvas = created.canvas;
+      let canvas;
+      if (state.currentProjectId) {
+        const imported = await importCanvasProject(state.currentProjectId, result.payload || canvasPayloadFromDocument(result.document, title));
+        canvas = imported.canvas;
+      } else {
+        const payload = canvasPayloadFromDocument(result.document, title);
+        const created = await createCanvasProject(payload);
+        canvas = created.canvas;
+      }
       const doc = documentFromCanvas(canvas);
       history = createHistory(doc);
       setState({
@@ -290,10 +356,54 @@ export function createCanvasV2App(root) {
         selectedEdgeIds: [],
         connectionSourceId: "",
         selectionRect: null,
+        localDraft: null,
+        conflictSummary: "",
+        draftStatus: "idle",
+        draftSummary: "",
         canUndo: false,
         canRedo: false,
       });
+      void deleteCanvasDraft(canvas.id);
       updateRoute(canvas.id);
+    } catch (error) {
+      setState({ saveStatus: "error", saveError: errorMessage(error) });
+    }
+  }
+
+  async function toggleCurrentTemplate() {
+    if (!state.currentProjectId) return;
+    const project = state.projects.find((item) => item.id === state.currentProjectId);
+    const nextIsTemplate = !project?.isTemplate;
+    setState({ saveStatus: "saving", saveError: "" });
+    try {
+      const result = await updateCanvasProject(state.currentProjectId, { isTemplate: nextIsTemplate });
+      const canvas = result.canvas;
+      setState({
+        projects: upsertProject(state.projects, canvas),
+        myTemplates: nextIsTemplate
+          ? upsertProject(state.myTemplates, canvas)
+          : state.myTemplates.filter((item) => item.id !== canvas.id),
+        saveStatus: "saved",
+      });
+    } catch (error) {
+      setState({ saveStatus: "error", saveError: errorMessage(error) });
+    }
+  }
+
+  async function forkTemplate(templateId) {
+    if (!templateId) return;
+    const template = state.templateMarket.find((item) => item.id === templateId) || state.myTemplates.find((item) => item.id === templateId);
+    setState({ saveStatus: "saving", saveError: "" });
+    try {
+      const result = await forkCanvasProject(templateId, { title: `${template?.title || "Template"} copy` });
+      const canvas = result.canvas;
+      setState({
+        projects: upsertProject(state.projects, canvas),
+        saveStatus: "saved",
+        saveError: "",
+      });
+      await refreshTemplates();
+      await loadProject(canvas.id);
     } catch (error) {
       setState({ saveStatus: "error", saveError: errorMessage(error) });
     }
@@ -310,48 +420,87 @@ export function createCanvasV2App(root) {
       saveError: "",
     };
     render();
+    void persistLocalDraft(nextDocument);
     if (commit) scheduleSave();
   }
 
+  async function persistLocalDraft(document) {
+    if (!state.currentProjectId) return;
+    const project = state.projects.find((item) => item.id === state.currentProjectId);
+    const ok = await saveCanvasDraft(state.currentProjectId, document, {
+      serverUpdatedAt: project?.updatedAt || "",
+      userId: state.user?.id || "",
+    });
+    if (ok) {
+      setState({ draftStatus: "saved", draftSummary: `IndexedDB ${formatTime(new Date().toISOString())}` });
+    } else {
+      setState({ draftStatus: "error", draftSummary: "" });
+    }
+  }
+
+  function restoreLocalDraft() {
+    const draftDocument = state.localDraft?.document;
+    if (!draftDocument) return;
+    history = pushHistory(history, draftDocument);
+    documentRevision += 1;
+    setState({
+      document: draftDocument,
+      dirty: true,
+      saveStatus: "unsaved",
+      saveError: "",
+      conflictSummary: "",
+      draftStatus: "saved",
+      canUndo: canUndo(history),
+      canRedo: canRedo(history),
+    });
+    scheduleSave();
+  }
+
+  async function discardLocalDraft() {
+    if (!state.currentProjectId) return;
+    await deleteCanvasDraft(state.currentProjectId);
+    setState({
+      localDraft: null,
+      conflictSummary: "",
+      conflictDiff: "",
+      draftStatus: "idle",
+      draftSummary: "",
+    });
+  }
+
   async function runOutputGeneration(outputNodeId) {
+    await runOutputGenerationBatch([outputNodeId]);
+  }
+
+  async function runOutputGenerationBatch(outputNodeIds = []) {
     if (!state.currentProjectId) {
       setState({ saveError: "请先新建或打开一个画布。", saveStatus: "error" });
       return;
     }
-    const request = generationRequestForOutput(state.document, outputNodeId);
-    if (!request.outputNodeId) return;
+    const targets = generationTargets(outputNodeIds);
+    if (!targets.length) return;
     window.clearTimeout(saveTimer);
+    const queuedDocument = targets.reduce(
+      (document, outputId) => applyGenerationStatus(document, outputId, "queued", "已加入本地生成队列。"),
+      state.document
+    );
     state = {
       ...state,
-      document: normalizeCanvasDocument(applyGenerationStatus(state.document, request.outputNodeId, "queued", "已保存，准备提交生成..."), state.document.title),
+      document: normalizeCanvasDocument(queuedDocument, state.document.title),
       dirty: true,
       saveStatus: "unsaved",
       saveError: "",
+      generationQueue: queueState(targets.length, { pending: targets.length }),
     };
     render();
     try {
       await saveCurrentCanvasForGeneration();
-      state = {
-        ...state,
-        document: normalizeCanvasDocument(applyGenerationStatus(state.document, request.outputNodeId, "running", "生成中：后端队列、积分和 Provider 已接管。"), state.document.title),
-        dirty: true,
-        saveStatus: "unsaved",
-      };
-      render();
-      const result = await generateCanvasOutput(state.currentProjectId, request);
-      state = {
-        ...state,
-        document: normalizeCanvasDocument(applyGenerationResult(state.document, request.outputNodeId, result), state.document.title),
-        dirty: true,
-        saveStatus: "unsaved",
-      };
-      render();
+      await runGenerationWorkers(targets);
       await saveCurrentCanvasForGeneration();
     } catch (error) {
       const message = errorMessage(error);
       state = {
         ...state,
-        document: normalizeCanvasDocument(applyGenerationStatus(state.document, request.outputNodeId, "error", message), state.document.title),
         dirty: true,
         saveStatus: "error",
         saveError: message,
@@ -369,12 +518,70 @@ export function createCanvasV2App(root) {
     }
   }
 
+  function generationTargets(outputNodeIds = []) {
+    const requested = outputNodeIds.length
+      ? new Set(outputNodeIds.map((id) => String(id || "").trim()).filter(Boolean))
+      : new Set(state.document.nodes.filter((node) => node.type === "output").map((node) => node.id));
+    return state.document.nodes
+      .filter((node) => node.type === "output" && requested.has(node.id))
+      .filter((node) => !["queued", "running"].includes(node.generationStatus || node.status || ""))
+      .map((node) => node.id);
+  }
+
+  async function runGenerationWorkers(targets) {
+    let nextIndex = 0;
+    const queue = queueState(targets.length, { pending: targets.length });
+    const updateQueue = (patch) => {
+      Object.assign(queue, patch);
+      state = { ...state, generationQueue: { ...queue } };
+      render();
+    };
+    const worker = async () => {
+      while (nextIndex < targets.length) {
+        const outputNodeId = targets[nextIndex];
+        nextIndex += 1;
+        updateQueue({ pending: Math.max(0, queue.pending - 1), running: queue.running + 1 });
+        setOutputGenerationStatus(outputNodeId, "running", "生成中：后端队列、积分和 Provider 已接管。");
+        try {
+          const request = generationRequestForOutput(state.document, outputNodeId);
+          const result = await generateCanvasOutput(state.currentProjectId, request);
+          state = {
+            ...state,
+            document: normalizeCanvasDocument(applyGenerationResult(state.document, outputNodeId, result), state.document.title),
+            dirty: true,
+            saveStatus: "unsaved",
+          };
+          updateQueue({ running: Math.max(0, queue.running - 1), completed: queue.completed + 1 });
+        } catch (error) {
+          const message = errorMessage(error);
+          setOutputGenerationStatus(outputNodeId, "error", message);
+          updateQueue({ running: Math.max(0, queue.running - 1), failed: queue.failed + 1 });
+        }
+        void persistLocalDraft(state.document);
+      }
+    };
+    const workers = Array.from({ length: Math.min(MAX_PARALLEL_GENERATIONS, targets.length) }, () => worker());
+    await Promise.all(workers);
+  }
+
+  function setOutputGenerationStatus(outputNodeId, status, message) {
+    state = {
+      ...state,
+      document: normalizeCanvasDocument(applyGenerationStatus(state.document, outputNodeId, status, message), state.document.title),
+      dirty: true,
+      saveStatus: "unsaved",
+      saveError: status === "error" ? message : state.saveError,
+    };
+    render();
+  }
+
   installEditorController(root, {
     getState: () => state,
     setState,
     mutateDocument,
     commitDocument,
     runOutputGeneration,
+    runOutputGenerationBatch,
     undoDocument,
     redoDocument,
     setTextCompositionActive,
@@ -387,11 +594,29 @@ export function createCanvasV2App(root) {
     const action = actionElement.dataset.canvasAction || "";
     if (action === "new-project") void createProject();
     if (action === "refresh-projects") void refreshProjects({ openInitial: false });
+    if (action === "refresh-templates") void refreshTemplates();
     if (action === "open-project") void loadProject(actionElement.dataset.canvasProjectId || "");
+    if (action === "fork-template") void forkTemplate(actionElement.dataset.canvasProjectId || "");
     if (action === "save-now") void saveCurrentCanvas();
+    if (action === "toggle-template") void toggleCurrentTemplate();
     if (action === "delete-project") void deleteCurrentProject();
     if (action === "export-project") void exportCurrentProject();
     if (action === "import-project") void importProject();
+    if (action === "restore-local-draft") restoreLocalDraft();
+    if (action === "discard-local-draft") void discardLocalDraft();
+    if (action === "toggle-shortcuts") setState({ shortcutsOpen: !state.shortcutsOpen });
+  });
+
+  window.addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && key === "s") {
+      event.preventDefault();
+      void saveCurrentCanvas();
+    }
+    if (!isEditableTarget(event.target) && event.shiftKey && event.key === "?") {
+      event.preventDefault();
+      setState({ shortcutsOpen: !state.shortcutsOpen });
+    }
   });
 
   root.addEventListener("input", (event) => {
@@ -461,6 +686,61 @@ function updateRoute(projectId) {
   if (window.location.pathname !== nextPath) {
     window.history.replaceState({}, "", nextPath);
   }
+}
+
+function queueState(total, patch = {}) {
+  return {
+    total,
+    pending: 0,
+    running: 0,
+    completed: 0,
+    failed: 0,
+    maxConcurrency: Math.min(MAX_PARALLEL_GENERATIONS, Math.max(1, total)),
+    ...patch,
+  };
+}
+
+function isDraftNewerThanCanvas(draft, canvas) {
+  const draftTime = Date.parse(draft?.savedAt || "");
+  const canvasTime = Date.parse(canvas?.updatedAt || "");
+  if (!Number.isFinite(draftTime)) return false;
+  if (!Number.isFinite(canvasTime)) return true;
+  return draftTime > canvasTime + 1000;
+}
+
+function draftDiffSummary(localDocument, remoteDocument, draft, canvas) {
+  const parts = [
+    `本地 ${formatTime(draft?.savedAt)} / 远端 ${formatTime(canvas?.updatedAt)}`,
+    `标题：${localDocument.title === remoteDocument.title ? "一致" : "不同"}`,
+    `节点：本地 ${localDocument.nodes.length} / 远端 ${remoteDocument.nodes.length}`,
+    `连线：本地 ${localDocument.edges.length} / 远端 ${remoteDocument.edges.length}`,
+  ];
+  return parts.join("；");
+}
+
+function isEditableTarget(target) {
+  return target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target?.isContentEditable;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement("a"), {
+    href: url,
+    download: filename || "canvas.zip",
+  });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("zh-CN", { hour12: false });
 }
 
 function errorMessage(error) {

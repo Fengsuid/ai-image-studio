@@ -39,7 +39,9 @@ function lineNumbersMatching(text, pattern) {
 assertIncludes(source.mysqlStore, 'const createPromptStore = require("./stores/prompt-store");', "mysql-store");
 assertIncludes(source.mysqlStore, 'const canvasCore = require("@ai-image-studio/canvas-core");', "mysql-store");
 assertIncludes(source.mysqlStore, "const { createCanvasStore } = canvasCore;", "mysql-store");
-assertIncludes(source.mysqlStore, "await canvasCore.applySchema(db);", "mysql-store");
+assertIncludes(source.mysqlStore, 'const migrations = require("../migrations");', "mysql-store");
+assertIncludes(source.mysqlStore, "await migrations.runAll(db);", "mysql-store");
+assert(!source.mysqlStore.includes("await canvasCore.applySchema(db);"), "mysql-store must not call canvasCore.applySchema directly after AIS-RLS-158");
 assertIncludes(source.mysqlStore, "const promptStore = createPromptStore({ getPool, toIso });", "mysql-store");
 assertIncludes(source.mysqlStore, "const canvasStore = createCanvasStore({ getPool, toIso, mapGeneration });", "mysql-store");
 
@@ -85,7 +87,7 @@ for (const pattern of [
 }
 
 const promptSchemaRanges = [
-  [1040, 1300]
+  [1040, 1410]
 ];
 const rootPromptTableRefs = lineNumbersMatching(
   source.mysqlStore,

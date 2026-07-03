@@ -197,18 +197,39 @@ function staticChecks() {
   assert(apiSource.includes("/api/agent-sessions"), "agent API adapter must use agent session routes");
   assert(apiSource.includes('credentials: "same-origin"'), "agent API adapter must use same-origin credentials");
   assert(apiSource.includes("X-CSRF-Token"), "agent API adapter must attach CSRF token");
+  assert(apiSource.includes("resumeAgentSession"), "agent API adapter must expose session resume");
+  assert(apiSource.includes("retryAgentStepViaMessage"), "agent API adapter must expose message-based step retry");
+  assert(apiSource.includes("exportAgentSessionZip"), "agent API adapter must expose session ZIP export");
   assert(!apiSource.includes("openai.com"), "agent workspace must not call providers directly");
   assert(!apiSource.includes("apiKey"), "agent workspace must not handle provider API keys");
   assert(appSource.includes("createAgentPlan"), "agent app must submit plan requests");
   assert(appSource.includes("confirmAgentPlan"), "agent app must confirm plans through API");
   assert(appSource.includes("generateAgentBatch"), "agent app must submit batch generation requests");
   assert(appSource.includes("exportAgentCanvas"), "agent app must export Agent sessions to Canvas v2");
+  assert(appSource.includes("agent-step-timeline"), "agent app must render step timeline");
+  assert(appSource.includes("data-agent-resume"), "agent app must expose resume button");
+  assert(appSource.includes("data-agent-retry-step"), "agent app must expose single-step retry button");
+  assert(appSource.includes("data-agent-export-session"), "agent app must expose session ZIP export button");
   assert(appSource.includes("点击批量生成后才会进入队列"), "agent UI must state explicit queue/credit boundary");
 
   const jsPath = indexHtml.match(/src="([^"]*\/agent\/assets\/main\.[^"]+\.js)"/)?.[1] || "";
   const cssPath = indexHtml.match(/href="([^"]*\/agent\/assets\/styles\.[^"]+\.css)"/)?.[1] || "";
   assert(jsPath, "agent index must reference hashed JS");
   assert(cssPath, "agent index must reference hashed CSS");
+  assert(indexHtml.includes('<html lang="zh-CN" data-app="agent"'), "agent index html must opt into data-app tokens");
+  assert(indexHtml.includes('<body data-app="agent">'), "agent index body must expose data-app for sub-app styling");
+  assert(indexHtml.includes('const k="imageStudio.theme"'), "agent index must bootstrap shared theme before CSS");
+  for (const tokenLink of [
+    "/css/00-tokens.css",
+    "/css/00-tokens-typography.css",
+    "/css/00-tokens-motion.css",
+    "/css/00-theme.css",
+    "/css/primitives/_toast.css",
+    "/css/primitives/_drawer.css",
+    "/css/primitives/_modal.css"
+  ]) {
+    assert(indexHtml.includes(`href="${tokenLink}"`), `agent index must load ${tokenLink}`);
+  }
   assert(indexHtml.includes("data-agent-workspace-root"), "agent index must expose root mount");
   assert(fs.existsSync(path.join(rootDir, "public", jsPath.replace(/^\/+/, ""))), "agent hashed JS missing");
   assert(fs.existsSync(path.join(rootDir, "public", cssPath.replace(/^\/+/, ""))), "agent hashed CSS missing");

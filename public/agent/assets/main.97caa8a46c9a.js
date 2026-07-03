@@ -1,4 +1,4 @@
-import { createAgentWorkspaceApp } from "./app/create-app.76ad1e19453c.js";
+import { createAgentWorkspaceApp } from "./app/create-app.8b6f6eac7afa.js";
 
 const root = document.querySelector("[data-agent-workspace-root]");
 

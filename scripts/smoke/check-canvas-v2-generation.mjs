@@ -3,6 +3,9 @@
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   applyGenerationResult,
@@ -13,6 +16,9 @@ import { generateCanvasOutput } from "../../apps/canvas-v2/src/adapters/ai-image
 
 const require = createRequire(import.meta.url);
 const { createService: createCanvasService } = require("@ai-image-studio/canvas-core");
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const createAppSource = fs.readFileSync(path.join(rootDir, "apps/canvas-v2/src/app/create-app.js"), "utf8");
+const editorSource = fs.readFileSync(path.join(rootDir, "apps/canvas-v2/src/editor/view.js"), "utf8");
 
 const user = { id: "usr_canvas_v2_generation", role: "user", status: "active", credits: 50 };
 const persistedCanvas = {
@@ -189,6 +195,27 @@ function createService({ canvas = persistedCanvas, reserveCredits = true, editPr
 }
 
 const service = createService();
+assert(createAppSource.includes("MAX_PARALLEL_GENERATIONS = 3"), "Canvas v2 must cap parallel output generation at 3");
+assert(createAppSource.includes("runOutputGenerationBatch"), "Canvas v2 must expose batch output generation");
+assert(createAppSource.includes("generationQueue"), "Canvas v2 must render explicit generation queue state");
+assert(editorSource.includes("generate-selected-outputs"), "Canvas v2 toolbar must expose selected parallel generation action");
+assert(editorSource.includes("generate-all-outputs"), "Canvas v2 toolbar must expose generate-all output action");
+
+assert.throws(
+  () => service.canvasGenerationPlan({
+    nodes: [
+      { id: "prompt_cycle", type: "prompt", x: 0, y: 0, prompt: "Cycle prompt" },
+      { id: "output_cycle", type: "output", x: 100, y: 0 }
+    ],
+    edges: [
+      { source: "prompt_cycle", target: "output_cycle" },
+      { source: "output_cycle", target: "prompt_cycle" }
+    ]
+  }, { outputNodeId: "output_cycle" }),
+  /cycles/i,
+  "backend generation planning must reject cyclic saved graphs",
+);
+
 const result = await service.generate(user.id, persistedCanvas.id, {
   outputNodeId: "output_saved",
   configNodeId: "config_saved",
@@ -211,6 +238,9 @@ assert.equal(captures.creditReservations[0].amount, 2, "credit reservation shoul
 assert.equal(captures.links[0].canvasId, persistedCanvas.id, "generation links should target the canvas");
 assert.equal(captures.links[0].outputNodeId, "output_saved", "generation links should record output node");
 assert.equal(captures.links[0].configNodeId, "config_saved", "generation links should record config node");
+assert.equal(captures.links[0].status, "succeeded", "generation links should record completion status");
+assert.equal(captures.links[0].requestId, captures.requests[0].id, "generation links should record the audit request id");
+assert.equal(captures.links[0].candidateCount, 1, "generation links should record saved candidate count");
 assert.equal(result.outputNode.status, "success", "generate should return successful output status");
 assert.equal(result.generations[0].imageUrl, "/api/images/img_canvas_v2_saved/file", "generate should return saved image URL");
 
@@ -226,6 +256,25 @@ await assert.rejects(
   () => insufficient.generate(user.id, persistedCanvas.id, { outputNodeId: "output_saved" }, { on: () => {}, off: () => {}, headers: {} }, { writableEnded: false }),
   (error) => error.status === 402 && /Not enough credits/.test(error.message),
   "insufficient credits should return stable 402 error",
+);
+
+const cyclicCanvas = {
+  ...persistedCanvas,
+  id: "can_canvas_v2_cycle_generation",
+  dataJson: {
+    ...persistedCanvas.dataJson,
+    edges: [
+      { id: "edge_prompt_config", source: "prompt_saved", target: "config_saved" },
+      { id: "edge_config_output", source: "config_saved", target: "output_saved" },
+      { id: "edge_output_prompt", source: "output_saved", target: "prompt_saved" },
+    ],
+  },
+};
+const cyclicService = createService({ canvas: cyclicCanvas });
+await assert.rejects(
+  () => cyclicService.generate(user.id, cyclicCanvas.id, { outputNodeId: "output_saved" }, { on: () => {}, off: () => {}, headers: {} }, { writableEnded: false }),
+  (error) => error.status === 400 && /cycles/.test(error.message),
+  "backend generation must reject saved cyclic canvas graphs",
 );
 
 const imageService = createService({ canvas: imageEditCanvas, editProviderError: true });

@@ -4,6 +4,41 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
 
 ## Latest Closeout Notes
 
+### 2026-07-02 AIS-RLS-158 Migrations Consolidation Local Closeout
+
+- Task covered: `AIS-RLS-158`.
+- Scope verified locally: top-level `migrations.runAll(db)` slice schema execution, removal of direct `canvasCore.applySchema(db)` / `agentCore.applySchema(db)` calls from `mysql-store.js`, zero canvas/agent DDL ownership in `mysql-store.js`, `migrations/jobs/` orphan-image and soft-delete cleanup jobs, and 7-day server maintenance scheduler wiring.
+- Passing checks: `node --check migrations/index.js`, `node --check migrations/jobs/index.js`, `node --check migrations/jobs/orphan-images-cleanup.js`, `node --check migrations/jobs/soft-delete-cleanup.js`, `node --check server.js`, `node --check src/mysql-store.js`, `npm run smoke:migrations-consolidation`, `npm run smoke:prompt-canvas-store-split`, `npm run smoke:canvas-v2:static`, `npm run smoke:agent-workspace`, `git diff --check`.
+- Environment gap: `migrations.runAll(db)` was validated by static/load checks and schema listing in this local environment; no live MySQL connection was available for an actual idempotent rerun. `smoke:agent-workspace` skipped live API plan checks because `ADMIN_EMAIL` / `ADMIN_PASSWORD` are not configured locally.
+
+### 2026-07-02 AIS-RLS-157 Agent Storage Optimization Local Closeout
+
+- Task covered: `AIS-RLS-157`.
+- Scope verified locally: `agent_sessions_archive` cold archive table, `agent_step_outputs.output_blob` MEDIUMBLOB split with 7-day legacy `agent_steps.output_json` dual-write/read fallback, soft-delete `deleted_at` filters for sessions/messages/steps, `step_no` stable ordering, idempotent schema-runner column/index upgrades, and `schema/migrations/202605-archive-split.sql`.
+- Passing checks: `npm run check --prefix packages/agent-core`, `npm run test --prefix packages/agent-core`, `npm run smoke:agent-resume`, `npm run smoke:agent-batch-export`, `git diff --check`.
+- Environment gap: `smoke:agent-batch-export` skipped the live API branch because `ADMIN_EMAIL` / `ADMIN_PASSWORD` are not configured locally; EXPLAIN/index evidence was validated statically through DDL and smoke assertions because no local MySQL test server is available.
+
+### 2026-07-02 AIS-RLS-156 Canvas Storage Optimization Local Closeout
+
+- Task covered: `AIS-RLS-156`.
+- Scope verified locally: `canvas_project_payloads` MEDIUMBLOB payload split, 7-day dual-write/read-fallback window, `canvas_project_snapshots` retention at 20 versions, snapshot list/restore API, `canvas_node_images` extraction, fork stats preservation, and idempotent `schema/migrations/202605-payload-split.sql`.
+- Passing checks: `npm run check --prefix packages/canvas-core`, `npm run test --prefix packages/canvas-core`, `npm run smoke:canvas-large-project`, `npm run smoke:canvas-import-export`, `npm run smoke:canvas-history`, `git diff --check`.
+- Environment gap: `smoke:canvas-large-project` ran static storage assertions and skipped the live HTTP roundtrip because no local server was listening at `127.0.0.1:3000`; its cleanup also logged local MySQL root access denial in this environment.
+
+### 2026-07-02 AIS-RLS-155 Agent Feature Completion Local Closeout
+
+- Task covered: `AIS-RLS-155`.
+- Scope verified locally: Agent step timeline, session resume, single-step retry through `POST /messages`, retry backoff/maxAttempts=3, per-step credit/refund trace hooks, `step[N].output.image_url` planner references, and complete session JSON/ZIP export.
+- Passing checks: `npm run check --prefix packages/agent-core`, `npm run test --prefix packages/agent-core`, `npm run agent:check`, `npm run agent:build`, `node --check server.js`, `npm run smoke:agent-planner-flow`, `npm run smoke:agent-credit-per-step`, `npm run smoke:agent-retry`, `npm run smoke:agent-resume`, `npm run smoke:agent-batch-export`, `npm run smoke:agent-workspace`, `git diff --check`.
+- Environment gap: live API branches inside the Agent smokes were skipped because `ADMIN_EMAIL` / `ADMIN_PASSWORD` are not configured in this local environment.
+
+### 2026-07-02 AIS-RLS-154 Canvas Feature Completion Local Closeout
+
+- Task covered: `AIS-RLS-154`.
+- Scope verified locally: backend cycle revalidation, Canvas ZIP export contract, `canvas_generation_links` status metadata, Canvas v2 ZIP download, server-side import, IndexedDB local drafts, conflict recovery, and shortcuts cheat sheet.
+- Passing checks: `npm run test --prefix packages/canvas-core`, `npm run check --prefix packages/canvas-core`, `npm run canvas:v2:build`, `npm run smoke:canvas-v2:static`, `npm run smoke:canvas-v2:generation`, `npm run smoke:canvas-v2:editor`, `npm run smoke:canvas-import-export`.
+- Environment gap: `npm run smoke:canvas-import-export-api` was attempted locally but requires a running server and MySQL credentials; this environment returned MySQL access denied during cleanup and then `fetch failed` against `http://127.0.0.1:3000`.
+
 ### 2026-05-24 AIS-RLS-093 Visual Regression QA Closeout
 
 - Task covered: `AIS-RLS-093`.

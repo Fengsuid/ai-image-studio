@@ -77,6 +77,7 @@
     "smoke:prompt-canvas-store-split": "node scripts/smoke/check-prompt-canvas-store-split.mjs",
     "smoke:user-gallery-admin-store-split": "node scripts/smoke/check-user-gallery-admin-store-split.mjs",
     "smoke:mysql-store-domain-split": "node scripts/smoke/check-mysql-store-domain-split.mjs",
+    "smoke:migrations-consolidation": "node scripts/smoke/check-migrations-consolidation.mjs",
     "smoke:mysql-health-config": "node scripts/smoke/check-mysql-health-config.mjs",
     "smoke:agent-session-api": "node scripts/smoke/check-agent-session-api.mjs",
     "smoke:image-session-panel": "node scripts/smoke/check-image-session-panel.mjs",

@@ -124,6 +124,7 @@ test("buildAgentPlan variants embed prompt referencing intent and direction", ()
   assert(promptsHaveBrief, "variant prompts must reference original brief");
   const promptsMentionPalette = plan.variants.every((variant) => variant.prompt.includes("Palette:"));
   assert(promptsMentionPalette, "variant prompts must include palette descriptor");
+  assert(plan.variants[1].prompt.includes("step[1].output.image_url"), "follow-up variants must support upstream step image refs");
 });
 
 test("summarizeAgentPlan mentions confirmation and variant titles", () => {

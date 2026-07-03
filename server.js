@@ -146,6 +146,17 @@ const GENERATION_QUEUE_STALE_QUEUED_MS = Math.max(
   60_000,
   Number.parseInt(process.env.GENERATION_QUEUE_STALE_QUEUED_MS || `${60 * 60 * 1000}`, 10) || 60 * 60 * 1000
 );
+const GENERATION_RETRY_BASE_DELAY_MS = Math.max(
+  250,
+  Number.parseInt(process.env.GENERATION_RETRY_BASE_DELAY_MS || "2000", 10) || 2000
+);
+const MAINTENANCE_JOBS_INTERVAL_MS = Math.max(
+  60_000,
+  Number.parseInt(process.env.MAINTENANCE_JOBS_INTERVAL_MS || `${7 * 24 * 60 * 60 * 1000}`, 10) || 7 * 24 * 60 * 60 * 1000
+);
+const MAINTENANCE_JOBS_ENABLED = !["0", "false", "no", "off"].includes(String(process.env.MAINTENANCE_JOBS_ENABLED || "true").toLowerCase());
+const MAINTENANCE_JOBS_RUN_ON_START = ["1", "true", "yes", "on"].includes(String(process.env.MAINTENANCE_JOBS_RUN_ON_START || "false").toLowerCase());
+const MAINTENANCE_JOBS_DRY_RUN = ["1", "true", "yes", "on"].includes(String(process.env.MAINTENANCE_JOBS_DRY_RUN || "false").toLowerCase());
 const GALLERY_LEADERBOARD_LIMIT_MAX = 99;
 const generationQueueRunner = createGenerationQueueRunner({
   concurrency: GENERATION_QUEUE_CONCURRENCY,
@@ -235,7 +246,10 @@ const handleHealthRoute = createHealthRoute({
 const {
   decorateAgentSession,
   generateAgentBatch,
-  exportAgentCanvas
+  resumeAgentSession,
+  retryAgentStep,
+  exportAgentCanvas,
+  exportAgentSessionArchive
 } = createAgentGenerationService({
   store,
   httpError,
@@ -253,6 +267,7 @@ const {
   queuePayloadForTextGeneration,
   enqueueGenerationJob,
   runQueuedTextGeneration,
+  recoveredGenerationJobFromRequest,
   traceGeneration,
   safeJsonSummary,
   defaultModel: DEFAULT_MODEL
@@ -268,7 +283,10 @@ const handleAgentSessionRoute = createAgentSessionRoute({
   sendJson,
   decorateAgentSession,
   generateAgentBatch,
+  resumeAgentSession,
+  retryAgentStep,
   exportAgentCanvas,
+  exportAgentSessionArchive,
   store
 });
 
@@ -2915,6 +2933,16 @@ function isRetryableGenerationError(error) {
     /timed out|timeout|network error|fetch failed|econnreset|socket hang up/.test(message);
 }
 
+function retryDelayMsForAttempt(attemptCount) {
+  const exponent = Math.max(0, Math.min(8, Number(attemptCount || 1) - 1));
+  return GENERATION_RETRY_BASE_DELAY_MS * (2 ** exponent);
+}
+
+function isAgentGenerationRequest(request = {}) {
+  const conversation = Array.isArray(request.conversation) ? request.conversation : [];
+  return conversation.some((item) => item?.type === "agent_session");
+}
+
 async function maybeRequeueTransientGenerationFailure({ auditId, user, error, stage = "provider_generation" }) {
   if (!isRetryableGenerationError(error)) return false;
   const latest = await store.getGenerationRequestById(auditId).catch(() => null);
@@ -2922,6 +2950,8 @@ async function maybeRequeueTransientGenerationFailure({ auditId, user, error, st
   const attemptCount = Math.max(0, Number(latest.attemptCount || 0));
   const maxAttempts = Math.max(1, Number(latest.maxAttempts || 1));
   if (attemptCount >= maxAttempts) return false;
+  const retryDelayMs = retryDelayMsForAttempt(attemptCount);
+  const retryAfterAt = new Date(Date.now() + retryDelayMs);
 
   await store.updateGenerationRequest(auditId, {
     status: "pending",
@@ -2932,7 +2962,7 @@ async function maybeRequeueTransientGenerationFailure({ auditId, user, error, st
     failureStage: stage,
     lockedBy: null,
     lockedAt: null,
-    retryAfterAt: new Date()
+    retryAfterAt
   });
   await traceGeneration(auditId, "retry_queued", {
     userId: user.id,
@@ -2942,6 +2972,8 @@ async function maybeRequeueTransientGenerationFailure({ auditId, user, error, st
       stage,
       attemptCount,
       maxAttempts,
+      retryDelayMs,
+      retryAfterAt: retryAfterAt.toISOString(),
       error: errorSummary(error)
     }
   });
@@ -2949,7 +2981,7 @@ async function maybeRequeueTransientGenerationFailure({ auditId, user, error, st
   const retryRequest = await store.getGenerationRequestById(auditId);
   const job = await recoveredGenerationJobFromRequest(retryRequest);
   if (!job) return false;
-  setTimeout(() => enqueueGenerationJob(job, { persistQueued: false }), 0);
+  setTimeout(() => enqueueGenerationJob(job, { persistQueued: false }), retryDelayMs);
   return true;
 }
 
@@ -3022,11 +3054,23 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
         userId: user.id,
         data: { amount: costPerImage * missing, reason: "unused candidate refund" }
       });
+      if (isAgentGenerationRequest(request)) {
+        await traceGeneration(auditId, "agent_credit_refund", {
+          userId: user.id,
+          data: { amount: costPerImage * missing, reason: "unused candidate refund", mode: "per_step" }
+        });
+      }
     }
     await traceGeneration(auditId, "credit_charged", {
       userId: user.id,
       data: { totalCost, saved: saved.length }
     });
+    if (isAgentGenerationRequest(request)) {
+      await traceGeneration(auditId, "agent_credit_charged", {
+        userId: user.id,
+        data: { totalCost, saved: saved.length, mode: "per_step" }
+      });
+    }
     return saved;
   } catch (error) {
     const cancelled = signal?.aborted || error?.name === "AbortError";
@@ -3040,6 +3084,12 @@ async function runQueuedTextGeneration({ auditId, user, settings, request, opena
         userId: user.id,
         data: { amount: totalCost, reason: cancelled ? "client cancelled" : "generation failed" }
       });
+      if (isAgentGenerationRequest(request)) {
+        await traceGeneration(auditId, "agent_credit_refund", {
+          userId: user.id,
+          data: { amount: totalCost, reason: cancelled ? "client cancelled" : "generation failed", mode: "per_step" }
+        });
+      }
     }
     if (cancelled) {
       await traceGeneration(auditId, "failed", {
@@ -3694,6 +3744,28 @@ async function seedPromptsFromJsonIfEmpty() {
   console.log(`[prompts] seeded ${inserted}/${items.length} prompts from prompts.json`);
 }
 
+function scheduleMaintenanceJobs() {
+  if (!MAINTENANCE_JOBS_ENABLED || typeof store.runMaintenanceJobs !== "function") return null;
+  const run = async () => {
+    try {
+      await store.runMaintenanceJobs({
+        imageDirectories: [GENERATED_DIR, SOURCE_DIR, REFERENCE_ASSET_DIR],
+        logger: console,
+        dryRun: MAINTENANCE_JOBS_DRY_RUN
+      });
+    } catch (error) {
+      console.warn(`[maintenance-jobs] failed: ${error?.message || error}`);
+    }
+  };
+  const timer = setInterval(run, MAINTENANCE_JOBS_INTERVAL_MS);
+  timer.unref?.();
+  if (MAINTENANCE_JOBS_RUN_ON_START) {
+    const startupTimer = setTimeout(run, 1000);
+    startupTimer.unref?.();
+  }
+  return timer;
+}
+
 async function start() {
   await fs.mkdir(GENERATED_DIR, { recursive: true });
   await fs.mkdir(SOURCE_DIR, { recursive: true });
@@ -3711,6 +3783,7 @@ async function start() {
   await recoverGenerationQueueOnStartup().catch((error) => {
     console.warn(`[generation-queue] startup recovery failed: ${error?.message || error}`);
   });
+  scheduleMaintenanceJobs();
   const server = http.createServer((req, res) => {
     handleRequest(req, res);
   });

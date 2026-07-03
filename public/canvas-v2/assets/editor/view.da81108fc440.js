@@ -1,5 +1,6 @@
-import { documentBounds, edgePath, minimapNodeRect, nodeSize, viewportRect } from "./geometry.7c0d820380ff.js";
-import { fieldSpecsForNode, nodeSummary, nodeTypeLabel, supportedNodeTypes, upstreamNodeIds } from "./model.f0b905430bbe.js";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { documentBounds, edgePath, minimapNodeRect, nodeSize, viewportRect } from "./geometry.0d492dee267f.js";
+import { fieldSpecsForNode, nodeSummary, nodeTypeLabel, supportedNodeTypes, upstreamNodeIds } from "./model.dc1d45e8498e.js";
 
 const MINIMAP_SIZE = { width: 180, height: 120 };
 
@@ -45,6 +46,8 @@ export function renderEditor(state, { hasProject }) {
           <button type="button" data-canvas-editor-action="connect-selected" ${disabled}>连接选中</button>
           <button type="button" data-canvas-editor-action="duplicate-selection" ${disabled}>复制粘贴</button>
           <button type="button" data-canvas-editor-action="delete-selection" ${disabled}>删除</button>
+          <button type="button" data-canvas-editor-action="generate-selected-outputs" ${disabled}>并行生成选中</button>
+          <button type="button" data-canvas-editor-action="generate-all-outputs" ${disabled}>生成全部输出</button>
           <button type="button" data-canvas-editor-action="seed-100" ${disabled}>100 节点检查</button>
         </div>
       </div>

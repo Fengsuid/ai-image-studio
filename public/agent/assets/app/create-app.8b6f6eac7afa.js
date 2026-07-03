@@ -4,11 +4,14 @@ import {
   createAgentPlan,
   createAgentSession,
   exportAgentCanvas,
+  exportAgentSessionZip,
   generateAgentBatch,
   getAgentSession,
   getCurrentAuth,
-  listAgentSessions
-} from "../adapters/ai-image-studio-api.f694012d6d44.js";
+  listAgentSessions,
+  resumeAgentSession,
+  retryAgentStepViaMessage
+} from "../adapters/ai-image-studio-api.e5065af70ee6.js";
 import {
   getAgentSessionSnapshot,
   putAgentSessionSnapshot
@@ -24,6 +27,8 @@ export function createAgentWorkspaceApp(root) {
     currentPlan: null,
     lastBatchResult: null,
     lastCanvas: null,
+    exportSummary: "",
+    resumeSummary: "",
     selectedVariantIds: new Set(),
     draft: DEFAULT_PROMPT,
     status: "idle",
@@ -173,6 +178,63 @@ export function createAgentWorkspaceApp(root) {
         state.status = "error";
       }
       render();
+    },
+
+    async resumeSession() {
+      if (!state.currentSession?.id) return;
+      state.status = "resuming";
+      state.error = "";
+      state.resumeSummary = "";
+      render();
+      try {
+        const result = await resumeAgentSession(state.currentSession.id);
+        state.currentSession = result.session || state.currentSession;
+        applySessionSnapshot(state.currentSession);
+        state.resumeSummary = `恢复 ${result.resumedCount || 0} 个步骤，跳过 ${(result.skipped || []).length} 个。`;
+        state.status = "ready";
+      } catch (error) {
+        state.error = errorMessage(error);
+        state.status = "error";
+      }
+      render();
+    },
+
+    async retryStep(stepId) {
+      if (!state.currentSession?.id || !stepId) return;
+      state.status = "retrying";
+      state.error = "";
+      render();
+      try {
+        const result = await retryAgentStepViaMessage(state.currentSession.id, stepId, {
+          content: `重试失败步骤 ${stepId}`
+        });
+        state.currentSession = result.session || state.currentSession;
+        applySessionSnapshot(state.currentSession);
+        state.resumeSummary = `已重新入队步骤 ${stepId}`;
+        state.status = "ready";
+      } catch (error) {
+        state.error = errorMessage(error);
+        state.status = "error";
+      }
+      render();
+    },
+
+    async exportSessionZip() {
+      if (!state.currentSession?.id) return;
+      state.status = "exporting";
+      state.error = "";
+      state.exportSummary = "";
+      render();
+      try {
+        const zipped = await exportAgentSessionZip(state.currentSession.id);
+        downloadBlob(zipped.blob, zipped.filename);
+        state.exportSummary = `已下载 ${zipped.filename}`;
+        state.status = "ready";
+      } catch (error) {
+        state.error = errorMessage(error);
+        state.status = "error";
+      }
+      render();
     }
   };
 
@@ -204,6 +266,8 @@ export function createAgentWorkspaceApp(root) {
     root.querySelector("[data-agent-submit]")?.addEventListener("click", () => actions.submitPlan());
     root.querySelector("[data-agent-confirm]")?.addEventListener("click", () => actions.confirmPlan());
     root.querySelector("[data-agent-export-canvas]")?.addEventListener("click", () => actions.exportCanvas());
+    root.querySelector("[data-agent-resume]")?.addEventListener("click", () => actions.resumeSession());
+    root.querySelector("[data-agent-export-session]")?.addEventListener("click", () => actions.exportSessionZip());
     root.querySelector("[data-agent-draft]")?.addEventListener("input", (event) => {
       state.draft = event.currentTarget.value;
     });
@@ -221,6 +285,9 @@ export function createAgentWorkspaceApp(root) {
         render();
       });
     });
+    root.querySelectorAll("[data-agent-retry-step]").forEach((button) => {
+      button.addEventListener("click", () => actions.retryStep(button.dataset.agentRetryStep));
+    });
   }
 
   render();
@@ -228,7 +295,7 @@ export function createAgentWorkspaceApp(root) {
 }
 
 function renderShell(state) {
-  const busy = ["loading", "planning", "confirming", "generating", "exporting"].includes(state.status);
+  const busy = ["loading", "planning", "confirming", "generating", "exporting", "resuming", "retrying"].includes(state.status);
   return `
     <main class="agent-shell" data-status="${escapeAttr(state.status)}">
       <header class="agent-hero">
@@ -295,6 +362,7 @@ function renderWorkspace(state, busy) {
         <div class="agent-thread">
           ${renderMessages(state.currentSession)}
         </div>
+        ${renderStepTimeline(state, busy)}
       </section>
       <aside class="agent-plan-panel">
         ${renderPlan(state, busy)}
@@ -325,6 +393,46 @@ function renderMessages(session) {
   `).join("");
 }
 
+function renderStepTimeline(state, busy) {
+  const steps = state.currentSession?.steps || [];
+  if (!steps.length) return "";
+  return `
+    <section class="agent-step-timeline" aria-label="Agent step timeline">
+      <div class="agent-step-head">
+        <strong>步骤时间线</strong>
+        <span>${steps.length} steps</span>
+      </div>
+      <div class="agent-step-list">
+        ${steps.map((step, index) => renderStepItem(step, index, busy)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderStepItem(step, index, busy) {
+  const status = step.status || step.output?.requestStatus || "pending";
+  const imageUrl = step.output?.image_url || step.output?.imageUrl || "";
+  const retryable = ["failed", "cancelled", "expired"].includes(status);
+  return `
+    <article class="agent-step-item" data-agent-step-status="${escapeAttr(status)}">
+      <div class="agent-step-index">${index + 1}</div>
+      <div class="agent-step-body">
+        <div class="agent-step-title">
+          <strong>${escapeHtml(step.kind || "step")}</strong>
+          <span>${escapeHtml(status)}</span>
+        </div>
+        <div class="agent-step-meta">
+          ${step.requestId ? `<span>request ${escapeHtml(step.requestId)}</span>` : ""}
+          ${step.generationId ? `<span>generation ${escapeHtml(step.generationId)}</span>` : ""}
+          ${imageUrl ? `<a href="${escapeAttr(imageUrl)}" target="_blank" rel="noreferrer">step[${index + 1}].output.image_url</a>` : ""}
+        </div>
+        ${step.output?.errorMessage ? `<p class="agent-step-error">${escapeHtml(step.output.errorMessage)}</p>` : ""}
+      </div>
+      ${retryable ? `<button type="button" data-agent-retry-step="${escapeAttr(step.id)}" ${busy ? "disabled" : ""}>重试</button>` : ""}
+    </article>
+  `;
+}
+
 function renderPlan(state, busy) {
   const plan = state.currentPlan;
   if (!plan) {
@@ -333,6 +441,7 @@ function renderPlan(state, busy) {
         <span>Plan</span>
         <h2>等待生成方案</h2>
         <p>输入一句需求后，这里会显示 2 到 4 个结构化 prompt、尺寸、质量、风格和追问。</p>
+        ${renderSessionActions(state, busy)}
       </div>
     `;
   }
@@ -355,9 +464,22 @@ function renderPlan(state, busy) {
     ${renderQuestions(plan)}
     ${renderGenerationResults(state)}
     ${renderCanvasResult(state)}
+    ${renderSessionActions(state, busy)}
     <div class="agent-plan-actions">
       <button type="button" class="agent-confirm" data-agent-confirm ${busy || invalidSelection ? "disabled" : ""}>确认并开始批量生成</button>
       <button type="button" class="agent-secondary-action" data-agent-export-canvas ${busy ? "disabled" : ""}>导出到 Canvas v2</button>
+    </div>
+  `;
+}
+
+function renderSessionActions(state, busy) {
+  if (!state.currentSession?.id) return "";
+  return `
+    <div class="agent-session-actions">
+      <button type="button" class="agent-secondary-action" data-agent-resume ${busy ? "disabled" : ""}>恢复未完成步骤</button>
+      <button type="button" class="agent-secondary-action" data-agent-export-session ${busy ? "disabled" : ""}>下载 Session ZIP</button>
+      ${state.resumeSummary ? `<span>${escapeHtml(state.resumeSummary)}</span>` : ""}
+      ${state.exportSummary ? `<span>${escapeHtml(state.exportSummary)}</span>` : ""}
     </div>
   `;
 }
@@ -449,7 +571,7 @@ function generationRequestsFromSession(session) {
         title: step.input?.title || request.title || "",
         status: step.output?.requestStatus || request.status || step.status || "pending",
         queueStatus: step.output?.queueStatus || request.queueStatus || "",
-        imageUrl: step.output?.imageUrl || request.imageUrl || "",
+        imageUrl: step.output?.image_url || step.output?.imageUrl || request.image_url || request.imageUrl || "",
         errorMessage: step.output?.errorMessage || request.errorMessage || ""
       };
     });
@@ -510,12 +632,25 @@ function statusText(status) {
     generating: "正在提交独立生成请求...",
     submitted: "批量生成已提交，刷新可查看最新状态。",
     exporting: "正在导出 Canvas v2 项目...",
+    resuming: "正在恢复未完成步骤...",
+    retrying: "正在重试单个步骤...",
     exported: "Canvas v2 项目已导出。",
     confirmed: "方案已确认。",
     ready: "准备就绪",
     error: "出现错误",
     idle: "准备就绪"
   }[status] || status;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename || "agent-session.zip";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 function errorMessage(error) {

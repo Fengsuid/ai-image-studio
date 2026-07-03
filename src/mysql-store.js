@@ -5,6 +5,8 @@ try {
   throw new Error("Missing dependency mysql2. Run: npm.cmd install");
 }
 const { normalizeTraceLevel, safeJsonSummary } = require("./generation-trace-service");
+const migrations = require("../migrations");
+const migrationJobs = require("../migrations/jobs");
 const agentCore = require("@ai-image-studio/agent-core");
 const createAgentSessionStore = agentCore.createSessionStore;
 const createAdminStore = require("./stores/admin-store");
@@ -870,8 +872,6 @@ async function runMigrations() {
   await addIndexIfMissing(db, "reference_assets", "idx_reference_assets_sha256", "(sha256)");
   await addIndexIfMissing(db, "generation_reference_assets", "idx_generation_reference_assets_asset", "(asset_id)");
 
-  await canvasCore.applySchema(db);
-
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_daily_usage (
       user_id VARCHAR(32) NOT NULL,
@@ -1105,7 +1105,7 @@ async function runMigrations() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
-  await agentCore.applySchema(db);
+  await migrations.runAll(db);
 
   await db.execute(
     `INSERT IGNORE INTO app_settings
@@ -1449,6 +1449,19 @@ async function initializeDatabase(options = {}) {
   await userStore.deleteExpiredSessions();
 }
 
+async function runMaintenanceJobs(options = {}) {
+  return migrationJobs.runMaintenanceJobs({
+    db: getPool(),
+    store: {
+      archiveOldAgentSessions: agentSessionStore.archiveOldAgentSessions
+    },
+    imageDirectories: options.imageDirectories || [],
+    now: options.now || new Date(),
+    logger: options.logger || console,
+    dryRun: options.dryRun === true
+  });
+}
+
 async function insertGenerations(generations) {
   if (!generations.length) return;
   const connection = await getPool().getConnection();
@@ -1557,6 +1570,7 @@ const storeExportGroups = [
     label: "core",
     source: {
       initializeDatabase,
+      runMaintenanceJobs,
       getSettings: adminStore.getSettings,
       updateSettings: adminStore.updateSettings
     }

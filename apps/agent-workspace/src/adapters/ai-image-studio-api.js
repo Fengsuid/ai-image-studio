@@ -84,6 +84,39 @@ export function appendAgentMessage(sessionId, payload) {
   return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/messages`, jsonRequest("POST", payload));
 }
 
+export function retryAgentStepViaMessage(sessionId, stepId, payload = {}) {
+  return appendAgentMessage(sessionId, {
+    action: "retry_step",
+    retryStepId: stepId,
+    content: payload.content || `重试 Agent 步骤 ${stepId}`,
+    note: payload.note || ""
+  });
+}
+
+export function retryAgentStep(sessionId, stepId, payload = {}) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/steps/${encodeURIComponent(stepId)}/retry`, jsonRequest("POST", payload));
+}
+
+export function resumeAgentSession(sessionId) {
+  return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/resume`, jsonRequest("POST", {}));
+}
+
+export async function exportAgentSessionZip(sessionId) {
+  const response = await fetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/export?format=zip`, {
+    method: "GET",
+    headers: { Accept: "application/zip" },
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonResponse(response).catch(() => null);
+    throw new ApiError(payload?.error || `Agent session ZIP export failed with HTTP ${response.status}`, response.status, payload);
+  }
+  return {
+    blob: await response.blob(),
+    filename: filenameFromDisposition(response.headers.get("Content-Disposition")) || `agent-session-${sessionId}.zip`,
+  };
+}
+
 export function createAgentPlan(sessionId, payload) {
   return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/plan`, jsonRequest("POST", payload));
 }
@@ -101,6 +134,11 @@ export function generateAgentBatch(sessionId, payload) {
 
 export function exportAgentCanvas(sessionId, payload) {
   return apiFetch(`/api/agent-sessions/${encodeURIComponent(sessionId)}/export-canvas`, jsonRequest("POST", payload));
+}
+
+function filenameFromDisposition(value) {
+  const match = String(value || "").match(/filename="?([^";]+)"?/i);
+  return match ? match[1] : "";
 }
 
 function jsonRequest(method, payload) {

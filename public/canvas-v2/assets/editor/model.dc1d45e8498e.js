@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 const NODE_DEFAULTS = {
   image: { width: 260, height: 190, imageUrl: "/api/images/example/file", content: "Image reference" },
   text: { width: 280, height: 150, content: "Canvas v2 text node" },

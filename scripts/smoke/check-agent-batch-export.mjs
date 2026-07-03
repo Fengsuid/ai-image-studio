@@ -5,7 +5,7 @@
 // in isolation), this smoke chains the full flow:
 //   plan → confirm → generate (dry-run) → export-canvas
 // and asserts that the exported canvas project includes one prompt/config/output node trio per
-// selected variant — the contract that ai-image-studio.canvas.v1 freezes.
+// selected variant. AIS-RLS-155 also requires complete session JSON + image ZIP export.
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -135,8 +135,18 @@ async function cleanup() {
 
 function staticChecks() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
+  const sessionsDdl = fs.readFileSync(path.join(rootDir, "packages/agent-core/schema/001-agent-sessions.sql"), "utf8");
+  const messagesDdl = fs.readFileSync(path.join(rootDir, "packages/agent-core/schema/002-agent-messages.sql"), "utf8");
+  const stepsDdl = fs.readFileSync(path.join(rootDir, "packages/agent-core/schema/003-agent-steps.sql"), "utf8");
+  const archiveDdl = fs.readFileSync(path.join(rootDir, "packages/agent-core/schema/004-agent-sessions-archive.sql"), "utf8");
+  const outputsDdl = fs.readFileSync(path.join(rootDir, "packages/agent-core/schema/005-agent-step-outputs.sql"), "utf8");
+  const migration = fs.readFileSync(path.join(rootDir, "packages/agent-core/schema/migrations/202605-archive-split.sql"), "utf8");
+  const schemaRunner = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/schema-runner.js"), "utf8");
+  const sessionStore = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/session-store.js"), "utf8");
   const service = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
   const routes = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
+  const api = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
+  const app = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
 
   assert.equal(packageJson.scripts["smoke:agent-batch-export"], "node scripts/smoke/check-agent-batch-export.mjs", "root smoke:agent-batch-export script missing");
 
@@ -144,6 +154,8 @@ function staticChecks() {
   assert(routes.includes("/plan"), "routes must expose /plan");
   assert(routes.includes("/generate"), "routes must expose /generate");
   assert(routes.includes("/export-canvas"), "routes must expose /export-canvas");
+  assert(routes.includes("exportMatch") && routes.includes("\\/export"), "routes must expose /api/agent-sessions/:id/export");
+  assert(routes.includes("application/zip"), "session ZIP export must return application/zip");
 
   // Canvas export contract
   assert(service.includes("function exportAgentCanvas"), "service must implement exportAgentCanvas");
@@ -156,6 +168,33 @@ function staticChecks() {
   assert(service.includes("createCanvasProject"), "service must persist canvas project");
   assert(service.includes("agentSessionId"), "exported canvas meta must reference source agent session");
   assert(service.includes('visibility: "private"'), "exported canvas must default to private");
+  assert(service.includes("function exportAgentSessionArchive"), "service must implement complete session export");
+  assert(service.includes("ai-image-studio.agent-session.v1"), "session export must declare frozen session format");
+  assert(service.includes("images/manifest.json"), "session ZIP must include image manifest");
+  assert(service.includes("createZipBuffer"), "session ZIP must be generated locally");
+  assert(api.includes("exportAgentSessionZip"), "frontend adapter must support session ZIP export");
+  assert(app.includes("data-agent-export-session"), "frontend must expose session ZIP export control");
+
+  // AIS-RLS-157 storage optimization closure.
+  assert(sessionsDdl.includes("INDEX idx_agent_sessions_user_updated (user_id, updated_at)"), "agent_sessions user/update index missing");
+  assert(sessionsDdl.includes("INDEX idx_agent_sessions_status_updated (status, updated_at)"), "agent_sessions status/update index missing");
+  assert(messagesDdl.includes("INDEX idx_agent_messages_session_created (session_id, created_at)"), "agent_messages session/created index missing");
+  assert(stepsDdl.includes("INDEX idx_agent_steps_session_step_no (session_id, step_no)"), "agent_steps session/step_no index missing");
+  assert(stepsDdl.includes("INDEX idx_agent_steps_generation (generation_id)"), "agent_steps generation_id index missing");
+  assert(archiveDdl.includes("CREATE TABLE IF NOT EXISTS agent_sessions_archive"), "agent_sessions_archive DDL missing");
+  assert(archiveDdl.includes("archived_at DATETIME(3) NOT NULL"), "agent_sessions_archive archived_at missing");
+  assert(outputsDdl.includes("CREATE TABLE IF NOT EXISTS agent_step_outputs"), "agent_step_outputs DDL missing");
+  assert(outputsDdl.includes("output_blob MEDIUMBLOB NOT NULL"), "agent_step_outputs output_blob missing");
+  assert(migration.includes("CREATE TABLE IF NOT EXISTS agent_sessions_archive"), "archive split migration must create archive table");
+  assert(migration.includes("CREATE TABLE IF NOT EXISTS agent_step_outputs"), "archive split migration must create step output table");
+  assert(migration.includes("ON DUPLICATE KEY UPDATE"), "archive split migration must be rerunnable");
+  assert(migration.includes("SHA2(output_json, 256)"), "archive split migration must backfill checksum");
+  assert(schemaRunner.includes("SHOW INDEX FROM agent_messages") || schemaRunner.includes("idx_agent_messages_session_created"), "schema runner must ensure agent_messages index");
+  assert(schemaRunner.includes("idx_agent_steps_generation"), "schema runner must ensure agent_steps generation index");
+  assert(sessionStore.includes("archiveOldAgentSessions"), "session-store must expose archiveOldAgentSessions");
+  assert(sessionStore.includes("AGENT_SESSION_ARCHIVE_AFTER_DAYS = 90"), "archive job must default to 90 days");
+  assert(sessionStore.includes("status NOT IN ('deleted', 'archived')"), "archive job must avoid re-archiving deleted/archived sessions");
+  assert(sessionStore.includes("status = 'active'") && sessionStore.includes("deleted_at IS NULL"), "write routes must protect archived/soft-deleted sessions");
 }
 
 async function apiChecks() {

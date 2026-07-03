@@ -198,19 +198,24 @@ async function main() {
   const templateIds = (templates.canvases || []).map((canvas) => canvas.id);
   assert(templateIds.includes(templateId), "published template missing from market");
   assert(!templateIds.includes(privateCanvas.canvas?.id || ""), "private canvas leaked into market");
+  const initialForkCount = Number((templates.canvases || []).find((canvas) => canvas.id === templateId)?.forkCount || 0);
 
   await loginOrRegister(accounts[1]);
-  const copied = await request(`/api/canvases/${encodeURIComponent(templateId)}/duplicate`, {
+  const copied = await request(`/api/canvases/${encodeURIComponent(templateId)}/fork`, {
     method: "POST",
     expected: 201,
     body: { title: "Copied from template" }
   });
+  assert(copied.forked?.sourceCanvasId === templateId, "fork response should identify source template");
   assert(copied.canvas?.userId, "duplicated canvas user missing");
   assert(copied.canvas.userId !== (privateCanvas.canvas?.userId || ""), "duplicate should belong to second user");
   assert(copied.canvas?.visibility === "private", "duplicate should stay private");
   assert(copied.canvas?.isTemplate === false, "duplicate should not stay a template");
   assert(!copied.canvas?.dataJson?.nodes?.[0]?.data?.userEmail, "duplicate should scrub private node metadata");
   assert(copied.canvas?.dataJson?.nodes?.length === 2, "duplicate should keep nodes");
+  const refreshedTemplates = await request("/api/canvases?scope=templates&limit=20");
+  const refreshedTemplate = (refreshedTemplates.canvases || []).find((canvas) => canvas.id === templateId);
+  assert(Number(refreshedTemplate?.forkCount || 0) >= initialForkCount + 1, "template forkCount should increment after fork");
 
   log("OK: template publish, market listing, and private duplication verified");
 }

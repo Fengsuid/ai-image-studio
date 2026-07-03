@@ -1,4 +1,5 @@
-import { connectNodes, updateNodeField } from "../../editor/model.f0b905430bbe.js";
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { connectNodes, updateNodeField } from "../../editor/model.dc1d45e8498e.js";
 
 export function generationRequestForOutput(canvasDocument, outputNodeId) {
   const outputId = String(outputNodeId || "").trim();
