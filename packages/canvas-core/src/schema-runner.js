@@ -52,7 +52,8 @@ async function applySchema(db) {
 }
 
 async function ensureColumn(db, table, column, statement) {
-  const [columns] = await db.execute(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
+  // MySQL 不支持 SHOW 语句走 prepared statement，改用 query 让客户端插值
+  const [columns] = await db.query(`SHOW COLUMNS FROM ${table} LIKE ?`, [column]);
   if (!columns?.length) await db.query(statement);
 }
 
