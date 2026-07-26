@@ -260,7 +260,7 @@
   bottom: clamp(110px, 17vh, 188px);
   width: min(360px, 48vw);
   height: min(260px, 34vw);
-  background: radial-gradient(circle at 56% 46%, color-mix(in srgb, #8b5cf6 24%, transparent), transparent 68%);
+  background: radial-gradient(circle at 56% 46%, color-mix(in srgb, var(--legacy-color-8b5cf6) 24%, transparent), transparent 68%);
   animation-delay: -15s;
 }
 
@@ -273,7 +273,7 @@
 .hero h1 span,
 .hero h1 em {
   color: transparent;
-  background: linear-gradient(100deg, var(--brand-700) 0%, var(--brand-500) 52%, #8b5cf6 100%);
+  background: linear-gradient(100deg, var(--brand-700) 0%, var(--brand-500) 52%, var(--legacy-color-8b5cf6) 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -291,27 +291,90 @@
   opacity: 1;
 }
 
-/* Hero pathway polish */
+/* Hero pathway cards */
 .hero-pathway {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  width: min(760px, 100%);
+  margin-inline: auto;
+}
+
+.pathway-card {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  color: var(--text-secondary);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 72%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  text-align: left;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.pathway-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--brand-400) 36%, transparent);
+}
+
+.pathway-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-lg);
+}
+
+.pathway-icon--violet {
+  background: color-mix(in srgb, var(--legacy-color-8b5cf6) 12%, transparent);
+  color: var(--legacy-color-8b5cf6);
+}
+
+.pathway-icon--blue {
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+  color: var(--brand-500);
+}
+
+.pathway-icon--cyan {
+  background: color-mix(in srgb, var(--legacy-color-0891b2) 12%, transparent);
+  color: var(--legacy-color-0891b2);
+}
+
+.pathway-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pathway-text strong {
+  color: var(--text-primary);
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
-.hero-pathway span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
+.pathway-text span {
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
 }
 
-.hero-pathway b {
-  width: 20px;
-  height: 1px;
-  background: var(--neutral-300);
-  display: block;
+@media (max-width: 560px) {
+  .hero-pathway {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+
+  .pathway-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
 }
 
 /* Composer glass card upgrade */
@@ -428,6 +491,15 @@
     0 1px 0 0 color-mix(in srgb, var(--neutral-300) 6%, transparent) inset,
     0 0 0 3px color-mix(in srgb, var(--brand-400) 12%, transparent),
     var(--shadow-xl);
+}
+
+:root[data-theme="dark"] .pathway-card {
+  background: color-mix(in srgb, var(--neutral-800) 74%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .pathway-card:hover {
+  border-color: color-mix(in srgb, var(--brand-400) 32%, transparent);
 }
 
 :root[data-theme="dark"] .home-discovery button {

@@ -287,7 +287,11 @@ const handleAgentSessionRoute = createAgentSessionRoute({
   retryAgentStep,
   exportAgentCanvas,
   exportAgentSessionArchive,
-  store
+  store,
+  callModel: async (payload) => {
+    const settings = await store.getSettings();
+    return callOpenAITextResponses(settings, payload);
+  }
 });
 
 const handleAuthRoute = createAuthRoute({

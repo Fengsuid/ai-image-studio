@@ -231,19 +231,23 @@
   width: 100%;
   margin: 0;
   padding: 0;
-  border: 0;
-  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 55%, transparent);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+  background: color-mix(in srgb, var(--surface-card) 82%, transparent);
+  box-shadow: var(--shadow-sm);
   text-align: left;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
   contain: layout paint;
 }
 
 .recent-tile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.11);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--brand-400) 32%, transparent);
 }
 
 .recent-visual {
@@ -285,8 +289,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  border-radius: 999px;
-  background: rgba(17, 24, 39, 0.82);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--neutral-900) 82%, transparent);
   color: var(--legacy-color-ffffff);
   padding: 0 10px;
   font-size: 11px;
@@ -348,12 +352,29 @@
 }
 
 .inspiration-head button {
-  border: 0;
-  background: transparent;
-  color: var(--legacy-color-475569);
   display: inline-flex;
   gap: 4px;
   align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 72%, transparent);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--legacy-color-475569);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.inspiration-head button:hover {
+  transform: translateY(-1px);
+  background: var(--surface-card);
+  border-color: color-mix(in srgb, var(--brand-400) 36%, transparent);
+  color: var(--text-primary);
 }
 
 .example-grid,
@@ -365,20 +386,23 @@
 
 .example-card,
 .prompt-card {
-  border: 1px solid rgba(255, 255, 255, 0.86);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid color-mix(in srgb, var(--legacy-color-ffffff) 86%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--surface-card) 90%, transparent);
   padding: 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.055);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
   contain: layout paint;
 }
 
 .example-card:hover,
 .prompt-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
-  border-color: rgba(167, 139, 250, 0.28);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--legacy-color-8b5cf6) 28%, transparent);
 }
 
 .card-art {

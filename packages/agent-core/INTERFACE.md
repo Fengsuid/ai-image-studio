@@ -1,7 +1,7 @@
 # Agent Core — Interface Contract
 
-更新日期：2026-07-02
-版本：v1.1.0（AIS-RLS-157 存储优化）
+更新日期：2026-07-26
+版本：v1.3.0（AIS-RLS-172 计划生成模型增强）
 路径：`packages/agent-core/`
 范围：Agent 功能后端切片（generation-service + planner + routes + session-store）
 
@@ -36,7 +36,7 @@
 | `safeJsonSummary` | 否 | 日志摘要 |
 | `defaultModel` | 否 | 缺省模型名 |
 
-`createRoutes({ ... })` 接收 14 项依赖：
+`createRoutes({ ... })` 接收 14 项必需依赖 + 1 项可选依赖：
 
 | 名称 | 用途 |
 | --- | --- |
@@ -54,6 +54,7 @@
 | `exportAgentCanvas` | 同上，导出到画布入口 |
 | `exportAgentSessionArchive` | 同上，导出完整 session JSON / ZIP |
 | `store` | 数据访问 |
+| `callModel`（可选，v1.3.0） | LLM 文本调用 `(payload) => Promise<response>`；仅 `/plan` 使用。未注入或调用失败时回退确定性 planner，行为与 v1.2.0 完全一致 |
 
 ---
 
@@ -134,7 +135,7 @@ EXPLAIN SELECT * FROM agent_steps WHERE session_id = ? ORDER BY step_no;
 
 ## 5. 事件契约
 
-- 计划生成：`POST /plan` → 内部使用 `buildAgentPlan` / `summarizeAgentPlan`（位于 `packages/agent-core/src/planner.js`）
+- 计划生成：`POST /plan` → 内部使用 `buildAgentPlanWithModel` / `summarizeAgentPlan`（位于 `packages/agent-core/src/planner.js`）。注入 `callModel` 时由模型产出 intent / 变体方向 / 追问并标记 `plan.source = "model-enriched-agent-plan"`（附 `plan.model`）；未注入、模型报错或输出不可解析（有效变体 < 2）时回退 `buildAgentPlan`，`plan.source = "deterministic-agent-workspace-mvp"`。`plan.format` 冻结不变，确认门槛（`confirmationRequired` / 不预扣积分）在两种来源下一致
 - 批量执行：`POST /generate` → 内部走 `generateAgentBatch` → `enqueueGenerationJob` → `runQueuedTextGeneration`
 - 中断恢复：`POST /resume` → 扫描未完成 `agent_steps` → `recoveredGenerationJobFromRequest` → `enqueueGenerationJob`
 - 手动重试：`POST /messages` with `retryStepId` 或 `POST /steps/:stepId/retry` → `retryAgentStep`
@@ -188,3 +189,4 @@ npm run test           # node:test planner 单测（5 用例 P0）
 - 2026-05-25 v1.0.1（草案，已并入 v1.0.0）：修正子应用路径为 `apps/agent-workspace/`（已存在）；license 为 `UNLICENSED`，不强制 AGPL；补完现有 agent smokes 清单
 - 2026-07-02 v1.1.0（AIS-RLS-157）：新增 `agent_sessions_archive`、`agent_step_outputs`、`deleted_at` 软删除、`step_no` 稳定排序、缺失索引幂等补齐、`archiveOldAgentSessions` 归档接口与 `202605-archive-split.sql` 迁移脚本；读取/写入保持 7 天 legacy `output_json` 双写回滚窗口
 - 2026-07-02 v1.2.0（AIS-RLS-158）：Agent schema 执行入口迁入顶层 `migrations.runAll(db)`；`mysql-store.js` 只保留 agent store facade 注入，不再直接调用 `agentCore.applySchema(db)`
+- 2026-07-26 v1.3.0（AIS-RLS-172）：`createRoutes` 新增**可选** DI `callModel`，`/plan` 升级为 `buildAgentPlanWithModel`（模型增强 + 确定性兜底，`plan.source` 区分来源）；包新增导出 `buildAgentPlanWithModel`。纯加法变更，未注入 `callModel` 的调用方行为与 v1.2.0 逐字节一致，非 Major

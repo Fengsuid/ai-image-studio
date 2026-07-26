@@ -86,11 +86,13 @@ body {
   min-height: 520px;
 }
 
+/* Panels extend .primitive-card with the shared glass language (same recipe as agent-workspace). */
 .canvas-v2-panel,
 .canvas-v2-board {
-  border: 1px solid var(--canvas-v2-line);
   border-radius: var(--radius-xl, 24px);
-  background: color-mix(in srgb, var(--canvas-v2-surface) 72%, transparent);
+  background: color-mix(in srgb, var(--canvas-v2-glass) 82%, transparent);
+  box-shadow: var(--canvas-v2-shadow-card);
+  backdrop-filter: blur(18px);
   padding: var(--space-lg, 24px);
 }
 
@@ -108,29 +110,11 @@ body {
   margin: 0;
 }
 
-.canvas-v2-panel button,
-.canvas-v2-board button {
-  border: 1px solid var(--canvas-v2-line);
-  border-radius: var(--radius-pill, 999px);
-  background: color-mix(in srgb, var(--canvas-v2-surface-raised) 84%, transparent);
-  color: var(--canvas-v2-ink);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-sm);
-  padding: var(--space-xs, 8px) var(--space-sm, 12px);
-}
-
-.canvas-v2-panel button:disabled,
-.canvas-v2-board button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
+/* Button visuals come from the shared .btn primitive (public/css/primitives/_button.css).
+   Only layout-scoped rules live here. */
 .canvas-v2-primary {
   width: 100%;
   margin: 14px 0;
-  background: var(--canvas-v2-accent) !important;
-  color: var(--canvas-v2-on-accent) !important;
 }
 
 .canvas-v2-project-list,
@@ -146,8 +130,18 @@ body {
   display: grid;
   gap: var(--space-2xs, 4px);
   width: 100%;
-  border-radius: var(--radius-lg, 18px) !important;
+  padding: var(--space-sm, 12px) var(--space-md, 16px);
+  border-radius: var(--radius-lg, 18px);
+  background: color-mix(in srgb, var(--canvas-v2-surface-raised) 82%, transparent);
+  color: var(--canvas-v2-ink);
+  cursor: pointer;
+  font: inherit;
   text-align: left;
+  transition: border-color var(--dur-fast, 0.15s) var(--ease-out, ease-out), box-shadow var(--dur-fast, 0.15s) var(--ease-out, ease-out);
+}
+
+.canvas-v2-project:hover {
+  border-color: color-mix(in srgb, var(--canvas-v2-accent) 42%, var(--canvas-v2-line));
 }
 
 .canvas-v2-project.active {
@@ -177,7 +171,6 @@ body {
   display: grid;
   gap: var(--space-2xs, 4px);
   padding: var(--space-sm, 12px);
-  border: 1px solid var(--canvas-v2-line);
   border-radius: var(--radius-lg, 18px);
   background: color-mix(in srgb, var(--canvas-v2-surface-raised) 72%, transparent);
 }
@@ -232,9 +225,10 @@ body {
   gap: var(--space-xs, 8px);
   margin-top: var(--space-md, 16px);
   padding: var(--space-md, 16px);
-  border: 1px solid color-mix(in srgb, var(--canvas-v2-accent) 32%, var(--canvas-v2-line));
+  border-color: color-mix(in srgb, var(--canvas-v2-accent) 32%, var(--canvas-v2-line));
   border-radius: var(--radius-lg, 18px);
-  background: color-mix(in srgb, var(--canvas-v2-surface-raised) 88%, transparent);
+  background: color-mix(in srgb, var(--canvas-v2-glass) 88%, transparent);
+  backdrop-filter: blur(14px);
 }
 
 .canvas-v2-shortcuts h2,
@@ -272,10 +266,14 @@ body {
   gap: var(--space-xs, 8px);
 }
 
-.canvas-v2-toolbar-group button.active {
-  border-color: var(--canvas-v2-accent);
-  background: var(--canvas-v2-accent);
-  color: var(--canvas-v2-on-accent);
+.canvas-v2-toolbar-group .btn.active {
+  --btn-bg: var(--canvas-v2-accent);
+  --btn-fg: var(--canvas-v2-on-accent);
+  --btn-bd: var(--canvas-v2-accent);
+}
+
+.canvas-v2-toolbar-group .primitive-pill {
+  align-self: center;
 }
 
 .canvas-v2-editor-stage {
@@ -332,37 +330,38 @@ body {
   stroke-width: 6;
 }
 
+/* Node cards extend .primitive-card; only positioning + glass overrides live here. */
 .canvas-v2-node {
   position: absolute;
   display: grid;
   grid-template-rows: auto 1fr;
-  border: 1px solid var(--canvas-v2-line);
   border-radius: var(--radius-xl, 24px);
-  background: color-mix(in srgb, var(--canvas-v2-surface-raised) 94%, transparent);
+  background: color-mix(in srgb, var(--canvas-v2-glass) 92%, transparent);
   box-shadow: var(--canvas-v2-shadow-card);
+  backdrop-filter: blur(10px);
   overflow: visible;
   user-select: none;
 }
 
 .canvas-v2-node.type-image {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-success) 10%, var(--canvas-v2-surface-raised)), var(--canvas-v2-surface-raised));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-success) 10%, var(--canvas-v2-glass)), color-mix(in srgb, var(--canvas-v2-glass) 94%, transparent));
 }
 
 .canvas-v2-node.type-prompt {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-warn) 12%, var(--canvas-v2-surface-raised)), var(--canvas-v2-surface-raised));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-warn) 12%, var(--canvas-v2-glass)), color-mix(in srgb, var(--canvas-v2-glass) 94%, transparent));
 }
 
 .canvas-v2-node.type-config {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-accent) 10%, var(--canvas-v2-surface-raised)), var(--canvas-v2-surface-raised));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-accent) 10%, var(--canvas-v2-glass)), color-mix(in srgb, var(--canvas-v2-glass) 94%, transparent));
 }
 
 .canvas-v2-node.type-output {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-success) 14%, var(--canvas-v2-surface-raised)), var(--canvas-v2-surface-raised));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--canvas-v2-success) 14%, var(--canvas-v2-glass)), color-mix(in srgb, var(--canvas-v2-glass) 94%, transparent));
 }
 
 .canvas-v2-node.type-group {
   border-style: dashed;
-  background: color-mix(in srgb, var(--canvas-v2-surface-raised) 70%, transparent);
+  background: color-mix(in srgb, var(--canvas-v2-glass) 70%, transparent);
 }
 
 .canvas-v2-node.selected {
@@ -444,9 +443,6 @@ body {
 
 .canvas-v2-output-run button {
   justify-self: start;
-  border-color: color-mix(in srgb, var(--canvas-v2-accent) 44%, transparent) !important;
-  background: var(--canvas-v2-accent) !important;
-  color: var(--canvas-v2-on-accent) !important;
 }
 
 .canvas-v2-output-run span {
@@ -474,11 +470,12 @@ body {
   z-index: 3;
   width: 18px;
   height: 18px;
-  padding: 0 !important;
-  border: 2px solid var(--canvas-v2-surface-raised) !important;
-  border-radius: var(--radius-pill, 999px) !important;
-  background: var(--canvas-v2-accent) !important;
+  padding: 0;
+  border: 2px solid var(--canvas-v2-surface-raised);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--canvas-v2-accent);
   box-shadow: var(--canvas-v2-shadow-focus);
+  cursor: crosshair;
   transform: translateY(-50%);
 }
 
@@ -496,11 +493,11 @@ body {
   bottom: 6px;
   width: 16px;
   height: 16px;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: var(--radius-xs, 4px) !important;
-  background: linear-gradient(135deg, transparent 45%, color-mix(in srgb, var(--canvas-v2-muted) 58%, transparent) 46%) !important;
-  cursor: nwse-resize !important;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs, 4px);
+  background: linear-gradient(135deg, transparent 45%, color-mix(in srgb, var(--canvas-v2-muted) 58%, transparent) 46%);
+  cursor: nwse-resize;
 }
 
 .canvas-v2-empty-editor {
@@ -509,9 +506,6 @@ body {
   top: 50%;
   width: min(360px, 80%);
   padding: var(--space-lg, 24px);
-  border: 1px dashed var(--canvas-v2-line);
-  border-radius: var(--radius-xl, 24px);
-  background: color-mix(in srgb, var(--canvas-v2-surface-raised) 78%, transparent);
   text-align: center;
   transform: translate(-50%, -50%);
 }
@@ -583,16 +577,33 @@ body {
     padding: var(--space-lg, 24px);
     border-radius: var(--radius-xl, 24px);
   }
+}
 
+/* True mobile layout: single-column workspace, horizontally scrollable toolbars/actions
+   (same overflow-x pattern as .agent-nav in agent-workspace), stage stays pannable/zoomable. */
+@media (max-width: 760px) {
   .canvas-v2-workspace {
     grid-template-columns: 1fr;
   }
 
   .canvas-v2-panel-head,
-  .canvas-v2-board-head,
-  .canvas-v2-actions {
+  .canvas-v2-board-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .canvas-v2-actions,
+  .canvas-v2-toolbar-group {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: var(--space-2xs, 4px);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .canvas-v2-actions .btn,
+  .canvas-v2-toolbar-group .btn {
+    flex: 0 0 auto;
   }
 
   .canvas-v2-board-head label {

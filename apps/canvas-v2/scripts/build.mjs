@@ -119,6 +119,10 @@ function renderIndex({ mainFile, cssFile }) {
     <link rel="stylesheet" href="/css/00-tokens-typography.css">
     <link rel="stylesheet" href="/css/00-tokens-motion.css">
     <link rel="stylesheet" href="/css/00-theme.css">
+    <link rel="stylesheet" href="/css/primitives/_button.css">
+    <link rel="stylesheet" href="/css/primitives/_pill.css">
+    <link rel="stylesheet" href="/css/primitives/_card.css">
+    <link rel="stylesheet" href="/css/primitives/_motion.css">
     <link rel="stylesheet" href="/css/primitives/_toast.css">
     <link rel="stylesheet" href="/css/primitives/_drawer.css">
     <link rel="stylesheet" href="/css/primitives/_modal.css">

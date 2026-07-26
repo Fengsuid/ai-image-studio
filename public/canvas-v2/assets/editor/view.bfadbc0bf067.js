@@ -14,7 +14,7 @@ export function renderEditor(state, { hasProject }) {
   const viewport = canvasDocument.viewport || { x: 0, y: 0, zoom: 1 };
   const disabled = hasProject ? "" : "disabled";
   const toolbarNodes = supportedNodeTypes().map((type) => `
-    <button type="button" data-canvas-editor-action="add-node" data-node-type="${escapeAttr(type)}" ${disabled}>+ ${escapeHtml(nodeTypeLabel(type))}</button>
+    <button type="button" class="btn btn--secondary" data-canvas-editor-action="add-node" data-node-type="${escapeAttr(type)}" ${disabled}>+ ${escapeHtml(nodeTypeLabel(type))}</button>
   `).join("");
   const edgeMarkup = canvasDocument.edges.map((edge) => {
     const path = edgePath(edge, nodesById);
@@ -33,22 +33,22 @@ export function renderEditor(state, { hasProject }) {
       <div class="canvas-v2-editor-toolbar" data-canvas-editor-toolbar>
         <div class="canvas-v2-toolbar-group">${toolbarNodes}</div>
         <div class="canvas-v2-toolbar-group">
-          <button type="button" data-canvas-editor-action="zoom-out" ${disabled}>-</button>
-          <span data-canvas-zoom-readout>${Math.round((viewport.zoom || 1) * 100)}%</span>
-          <button type="button" data-canvas-editor-action="zoom-in" ${disabled}>+</button>
-          <button type="button" data-canvas-editor-action="reset-viewport" ${disabled}>重置视口</button>
+          <button type="button" class="btn btn--icon btn--ghost" data-canvas-editor-action="zoom-out" ${disabled} aria-label="缩小">-</button>
+          <span class="primitive-pill" data-canvas-zoom-readout>${Math.round((viewport.zoom || 1) * 100)}%</span>
+          <button type="button" class="btn btn--icon btn--ghost" data-canvas-editor-action="zoom-in" ${disabled} aria-label="放大">+</button>
+          <button type="button" class="btn btn--ghost" data-canvas-editor-action="reset-viewport" ${disabled}>重置视口</button>
         </div>
         <div class="canvas-v2-toolbar-group">
-          <button type="button" data-canvas-editor-action="tool-pan" class="${state.editorTool === "pan" ? "active" : ""}" ${disabled}>平移</button>
-          <button type="button" data-canvas-editor-action="tool-box-select" class="${state.editorTool === "box-select" ? "active" : ""}" ${disabled}>框选</button>
-          <button type="button" data-canvas-editor-action="undo" ${disabled || !state.canUndo ? "disabled" : ""}>撤销</button>
-          <button type="button" data-canvas-editor-action="redo" ${disabled || !state.canRedo ? "disabled" : ""}>重做</button>
-          <button type="button" data-canvas-editor-action="connect-selected" ${disabled}>连接选中</button>
-          <button type="button" data-canvas-editor-action="duplicate-selection" ${disabled}>复制粘贴</button>
-          <button type="button" data-canvas-editor-action="delete-selection" ${disabled}>删除</button>
-          <button type="button" data-canvas-editor-action="generate-selected-outputs" ${disabled}>并行生成选中</button>
-          <button type="button" data-canvas-editor-action="generate-all-outputs" ${disabled}>生成全部输出</button>
-          <button type="button" data-canvas-editor-action="seed-100" ${disabled}>100 节点检查</button>
+          <button type="button" data-canvas-editor-action="tool-pan" class="btn btn--ghost ${state.editorTool === "pan" ? "active" : ""}" ${disabled}>平移</button>
+          <button type="button" data-canvas-editor-action="tool-box-select" class="btn btn--ghost ${state.editorTool === "box-select" ? "active" : ""}" ${disabled}>框选</button>
+          <button type="button" class="btn btn--ghost" data-canvas-editor-action="undo" ${disabled || !state.canUndo ? "disabled" : ""}>撤销</button>
+          <button type="button" class="btn btn--ghost" data-canvas-editor-action="redo" ${disabled || !state.canRedo ? "disabled" : ""}>重做</button>
+          <button type="button" class="btn btn--secondary" data-canvas-editor-action="connect-selected" ${disabled}>连接选中</button>
+          <button type="button" class="btn btn--secondary" data-canvas-editor-action="duplicate-selection" ${disabled}>复制粘贴</button>
+          <button type="button" class="btn btn--danger" data-canvas-editor-action="delete-selection" ${disabled}>删除</button>
+          <button type="button" class="btn btn--primary" data-canvas-editor-action="generate-selected-outputs" ${disabled}>并行生成选中</button>
+          <button type="button" class="btn btn--primary" data-canvas-editor-action="generate-all-outputs" ${disabled}>生成全部输出</button>
+          <button type="button" class="btn btn--ghost" data-canvas-editor-action="seed-100" ${disabled}>100 节点检查</button>
         </div>
       </div>
       <div
@@ -71,7 +71,7 @@ export function renderEditor(state, { hasProject }) {
         </div>
         ${renderMinimap(canvasDocument, bounds, viewport)}
       </div>
-      <p class="canvas-v2-mobile-note">窄屏降级：保留节点编辑、缩放按钮和项目保存；复杂框选建议在桌面视口完成。</p>
+      <p class="canvas-v2-mobile-note">移动端：工具栏与面板可左右滑动，画布舞台支持单指拖拽与缩放按钮，节点编辑和保存全部可用。</p>
     </div>
   `;
 }
@@ -81,6 +81,7 @@ function renderNode(node, flags) {
   const specs = fieldSpecsForNode(node);
   const classes = [
     "canvas-v2-node",
+    "primitive-card",
     `type-${node.type}`,
     flags.selected ? "selected" : "",
     flags.upstream ? "upstream" : "",
@@ -127,10 +128,11 @@ function renderGenerationControls(node) {
     <div class="canvas-v2-output-run" data-canvas-output-status="${escapeAttr(status)}">
       <button
         type="button"
+        class="btn btn--primary"
         data-canvas-editor-action="generate-output"
         data-canvas-output-node-id="${escapeAttr(node.id)}"
         ${status === "queued" || status === "running" ? "disabled" : ""}>生成</button>
-      <span>${escapeHtml(statusCopy(status))}</span>
+      <span class="${status === "queued" || status === "running" ? "anim-pulse-soft" : ""}">${escapeHtml(statusCopy(status))}</span>
       ${image}
       ${prompt}
       ${generationId}
@@ -149,7 +151,7 @@ function statusCopy(status) {
 
 function renderEmptyState(hasProject) {
   return `
-    <div class="canvas-v2-empty-editor">
+    <div class="canvas-v2-empty-editor primitive-card primitive-card--empty anim-fade-up">
       <h2>${hasProject ? "添加节点开始组织创作线路" : "新建或打开画布后开始编辑"}</h2>
       <p>Canvas v2 支持节点、连线、缩放、平移、框选、多选和小地图。</p>
     </div>

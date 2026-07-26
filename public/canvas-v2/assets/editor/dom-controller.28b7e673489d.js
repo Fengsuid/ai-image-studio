@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { clampZoom, screenToCanvas, zoomViewportAt } from "./geometry.0d492dee267f.js";
+import { createNode, deleteNode, updateNode } from "../features/node-editor/index.e897784eb30a.js";
 import {
-  appendNode,
   connectNodes,
   copySelection,
-  createEditorNode,
   createHundredNodeDocument,
-  deleteSelection,
   duplicateSelection,
   moveNodes,
   pasteClipboard,
   resizeNode,
   selectNodesInRect,
-  updateNodeField,
 } from "./model.dc1d45e8498e.js";
 
 export function installEditorController(root, api) {
@@ -183,7 +180,7 @@ function updateTextAreaField(textarea, api) {
   const field = textarea.dataset.canvasNodeField;
   const nodeId = textarea.dataset.canvasNodeId;
   if (!field || !nodeId) return;
-  api.mutateDocument((canvasDocument) => updateNodeField(canvasDocument, nodeId, field, textarea.value), { commit: true });
+  api.mutateDocument((canvasDocument) => updateNode(canvasDocument, nodeId, field, textarea.value), { commit: true });
 }
 
 function handleEditorAction(event, action, api) {
@@ -194,9 +191,13 @@ function handleEditorAction(event, action, api) {
   if (name === "add-node") {
     const type = action.dataset.nodeType || "text";
     const center = visibleCanvasCenter(api);
-    const node = createEditorNode(type, center);
-    api.mutateDocument((canvasDocument) => appendNode(canvasDocument, node), { commit: true });
-    api.setState({ selectedNodeIds: [node.id], selectedEdgeIds: [] });
+    let createdNodeId = "";
+    api.mutateDocument((canvasDocument) => {
+      const result = createNode(canvasDocument, type, center);
+      createdNodeId = result.node?.id || "";
+      return result.document;
+    }, { commit: true });
+    if (createdNodeId) api.setState({ selectedNodeIds: [createdNodeId], selectedEdgeIds: [] });
   } else if (name === "undo") {
     api.undoDocument?.();
   } else if (name === "redo") {
@@ -370,7 +371,7 @@ function visibleCanvasCenter(api) {
 
 function deleteFromState(api) {
   const state = api.getState();
-  api.mutateDocument((canvasDocument) => deleteSelection(canvasDocument, {
+  api.mutateDocument((canvasDocument) => deleteNode(canvasDocument, {
     nodeIds: state.selectedNodeIds || [],
     edgeIds: state.selectedEdgeIds || [],
   }), { commit: true });

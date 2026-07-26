@@ -1,4 +1,4 @@
-const { buildAgentPlan, summarizeAgentPlan } = require("./planner");
+const { buildAgentPlanWithModel, summarizeAgentPlan } = require("./planner");
 
 const SESSION_STATUSES = new Set(["active", "archived"]);
 const MESSAGE_ROLES = new Set(["user", "assistant", "system", "tool", "agent"]);
@@ -127,7 +127,8 @@ function createAgentSessionRoute({
   resumeAgentSession,
   retryAgentStep,
   exportAgentSessionArchive,
-  store
+  store,
+  callModel
 }) {
   return async function handleAgentSessionRoute(req, res, url) {
     if (req.method === "GET" && url.pathname === "/api/agent-sessions") {
@@ -308,7 +309,7 @@ function createAgentSessionRoute({
       }
 
       const request = cleanAgentPlanRequest(body);
-      const plan = buildAgentPlan(request.message, request);
+      const plan = await buildAgentPlanWithModel(request.message, request, { callModel });
       const userSession = assertReadableAgentSession(
         await store.createAgentMessageForUser(planMatch[1], current.user.id, {
           id: randomId("ams_"),

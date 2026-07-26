@@ -58,15 +58,15 @@ export function renderShell(state) {
   workspace.className = "canvas-v2-workspace";
 
   const projectPanel = document.createElement("aside");
-  projectPanel.className = "canvas-v2-panel";
+  projectPanel.className = "canvas-v2-panel primitive-card";
   projectPanel.innerHTML = renderProjectPanel(state);
 
   const canvasPanel = document.createElement("section");
-  canvasPanel.className = "canvas-v2-board";
+  canvasPanel.className = "canvas-v2-board primitive-card";
   canvasPanel.innerHTML = renderCanvasPanel(state);
 
   const statusPanel = document.createElement("aside");
-  statusPanel.className = "canvas-v2-panel";
+  statusPanel.className = "canvas-v2-panel primitive-card";
   statusPanel.innerHTML = renderStatusPanel(state);
 
   workspace.append(projectPanel, canvasPanel, statusPanel);
@@ -87,7 +87,7 @@ function renderProjectPanel(state) {
     <li>
       <button
         type="button"
-        class="canvas-v2-project ${project.id === state.currentProjectId ? "active" : ""}"
+        class="canvas-v2-project primitive-card ${project.id === state.currentProjectId ? "active" : ""}"
         data-canvas-action="open-project"
         data-canvas-project-id="${escapeAttr(project.id)}">
         <span>${escapeHtml(project.title || "Untitled canvas")}</span>
@@ -101,22 +101,22 @@ function renderProjectPanel(state) {
   return `
     <div class="canvas-v2-panel-head">
       <h2>项目列表</h2>
-      <button type="button" data-canvas-action="refresh-projects">刷新</button>
+      <button type="button" class="btn btn--ghost" data-canvas-action="refresh-projects">刷新</button>
     </div>
-    <button type="button" class="canvas-v2-primary" data-canvas-action="new-project">新建画布</button>
-    ${state.projectsLoading ? "<p>正在加载项目...</p>" : ""}
+    <button type="button" class="btn btn--primary canvas-v2-primary" data-canvas-action="new-project">新建画布</button>
+    ${state.projectsLoading ? '<p class="canvas-v2-muted anim-pulse-soft">正在加载项目...</p>' : ""}
     <ul class="canvas-v2-project-list" data-canvas-project-list>${items || "<li><p>暂无画布，先新建一个。</p></li>"}</ul>
     <div class="canvas-v2-template-section">
       <div class="canvas-v2-panel-head">
         <h2>我的模板</h2>
-        <button type="button" data-canvas-action="refresh-templates">刷新模板</button>
+        <button type="button" class="btn btn--ghost" data-canvas-action="refresh-templates">刷新模板</button>
       </div>
       <p class="canvas-v2-muted">私有标签：只在你的账号下可见。</p>
       <ul class="canvas-v2-project-list">${myTemplateItems || "<li><p>当前没有私有模板。</p></li>"}</ul>
     </div>
     <div class="canvas-v2-template-section">
       <h2>模板市场</h2>
-      ${state.templatesLoading ? "<p>正在加载模板...</p>" : ""}
+      ${state.templatesLoading ? '<p class="canvas-v2-muted anim-pulse-soft">正在加载模板...</p>' : ""}
       <ul class="canvas-v2-project-list">${marketItems || "<li><p>暂无公开模板。</p></li>"}</ul>
     </div>
   `;
@@ -125,11 +125,12 @@ function renderProjectPanel(state) {
 function renderTemplateItems(templates, { mine }) {
   return (templates || []).map((template) => `
     <li>
-      <article class="canvas-v2-template-card">
+      <article class="canvas-v2-template-card primitive-card">
         <strong>${escapeHtml(template.title || "Untitled template")}</strong>
         <small>${template.nodeCount || 0} nodes · fork ${template.forkCount || 0}</small>
         <button
           type="button"
+          class="btn btn--secondary"
           data-canvas-action="${mine ? "open-project" : "fork-template"}"
           data-canvas-project-id="${escapeAttr(template.id)}">${mine ? "打开" : "复制到我的画布"}</button>
       </article>
@@ -147,12 +148,12 @@ function renderCanvasPanel(state) {
         <input data-canvas-title-input value="${escapeAttr(state.document.title)}" ${hasProject ? "" : "disabled"}>
       </label>
       <div class="canvas-v2-actions">
-        <button type="button" data-canvas-action="save-now" ${hasProject ? "" : "disabled"}>保存</button>
-        <button type="button" data-canvas-action="toggle-template" ${hasProject ? "" : "disabled"}>${currentProject(state)?.isTemplate ? "取消模板" : "设为模板"}</button>
-        <button type="button" data-canvas-action="export-project" ${hasProject ? "" : "disabled"}>导出 ZIP</button>
-        <button type="button" data-canvas-action="import-project">导入</button>
-        <button type="button" data-canvas-action="toggle-shortcuts">快捷键</button>
-        <button type="button" data-canvas-action="delete-project" ${hasProject ? "" : "disabled"}>删除</button>
+        <button type="button" class="btn btn--primary" data-canvas-action="save-now" ${hasProject ? "" : "disabled"}>保存</button>
+        <button type="button" class="btn btn--secondary" data-canvas-action="toggle-template" ${hasProject ? "" : "disabled"}>${currentProject(state)?.isTemplate ? "取消模板" : "设为模板"}</button>
+        <button type="button" class="btn btn--secondary" data-canvas-action="export-project" ${hasProject ? "" : "disabled"}>导出 ZIP</button>
+        <button type="button" class="btn btn--secondary" data-canvas-action="import-project">导入</button>
+        <button type="button" class="btn btn--ghost" data-canvas-action="toggle-shortcuts">快捷键</button>
+        <button type="button" class="btn btn--danger" data-canvas-action="delete-project" ${hasProject ? "" : "disabled"}>删除</button>
       </div>
     </div>
     ${renderEditor(state, { hasProject })}
@@ -166,15 +167,15 @@ function renderStatusPanel(state) {
     <p>用户：${escapeHtml(state.user?.name || state.user?.email || "未登录")}</p>
     <p>版本：${escapeHtml(state.health?.version || "初始化中")}</p>
     <p>CSRF：${state.csrfReady ? "已初始化" : "等待初始化"}</p>
-    <p>保存：<span data-canvas-save-status>${saveStatusCopy(state)}</span></p>
+    <p>保存：<span class="primitive-pill ${saveStatusTone(state)}" data-canvas-save-status>${saveStatusCopy(state)}</span></p>
     <p>本地草稿：${escapeHtml(draftStatusCopy(state))}</p>
     ${renderGenerationQueue(state.generationQueue)}
     <p>节点：${state.document.nodes.length} · 连线：${state.document.edges.length}</p>
     <p>选中：${state.selectedNodeIds.length} 节点 · ${state.selectedEdgeIds.length} 连线</p>
     <p>工具：${escapeHtml(state.editorTool)}</p>
-    ${state.projectLoading ? "<p>正在读取画布...</p>" : ""}
+    ${state.projectLoading ? '<p class="canvas-v2-muted anim-pulse-soft">正在读取画布...</p>' : ""}
     ${state.exportSummary ? `<p>导出：${escapeHtml(state.exportSummary)}</p>` : ""}
-    ${state.conflictSummary ? `<p class="canvas-v2-warning">${escapeHtml(state.conflictSummary)}</p><p>${escapeHtml(state.conflictDiff || "")}</p><button type="button" data-canvas-action="restore-local-draft">恢复本地草稿</button><button type="button" data-canvas-action="discard-local-draft">保留远端版本</button>` : ""}
+    ${state.conflictSummary ? `<p class="canvas-v2-warning">${escapeHtml(state.conflictSummary)}</p><p>${escapeHtml(state.conflictDiff || "")}</p><button type="button" class="btn btn--primary" data-canvas-action="restore-local-draft">恢复本地草稿</button><button type="button" class="btn btn--secondary" data-canvas-action="discard-local-draft">保留远端版本</button>` : ""}
     ${state.errorMessage ? `<p class="canvas-v2-error">${escapeHtml(state.errorMessage)}</p>` : ""}
     ${state.saveError ? `<p class="canvas-v2-error">${escapeHtml(state.saveError)}</p>` : ""}
   `;
@@ -187,7 +188,7 @@ function renderGenerationQueue(queue) {
 
 function renderShortcutSheet() {
   return `
-    <div class="canvas-v2-shortcuts" data-canvas-shortcuts>
+    <div class="canvas-v2-shortcuts primitive-card anim-spring-in" data-canvas-shortcuts>
       <h2>快捷键</h2>
       <p><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存；<kbd>Ctrl</kbd> + <kbd>Z</kbd> 撤销；<kbd>Ctrl</kbd> + <kbd>Y</kbd> 重做。</p>
       <p><kbd>Ctrl</kbd> + <kbd>A/C/V/D</kbd> 全选、复制、粘贴、复制选中；<kbd>Delete</kbd> 删除；<kbd>Shift</kbd> + 拖拽框选。</p>
@@ -206,6 +207,14 @@ function saveStatusCopy(state) {
   if (state.saveStatus === "unsaved") return "未保存";
   if (state.saveStatus === "error") return "保存失败";
   return "等待操作";
+}
+
+function saveStatusTone(state) {
+  if (state.saveStatus === "saving") return "primitive-pill--brand anim-pulse-soft";
+  if (state.saveStatus === "saved") return state.dirty ? "primitive-pill--warn" : "primitive-pill--success";
+  if (state.saveStatus === "unsaved") return "primitive-pill--warn";
+  if (state.saveStatus === "error") return "primitive-pill--danger";
+  return "";
 }
 
 function draftStatusCopy(state) {

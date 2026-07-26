@@ -298,28 +298,64 @@ function renderShell(state) {
   const busy = ["loading", "planning", "confirming", "generating", "exporting", "resuming", "retrying"].includes(state.status);
   return `
     <main class="agent-shell" data-status="${escapeAttr(state.status)}">
-      <header class="agent-hero">
-        <nav class="agent-nav" aria-label="Agent workspace navigation">
-          <a href="/">首页</a>
-          <a href="/canvas-v2">Canvas v2</a>
-          <button type="button" data-agent-refresh ${busy ? "disabled" : ""}>刷新</button>
-        </nav>
-        <div class="agent-hero-grid">
-          <section>
-            <span class="agent-kicker">Agent 创作工作台</span>
-            <h1>把一句需求拆成可执行的生图路线</h1>
-            <p>先生成 2 到 4 个结构化方案，再确认入队。每个方案都会创建独立 generation request，并可导出为私有 Canvas v2 项目。</p>
-          </section>
-          <aside class="agent-safety-card">
-            <strong>安全边界</strong>
-            <span>同源 API</span>
-            <span>CSRF 写保护</span>
-            <span>独立队列追踪</span>
-          </aside>
+      <header class="agent-topbar">
+        <div class="agent-brand">
+          <span class="agent-brand-mark" aria-hidden="true">AI</span>
+          <span class="agent-brand-text">
+            <strong>Agent 创作工作台</strong>
+            <span>Workflow Studio</span>
+          </span>
         </div>
+        <nav class="agent-nav" aria-label="Agent workspace navigation">
+          <a class="btn btn--ghost" href="/">首页</a>
+          <a class="btn btn--ghost" href="/canvas-v2">画布</a>
+          <button type="button" class="btn btn--ghost" data-agent-refresh ${busy ? "disabled" : ""}>刷新</button>
+          <button type="button" class="btn btn--primary" data-agent-new ${busy ? "disabled" : ""}>新建创作</button>
+        </nav>
       </header>
+      <section class="agent-hero">
+        <div class="agent-hero-copy">
+          <span class="agent-kicker">Agent + Canvas + Workflow</span>
+          <h1>把一句想法拆成<br>可执行的创作工作流。</h1>
+          <p>Agent 负责生成计划、拆分步骤、调度素材和模型；确认后每个方案独立入队生成，并可一键导出为私有 Canvas v2 项目。确认前不扣积分。</p>
+          <div class="agent-hero-tags">
+            <span class="primitive-pill">同源 API</span>
+            <span class="primitive-pill">CSRF 写保护</span>
+            <span class="primitive-pill">独立队列追踪</span>
+            <span class="primitive-pill primitive-pill--success">确认前不扣积分</span>
+          </div>
+        </div>
+        ${renderHeroStatus(state, busy)}
+      </section>
       ${state.auth ? renderWorkspace(state, busy) : renderLoginRequired(state)}
     </main>
+  `;
+}
+
+function renderHeroStatus(state, busy) {
+  const steps = state.currentSession?.steps || [];
+  const doneCount = steps.filter((step) => ["succeeded", "completed", "done"].includes(step.status)).length;
+  const failedCount = steps.filter((step) => ["failed", "cancelled", "expired"].includes(step.status)).length;
+  const credits = Number(state.currentPlan?.estimatedCredits || 0);
+  const progress = steps.length ? Math.round((doneCount / steps.length) * 100) : 0;
+  const chipClass = state.status === "error"
+    ? "primitive-pill--danger"
+    : busy ? "primitive-pill--brand" : "primitive-pill--success";
+  return `
+    <aside class="agent-hero-status" aria-label="当前会话运行态">
+      <div class="agent-hero-status-head">
+        <strong>${escapeHtml(state.currentSession?.title || "尚未选择会话")}</strong>
+        <span class="primitive-pill ${chipClass} ${busy ? "anim-pulse-soft" : ""}">${escapeHtml(statusChip(state.status))}</span>
+      </div>
+      <div class="agent-hero-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}">
+        <i style="width:${progress}%"></i>
+      </div>
+      <dl class="agent-hero-stats">
+        <div><dt>步骤</dt><dd>${doneCount}/${steps.length}</dd></div>
+        <div><dt>失败</dt><dd data-tone="${failedCount ? "danger" : "muted"}">${failedCount}</dd></div>
+        <div><dt>预估积分</dt><dd>${credits}</dd></div>
+      </dl>
+    </aside>
   `;
 }
 
@@ -328,7 +364,7 @@ function renderLoginRequired(state) {
     <section class="agent-login-card">
       <h2>请先登录</h2>
       <p>Agent 会话会保存到你的账户，登录后才能创建计划。</p>
-      <a href="/?login=1">返回首页登录</a>
+      <a class="btn btn--primary" href="/?login=1">返回首页登录</a>
       ${state.error ? `<p class="agent-error">${escapeHtml(state.error)}</p>` : ""}
     </section>
   `;
@@ -343,7 +379,7 @@ function renderWorkspace(state, busy) {
             <span>会话</span>
             <strong>${escapeHtml(state.auth?.name || state.auth?.email || "Agent user")}</strong>
           </div>
-          <button type="button" data-agent-new ${busy ? "disabled" : ""}>新建</button>
+          <span class="primitive-pill">${(state.sessions || []).length}</span>
         </div>
         <div class="agent-session-list">
           ${renderSessions(state)}
@@ -355,7 +391,7 @@ function renderWorkspace(state, busy) {
           <textarea id="agentDraft" data-agent-draft rows="5" placeholder="描述你想要的一组图...">${escapeHtml(state.draft)}</textarea>
           <div class="agent-compose-actions">
             <span>${statusText(state.status)}</span>
-            <button type="button" data-agent-submit ${busy ? "disabled" : ""}>生成 4 个方案</button>
+            <button type="button" class="btn btn--primary" data-agent-submit ${busy ? "disabled" : ""}>生成 4 个方案</button>
           </div>
           ${state.error ? `<p class="agent-error">${escapeHtml(state.error)}</p>` : ""}
         </div>
@@ -374,12 +410,20 @@ function renderWorkspace(state, busy) {
 function renderSessions(state) {
   const items = state.sessions || [];
   if (!items.length) return `<p class="agent-empty">暂无 Agent 会话，先从一句需求开始。</p>`;
-  return items.map((session) => `
+  return items.map((session, index) => `
     <button type="button" class="agent-session-card ${session.id === state.currentSession?.id ? "active" : ""}" data-agent-session-id="${escapeAttr(session.id)}">
-      <strong>${escapeHtml(session.title || "Agent session")}</strong>
-      <span>${escapeHtml(session.updatedAt || "")}</span>
+      <span class="agent-badge agent-badge--${index % 3}" aria-hidden="true">${escapeHtml(sessionInitial(session.title))}</span>
+      <span class="agent-session-card-body">
+        <strong>${escapeHtml(session.title || "Agent session")}</strong>
+        <span>${escapeHtml(session.updatedAt || "")}</span>
+      </span>
     </button>
   `).join("");
+}
+
+function sessionInitial(title) {
+  const clean = String(title || "").trim();
+  return clean ? clean.slice(0, 1).toUpperCase() : "A";
 }
 
 function renderMessages(session) {
@@ -413,13 +457,14 @@ function renderStepItem(step, index, busy) {
   const status = step.status || step.output?.requestStatus || "pending";
   const imageUrl = step.output?.image_url || step.output?.imageUrl || "";
   const retryable = ["failed", "cancelled", "expired"].includes(status);
+  const tone = stepTone(status);
   return `
-    <article class="agent-step-item" data-agent-step-status="${escapeAttr(status)}">
-      <div class="agent-step-index">${index + 1}</div>
+    <article class="agent-step-item" data-agent-step-status="${escapeAttr(status)}" data-step-tone="${tone}">
+      <div class="agent-step-no-badge ${tone === "brand" ? "anim-pulse-soft" : ""}" aria-hidden="true">${String(index + 1).padStart(2, "0")}</div>
       <div class="agent-step-body">
         <div class="agent-step-title">
           <strong>${escapeHtml(step.kind || "step")}</strong>
-          <span>${escapeHtml(status)}</span>
+          <span class="primitive-pill ${stepPillClass(tone)}">${escapeHtml(status)}</span>
         </div>
         <div class="agent-step-meta">
           ${step.requestId ? `<span>request ${escapeHtml(step.requestId)}</span>` : ""}
@@ -428,9 +473,25 @@ function renderStepItem(step, index, busy) {
         </div>
         ${step.output?.errorMessage ? `<p class="agent-step-error">${escapeHtml(step.output.errorMessage)}</p>` : ""}
       </div>
-      ${retryable ? `<button type="button" data-agent-retry-step="${escapeAttr(step.id)}" ${busy ? "disabled" : ""}>重试</button>` : ""}
+      ${retryable ? `<button type="button" class="btn btn--danger" data-agent-retry-step="${escapeAttr(step.id)}" ${busy ? "disabled" : ""}>重试</button>` : ""}
     </article>
   `;
+}
+
+function stepTone(status) {
+  if (["succeeded", "completed", "done"].includes(status)) return "success";
+  if (["failed", "cancelled", "expired"].includes(status)) return "danger";
+  if (["running", "queued", "processing", "generating", "pending"].includes(status)) return "brand";
+  return "muted";
+}
+
+function stepPillClass(tone) {
+  return {
+    success: "primitive-pill--success",
+    danger: "primitive-pill--danger",
+    brand: "primitive-pill--brand",
+    muted: ""
+  }[tone] || "";
 }
 
 function renderPlan(state, busy) {
@@ -452,8 +513,9 @@ function renderPlan(state, busy) {
       <div>
         <span>${escapeHtml(plan.format || "agent-plan")}</span>
         <h2>${escapeHtml(plan.intent || "Agent plan")}</h2>
+        <span class="primitive-pill ${plan.source === "model-enriched-agent-plan" ? "primitive-pill--brand" : ""}">${plan.source === "model-enriched-agent-plan" ? "AI 增强方案" : "规则方案"}</span>
       </div>
-      <strong>${Number(plan.estimatedCredits || 0)} credits</strong>
+      <strong class="agent-credit-pill">${Number(plan.estimatedCredits || 0)} credits</strong>
     </div>
     <div class="agent-plan-notice">
       当前选中 ${selectedCount} 个方案。点击批量生成后才会进入队列并按现有生成规则扣积分。
@@ -466,8 +528,8 @@ function renderPlan(state, busy) {
     ${renderCanvasResult(state)}
     ${renderSessionActions(state, busy)}
     <div class="agent-plan-actions">
-      <button type="button" class="agent-confirm" data-agent-confirm ${busy || invalidSelection ? "disabled" : ""}>确认并开始批量生成</button>
-      <button type="button" class="agent-secondary-action" data-agent-export-canvas ${busy ? "disabled" : ""}>导出到 Canvas v2</button>
+      <button type="button" class="btn btn--primary agent-confirm" data-agent-confirm ${busy || invalidSelection ? "disabled" : ""}>确认并开始批量生成</button>
+      <button type="button" class="btn btn--secondary agent-secondary-action" data-agent-export-canvas ${busy ? "disabled" : ""}>导出到 Canvas v2</button>
     </div>
   `;
 }
@@ -476,8 +538,8 @@ function renderSessionActions(state, busy) {
   if (!state.currentSession?.id) return "";
   return `
     <div class="agent-session-actions">
-      <button type="button" class="agent-secondary-action" data-agent-resume ${busy ? "disabled" : ""}>恢复未完成步骤</button>
-      <button type="button" class="agent-secondary-action" data-agent-export-session ${busy ? "disabled" : ""}>下载 Session ZIP</button>
+      <button type="button" class="btn btn--secondary agent-secondary-action" data-agent-resume ${busy ? "disabled" : ""}>恢复未完成步骤</button>
+      <button type="button" class="btn btn--secondary agent-secondary-action" data-agent-export-session ${busy ? "disabled" : ""}>下载 Session ZIP</button>
       ${state.resumeSummary ? `<span>${escapeHtml(state.resumeSummary)}</span>` : ""}
       ${state.exportSummary ? `<span>${escapeHtml(state.exportSummary)}</span>` : ""}
     </div>
@@ -494,9 +556,9 @@ function renderVariant(variant, state) {
       </label>
       <p>${escapeHtml(variant.prompt)}</p>
       <div class="agent-variant-meta">
-        <span>${escapeHtml(variant.size)}</span>
-        <span>${escapeHtml(variant.quality)}</span>
-        <span>${variant.publicHint ? "适合公开" : "内部探索"}</span>
+        <span class="primitive-pill">${escapeHtml(variant.size)}</span>
+        <span class="primitive-pill">${escapeHtml(variant.quality)}</span>
+        <span class="primitive-pill ${variant.publicHint ? "primitive-pill--success" : "primitive-pill--warn"}">${variant.publicHint ? "适合公开" : "内部探索"}</span>
       </div>
     </article>
   `;
@@ -538,9 +600,9 @@ function renderGenerationRequest(request) {
       </div>
       ${image}
       <div class="agent-request-meta">
-        <span>${escapeHtml(request.status || "pending")}</span>
-        <span>${escapeHtml(request.queueStatus || "")}</span>
-        ${request.errorMessage ? `<span>${escapeHtml(request.errorMessage)}</span>` : ""}
+        <span class="primitive-pill ${stepPillClass(stepTone(request.status || "pending"))}">${escapeHtml(request.status || "pending")}</span>
+        ${request.queueStatus ? `<span class="primitive-pill">${escapeHtml(request.queueStatus)}</span>` : ""}
+        ${request.errorMessage ? `<span class="primitive-pill primitive-pill--danger">${escapeHtml(request.errorMessage)}</span>` : ""}
       </div>
     </article>
   `;
@@ -554,7 +616,7 @@ function renderCanvasResult(state) {
     <section class="agent-canvas-result">
       <strong>Canvas v2 已就绪</strong>
       <span>${escapeHtml(canvas.title || canvas.id)}</span>
-      <a href="${escapeAttr(url)}">打开私有 Canvas</a>
+      <a class="btn btn--secondary" href="${escapeAttr(url)}">打开私有 Canvas</a>
     </section>
   `;
 }
@@ -622,6 +684,25 @@ function roleLabel(role) {
     tool: "Tool",
     agent: "Agent"
   }[role] || role || "Message";
+}
+
+function statusChip(status) {
+  return {
+    loading: "加载中",
+    planning: "规划中",
+    confirming: "确认中",
+    generating: "生成中",
+    submitted: "已提交",
+    exporting: "导出中",
+    resuming: "恢复中",
+    retrying: "重试中",
+    exported: "已导出",
+    confirmed: "已确认",
+    ready: "就绪",
+    error: "错误",
+    idle: "就绪",
+    unauthenticated: "未登录"
+  }[status] || status;
 }
 
 function statusText(status) {

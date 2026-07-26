@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createShellState, renderShell } from "./shell.97588797ec38.js";
+import { createShellState, renderShell } from "./shell.096dc74feecd.js";
 import {
   ApiError,
   createCanvasProject,
@@ -20,7 +20,7 @@ import {
   createEmptyCanvasDocument,
   normalizeCanvasDocument,
 } from "../adapters/canvas-schema.494d72108692.js";
-import { installEditorController } from "../editor/dom-controller.8498df948176.js";
+import { installEditorController } from "../editor/dom-controller.28b7e673489d.js";
 import {
   applyGenerationResult,
   applyGenerationStatus,
@@ -28,6 +28,7 @@ import {
 } from "../features/generation/flow.0e1d5990d197.js";
 import { createHistory, pushHistory, undo, redo, canUndo, canRedo } from "../features/history/index.b598b65cbb1f.js";
 import { triggerFileImport } from "../features/imports/index.b2157e4a6513.js";
+import { filterProjects, loadProjects, upsertProject } from "../features/project-list/index.cb681eca9460.js";
 import { deleteCanvasDraft, readCanvasDraft, saveCanvasDraft } from "../features/drafts/cache-db.e2629b008424.js";
 
 const SAVE_DEBOUNCE_MS = 700;
@@ -180,8 +181,7 @@ export function createCanvasV2App(root) {
   async function refreshProjects({ openInitial = false } = {}) {
     setState({ projectsLoading: true, errorMessage: "" });
     try {
-      const result = await listCanvasProjects({ scope: "mine", limit: 50 });
-      const projects = Array.isArray(result.canvases) ? result.canvases : [];
+      const projects = await loadProjects(listCanvasProjects, { scope: "mine", limit: 50 });
       setState({ projects, projectsLoading: false });
       void refreshTemplates();
       if (openInitial) {
@@ -205,8 +205,8 @@ export function createCanvasV2App(root) {
         listCanvasProjects({ scope: "my-templates", limit: 24 }),
       ]);
       setState({
-        templateMarket: Array.isArray(marketResult.canvases) ? marketResult.canvases : [],
-        myTemplates: Array.isArray(mineResult.canvases) ? mineResult.canvases : [],
+        templateMarket: filterProjects(marketResult.canvases),
+        myTemplates: filterProjects(mineResult.canvases),
         templatesLoading: false,
       });
     } catch (error) {
@@ -669,11 +669,6 @@ export function createCanvasV2App(root) {
 function documentFromCanvas(canvas) {
   const document = normalizeCanvasDocument(canvas?.dataJson, canvas?.title || "Untitled canvas");
   return { ...document, title: canvas?.title || document.title };
-}
-
-function upsertProject(projects, canvas) {
-  const next = [canvas, ...projects.filter((project) => project.id !== canvas.id)];
-  return next.sort((left, right) => Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || ""));
 }
 
 function projectIdFromRoute() {

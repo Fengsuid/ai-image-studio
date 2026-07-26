@@ -10,7 +10,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <title>AI Image Studio</title>
     <script>(()=>{const k="imageStudio.theme",r=document.documentElement,s=()=>window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;let t="";try{const e=localStorage.getItem(k);t=e==="dark"||e==="light"?e:""}catch{}t||(t=s()?"dark":"light"),r.dataset.theme=t,r.style.colorScheme=t;})();</script>
-    <link rel="stylesheet" href="/dist/app.f5ba5a12417a.css">
+    <link rel="stylesheet" href="/dist/app.895bb6d8faad.css">
   </head>
   <body>
     <div id="app" class="app">
@@ -177,11 +177,18 @@
               </h1>
               <p data-i18n="desc" class="hero-desc">将脑海中的画面，转化为触手可及的惊艳视觉。</p>
               <div class="hero-pathway" aria-label="创作路径">
-                <span><i class="ri-chat-quote-line" aria-hidden="true"></i> 描述想法</span>
-                <b aria-hidden="true"></b>
-                <span><i class="ri-image-add-line" aria-hidden="true"></i> 可加参考图</span>
-                <b aria-hidden="true"></b>
-                <span><i class="ri-magic-line" aria-hidden="true"></i> 生成并保存</span>
+                <div class="pathway-card">
+                  <span class="pathway-icon pathway-icon--violet" aria-hidden="true"><i class="ri-chat-quote-line"></i></span>
+                  <span class="pathway-text"><strong>描述想法</strong><span>一句话说清主题与风格</span></span>
+                </div>
+                <div class="pathway-card">
+                  <span class="pathway-icon pathway-icon--blue" aria-hidden="true"><i class="ri-image-add-line"></i></span>
+                  <span class="pathway-text"><strong>可加参考图</strong><span>上传参考图约束构图配色</span></span>
+                </div>
+                <div class="pathway-card">
+                  <span class="pathway-icon pathway-icon--cyan" aria-hidden="true"><i class="ri-magic-line"></i></span>
+                  <span class="pathway-text"><strong>生成并保存</strong><span>成图自动存入你的图库</span></span>
+                </div>
               </div>
             </div>
           </div>

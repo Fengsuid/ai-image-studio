@@ -80,6 +80,153 @@ function buildAgentPlan(message, options = {}) {
   };
 }
 
+const MODEL_PLAN_SOURCE = "model-enriched-agent-plan";
+
+async function buildAgentPlanWithModel(message, options = {}, { callModel } = {}) {
+  const fallback = buildAgentPlan(message, options);
+  if (typeof callModel !== "function") return fallback;
+  try {
+    const data = await callModel({
+      input: planModelPrompt(fallback),
+      temperature: 0.4,
+      max_output_tokens: 1600
+    });
+    const parsed = parsePlanModelJson(extractPlanResponseText(data));
+    const enriched = applyModelPlan(fallback, parsed);
+    if (!enriched) return fallback;
+    return { ...enriched, model: data?.model || "" };
+  } catch {
+    return fallback;
+  }
+}
+
+function planModelPrompt(fallback) {
+  return [
+    {
+      role: "system",
+      content: [
+        "You are an art director planning a coherent AI image series from one user brief.",
+        "Return only JSON with keys: intent, variants, questions.",
+        `variants must be an array of exactly ${fallback.variantCount} objects with keys:`,
+        "title (short Chinese label), angle (English art direction, one sentence),",
+        "palette (array of 1-4 short English color phrases), mood (array of 1-4 short English mood words),",
+        "visualLanguage (array of 1-4 short English technique phrases), publicHint (boolean, true if suitable for a public gallery).",
+        "intent is a concise summary of the brief in its original language, max 96 chars.",
+        "questions is an array of 0-3 short clarifying questions in the brief's language.",
+        "Each variant must serve a distinct purpose in the series (e.g. hero, scene, detail, social cover).",
+        "No markdown, no commentary, JSON only."
+      ].join(" ")
+    },
+    {
+      role: "user",
+      content: JSON.stringify({
+        brief: fallback.userRequest,
+        variantCount: fallback.variantCount,
+        size: fallback.variants[0]?.size || "1024x1536",
+        quality: fallback.variants[0]?.quality || DEFAULT_QUALITY
+      })
+    }
+  ];
+}
+
+function extractPlanResponseText(data) {
+  if (!data) return "";
+  if (typeof data.output_text === "string") return data.output_text;
+  if (typeof data.text === "string") return data.text;
+  if (Array.isArray(data.output)) {
+    return data.output
+      .flatMap((item) => Array.isArray(item.content) ? item.content : [])
+      .map((part) => part.text || part.output_text || "")
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (Array.isArray(data.choices)) {
+    return data.choices
+      .map((choice) => choice.message?.content || choice.text || "")
+      .filter(Boolean)
+      .join("\n");
+  }
+  return "";
+}
+
+function parsePlanModelJson(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function applyModelPlan(fallback, parsed) {
+  if (!parsed || !Array.isArray(parsed.variants) || !parsed.variants.length) return null;
+  const modelVariants = parsed.variants
+    .slice(0, fallback.variantCount)
+    .map((variant) => normalizeModelVariant(variant))
+    .filter(Boolean);
+  if (modelVariants.length < 2) return null;
+
+  const intent = cleanText(parsed.intent, 96) || fallback.intent;
+  const size = fallback.variants[0]?.size || "1024x1536";
+  const quality = fallback.variants[0]?.quality || DEFAULT_QUALITY;
+  const variants = modelVariants.map((variant, index) => ({
+    id: `plan_${index + 1}`,
+    title: variant.title,
+    prompt: buildPrompt({
+      request: fallback.userRequest,
+      intent,
+      direction: { title: variant.title, angle: variant.angle },
+      style: variant.style,
+      index
+    }),
+    size,
+    quality,
+    style: variant.style,
+    publicHint: variant.publicHint
+  }));
+
+  const questions = Array.isArray(parsed.questions)
+    ? parsed.questions.map((item) => cleanText(item, 200)).filter(Boolean).slice(0, 3)
+    : fallback.questions;
+
+  return {
+    ...fallback,
+    source: MODEL_PLAN_SOURCE,
+    intent,
+    variantCount: variants.length,
+    estimatedCredits: variants.length,
+    variants,
+    questions
+  };
+}
+
+function normalizeModelVariant(variant) {
+  const title = cleanText(variant?.title, 80);
+  const angle = cleanText(variant?.angle, 300);
+  if (!title || !angle) return null;
+  const listOf = (value, fallbackItems) => {
+    const items = Array.isArray(value) ? unique(value).slice(0, 4) : [];
+    return items.length ? items : fallbackItems;
+  };
+  return {
+    title,
+    angle,
+    publicHint: variant?.publicHint !== false,
+    style: {
+      palette: listOf(variant?.palette, ["soft porcelain white", "controlled accent color"]),
+      mood: listOf(variant?.mood, ["premium", "polished", "cohesive"]),
+      visualLanguage: listOf(variant?.visualLanguage, ["cinematic lighting", "balanced negative space"])
+    }
+  };
+}
+
 function summarizeAgentPlan(plan) {
   const count = Array.isArray(plan?.variants) ? plan.variants.length : 0;
   const titles = (plan?.variants || []).map((item) => item.title).filter(Boolean).join("、");
@@ -178,5 +325,6 @@ function unique(items) {
 
 module.exports = {
   buildAgentPlan,
+  buildAgentPlanWithModel,
   summarizeAgentPlan
 };

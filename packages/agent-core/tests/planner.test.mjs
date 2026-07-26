@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { buildAgentPlan, summarizeAgentPlan } = require("../src/planner");
+const { buildAgentPlan, buildAgentPlanWithModel, summarizeAgentPlan } = require("../src/planner");
 const agentCore = require("../index.js");
 
 const PLAN_FORMAT = "ai-image-studio.agent-plan.v1";
@@ -155,11 +155,79 @@ test("buildAgentPlan trims input message to 2000 chars and collapses whitespace"
   assert.equal(whitespace.userRequest, "a b c", "whitespace must be normalized");
 });
 
+test("buildAgentPlanWithModel returns deterministic fallback when callModel is absent", async () => {
+  const fallback = buildAgentPlan("宋代瓷器主视觉", { variantCount: 3 });
+  const plan = await buildAgentPlanWithModel("宋代瓷器主视觉", { variantCount: 3 });
+  assert.equal(plan.source, "deterministic-agent-workspace-mvp");
+  assert.deepEqual(plan, fallback, "no callModel must behave exactly like buildAgentPlan");
+});
+
+test("buildAgentPlanWithModel adopts valid model JSON output", async () => {
+  const modelJson = {
+    intent: "茶饮新品上市系列",
+    variants: [
+      {
+        title: "主视觉",
+        angle: "hero composition with product front and center",
+        palette: ["matcha green"],
+        mood: ["fresh"],
+        visualLanguage: ["soft daylight"],
+        publicHint: true
+      },
+      {
+        title: "细节图",
+        angle: "macro close-up of tea texture",
+        palette: ["warm cream"],
+        mood: ["calm"],
+        visualLanguage: ["shallow depth of field"],
+        publicHint: false
+      }
+    ],
+    questions: ["是否需要英文标语？"]
+  };
+  const plan = await buildAgentPlanWithModel("茶饮新品上市海报", { variantCount: 2 }, {
+    callModel: async () => ({ output_text: JSON.stringify(modelJson), model: "test-model" })
+  });
+  assert.equal(plan.source, "model-enriched-agent-plan");
+  assert.equal(plan.model, "test-model");
+  assert.equal(plan.intent, "茶饮新品上市系列");
+  assert.equal(plan.variants.length, 2);
+  assert.equal(plan.variants[0].title, "主视觉");
+  assert.equal(plan.variants[1].publicHint, false);
+  assert(plan.variants[0].prompt.includes("Original brief:"), "prompt assembly must stay through buildPrompt");
+  assert.deepEqual(plan.questions, ["是否需要英文标语？"]);
+  assert.equal(plan.confirmationRequired, true, "confirmation gate must survive enrichment");
+  assert.equal(plan.estimatedCredits, plan.variants.length);
+});
+
+test("buildAgentPlanWithModel falls back when callModel throws", async () => {
+  const plan = await buildAgentPlanWithModel("品牌海报", {}, {
+    callModel: async () => { throw new Error("upstream down"); }
+  });
+  assert.equal(plan.source, "deterministic-agent-workspace-mvp");
+  assert.equal(plan.format, PLAN_FORMAT);
+});
+
+test("buildAgentPlanWithModel falls back on unparseable or insufficient model output", async () => {
+  const garbage = await buildAgentPlanWithModel("品牌海报", {}, {
+    callModel: async () => ({ output_text: "对不起，我无法输出 JSON" })
+  });
+  assert.equal(garbage.source, "deterministic-agent-workspace-mvp");
+
+  const tooFew = await buildAgentPlanWithModel("品牌海报", {}, {
+    callModel: async () => ({
+      output_text: JSON.stringify({ intent: "x", variants: [{ title: "唯一", angle: "only one" }] })
+    })
+  });
+  assert.equal(tooFew.source, "deterministic-agent-workspace-mvp", "fewer than 2 valid variants must fall back");
+});
+
 test("agent-core package exposes INTERFACE.md normalized exports", () => {
   assert.equal(typeof agentCore.createGenerationService, "function");
   assert.equal(typeof agentCore.createRoutes, "function");
   assert.equal(typeof agentCore.createSessionStore, "function");
   assert.equal(typeof agentCore.applySchema, "function");
   assert.equal(typeof agentCore.buildAgentPlan, "function");
+  assert.equal(typeof agentCore.buildAgentPlanWithModel, "function");
   assert.equal(typeof agentCore.summarizeAgentPlan, "function");
 });

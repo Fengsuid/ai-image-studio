@@ -8,7 +8,7 @@ import {
   deleteSelection,
   supportedNodeTypes,
   updateNodeField,
-} from "../../editor/model.js";
+} from "../../editor/model.dc1d45e8498e.js";
 
 export function createNode(canvasDocument, type, position = {}) {
   const node = createEditorNode(type, position);
