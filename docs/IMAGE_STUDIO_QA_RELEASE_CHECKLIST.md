@@ -1063,3 +1063,16 @@ Record the outcome in the relevant development document or release note before m
 - CSP check: external `/` and `/admin` return `Content-Security-Policy` with the early theme bootstrap hash.
 - Known blockers: none after local validation, reviewed baselines, deployment, and external public smoke. Temporary local visual-regression run output is intentionally left in place.
 - Rollback target: revert this AIS-RLS-138 release commit, restore `APP_VERSION=20260619-memory-prompt-paging-v1` and prior hashed CSS/admin/theme-mobile-nav entries, redeploy, then rerun public, theme-mobile-nav, csp-enforce, frontend-build-tooling, and visual-regression smoke.
+
+### 2026-07-26 AIS-RLS-172 Agent/Canvas/Home Feature & Visual Refresh
+
+- Task covered: `AIS-RLS-172` agent workspace + canvas v2 completion and visual redesign, plus homepage polish.
+- Commits covered: `9061c62` (feature/visual), `76837c0` (Dockerfile migrations COPY fix), `f3a873b` (schema-runner SHOW query fix).
+- Backend coverage: agent-core v1.3.0 adds optional `callModel` DI on `/plan` (`buildAgentPlanWithModel`); deterministic fallback on missing/failed/unparseable model output; `plan.source` distinguishes `model-enriched-agent-plan`; server.js injects `callOpenAITextResponses`.
+- Frontend coverage: agent workspace redesigned (sticky topbar, hero status card, numbered tone-colored step timeline, primitive btn/pill/card, token-only colors); canvas v2 adopts primitives, fills node-editor/project-list modules, real single-column mobile layout at 760px; homepage pathway cards, tokenized tiles/cards, hardcoded hex cleanup.
+- Local checks: agent-core check + 17/17 tests, canvas-core 63/63 tests, `node --check server.js`, agent/canvas-v2 check+build, agent-workspace + canvas-v2 static/editor/generation/entry + license-headers + module-boundaries smokes, `frontend:check`/`frontend:build`, privacy regex scan clean.
+- Deployment package: `ai-image-studio-update.tgz`, 211,753,777 bytes / 1732 entries / SHA256 `4702ab28b51640f95deacca03a81996c1b76982bd30d218beba69e5ed522acc6` (added `--exclude=archive --exclude=docs/mobile-qa` to the guide tar command).
+- Deployment note: production runtime updates to `APP_VERSION=20260726-agent-canvas-visual-v1`; backup `aiimagestduio-backup-20260726-152138`; two boot blockers from previously undeployed `f8dd4d7` fixed during rollout (missing `COPY migrations` in Dockerfile; `SHOW ... LIKE ?` via prepared execute rejected by MySQL). No destructive schema migration.
+- Online smoke: `/api/version` reports `20260726-agent-canvas-visual-v1`; internal and external `/`, `/agent`, `/canvas-v2` return 200; external asset hashes match local build (`app.895bb6d8faad.css`, agent `styles.6b03f659cc01.css`, canvas-v2 `styles.10016c7d52b0.css`); in-container `npm run smoke:public` passed.
+- Known blockers: authenticated agent smokes require admin credentials; manual online verification of `/agent` plan generation (`plan.source=model-enriched-agent-plan`) and `/canvas-v2` editor interactions pending.
+- Rollback target: revert `9061c62`+`76837c0`+`f3a873b`, restore `APP_VERSION=20260619-visual-dark-mode-v1`, or restore server backup `aiimagestduio-backup-20260726-152138`, rebuild app container, rerun public smoke.
