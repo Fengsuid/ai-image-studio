@@ -24,6 +24,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json server.js .env.example ./
 COPY src ./src
+COPY migrations ./migrations
 COPY public ./public
 COPY packages ./packages
 COPY apps/canvas-v2 ./apps/canvas-v2
