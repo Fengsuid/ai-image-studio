@@ -92,7 +92,7 @@
 }
 
 .editor-status-row i {
-  color: var(--legacy-color-4338ca);
+  color: var(--brand-600);
   font-size: 18px;
 }
 
@@ -110,10 +110,10 @@
 .editor-status-elapsed {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: var(--legacy-color-4338ca);
-  background: rgba(67, 56, 202, 0.08);
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-600) 8%, transparent);
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
 }
 
@@ -262,8 +262,8 @@
 }
 
 .square-route-step.active {
-  border-color: var(--legacy-color-4338ca);
-  background: rgba(67, 56, 202, 0.08);
+  border-color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-600) 8%, transparent);
 }
 
 .square-route-step.hidden {
@@ -443,4 +443,24 @@
   font-size: 16px;
   border: 1px solid var(--legacy-color-e5e7eb);
   flex: 0 0 auto;
+}
+
+/* Dark mode overrides — brand status bar accents */
+:root[data-theme="dark"] .editor-status-bar {
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .editor-status-row i,
+:root[data-theme="dark"] .editor-status-elapsed {
+  color: var(--brand-600);
+}
+
+:root[data-theme="dark"] .editor-status-elapsed {
+  background: color-mix(in srgb, var(--brand-500) 16%, transparent);
+}
+
+:root[data-theme="dark"] .square-route-step.active {
+  border-color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 14%, transparent);
 }

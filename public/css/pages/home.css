@@ -477,6 +477,36 @@
   max-width: 640px;
 }
 
+/* 渐变徽标风格视觉强调（参考 hero-badge） */
+.leaderboard-page-head .library-badge {
+  border: 1px solid color-mix(in srgb, var(--brand-400) 36%, transparent);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--brand-500) 12%, var(--surface-card)) 0%,
+    color-mix(in srgb, var(--legacy-color-8b5cf6) 12%, var(--surface-card)) 100%);
+  color: var(--brand-600);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-xs);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.leaderboard-page-head .library-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--brand-500) 52%, transparent);
+}
+
+.leaderboard-page-head .library-badge i {
+  color: transparent;
+  background: linear-gradient(100deg, var(--brand-700) 0%, var(--brand-500) 52%, var(--legacy-color-8b5cf6) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 .leaderboard-page .gallery-leaderboard {
   position: static;
   max-height: none;
@@ -486,4 +516,19 @@
   padding: clamp(14px, 2vw, 22px);
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+}
+
+/* Dark mode overrides — leaderboard page head badge */
+:root[data-theme="dark"] .leaderboard-page-head .library-badge {
+  border-color: color-mix(in srgb, var(--brand-500) 40%, transparent);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--brand-500) 18%, var(--surface-card)) 0%,
+    color-mix(in srgb, var(--legacy-color-8b5cf6) 18%, var(--surface-card)) 100%);
+  color: var(--brand-600);
+}
+
+:root[data-theme="dark"] .leaderboard-page-head .library-badge i {
+  background: linear-gradient(100deg, var(--brand-700) 0%, var(--brand-500) 52%, var(--legacy-color-8b5cf6) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
 }

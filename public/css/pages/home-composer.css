@@ -106,19 +106,30 @@
 .gallery-rank-tabs button {
   min-height: 28px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--legacy-color-64748b);
   padding: 0 10px;
   font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.gallery-rank-tabs button:hover:not(.active) {
+  transform: translateY(-1px);
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 10%, transparent);
 }
 
 .gallery-rank-tabs button.active {
-  background: var(--legacy-color-0f172a);
-  color: var(--legacy-color-ffffff);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-400) 100%);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
 }
 
 .gallery-leaderboard-list {
@@ -132,9 +143,20 @@
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(226, 232, 240, 0.78);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: rgba(248, 250, 252, 0.78);
   padding: 8px;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.gallery-rank-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--brand-400) 42%, transparent);
 }
 
 .gallery-rank-card.top-1 {
@@ -157,6 +179,14 @@
   background: var(--legacy-color-e2e8f0);
   cursor: zoom-in;
   overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.gallery-rank-visual:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .gallery-rank-visual img {
@@ -216,12 +246,23 @@
   align-items: center;
   gap: 4px;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--legacy-color-ffffff);
   color: var(--legacy-color-64748b);
   padding: 0 8px;
   font-size: 12px;
   font-weight: 800;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.gallery-rank-card .rank-like:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--brand-400) 46%, transparent);
+  color: var(--brand-600);
 }
 
 .gallery-rank-card .rank-like.liked,
@@ -445,4 +486,45 @@
   align-content: start;
   gap: 18px;
   border-left: 1px solid rgba(226, 232, 240, 0.86);
+}
+
+/* Dark mode overrides — rank tabs / cards brand states */
+:root[data-theme="dark"] .gallery-rank-tabs div {
+  background: color-mix(in srgb, var(--neutral-800) 76%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .gallery-rank-tabs button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .gallery-rank-tabs button:hover:not(.active) {
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 16%, transparent);
+}
+
+:root[data-theme="dark"] .gallery-rank-tabs button.active {
+  background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
+  color: var(--text-on-brand);
+}
+
+:root[data-theme="dark"] .gallery-rank-card {
+  background: color-mix(in srgb, var(--neutral-800) 82%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .gallery-rank-card:hover {
+  border-color: color-mix(in srgb, var(--brand-500) 42%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+:root[data-theme="dark"] .gallery-rank-card .rank-like {
+  background: var(--surface-elev-2);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .gallery-rank-card .rank-like:hover {
+  border-color: color-mix(in srgb, var(--brand-500) 46%, transparent);
+  color: var(--brand-600);
 }

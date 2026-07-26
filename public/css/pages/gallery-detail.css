@@ -100,17 +100,28 @@
   gap: 8px;
   min-height: 44px;
   padding: 0 26px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--legacy-color-64748b);
   font-size: 16px;
   font-weight: 700;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.editor-tabs button:hover:not(.active) {
+  transform: translateY(-1px);
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 10%, transparent);
 }
 
 .editor-tabs button.active {
-  background: linear-gradient(135deg, var(--legacy-color-7c3aed), var(--legacy-color-c026d3));
-  color: var(--legacy-color-ffffff);
-  box-shadow: inset -4px -6px 25px rgba(201, 201, 201, 0.08), inset 4px 4px 10px rgba(29, 29, 29, 0.24);
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 55%, var(--legacy-color-8b5cf6) 100%);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
 }
 
 .editor-workspace {
@@ -154,11 +165,23 @@
   background: transparent;
   color: var(--legacy-color-475569);
   font-size: 25px;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.editor-toolbar button:hover:not(.active) {
+  transform: translateY(-1px);
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 10%, transparent);
 }
 
 .editor-toolbar button.active {
-  background: linear-gradient(135deg, var(--legacy-color-7c3aed), var(--legacy-color-9333ea));
-  color: var(--legacy-color-ffffff);
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-400) 100%);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
 }
 
 .editor-toolbar input[type="color"] {
@@ -446,4 +469,36 @@
   color: var(--legacy-color-0f172a);
   font-size: 18px;
   outline: none;
+}
+
+/* Dark mode overrides — editor tabs / toolbar brand states */
+:root[data-theme="dark"] .editor-tabs {
+  background: color-mix(in srgb, var(--neutral-800) 76%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .editor-tabs button,
+:root[data-theme="dark"] .editor-toolbar button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .editor-tabs button:hover:not(.active),
+:root[data-theme="dark"] .editor-toolbar button:hover:not(.active) {
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 16%, transparent);
+}
+
+:root[data-theme="dark"] .editor-tabs button.active {
+  background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-500) 55%, var(--legacy-color-8b5cf6) 100%);
+  color: var(--text-on-brand);
+}
+
+:root[data-theme="dark"] .editor-toolbar {
+  background: color-mix(in srgb, var(--neutral-800) 88%, transparent);
+  border-color: var(--border-subtle);
+}
+
+:root[data-theme="dark"] .editor-toolbar button.active {
+  background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
+  color: var(--text-on-brand);
 }

@@ -191,11 +191,17 @@
   display: none;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(226, 232, 240, 0.88);
+  border: 1px solid color-mix(in srgb, var(--neutral-200) 50%, transparent);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.86);
+  background: color-mix(in srgb, var(--neutral-0) 72%, transparent);
   box-shadow: 0 18px 52px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(20px);
+}
+
+:root[data-theme="dark"] .chat-session-panel {
+  border-color: var(--border-subtle);
+  background: color-mix(in srgb, var(--neutral-800) 78%, transparent);
+  box-shadow: var(--shadow-md);
 }
 
 .app.chat-panel-visible .chat-session-panel,
@@ -288,18 +294,30 @@
   gap: 10px;
   text-align: left;
   align-items: center;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 
-.chat-session-card:hover,
+.chat-session-card:hover {
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 12%, transparent);
+  box-shadow: none;
+}
+
 .chat-session-card.active {
   background: var(--legacy-color-ffffff);
-  border-color: var(--legacy-color-e2e8f0);
+  border-color: rgba(99, 102, 241, 0.34);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.chat-session-card.active {
-  border-color: rgba(99, 102, 241, 0.34);
+:root[data-theme="dark"] .chat-session-card:hover {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 20%, transparent);
+}
+
+:root[data-theme="dark"] .chat-session-card.active {
+  background: color-mix(in srgb, var(--neutral-700) 55%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 34%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
 .session-thumb {
@@ -404,21 +422,32 @@
   gap: 12px;
   color: var(--legacy-color-475467);
   font-size: 14px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--neutral-0) 82%, transparent);
   backdrop-filter: blur(16px);
 }
 
 .elapsed-pill {
   margin-left: auto;
   border-radius: 999px;
-  background: var(--legacy-color-111827);
-  color: var(--legacy-color-ffffff);
+  background: var(--brand-soft);
+  color: var(--brand);
   padding: 5px 10px;
   font-variant-numeric: tabular-nums;
   font-size: 12px;
   font-weight: 700;
+}
+
+:root[data-theme="dark"] .generation-status {
+  color: var(--text-secondary);
+  border-color: color-mix(in srgb, var(--brand) 28%, transparent);
+  background: color-mix(in srgb, var(--neutral-800) 82%, transparent);
+}
+
+:root[data-theme="dark"] .elapsed-pill {
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .paint-drip {

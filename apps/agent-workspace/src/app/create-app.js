@@ -303,36 +303,22 @@ function renderShell(state) {
           <span class="agent-brand-mark" aria-hidden="true">AI</span>
           <span class="agent-brand-text">
             <strong>Agent 创作工作台</strong>
-            <span>Workflow Studio</span>
+            <span>确认前不扣积分</span>
           </span>
         </div>
+        <span class="agent-topbar-status primitive-pill ${state.status === "error" ? "primitive-pill--danger" : busy ? "primitive-pill--brand anim-pulse-soft" : "primitive-pill--success"}">${escapeHtml(statusChip(state.status))}</span>
         <nav class="agent-nav" aria-label="Agent workspace navigation">
           <a class="btn btn--ghost" href="/">首页</a>
           <a class="btn btn--ghost" href="/canvas-v2">画布</a>
           <button type="button" class="btn btn--ghost" data-agent-refresh ${busy ? "disabled" : ""}>刷新</button>
-          <button type="button" class="btn btn--primary" data-agent-new ${busy ? "disabled" : ""}>新建创作</button>
         </nav>
       </header>
-      <section class="agent-hero">
-        <div class="agent-hero-copy">
-          <span class="agent-kicker">Agent + Canvas + Workflow</span>
-          <h1>把一句想法拆成<br>可执行的创作工作流。</h1>
-          <p>Agent 负责生成计划、拆分步骤、调度素材和模型；确认后每个方案独立入队生成，并可一键导出为私有 Canvas v2 项目。确认前不扣积分。</p>
-          <div class="agent-hero-tags">
-            <span class="primitive-pill">同源 API</span>
-            <span class="primitive-pill">CSRF 写保护</span>
-            <span class="primitive-pill">独立队列追踪</span>
-            <span class="primitive-pill primitive-pill--success">确认前不扣积分</span>
-          </div>
-        </div>
-        ${renderHeroStatus(state, busy)}
-      </section>
       ${state.auth ? renderWorkspace(state, busy) : renderLoginRequired(state)}
     </main>
   `;
 }
 
-function renderHeroStatus(state, busy) {
+function renderThreadHead(state, busy) {
   const steps = state.currentSession?.steps || [];
   const doneCount = steps.filter((step) => ["succeeded", "completed", "done"].includes(step.status)).length;
   const failedCount = steps.filter((step) => ["failed", "cancelled", "expired"].includes(step.status)).length;
@@ -342,20 +328,22 @@ function renderHeroStatus(state, busy) {
     ? "primitive-pill--danger"
     : busy ? "primitive-pill--brand" : "primitive-pill--success";
   return `
-    <aside class="agent-hero-status" aria-label="当前会话运行态">
-      <div class="agent-hero-status-head">
-        <strong>${escapeHtml(state.currentSession?.title || "尚未选择会话")}</strong>
+    <div class="agent-thread-head">
+      <div class="agent-thread-head-main">
+        <strong>${escapeHtml(state.currentSession?.title || "新的创作")}</strong>
         <span class="primitive-pill ${chipClass} ${busy ? "anim-pulse-soft" : ""}">${escapeHtml(statusChip(state.status))}</span>
       </div>
-      <div class="agent-hero-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}">
-        <i style="width:${progress}%"></i>
-      </div>
-      <dl class="agent-hero-stats">
-        <div><dt>步骤</dt><dd>${doneCount}/${steps.length}</dd></div>
-        <div><dt>失败</dt><dd data-tone="${failedCount ? "danger" : "muted"}">${failedCount}</dd></div>
-        <div><dt>预估积分</dt><dd>${credits}</dd></div>
-      </dl>
-    </aside>
+      ${steps.length ? `
+        <div class="agent-thread-head-meta">
+          <div class="agent-thread-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}">
+            <i style="width:${progress}%"></i>
+          </div>
+          <span>步骤 ${doneCount}/${steps.length}</span>
+          ${failedCount ? `<span data-tone="danger">失败 ${failedCount}</span>` : ""}
+          ${credits ? `<span>预估 ${credits} 积分</span>` : ""}
+        </div>
+      ` : ""}
+    </div>
   `;
 }
 
@@ -374,6 +362,7 @@ function renderWorkspace(state, busy) {
   return `
     <section class="agent-workspace">
       <aside class="agent-session-panel">
+        <button type="button" class="btn btn--primary agent-new-btn" data-agent-new ${busy ? "disabled" : ""}>＋ 新建创作</button>
         <div class="agent-panel-head">
           <div>
             <span>会话</span>
@@ -386,19 +375,21 @@ function renderWorkspace(state, busy) {
         </div>
       </aside>
       <section class="agent-thread-panel">
+        ${renderThreadHead(state, busy)}
+        <div class="agent-thread-scroll">
+          <div class="agent-thread">
+            ${renderMessages(state.currentSession)}
+          </div>
+          ${renderStepTimeline(state, busy)}
+        </div>
         <div class="agent-compose">
-          <label for="agentDraft">自然语言需求</label>
-          <textarea id="agentDraft" data-agent-draft rows="5" placeholder="描述你想要的一组图...">${escapeHtml(state.draft)}</textarea>
+          <textarea id="agentDraft" data-agent-draft rows="3" aria-label="自然语言需求" placeholder="描述你想要的一组图，例如：给我的咖啡品牌做一组早秋主题海报...">${escapeHtml(state.draft)}</textarea>
           <div class="agent-compose-actions">
             <span>${statusText(state.status)}</span>
-            <button type="button" class="btn btn--primary" data-agent-submit ${busy ? "disabled" : ""}>生成 4 个方案</button>
+            <button type="button" class="btn btn--primary" data-agent-submit ${busy ? "disabled" : ""}>生成方案</button>
           </div>
           ${state.error ? `<p class="agent-error">${escapeHtml(state.error)}</p>` : ""}
         </div>
-        <div class="agent-thread">
-          ${renderMessages(state.currentSession)}
-        </div>
-        ${renderStepTimeline(state, busy)}
       </section>
       <aside class="agent-plan-panel">
         ${renderPlan(state, busy)}

@@ -20,10 +20,10 @@
       "/css/mobile/_mobile-editor.css",
       "/css/mobile/_premium.css"
     ],
-    "entry": "/dist/app.895bb6d8faad.css",
-    "file": "/dist/app.895bb6d8faad.css",
-    "hash": "895bb6d8faad",
-    "bytes": 301070,
+    "entry": "/dist/app.a44f93519509.css",
+    "file": "/dist/app.a44f93519509.css",
+    "hash": "a44f93519509",
+    "bytes": 315227,
     "sources": [
       "/vendor/icons/remixicon.min.css",
       "/vendor/icons/remixicon-compat.css",

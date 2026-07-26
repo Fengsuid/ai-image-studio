@@ -16,11 +16,21 @@
   min-width: 132px;
   height: 54px;
   gap: 8px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--legacy-color-7c3aed), var(--legacy-color-db2777));
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 55%, var(--legacy-color-8b5cf6) 100%);
   font-size: 18px;
   font-weight: 800;
-  box-shadow: inset -4px -6px 25px rgba(201, 201, 201, 0.08), inset 4px 4px 10px rgba(29, 29, 29, 0.24);
+  box-shadow: var(--shadow-brand);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
+}
+
+.editor-prompt-bar button[type="submit"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow-brand);
+  filter: brightness(1.05);
 }
 
 .editor-prompt-bar button[type="submit"]:disabled {
@@ -219,4 +229,11 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Dark mode override — submit button brand gradient */
+:root[data-theme="dark"] .editor-prompt-bar button[type="submit"] {
+  background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-500) 55%, var(--legacy-color-8b5cf6) 100%);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
 }

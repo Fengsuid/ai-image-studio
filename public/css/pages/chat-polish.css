@@ -1,7 +1,24 @@
 /* Chat utility polish: scroll-top affordance and generated image zoom modal. */
+/* AIS-RLS-161 chat polish: glass chat surfaces, brand scroll-top, composer fade mask. */
 
 .chat-workspace {
   position: relative;
+  background: linear-gradient(180deg, transparent 0%, var(--surface) 120px);
+}
+
+.sticky-composer {
+  position: relative;
+}
+
+.sticky-composer::before {
+  content: '';
+  position: absolute;
+  top: -48px;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(transparent, var(--bg));
+  pointer-events: none;
 }
 
 .chat-scroll-top {
@@ -14,27 +31,47 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.62);
+  border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent);
   border-radius: 999px;
   padding: 0;
-  background: rgba(15, 23, 42, 0.78);
-  color: var(--legacy-color-ffffff);
+  background: color-mix(in srgb, var(--neutral-0) 88%, transparent);
+  color: var(--brand);
   font-size: 20px;
   font-weight: 800;
-  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--brand) 15%, transparent);
   backdrop-filter: blur(16px);
   transform: translateY(-50%) translateZ(0);
-  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .chat-scroll-top:hover {
-  background: rgba(15, 23, 42, 0.96);
-  box-shadow: 0 20px 46px rgba(15, 23, 42, 0.28);
+  background: color-mix(in srgb, var(--neutral-0) 98%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--brand) 22%, transparent);
   transform: translateY(-50%) scale(1.04) translateZ(0);
 }
 
 .chat-scroll-top span {
   display: none;
+}
+
+:root[data-theme="dark"] .chat-workspace {
+  background: linear-gradient(180deg, transparent 0%, var(--surface) 120px);
+}
+
+:root[data-theme="dark"] .sticky-composer::before {
+  background: linear-gradient(transparent, var(--bg));
+}
+
+:root[data-theme="dark"] .chat-scroll-top {
+  background: color-mix(in srgb, var(--neutral-800) 88%, transparent);
+  color: var(--brand);
+  border-color: color-mix(in srgb, var(--brand) 32%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--neutral-900) 45%, transparent);
+}
+
+:root[data-theme="dark"] .chat-scroll-top:hover {
+  background: color-mix(in srgb, var(--neutral-800) 98%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--brand) 24%, transparent);
 }
 
 .image-shell-zoom {

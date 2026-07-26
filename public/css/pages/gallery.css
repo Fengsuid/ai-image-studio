@@ -372,9 +372,15 @@
 .link-button {
   border: 0;
   background: transparent;
-  color: var(--legacy-color-9aa2af);
+  color: var(--text-secondary);
   font-size: 13px;
   padding: 8px;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.link-button:hover {
+  color: var(--brand-600);
 }
 
 .auth-tabs {
@@ -394,12 +400,23 @@
   color: var(--legacy-color-8b94a1);
   min-height: 38px;
   font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.auth-tabs button:hover:not(.active) {
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 8%, transparent);
 }
 
 .auth-tabs button.active {
-  background: var(--legacy-color-ffffff);
-  color: var(--ink);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-400) 100%);
+  color: var(--text-on-brand);
+  box-shadow: var(--shadow-brand);
 }
 
 .credits-packages {
@@ -448,4 +465,31 @@
   border-radius: 18px;
   padding: 16px 8px;
   position: relative;
+}
+
+/* Dark mode overrides — auth tabs / link button */
+:root[data-theme="dark"] .auth-tabs {
+  background: color-mix(in srgb, var(--neutral-800) 82%, transparent);
+}
+
+:root[data-theme="dark"] .auth-tabs button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .auth-tabs button:hover:not(.active) {
+  color: var(--brand-600);
+  background: color-mix(in srgb, var(--brand-500) 14%, transparent);
+}
+
+:root[data-theme="dark"] .auth-tabs button.active {
+  background: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
+  color: var(--text-on-brand);
+}
+
+:root[data-theme="dark"] .link-button {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .link-button:hover {
+  color: var(--brand-600);
 }
