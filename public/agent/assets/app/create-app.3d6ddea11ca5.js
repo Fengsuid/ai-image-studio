@@ -31,6 +31,9 @@ export function createAgentWorkspaceApp(root) {
     resumeSummary: "",
     selectedVariantIds: new Set(),
     draft: DEFAULT_PROMPT,
+    variantCount: 4,
+    sessionsOpen: false,
+    planOpen: false,
     status: "idle",
     error: ""
   };
@@ -103,13 +106,14 @@ export function createAgentWorkspaceApp(root) {
         }
         const result = await createAgentPlan(sessionId, {
           message,
-          variantCount: 4
+          variantCount: state.variantCount
         });
         state.currentSession = result.session || null;
         state.currentPlan = result.plan || latestPlanFromSession(state.currentSession);
         state.selectedVariantIds = new Set((state.currentPlan?.variants || []).map((item) => item.id));
         state.lastBatchResult = null;
         state.lastCanvas = null;
+        state.planOpen = true;
         const sessions = await listAgentSessions({ limit: 30 });
         state.sessions = sessions.sessions || [];
         state.status = "ready";
@@ -149,6 +153,7 @@ export function createAgentWorkspaceApp(root) {
         state.currentSession = batch.session || state.currentSession;
         state.currentPlan = latestPlanFromSession(state.currentSession) || state.currentPlan;
         state.lastBatchResult = batch;
+        state.planOpen = false;
         state.status = "submitted";
       } catch (error) {
         state.error = errorMessage(error);
@@ -260,6 +265,8 @@ export function createAgentWorkspaceApp(root) {
       state.lastCanvas = null;
       state.selectedVariantIds = new Set();
       state.draft = DEFAULT_PROMPT;
+      state.sessionsOpen = false;
+      state.planOpen = false;
       render();
       root.querySelector("[data-agent-draft]")?.focus();
     });
@@ -271,12 +278,49 @@ export function createAgentWorkspaceApp(root) {
     root.querySelector("[data-agent-draft]")?.addEventListener("input", (event) => {
       state.draft = event.currentTarget.value;
     });
-    root.querySelectorAll("[data-agent-session-id]").forEach((button) => {
-      button.addEventListener("click", () => actions.openSession(button.dataset.agentSessionId).then(render).catch((error) => {
-        state.error = errorMessage(error);
-        state.status = "error";
+    root.querySelector("[data-agent-sessions-toggle]")?.addEventListener("click", () => {
+      state.sessionsOpen = !state.sessionsOpen;
+      render();
+    });
+    root.querySelectorAll("[data-agent-sessions-close]").forEach((element) => {
+      element.addEventListener("click", () => {
+        state.sessionsOpen = false;
         render();
-      }));
+      });
+    });
+    root.querySelectorAll("[data-agent-plan-open]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.planOpen = true;
+        render();
+      });
+    });
+    root.querySelectorAll("[data-agent-plan-close]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.planOpen = false;
+        render();
+      });
+    });
+    root.querySelector("[data-agent-plan-layer]")?.addEventListener("click", (event) => {
+      if (event.target === event.currentTarget) {
+        state.planOpen = false;
+        render();
+      }
+    });
+    root.querySelectorAll("[data-agent-variant-count]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.variantCount = Number.parseInt(button.dataset.agentVariantCount, 10) || 4;
+        render();
+      });
+    });
+    root.querySelectorAll("[data-agent-session-id]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.sessionsOpen = false;
+        actions.openSession(button.dataset.agentSessionId).then(render).catch((error) => {
+          state.error = errorMessage(error);
+          state.status = "error";
+          render();
+        });
+      });
     });
     root.querySelectorAll("[data-agent-variant-id]").forEach((input) => {
       input.addEventListener("change", () => {
@@ -308,12 +352,18 @@ function renderShell(state) {
         </div>
         <span class="agent-topbar-status primitive-pill ${state.status === "error" ? "primitive-pill--danger" : busy ? "primitive-pill--brand anim-pulse-soft" : "primitive-pill--success"}">${escapeHtml(statusChip(state.status))}</span>
         <nav class="agent-nav" aria-label="Agent workspace navigation">
+          ${state.auth ? `
+            <button type="button" class="btn btn--secondary" data-agent-sessions-toggle>会话<span class="agent-nav-count">${(state.sessions || []).length}</span></button>
+            <button type="button" class="btn btn--primary" data-agent-new ${busy ? "disabled" : ""}>＋ 新建</button>
+          ` : ""}
+          <button type="button" class="btn btn--ghost" data-agent-refresh ${busy ? "disabled" : ""}>刷新</button>
           <a class="btn btn--ghost" href="/">首页</a>
           <a class="btn btn--ghost" href="/canvas-v2">画布</a>
-          <button type="button" class="btn btn--ghost" data-agent-refresh ${busy ? "disabled" : ""}>刷新</button>
         </nav>
       </header>
       ${state.auth ? renderWorkspace(state, busy) : renderLoginRequired(state)}
+      ${state.auth && state.sessionsOpen ? renderSessionsDrawer(state, busy) : ""}
+      ${state.auth && state.planOpen && state.currentPlan ? renderPlanModal(state, busy) : ""}
     </main>
   `;
 }
@@ -332,6 +382,7 @@ function renderThreadHead(state, busy) {
       <div class="agent-thread-head-main">
         <strong>${escapeHtml(state.currentSession?.title || "新的创作")}</strong>
         <span class="primitive-pill ${chipClass} ${busy ? "anim-pulse-soft" : ""}">${escapeHtml(statusChip(state.status))}</span>
+        ${state.currentPlan ? `<button type="button" class="btn btn--secondary agent-thread-plan-btn" data-agent-plan-open ${busy ? "disabled" : ""}>查看方案</button>` : ""}
       </div>
       ${steps.length ? `
         <div class="agent-thread-head-meta">
@@ -360,41 +411,112 @@ function renderLoginRequired(state) {
 
 function renderWorkspace(state, busy) {
   return `
-    <section class="agent-workspace">
-      <aside class="agent-session-panel">
-        <button type="button" class="btn btn--primary agent-new-btn" data-agent-new ${busy ? "disabled" : ""}>＋ 新建创作</button>
-        <div class="agent-panel-head">
-          <div>
-            <span>会话</span>
-            <strong>${escapeHtml(state.auth?.name || state.auth?.email || "Agent user")}</strong>
-          </div>
-          <span class="primitive-pill">${(state.sessions || []).length}</span>
-        </div>
-        <div class="agent-session-list">
-          ${renderSessions(state)}
-        </div>
-      </aside>
-      <section class="agent-thread-panel">
-        ${renderThreadHead(state, busy)}
-        <div class="agent-thread-scroll">
+    <section class="agent-main">
+      ${renderThreadHead(state, busy)}
+      <div class="agent-thread-scroll">
+        <div class="agent-thread-column">
           <div class="agent-thread">
             ${renderMessages(state.currentSession)}
           </div>
+          ${renderPlanSummary(state, busy)}
           ${renderStepTimeline(state, busy)}
+          ${renderGenerationResults(state)}
+          ${renderCanvasResult(state)}
         </div>
-        <div class="agent-compose">
+      </div>
+      <div class="agent-compose">
+        <div class="agent-thread-column">
           <textarea id="agentDraft" data-agent-draft rows="3" aria-label="自然语言需求" placeholder="描述你想要的一组图，例如：给我的咖啡品牌做一组早秋主题海报...">${escapeHtml(state.draft)}</textarea>
           <div class="agent-compose-actions">
-            <span>${statusText(state.status)}</span>
-            <button type="button" class="btn btn--primary" data-agent-submit ${busy ? "disabled" : ""}>生成方案</button>
+            <div class="agent-count-seg" role="group" aria-label="生成方案个数">
+              <span>方案数</span>
+              ${[2, 3, 4].map((count) => `
+                <button type="button" data-agent-variant-count="${count}" class="${state.variantCount === count ? "active" : ""}" ${busy ? "disabled" : ""}>${count}</button>
+              `).join("")}
+            </div>
+            <span class="agent-compose-status">${statusText(state.status)}</span>
+            <button type="button" class="btn btn--primary" data-agent-submit ${busy ? "disabled" : ""}>生成 ${state.variantCount} 个方案</button>
           </div>
           ${state.error ? `<p class="agent-error">${escapeHtml(state.error)}</p>` : ""}
         </div>
-      </section>
-      <aside class="agent-plan-panel">
-        ${renderPlan(state, busy)}
-      </aside>
+      </div>
     </section>
+  `;
+}
+
+function renderPlanSummary(state, busy) {
+  const plan = state.currentPlan;
+  if (!plan) return "";
+  const total = (plan.variants || []).length;
+  const selected = state.selectedVariantIds.size;
+  return `
+    <article class="agent-plan-summary">
+      <div class="agent-plan-summary-body">
+        <div class="agent-plan-summary-title">
+          <strong>${escapeHtml(plan.intent || "Agent plan")}</strong>
+          <span class="primitive-pill ${plan.source === "model-enriched-agent-plan" ? "primitive-pill--brand" : ""}">${plan.source === "model-enriched-agent-plan" ? "AI 增强" : "规则方案"}</span>
+        </div>
+        <span class="agent-plan-summary-meta">${total} 个方案 · 已选 ${selected} · 预估 ${Number(plan.estimatedCredits || 0)} 积分</span>
+      </div>
+      <button type="button" class="btn btn--secondary" data-agent-plan-open ${busy ? "disabled" : ""}>选择方案并生成</button>
+    </article>
+  `;
+}
+
+function renderSessionsDrawer(state, busy) {
+  return `
+    <div class="primitive-drawer-layer" data-agent-sessions-close></div>
+    <aside class="primitive-drawer agent-sessions-drawer" role="dialog" aria-modal="true" aria-label="会话列表">
+      <div class="primitive-drawer__head">
+        <h2>会话</h2>
+        <div class="agent-drawer-head-actions">
+          <span class="primitive-pill">${(state.sessions || []).length}</span>
+          <button type="button" class="btn btn--ghost" data-agent-sessions-close aria-label="关闭">✕</button>
+        </div>
+      </div>
+      <div class="primitive-drawer__body agent-drawer-body">
+        <button type="button" class="btn btn--primary agent-new-btn" data-agent-new ${busy ? "disabled" : ""}>＋ 新建创作</button>
+        <div class="agent-session-list">
+          ${renderSessions(state)}
+        </div>
+        ${renderSessionActions(state, busy)}
+      </div>
+    </aside>
+  `;
+}
+
+function renderPlanModal(state, busy) {
+  const plan = state.currentPlan;
+  const selectedCount = state.selectedVariantIds.size;
+  const invalidSelection = selectedCount < 2 || selectedCount > 4;
+  return `
+    <div class="primitive-modal-layer agent-modal-layer" data-agent-plan-layer>
+      <div class="primitive-modal primitive-modal--keep-centered agent-plan-modal" role="dialog" aria-modal="true" aria-label="选择生成方案">
+        <div class="agent-plan-head">
+          <div>
+            <span>${escapeHtml(plan.format || "agent-plan")}</span>
+            <h2>${escapeHtml(plan.intent || "Agent plan")}</h2>
+            <span class="primitive-pill ${plan.source === "model-enriched-agent-plan" ? "primitive-pill--brand" : ""}">${plan.source === "model-enriched-agent-plan" ? "AI 增强方案" : "规则方案"}</span>
+          </div>
+          <div class="agent-plan-head-actions">
+            <strong class="agent-credit-pill">${Number(plan.estimatedCredits || 0)} credits</strong>
+            <button type="button" class="btn btn--ghost" data-agent-plan-close aria-label="关闭">✕</button>
+          </div>
+        </div>
+        <div class="agent-plan-notice">
+          当前选中 ${selectedCount} 个方案（需 2-4 个）。点击批量生成后才会进入队列并按现有生成规则扣积分。
+        </div>
+        <div class="agent-variant-list">
+          ${(plan.variants || []).map((variant) => renderVariant(variant, state)).join("")}
+        </div>
+        ${renderQuestions(plan)}
+        <div class="agent-plan-actions">
+          <button type="button" class="btn btn--primary agent-confirm" data-agent-confirm ${busy || invalidSelection ? "disabled" : ""}>确认并开始批量生成</button>
+          <button type="button" class="btn btn--secondary agent-secondary-action" data-agent-export-canvas ${busy ? "disabled" : ""}>导出到 Canvas v2</button>
+        </div>
+        ${state.error ? `<p class="agent-error">${escapeHtml(state.error)}</p>` : ""}
+      </div>
+    </div>
   `;
 }
 
@@ -483,46 +605,6 @@ function stepPillClass(tone) {
     brand: "primitive-pill--brand",
     muted: ""
   }[tone] || "";
-}
-
-function renderPlan(state, busy) {
-  const plan = state.currentPlan;
-  if (!plan) {
-    return `
-      <div class="agent-plan-empty">
-        <span>Plan</span>
-        <h2>等待生成方案</h2>
-        <p>输入一句需求后，这里会显示 2 到 4 个结构化 prompt、尺寸、质量、风格和追问。</p>
-        ${renderSessionActions(state, busy)}
-      </div>
-    `;
-  }
-  const selectedCount = state.selectedVariantIds.size;
-  const invalidSelection = selectedCount < 2 || selectedCount > 4;
-  return `
-    <div class="agent-plan-head">
-      <div>
-        <span>${escapeHtml(plan.format || "agent-plan")}</span>
-        <h2>${escapeHtml(plan.intent || "Agent plan")}</h2>
-        <span class="primitive-pill ${plan.source === "model-enriched-agent-plan" ? "primitive-pill--brand" : ""}">${plan.source === "model-enriched-agent-plan" ? "AI 增强方案" : "规则方案"}</span>
-      </div>
-      <strong class="agent-credit-pill">${Number(plan.estimatedCredits || 0)} credits</strong>
-    </div>
-    <div class="agent-plan-notice">
-      当前选中 ${selectedCount} 个方案。点击批量生成后才会进入队列并按现有生成规则扣积分。
-    </div>
-    <div class="agent-variant-list">
-      ${(plan.variants || []).map((variant) => renderVariant(variant, state)).join("")}
-    </div>
-    ${renderQuestions(plan)}
-    ${renderGenerationResults(state)}
-    ${renderCanvasResult(state)}
-    ${renderSessionActions(state, busy)}
-    <div class="agent-plan-actions">
-      <button type="button" class="btn btn--primary agent-confirm" data-agent-confirm ${busy || invalidSelection ? "disabled" : ""}>确认并开始批量生成</button>
-      <button type="button" class="btn btn--secondary agent-secondary-action" data-agent-export-canvas ${busy ? "disabled" : ""}>导出到 Canvas v2</button>
-    </div>
-  `;
 }
 
 function renderSessionActions(state, busy) {

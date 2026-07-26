@@ -140,43 +140,18 @@ button:disabled {
   gap: var(--space-2xs, 4px);
 }
 
-/* ---------- Workspace: three columns, each scrolls internally ---------- */
+/* ---------- Main: single centered chat column ---------- */
 
-.agent-workspace {
-  display: grid;
+.agent-main {
+  display: flex;
   flex: 1 1 auto;
-  grid-template-columns: 280px minmax(0, 1fr) 400px;
-  gap: var(--space-md, 16px);
-  min-height: 0;
-  padding: var(--space-md, 16px);
-}
-
-.agent-session-panel,
-.agent-thread-panel,
-.agent-plan-panel,
-.agent-login-card {
-  border: 1px solid var(--agent-line);
-  border-radius: var(--radius-xl, 24px);
-  background: color-mix(in srgb, var(--agent-glass) 82%, transparent);
-  box-shadow: var(--agent-shadow-card);
-  backdrop-filter: blur(18px);
-}
-
-.agent-session-panel,
-.agent-thread-panel {
-  display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
-.agent-plan-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-height: 0;
-  padding: var(--space-md, 16px);
-  overflow: auto;
-  overscroll-behavior: contain;
+.agent-thread-column {
+  width: min(880px, 100%);
+  margin: 0 auto;
 }
 
 .agent-login-card {
@@ -186,58 +161,53 @@ button:disabled {
   align-self: center;
   max-width: 520px;
   margin: auto;
+  border: 1px solid var(--agent-line);
+  border-radius: var(--radius-xl, 24px);
+  background: color-mix(in srgb, var(--agent-glass) 82%, transparent);
+  box-shadow: var(--agent-shadow-card);
+  backdrop-filter: blur(18px);
   padding: var(--space-xl, 32px);
 }
 
-/* ---------- Session panel ---------- */
+.agent-nav-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: var(--space-2xs, 4px);
+  padding: 0 var(--space-2xs, 4px);
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--agent-accent) 16%, transparent);
+  color: var(--agent-accent-strong);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
 
-.agent-session-panel {
-  gap: var(--space-sm, 12px);
-  padding: var(--space-md, 16px);
+/* ---------- Sessions drawer ---------- */
+
+.agent-sessions-drawer {
+  right: auto;
+  left: 0;
+  width: min(360px, 100vw);
+  border-right: 1px solid color-mix(in srgb, var(--agent-line) 90%, transparent);
+  border-left: 0;
+  box-shadow: 24px 0 70px color-mix(in srgb, var(--agent-ink) 18%, transparent);
+}
+
+.agent-drawer-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.agent-drawer-body {
+  display: grid;
+  gap: var(--space-md, 16px);
+  align-content: start;
 }
 
 .agent-new-btn {
   width: 100%;
-  flex: 0 0 auto;
-}
-
-.agent-panel-head {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm, 12px);
-  padding-top: var(--space-2xs, 4px);
-}
-
-.agent-panel-head div {
-  display: grid;
-  gap: var(--space-2xs, 4px);
-  min-width: 0;
-}
-
-.agent-panel-head span,
-.agent-plan-head > div > span:first-child,
-.agent-plan-empty span {
-  color: var(--agent-warm);
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.agent-panel-head strong {
-  overflow: hidden;
-  font-size: var(--fs-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.agent-session-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
 }
 
 .agent-session-list,
@@ -327,20 +297,25 @@ button:disabled {
   font-size: var(--fs-sm);
 }
 
-/* ---------- Thread panel: head / scroll area / bottom compose ---------- */
+/* ---------- Thread: head / scroll area / bottom compose ---------- */
 
 .agent-thread-head {
   display: grid;
   flex: 0 0 auto;
   gap: var(--space-xs, 8px);
-  padding: var(--space-sm, 12px) var(--space-md, 16px);
+  padding: var(--space-sm, 12px) max(var(--space-md, 16px), calc((100% - 880px) / 2));
   border-bottom: 1px solid color-mix(in srgb, var(--agent-line) 70%, transparent);
+  background: color-mix(in srgb, var(--agent-glass) 55%, transparent);
+}
+
+.agent-thread-plan-btn {
+  margin-left: auto;
 }
 
 .agent-thread-head-main {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--space-sm, 12px);
 }
 
@@ -382,19 +357,67 @@ button:disabled {
 }
 
 .agent-thread-scroll {
-  display: grid;
   flex: 1 1 auto;
-  gap: var(--space-md, 16px);
-  align-content: start;
   min-height: 0;
   padding: var(--space-md, 16px);
   overflow: auto;
   overscroll-behavior: contain;
 }
 
+.agent-thread-scroll .agent-thread-column {
+  display: grid;
+  gap: var(--space-md, 16px);
+  align-content: start;
+}
+
 .agent-thread {
   display: grid;
   gap: var(--space-sm, 12px);
+}
+
+/* ---------- Plan summary card (inline in thread) ---------- */
+
+.agent-plan-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md, 16px);
+  padding: var(--space-md, 16px);
+  border: 1px solid color-mix(in srgb, var(--agent-accent) 32%, var(--agent-line));
+  border-radius: var(--radius-xl, 24px);
+  background:
+    linear-gradient(140deg, color-mix(in srgb, var(--agent-accent) 8%, transparent), transparent 60%),
+    color-mix(in srgb, var(--agent-surface-raised) 66%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--agent-accent) 8%, transparent);
+}
+
+.agent-plan-summary-body {
+  display: grid;
+  flex: 1 1 auto;
+  gap: var(--space-2xs, 4px);
+  min-width: 0;
+}
+
+.agent-plan-summary-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 12px);
+  min-width: 0;
+}
+
+.agent-plan-summary-title strong {
+  overflow: hidden;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-plan-summary-meta {
+  color: var(--agent-muted);
+  font-size: var(--fs-xs);
+}
+
+.agent-plan-summary .btn {
+  flex: 0 0 auto;
 }
 
 .agent-message {
@@ -421,15 +444,64 @@ button:disabled {
   line-height: 1.7;
 }
 
-/* ---------- Compose (fixed at bottom of thread panel) ---------- */
+/* ---------- Compose (fixed at bottom) ---------- */
 
 .agent-compose {
-  display: grid;
   flex: 0 0 auto;
-  gap: var(--space-xs, 8px);
   padding: var(--space-sm, 12px) var(--space-md, 16px) var(--space-md, 16px);
   border-top: 1px solid color-mix(in srgb, var(--agent-line) 70%, transparent);
-  background: color-mix(in srgb, var(--agent-glass) 60%, transparent);
+  background: color-mix(in srgb, var(--agent-glass) 78%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.agent-compose .agent-thread-column {
+  display: grid;
+  gap: var(--space-xs, 8px);
+}
+
+.agent-count-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs, 4px);
+  padding: var(--space-2xs, 4px);
+  border: 1px solid var(--agent-line);
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--agent-surface-raised) 78%, transparent);
+}
+
+.agent-count-seg > span {
+  padding: 0 var(--space-xs, 8px);
+  color: var(--agent-muted);
+  font-size: var(--fs-xs);
+}
+
+.agent-count-seg button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--agent-muted);
+  cursor: pointer;
+  font-weight: 800;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.agent-count-seg button:hover {
+  background: color-mix(in srgb, var(--agent-accent) 10%, transparent);
+  color: var(--agent-ink);
+}
+
+.agent-count-seg button.active {
+  background: var(--agent-accent);
+  color: var(--agent-on-accent);
+}
+
+.agent-compose-status {
+  flex: 1 1 auto;
+  text-align: right;
 }
 
 .agent-compose textarea {
@@ -580,13 +652,35 @@ button:disabled {
   font-size: var(--fs-xs);
 }
 
-/* ---------- Plan panel ---------- */
+/* ---------- Plan modal ---------- */
+
+.agent-plan-modal {
+  width: min(880px, calc(100vw - 32px));
+  display: grid;
+  gap: var(--space-md, 16px);
+  align-content: start;
+}
 
 .agent-plan-head {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: var(--space-md, 16px);
+}
+
+.agent-plan-head > div > span:first-child {
+  color: var(--agent-warm);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.agent-plan-head-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-xs, 8px);
 }
 
 .agent-plan-head > div {
@@ -613,27 +707,16 @@ button:disabled {
   white-space: nowrap;
 }
 
-.agent-plan-empty {
-  display: grid;
-  gap: var(--space-sm, 12px);
-  justify-items: start;
-}
-
-.agent-plan-empty p,
 .agent-plan-notice {
+  padding: var(--space-sm, 12px);
+  border-radius: var(--radius-lg, 18px);
+  background: color-mix(in srgb, var(--agent-surface-raised) 64%, transparent);
   color: var(--agent-muted);
   font-size: var(--fs-sm);
 }
 
-.agent-plan-notice {
-  margin: var(--space-md, 16px) 0;
-  padding: var(--space-sm, 12px);
-  border-radius: var(--radius-lg, 18px);
-  background: color-mix(in srgb, var(--agent-surface-raised) 64%, transparent);
-}
-
-.agent-variant-list {
-  margin-top: var(--space-md, 16px);
+.agent-plan-modal .agent-variant-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .agent-variant-card {
@@ -712,14 +795,15 @@ button:disabled {
 
 .agent-plan-actions {
   position: sticky;
-  bottom: calc(-1 * var(--space-md, 16px));
+  bottom: calc(-1 * var(--space-lg, 24px));
   z-index: 2;
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-xs, 8px);
-  margin: var(--space-md, 16px) calc(-1 * var(--space-md, 16px)) calc(-1 * var(--space-md, 16px));
-  padding: var(--space-sm, 12px) var(--space-md, 16px) var(--space-md, 16px);
+  margin: 0 calc(-1 * var(--space-lg, 24px)) calc(-1 * var(--space-lg, 24px));
+  padding: var(--space-sm, 12px) var(--space-lg, 24px) var(--space-lg, 24px);
   border-top: 1px solid color-mix(in srgb, var(--agent-line) 70%, transparent);
-  background: color-mix(in srgb, var(--agent-glass) 92%, transparent);
+  background: color-mix(in srgb, var(--agent-surface) 96%, transparent);
   backdrop-filter: blur(14px);
 }
 
@@ -832,69 +916,6 @@ button:disabled {
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 1280px) {
-  .agent-workspace {
-    grid-template-columns: 240px minmax(0, 1fr) 340px;
-    gap: var(--space-sm, 12px);
-    padding: var(--space-sm, 12px);
-  }
-}
-
-@media (max-width: 1024px) {
-  body {
-    overflow: auto;
-  }
-
-  .agent-shell {
-    height: auto;
-    min-height: 100svh;
-    overflow: visible;
-  }
-
-  .agent-topbar {
-    position: sticky;
-    top: 0;
-  }
-
-  .agent-workspace {
-    display: flex;
-    flex-direction: column;
-    padding: var(--space-sm, 12px);
-  }
-
-  .agent-session-panel,
-  .agent-thread-panel,
-  .agent-plan-panel {
-    min-height: auto;
-    overflow: visible;
-  }
-
-  .agent-session-list {
-    display: flex;
-    gap: var(--space-sm, 12px);
-    overflow-x: auto;
-    padding-bottom: var(--space-2xs, 4px);
-  }
-
-  .agent-session-card {
-    flex: 0 0 auto;
-    min-width: 220px;
-  }
-
-  .agent-thread-scroll {
-    overflow: visible;
-  }
-
-  .agent-plan-actions {
-    position: static;
-    margin: var(--space-md, 16px) 0 0;
-    padding: 0;
-    border-top: 0;
-    background: transparent;
-    backdrop-filter: none;
-  }
-}
-
 @media (max-width: 760px) {
   .agent-topbar {
     flex-wrap: wrap;
@@ -921,13 +942,34 @@ button:disabled {
     max-width: 94%;
   }
 
-  .agent-compose-actions {
+  .agent-plan-summary {
     align-items: stretch;
     flex-direction: column;
   }
 
+  .agent-plan-modal .agent-variant-list {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-plan-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-sessions-drawer {
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .agent-compose-actions {
+    flex-wrap: wrap;
+  }
+
+  .agent-compose-status {
+    display: none;
+  }
+
   .agent-compose-actions .btn {
-    width: 100%;
+    flex: 1 1 auto;
   }
 }
 
