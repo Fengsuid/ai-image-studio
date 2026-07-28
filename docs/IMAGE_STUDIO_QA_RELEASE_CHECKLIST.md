@@ -1089,3 +1089,15 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: pending deployment; require public smoke plus authenticated Agent plan-confirm-generate checks before task finish.
 - Known blocker: outbound GitHub and production SSH connectivity was unavailable during the first closure attempt; the task remains active until push, deployment, and online smoke succeed.
 - Rollback target: revert the AIS-RLS-173 release commit, redeploy the previous known-good Agent runtime, then rerun public and authenticated Agent planner/batch smoke.
+
+### 2026-07-28 AIS-RLS-174 Agent Plan Model Timeout Fallback Release
+
+- Task covered: `AIS-RLS-174` addresses the production `/plan` timeout discovered while closing AIS-RLS-173 authenticated smoke.
+- Commit covered: this single AIS-RLS-174 release commit; the final short hash is recorded in the task output and private deployment log.
+- Root cause: Agent planner model enrichment inherited the global 120-second provider timeout while authenticated smoke allowed 20 seconds per request, so the client aborted before deterministic fallback could execute.
+- Fix coverage: `buildAgentPlanWithModel` races model enrichment against a default 12-second timeout, sends a best-effort `AbortSignal`, and returns the complete deterministic plan on timeout, abort, upstream failure, invalid JSON, or variant-count mismatch.
+- Test coverage: root Vitest adds the abort/fallback path and passes `7/7` files with `82/82` tests; agent-core Node tests add the same contract and pass `18/18`. The timeout test completes in under 500ms using an injected 25ms deadline.
+- Local checks: changed-file `node --check`, `npm test`, `npm run test --prefix packages/agent-core`, `npm run check`, `smoke:agent-planner-flow`, `smoke:agent-workspace`, `git diff --check`, line-budget audit, and privacy scan passed. All changed JS/MJS files remain below 400 lines.
+- Deployment note: deploy this commit through the tracked Git archive and update runtime version to `20260728-agent-plan-timeout-v1`; no database schema or data migration is included.
+- Online smoke requirement: external public smoke plus authenticated Agent planner-flow must complete without a client AbortError before AIS-RLS-174 and AIS-RLS-173 are finished.
+- Rollback target: revert the AIS-RLS-174 release commit, redeploy the previous Agent runtime, and rerun public plus authenticated planner-flow smoke.

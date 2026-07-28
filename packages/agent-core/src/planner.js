@@ -81,22 +81,44 @@ function buildAgentPlan(message, options = {}) {
 }
 
 const MODEL_PLAN_SOURCE = "model-enriched-agent-plan";
+const MODEL_PLAN_TIMEOUT_MS = 12000;
 
-async function buildAgentPlanWithModel(message, options = {}, { callModel } = {}) {
+async function buildAgentPlanWithModel(message, options = {}, { callModel, modelTimeoutMs } = {}) {
   const fallback = buildAgentPlan(message, options);
   if (typeof callModel !== "function") return fallback;
   try {
-    const data = await callModel({
+    const data = await callModelWithTimeout(callModel, {
       input: planModelPrompt(fallback),
       temperature: 0.4,
       max_output_tokens: 1600
-    });
+    }, clampInt(modelTimeoutMs, MODEL_PLAN_TIMEOUT_MS, 10, 18000));
     const parsed = parsePlanModelJson(extractPlanResponseText(data));
     const enriched = applyModelPlan(fallback, parsed);
     if (!enriched) return fallback;
     return { ...enriched, model: data?.model || "" };
   } catch {
     return fallback;
+  }
+}
+
+async function callModelWithTimeout(callModel, payload, timeoutMs) {
+  const controller = new AbortController();
+  let timer = null;
+  const timeout = new Promise((resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      const error = new Error(`Agent plan model timed out after ${timeoutMs}ms`);
+      error.name = "AbortError";
+      reject(error);
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => callModel(payload, { signal: controller.signal })),
+      timeout
+    ]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 

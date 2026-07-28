@@ -66,4 +66,23 @@ describe("agent planner pure functions", () => {
     expect(exactPlan.source).toBe("model-enriched-agent-plan");
     expect(exactPlan.variants).toHaveLength(4);
   });
+
+  it("aborts a slow model call and returns the deterministic fallback before the request deadline", async () => {
+    let aborted = false;
+    const startedAt = Date.now();
+    const plan = await buildAgentPlanWithModel("快速生成三张海报", { variantCount: 3 }, {
+      modelTimeoutMs: 25,
+      callModel: async (payload, { signal }) => new Promise((resolve) => {
+        signal.addEventListener("abort", () => {
+          aborted = true;
+          resolve({ output_text: "" });
+        }, { once: true });
+      })
+    });
+
+    expect(aborted).toBe(true);
+    expect(Date.now() - startedAt).toBeLessThan(500);
+    expect(plan.source).toBe("deterministic-agent-workspace-mvp");
+    expect(plan.variants).toHaveLength(3);
+  });
 });

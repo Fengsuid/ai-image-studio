@@ -135,7 +135,7 @@ EXPLAIN SELECT * FROM agent_steps WHERE session_id = ? ORDER BY step_no;
 
 ## 5. 事件契约
 
-- 计划生成：`POST /plan` → 内部使用 `buildAgentPlanWithModel` / `summarizeAgentPlan`（位于 `packages/agent-core/src/planner.js`）。注入 `callModel` 时由模型产出 intent / 变体方向 / 追问并标记 `plan.source = "model-enriched-agent-plan"`（附 `plan.model`）；未注入、模型报错、输出不可解析或有效变体数不等于请求数时回退 `buildAgentPlan`，`plan.source = "deterministic-agent-workspace-mvp"`。`plan.format` 冻结不变，确认门槛（`confirmationRequired` / 不预扣积分）在两种来源下一致
+- 计划生成：`POST /plan` → 内部使用 `buildAgentPlanWithModel` / `summarizeAgentPlan`（位于 `packages/agent-core/src/planner.js`）。注入 `callModel` 时由模型产出 intent / 变体方向 / 追问并标记 `plan.source = "model-enriched-agent-plan"`（附 `plan.model`）；模型调用默认在 12 秒超时并传递 best-effort `AbortSignal`，未注入、超时、模型报错、输出不可解析或有效变体数不等于请求数时回退 `buildAgentPlan`，`plan.source = "deterministic-agent-workspace-mvp"`。`plan.format` 冻结不变，确认门槛（`confirmationRequired` / 不预扣积分）在两种来源下一致
 - 计划确认：`POST /plan` + `action=confirm` 仅绑定当前会话最新的服务端 plan step；请求体中的 `plan` 不作为权威数据，重新规划会使旧确认失效
 - 批量执行：`POST /generate` 必须存在与最新 plan step 匹配的成功确认记录，且只允许生成已确认方案的子集；随后内部走 `generateAgentBatch` → `enqueueGenerationJob` → `runQueuedTextGeneration`
 - 中断恢复：`POST /resume` → 扫描未完成 `agent_steps` → `recoveredGenerationJobFromRequest` → `enqueueGenerationJob`

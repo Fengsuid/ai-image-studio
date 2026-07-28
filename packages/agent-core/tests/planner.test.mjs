@@ -208,6 +208,24 @@ test("buildAgentPlanWithModel falls back when callModel throws", async () => {
   assert.equal(plan.format, PLAN_FORMAT);
 });
 
+test("buildAgentPlanWithModel aborts slow model calls before falling back", async () => {
+  let aborted = false;
+  const startedAt = Date.now();
+  const plan = await buildAgentPlanWithModel("快速生成三张海报", { variantCount: 3 }, {
+    modelTimeoutMs: 25,
+    callModel: async (payload, { signal }) => new Promise((resolve) => {
+      signal.addEventListener("abort", () => {
+        aborted = true;
+        resolve({ output_text: "" });
+      }, { once: true });
+    })
+  });
+  assert.equal(aborted, true, "planner must abort the slow model request");
+  assert(Date.now() - startedAt < 500, "planner timeout fallback must complete promptly");
+  assert.equal(plan.source, "deterministic-agent-workspace-mvp");
+  assert.equal(plan.variants.length, 3);
+});
+
 test("buildAgentPlanWithModel falls back on unparseable or insufficient model output", async () => {
   const garbage = await buildAgentPlanWithModel("品牌海报", {}, {
     callModel: async () => ({ output_text: "对不起，我无法输出 JSON" })
