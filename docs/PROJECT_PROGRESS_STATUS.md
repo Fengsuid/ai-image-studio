@@ -1,8 +1,10 @@
 # Project Progress Status
 
-Updated: 2026-07-02
+Updated: 2026-07-28
 
 This is the current handoff entry point for project progress. Older planning documents keep historical design detail, but this file reflects the local Trellis board, Git state, and current working tree.
+
+> **2026-07-28 Quality Hardening Closeout** — `AIS-RLS-161`, `AIS-RLS-173`, `AIS-RLS-174`, and `AIS-RLS-175` are complete. Root Vitest now collects Canvas Core tests in CI; Agent generation is bound to the confirmed latest server plan; model enrichment has a 12-second deterministic fallback; and all affected authenticated Agent smokes pass on `APP_VERSION=20260728-agent-smoke-confirm-v1`. `AIS-RLS-176` closes the public/private evidence and status-documentation gap without rewriting the already-pushed implementation commits.
 
 > **2026-06-19 Audit Record** — Session `019edd5f-b1d0-7842-8142-1775bdbf84de` audited. Full record: `docs/private/AUDIT_codex-session-019edd5f_20260619_4c9c2d8.md`. Result: **0 含水分 / 0 需重做**. AIS-RLS-136 和 AIS-RLS-138 五关全过；AIS-RLS-118/AIS-RLS-139 阻塞状态合理。HEAD `4c9c2d8`，工作树干净。
 >
@@ -33,25 +35,27 @@ This is the current handoff entry point for project progress. Older planning doc
 - Trellis task state: `D:\生图广场\.trelis\tasks`
 - Release and smoke checklist: `docs/IMAGE_STUDIO_QA_RELEASE_CHECKLIST.md`
 - Current implementation repository: `D:\生图广场\remote-edit`
-- Latest implementation baseline: current `main` / `origin/main`; Phase B route extraction, CI check workflow, CSS/JS content-hash assets, CDN-domain reduction, mobile CSS consolidation, shared animations, unified skeletons, documentation expansion, and slice smoke work have been tracked through `AIS-RLS-131` plus the `AIS-RLS-147` ~ `AIS-RLS-153` lane.
+- Latest implementation baseline: current `main` / `origin/main`, including the Quality & Stability Hardening work through `AIS-RLS-176`.
 
 ## Current Summary
 
-- Trellis total: 191 tasks.
-- Done: 188 tasks.
+- Trellis total: 207 tasks.
+- Done: 194 tasks.
 - Blocked: 3 tasks (`AIS-RLS-118`, `AIS-RLS-139`, `AIS-RLS-159`).
 - Active / review tasks: 0.
-- Ready/executable tasks: 0.
-- Working tree handoff: implementation has advanced locally through `AIS-RLS-158`; the working tree is intentionally dirty with prior generated assets plus local `AIS-RLS-154` through `AIS-RLS-158` changes.
-- Current blocker class: external acceptance evidence (`118`, `139`) and Canvas v1 archive time/regression gate (`159`).
+- Backlog tasks: 10 (`AIS-RLS-162` ~ `AIS-RLS-171`).
+- Ready/executable tasks: 5 (`AIS-RLS-162`, `AIS-RLS-163`, `AIS-RLS-164`, `AIS-RLS-167`, `AIS-RLS-168`).
+- Working tree handoff: implementation and release evidence are committed through `AIS-RLS-176`; local deployment archives are disposable and excluded from Git.
+- Current blocker class: external acceptance evidence (`118`, `139`), the Canvas v1 archive time/regression gate (`159`), and dependency-gated backlog items (`165`, `166`, `169`, `170`, `171`).
 
-## AIS-RLS-100~159 Status Snapshot
+## AIS-RLS-100~176 Status Snapshot
 
 | Group | Board status | Count | Tasks |
 | --- | --- | ---: | --- |
-| Completed implementation / docs / QA tasks | Done | 58 | `AIS-RLS-100` ~ `AIS-RLS-117`, `AIS-RLS-119` ~ `AIS-RLS-138`, `AIS-RLS-140` ~ `AIS-RLS-158`, `AIS-RLS-160` |
+| Completed implementation / docs / QA tasks | Done | 65 | `AIS-RLS-100` ~ `AIS-RLS-117`, `AIS-RLS-119` ~ `AIS-RLS-138`, `AIS-RLS-140` ~ `AIS-RLS-158`, `AIS-RLS-160` ~ `AIS-RLS-161`, `AIS-RLS-172` ~ `AIS-RLS-176` |
 | External/product evidence blockers | Blocked | 3 | `AIS-RLS-118`, `AIS-RLS-139`, `AIS-RLS-159` |
-| Dependency blockers | Blocked | 0 | None |
+| Ready backlog | Backlog | 5 | `AIS-RLS-162`, `AIS-RLS-163`, `AIS-RLS-164`, `AIS-RLS-167`, `AIS-RLS-168` |
+| Dependency-gated backlog | Backlog | 5 | `AIS-RLS-165`, `AIS-RLS-166`, `AIS-RLS-169`, `AIS-RLS-170`, `AIS-RLS-171` |
 | Storage follow-ups | Done | 3 | `AIS-RLS-156`, `AIS-RLS-157`, `AIS-RLS-158` |
 
 Dependency note: the `task.py list` `ready` column only reflects dependency satisfaction. A task with `status=blocked` and `ready=yes` is still not startable until its blocker is removed.
@@ -73,6 +77,7 @@ Dependency note: the `task.py list` `ready` column only reflects dependency sati
 | `AIS-RLS-094` - `AIS-RLS-117` | Done | Phase A documentation/baseline cleanup, lint/check tooling foundation, route/store/app extraction, GitHub Actions CI, CSS/JS content-hash assets, local font/icon/hero media assets, mobile CSS consolidation, shared animations, unified list skeletons, and lazy-loaded admin/canvas route entry. |
 | `AIS-RLS-128`, `AIS-RLS-131` | Done | Roadmap dependency graph, public changelog expansion, and contributor guide expansion. |
 | `AIS-RLS-119` - `AIS-RLS-127`, `AIS-RLS-129` - `AIS-RLS-138`, `AIS-RLS-140` - `AIS-RLS-158`, `AIS-RLS-160` | Done | Product Phase D, platform hardening, accessibility/error monitoring, visual redesign, slice extraction, agent/canvas smoke coverage, Canvas/Agent feature completion, storage optimization, migration consolidation, and hashed-entry smoke migration. |
+| `AIS-RLS-161`, `AIS-RLS-172` - `AIS-RLS-176` | Done | Canvas Core test collection, Agent/Canvas usability refresh, Agent plan confirmation integrity, planner timeout fallback, authenticated smoke ordering, and release-evidence closeout. |
 
 ## Backlog Milestones (Planned)
 
@@ -81,12 +86,13 @@ Dependency note: the `task.py list` `ready` column only reflects dependency sati
 | `AIS-RLS-118` | Blocked | CSP enforce rollout has code/deploy records, but still needs 48h CSP report-volume evidence returning to background-noise level before finish. |
 | `AIS-RLS-139` | Blocked | Mobile consolidation has automated/release records, but still needs actual-device QA evidence for iOS 17 Safari, Android 14 Chrome, Pixel 6 Chrome, and iPad Air Safari. |
 | `AIS-RLS-159` | Blocked | Canvas v1 archive remains blocked by the v2 30-day no-regression evidence gate after `AIS-RLS-154`. |
+| `AIS-RLS-162` - `AIS-RLS-171` | Backlog | CI smoke expansion, Canvas v1 regression automation, app.js gallery/generation split, resumable generation, persistent rate limits, multi-candidate design, and external-evidence automation follow-ups. |
 
 ## Active Task
 
 | Task | Status | What Is Implemented | Remaining Closure |
 | --- | --- | --- | --- |
-| None | No executable local task | `AIS-RLS-154` through `AIS-RLS-158` have been locally closed. Remaining tasks require external evidence or time-gated release evidence. | Recheck only when CSP/mobile QA evidence is available or the Canvas v2 30-day no-regression gate is satisfied. |
+| None | Ready for next task | Quality hardening through `AIS-RLS-176` is closed. | Start `AIS-RLS-162`, the smallest ready backlog task, and continue serially. |
 
 ## Documentation Notes
 
@@ -100,7 +106,7 @@ Dependency note: the `task.py list` `ready` column only reflects dependency sati
 
 ## Immediate Next Steps
 
-1. To close `AIS-RLS-118`, attach 48h CSP report-volume evidence showing return to background noise, then rerun the task validation and finish it.
-2. To close `AIS-RLS-139`, attach actual-device QA results for iOS 17 Safari, Android 14 Chrome, Pixel 6 Chrome, and iPad Air Safari, then finish it.
-3. Keep `AIS-RLS-159` blocked until the Canvas v2 30-day no-regression archive gate is satisfied.
-4. For any reopened task, follow `docs/private/DEVELOPMENT_GUIDE.md` §2 ~ §7 for validation, release record, private deployment log, and Trellis close-out.
+1. Start `AIS-RLS-162` and expand the GitHub Actions check workflow's automated smoke coverage without introducing credential-dependent or state-mutating CI steps.
+2. Continue the other dependency-ready backlog in priority order: `AIS-RLS-163`, `AIS-RLS-164`, `AIS-RLS-167`, then `AIS-RLS-168`.
+3. Keep `AIS-RLS-118`, `AIS-RLS-139`, and `AIS-RLS-159` blocked until their external/time-gated evidence is available; `AIS-RLS-170` and `AIS-RLS-171` remain dependency-gated by those blockers.
+4. For every task, follow `docs/private/DEVELOPMENT_GUIDE.md` §2 ~ §7 for validation, release record, private deployment log, and Trellis close-out.

@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
-日期：2026-06-19
-状态：入口状态已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-06-19，182 done / 9 blocked / 0 active）。
+日期：2026-07-28
+状态：入口状态已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-07-28，207 total / 194 done / 3 blocked / 10 backlog / 0 active-review）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -29,13 +29,17 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 ## 2. 当前优先执行
 
-当前真实 Trellis 中没有 `active` 或 `status=ready` 任务；所有未完成任务均为 `blocked`。当前没有可自动启动的下一项。
+当前没有 active/review 任务。按编号与依赖顺序，先执行 `AIS-RLS-162`；其余当前可启动项为 `163`、`164`、`167`、`168`。
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-118` Gradual enforce CSP via CSP_ENFORCE flag with hashed canary | Security | Blocked: code/deploy records exist, but finish requires 48h CSP report-volume evidence returning to background noise |
-| 2 | `AIS-RLS-139` 视觉重设计 Phase 7: 移动端 4 文件合并 + 底部导航 + svh + 弹窗 bottom-sheet | Frontend Visual | Blocked: automated/release records exist, but finish requires actual-device QA on iOS 17 Safari, Android 14 Chrome, Pixel 6 Chrome, and iPad Air Safari |
-| 3 | `AIS-RLS-151`, `AIS-RLS-154` ~ `AIS-RLS-159` | Canvas / Agent / Storage | Blocked by their stated upstream/product gates; do not bypass dependency or evidence gates |
+| 1 | `AIS-RLS-162` 扩大 CI check 自动化 smoke 覆盖比例 | Test/CI | `AIS-RLS-161` 已完成，是当前最小 ready backlog |
+| 2 | `AIS-RLS-163` Canvas v1 归档 30 天无回归门禁自动化 | Canvas/Test | 可独立推进，产出后为 `AIS-RLS-159` 提供证据采集能力 |
+| 3 | `AIS-RLS-164` public/app.js 画廊逻辑实体化 | Frontend | 可独立推进，并解锁 `AIS-RLS-165` |
+| 4 | `AIS-RLS-167` 生成请求可恢复、可取消 | Backend | 可独立推进，并解锁 `AIS-RLS-169` |
+| 5 | `AIS-RLS-168` 限流状态持久化 | Backend/Security | 可独立推进 |
+
+阻塞项保持不变：`AIS-RLS-118` 等待 48h CSP 证据，`AIS-RLS-139` 等待真机矩阵，`AIS-RLS-159` 等待 Canvas v2 30 天无回归门禁；`AIS-RLS-170`、`171` 分别受前两项约束。
 
 ## 3. 全量 Trellis 任务表
 
@@ -139,17 +143,23 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 | Task | Title | Status | Priority | Lane | Milestone | Dependencies |
 | --- | --- | --- | --- | --- | --- | --- |
-| `AIS-RLS-105` | Split src/routes/admin.js into src/routes/admin/* by business domain | Done | P1 | Platform | Post-Release Phase B | `AIS-RLS-100` |
-| `AIS-RLS-106` | Convert mysql-store.js facade to programmatic re-export with collision check | Done | P1 | Platform | Post-Release Phase B | None |
-| `AIS-RLS-107` | Extract app.js auth/account/csrf into public/app-auth.js | Done | P1 | Frontend | Post-Release Phase B | None |
-| `AIS-RLS-108` | Extract app.js i18n/theme/prefs into public/app-settings.js | Done | P1 | Frontend | Post-Release Phase B | `AIS-RLS-107` |
-| `AIS-RLS-109` | Add GitHub Actions CI check workflow | Done | P1 | Platform | Post-Release Phase B | `AIS-RLS-107`, `AIS-RLS-108` |
-| `AIS-RLS-110` | Merge public/css/*.css into content-hashed single bundle | Done | P1 | Frontend | Post-Release Phase C | `AIS-RLS-109` |
-| `AIS-RLS-111` | Emit content-hashed JS bundles and remove manual ?v= query strings | Done | P1 | Frontend | Post-Release Phase C | `AIS-RLS-110` |
-| `AIS-RLS-112` | Self-host Geist + Instrument Serif + Remixicon under /vendor/ | Ready | P1 | Frontend | Post-Release Phase C | `AIS-RLS-111` |
-| `AIS-RLS-130` | Tighten ESLint rules from warn to CI-blocking errors | Ready | P1 | Platform | Post-Release Phase B | `AIS-RLS-099` |
-| `AIS-RLS-131` | Expand CHANGELOG and CONTRIBUTING into usable project docs | Ready | P3 | Documentation | Post-Release Phase C | `AIS-RLS-096` |
-| `AIS-RLS-132` | Split and land premium polish theme CSS safely | Ready | P2 | Frontend | Post-Release Phase C | `AIS-RLS-098`, `AIS-RLS-110` |
+| `AIS-RLS-105` - `AIS-RLS-117` | Route/store/app extraction, CI, hashed assets, local media, mobile CSS, animations, skeletons, lazy loading | Done | P1 | Platform/Frontend | Post-Release Phase B/C | See individual task cards |
+| `AIS-RLS-118` | Gradual enforce CSP via CSP_ENFORCE flag with hashed canary | Blocked | P1 | Security | Post-Release Phase C | Requires 48h production evidence |
+| `AIS-RLS-119` - `AIS-RLS-138` | Email masking, Phase D product work, tests, accessibility, monitoring, DB audit, docs, lint tightening, and visual redesign phases 1-6 | Done | P0-P3 | Product/Platform/Frontend | Post-Release Phase C/D | See individual task cards |
+| `AIS-RLS-139` | Mobile consolidation and actual-device QA | Blocked | P1 | Frontend/QA | Visual Redesign | Requires device-matrix evidence |
+| `AIS-RLS-140` - `AIS-RLS-158` | Admin visual phases, slice extraction/contracts, Agent/Canvas tests and features, storage and migration consolidation | Done | P0-P2 | Platform/Frontend/Test | Slice Hardening | See individual task cards |
+| `AIS-RLS-159` | Canvas v1 archive | Blocked | P1 | Canvas | Slice Hardening | Requires 30-day no-regression gate |
+| `AIS-RLS-160` - `AIS-RLS-161` | Hashed-entry smoke migration and Canvas Core Vitest include | Done | P0-P1 | Test/CI | Slice Hardening | See individual task cards |
+| `AIS-RLS-162` | Expand CI check automated smoke coverage | Backlog (Ready) | P1 | Test/CI | Quality & Stability Hardening 202607 | `AIS-RLS-161` |
+| `AIS-RLS-163` | Automate Canvas v1 30-day regression gate evidence | Backlog (Ready) | P1 | Canvas/Test | Quality & Stability Hardening 202607 | None |
+| `AIS-RLS-164` | Extract gallery logic from public/app.js | Backlog (Ready) | P1 | Frontend | Quality & Stability Hardening 202607 | None |
+| `AIS-RLS-165` - `AIS-RLS-166` | Continue generation/session app.js extraction and final anti-god-file closure | Backlog (Dependency-gated) | P1 | Frontend | Quality & Stability Hardening 202607 | `AIS-RLS-164` then `AIS-RLS-165` |
+| `AIS-RLS-167` | Resumable and cancelable generation requests | Backlog (Ready) | P1 | Backend | Quality & Stability Hardening 202607 | None |
+| `AIS-RLS-168` | Persist rate-limit state | Backlog (Ready) | P1 | Backend/Security | Quality & Stability Hardening 202607 | None |
+| `AIS-RLS-169` | Multi-candidate generation capability assessment and design | Backlog (Dependency-gated) | P2 | Product/Architecture | Quality & Stability Hardening 202607 | `AIS-RLS-167` |
+| `AIS-RLS-170` | CSP enforce canary evidence automation | Backlog (Dependency-gated) | P2 | Security/Operations | Quality & Stability Hardening 202607 | `AIS-RLS-118` |
+| `AIS-RLS-171` | Standardize real-device mobile QA evidence collection | Backlog (Dependency-gated) | P2 | QA | Quality & Stability Hardening 202607 | `AIS-RLS-139` |
+| `AIS-RLS-172` - `AIS-RLS-176` | Agent/Canvas usability refresh, confirmation integrity, planner timeout fallback, authenticated smoke gate, and release evidence closeout | Done | P0 | Frontend/Backend/Test/Docs | Quality & Stability Hardening 202607 | See individual task cards |
 
 ## 4. 历史 T 编号映射
 
