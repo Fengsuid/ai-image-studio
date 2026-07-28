@@ -4,6 +4,10 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/*.test.js", "packages/agent-core/src/**/*.test.js"]
+    include: [
+      "src/**/*.test.js",
+      "packages/agent-core/src/**/*.test.js",
+      "packages/canvas-core/tests/**/*.test.js"
+    ]
   }
 });
