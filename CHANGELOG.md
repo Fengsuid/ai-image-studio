@@ -2,6 +2,18 @@
 
 All notable public-facing changes to this project are documented here. Entries focus on user-visible behavior and omit private deployment details.
 
+## 2026-07-28 - AIS-RLS-162 CI Smoke Coverage Expansion
+
+### Added
+
+- Added 16 database-free functional smokes to the default `npm run check` CI aggregate, covering auth/session boundaries, admin/public module splits, server/store boundaries, migrations, provider capabilities, generation recovery/status handling, and Canvas editor/generation/history behaviors.
+- Added a complete 91-script dependency classification to the QA checklist so offline, fixture-server, disposable-MySQL, and production/manual release checks have explicit execution policies.
+
+### Changed
+
+- Increased the default CI smoke aggregate from 8 to 24 commands without relying on missing credentials, a prestarted server, or production MySQL.
+- Documented two genuine offline smoke failures as follow-up work instead of skipping them or counting them as passing coverage.
+
 ## 2026-05-26 - AIS-RLS-116 Unified List Skeletons
 
 ### Added

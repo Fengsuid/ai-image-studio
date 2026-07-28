@@ -121,6 +121,31 @@ Use this checklist before every P0 release and whenever a feature batch is deplo
   - `npm run smoke:canvas-v2:entry`
   - `npm run smoke:canvas-v2 -- http://localhost:3100`
 
+### 1.1 AIS-RLS-162 Smoke Dependency Classification (2026-07-28)
+
+The audit covers all 91 `scripts/smoke/check-*.mjs` files. Helper modules `css-imports.mjs` and `frontend-manifest-helper.mjs` are not standalone smokes and are excluded from the count.
+
+| Label | Count | Dependency rule | Default CI policy |
+| --- | ---: | --- | --- |
+| A — offline | 68 | Pure source/file/logic assertions or in-process route/store mocks; no live origin or database is required. | Eligible for `npm run check`; a failing assertion must fail CI and must never be converted to a credential-based skip. |
+| B — HTTP fixture | 3 | Needs a real HTTP origin, but its read-only contract can be represented by an in-process mock/static server. | Keep outside the default job until the fixture server is deterministic; run against the deployed origin before release. |
+| C — stateful MySQL | 18 | Exercises authenticated or persistent state and needs an app server plus disposable MySQL data. | Requires a future service-container job with seeded users/data; current credential skips are not counted as CI coverage. |
+| D — production/manual | 2 | Browser/visual evidence depends on rendered output, screenshots, assets, or human review. | 发布前人工必跑; do not treat headless execution alone as visual approval. |
+
+Audited manifest:
+
+- **A — offline (68):** `check-admin-generation-diagnostics.mjs`, `check-admin-module-split.mjs`, `check-admin-primitives.mjs`, `check-admin-shell-polish.mjs`, `check-agent-resume.mjs`, `check-agent-retry.mjs`, `check-auth-route-session-split.mjs`, `check-canvas-assistant.mjs`, `check-canvas-history.mjs`, `check-canvas-import-export.mjs`, `check-canvas-layout-edges.mjs`, `check-canvas-license-headers.mjs`, `check-canvas-module-boundaries.mjs`, `check-canvas-selection.mjs`, `check-canvas-touch-gestures.mjs`, `check-canvas-v2-editor.mjs`, `check-canvas-v2-entry.mjs`, `check-canvas-v2-generation.mjs`, `check-canvas-v2-static.mjs`, `check-canvas-v2-token-bridge.mjs`, `check-client-error-monitoring.mjs`, `check-csp-enforce.mjs`, `check-css-module-split.mjs`, `check-css-primitive-boundaries.mjs`, `check-css-visual-polish.mjs`, `check-frontend-a11y.mjs`, `check-frontend-boundaries.mjs`, `check-frontend-build-tooling.mjs`, `check-frontend-performance.mjs`, `check-frontend-visual-system-polish.mjs`, `check-gallery-card-tags.mjs`, `check-gallery-detail-media.mjs`, `check-gallery-experience-task46.mjs`, `check-gallery-leaderboard-sidebar.mjs`, `check-generation-cancel-running.mjs`, `check-generation-flicker-guard.mjs`, `check-generation-queue-recovery.mjs`, `check-generation-result-actions.mjs`, `check-generation-status-route-return.mjs`, `check-generation-trace.mjs`, `check-generic-prompt-normalize.mjs`, `check-home-onboarding-polish.mjs`, `check-image-session-panel.mjs`, `check-indexeddb-cache-static.mjs`, `check-infinite-canvas-prompt-source.mjs`, `check-lazy-load-state-machine.mjs`, `check-maintenance-boundaries.mjs`, `check-mask-admin-email.mjs`, `check-migrations-consolidation.mjs`, `check-mobile-route-modal-behavior.mjs`, `check-multi-candidate-generation.mjs`, `check-my-works-asset-library.mjs`, `check-mysql-health-config.mjs`, `check-mysql-store-domain-split.mjs`, `check-prompt-canvas-store-split.mjs`, `check-prompt-library-polish.mjs`, `check-prompt-review-service.mjs`, `check-provider-async-mock.mjs`, `check-provider-capabilities.mjs`, `check-public-app-module-split.mjs`, `check-public-reward-policy.mjs`, `check-reference-assets.mjs`, `check-server-route-boundary-split.mjs`, `check-skeleton-coverage.mjs`, `check-theme-mobile-nav.mjs`, `check-topbar-density.mjs`, `check-user-flow-polish.mjs`, `check-user-gallery-admin-store-split.mjs`.
+- **B — HTTP fixture (3):** `check-data-counts.mjs`, `check-gallery-images.mjs`, `check-public-api.mjs`.
+- **C — stateful MySQL (18):** `check-agent-batch-export.mjs`, `check-agent-batch-generation.mjs`, `check-agent-credit-per-step.mjs`, `check-agent-export-canvas.mjs`, `check-agent-planner-flow.mjs`, `check-agent-session-api.mjs`, `check-agent-workspace.mjs`, `check-auth-admin.mjs`, `check-canvas-assistant-api.mjs`, `check-canvas-concurrent-save.mjs`, `check-canvas-gallery-link.mjs`, `check-canvas-import-export-api.mjs`, `check-canvas-large-project.mjs`, `check-canvas-template-market.mjs`, `check-canvas-v2.mjs`, `check-moderation-withdrawal.mjs`, `check-prompt-like.mjs`, `check-user-credits-reward.mjs`.
+- **D — production/manual (2):** `check-mobile-layout.mjs`, `check-visual-regression.mjs`.
+
+Default CI expansion:
+
+- The pre-task `check` command contained 8 direct smoke entries (the task-card estimate of 9 was stale). `check:smoke:ci` adds 16 fully executing offline smokes, so the aggregate now runs 24 smoke commands: a verifiable increase of 16.
+- Newly aggregated: `smoke:auth-route-session-split`, `smoke:admin-module-split`, `smoke:public-app-module-split`, `smoke:server-route-boundary-split`, `smoke:mysql-store-domain-split`, `smoke:prompt-canvas-store-split`, `smoke:migrations-consolidation`, `smoke:provider-capabilities`, `smoke:generation-queue-recovery`, `smoke:generation-status-route`, `smoke:canvas-v2:editor`, `smoke:canvas-v2:generation`, `smoke:canvas-import-export`, `smoke:canvas-selection`, `smoke:canvas-assistant`, and `smoke:canvas-history`.
+- Two offline smokes were deliberately not added because they currently fail real assertions: `provider-async-mock` is missing the expected `provider_polled` server wiring marker, and `user-gallery-admin-store-split` reports three migrated-table references outside its accepted ranges. These are failures, not skips, and require separate repair tasks.
+- Release-before-manual list: all D scripts; B scripts against the deployed origin; and C authenticated/stateful scripts unless a disposable MySQL service-container job executed their complete branch. Real provider generation remains a manual release check because the current smoke inventory has no deterministic provider sandbox.
+
 ## 2. Online Smoke
 
 - Confirm deployed version:
@@ -1126,3 +1151,14 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: external public smoke passed. Authenticated planner-flow, batch-generation, workspace, credit-per-step, export-canvas, and batch-export all passed.
 - Known blockers: none.
 - Rollback target: revert the AIS-RLS-175 release commit and redeploy the previous smoke scripts; do not roll back the production confirmation gate.
+
+### 2026-07-28 AIS-RLS-162 CI Smoke Coverage Expansion Release
+
+- Task covered: `AIS-RLS-162` audits the complete smoke inventory and expands the default GitHub Actions check gate with deterministic, dependency-free functional coverage.
+- Commit covered: the single AIS-RLS-162 release commit containing this record; its final short hash and GitHub Actions run are recorded in the Trellis closeout output.
+- Inventory coverage: all 91 standalone `check-*.mjs` scripts are classified as 68 offline, 3 HTTP-fixture, 18 stateful-MySQL, and 2 production/manual checks; the manifest and execution policy are recorded in §1.1.
+- CI coverage: the pre-task `check` aggregate had 8 direct smoke entries. The new `check:smoke:ci` aggregate adds 16 fully executing smokes, increasing the default total to 24 without requiring credentials, a prestarted server, production data, or silent skips.
+- Local checks: all 16 new entries passed individually and as `npm run check:smoke:ci`; the complete `npm run check` gate passed with only the existing long-term frontend file-size warnings; root Vitest passed 7/7 files and 82/82 tests. `act` is not installed locally, so the pushed GitHub Actions check job is the authoritative CI-environment validation.
+- Known exclusions: `smoke:provider-async-mock` and `smoke:user-gallery-admin-store-split` currently fail real source assertions and were intentionally excluded rather than skipped. HTTP-fixture, stateful-MySQL, browser/visual, and real-provider release checks remain outside the default dependency-free job for the reasons in §1.1.
+- Deployment note: no server deployment is required; this task changes CI aggregation and documentation only.
+- Rollback target: revert the AIS-RLS-162 release commit to restore the previous `check` aggregate and documentation.
