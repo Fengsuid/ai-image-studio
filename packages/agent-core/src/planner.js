@@ -171,7 +171,7 @@ function applyModelPlan(fallback, parsed) {
     .slice(0, fallback.variantCount)
     .map((variant) => normalizeModelVariant(variant))
     .filter(Boolean);
-  if (modelVariants.length < 2) return null;
+  if (modelVariants.length !== fallback.variantCount) return null;
 
   const intent = cleanText(parsed.intent, 96) || fallback.intent;
   const size = fallback.variants[0]?.size || "1024x1536";

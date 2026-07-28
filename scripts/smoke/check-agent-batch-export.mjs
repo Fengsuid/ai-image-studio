@@ -144,7 +144,9 @@ function staticChecks() {
   const schemaRunner = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/schema-runner.js"), "utf8");
   const sessionStore = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/session-store.js"), "utf8");
   const service = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
-  const routes = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
+  const routes = ["routes.js", "plan-routes.js"]
+    .map((name) => fs.readFileSync(path.join(rootDir, "packages/agent-core/src", name), "utf8"))
+    .join("\n");
   const api = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
   const app = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
 

@@ -220,6 +220,15 @@ test("buildAgentPlanWithModel falls back on unparseable or insufficient model ou
     })
   });
   assert.equal(tooFew.source, "deterministic-agent-workspace-mvp", "fewer than 2 valid variants must fall back");
+
+  const variant = (index) => ({ title: `方案 ${index}`, angle: `direction ${index}` });
+  const wrongCount = await buildAgentPlanWithModel("四张系列海报", { variantCount: 4 }, {
+    callModel: async () => ({
+      output_text: JSON.stringify({ variants: [variant(1), variant(2), variant(3)] })
+    })
+  });
+  assert.equal(wrongCount.source, "deterministic-agent-workspace-mvp", "variant count mismatch must fall back");
+  assert.equal(wrongCount.variants.length, 4, "fallback must preserve the requested variant count");
 });
 
 test("agent-core package exposes INTERFACE.md normalized exports", () => {

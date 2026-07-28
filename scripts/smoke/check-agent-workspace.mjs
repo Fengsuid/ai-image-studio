@@ -162,7 +162,9 @@ function staticChecks() {
   const appSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
   const apiSource = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
   const plannerSource = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/planner.js"), "utf8");
-  const routeSource = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
+  const routeSource = ["routes.js", "plan-routes.js"]
+    .map((name) => fs.readFileSync(path.join(rootDir, "packages/agent-core/src", name), "utf8"))
+    .join("\n");
   const indexHtml = fs.readFileSync(path.join(rootDir, "public/agent/index.html"), "utf8");
 
   assert.equal(packageJson.scripts["agent:check"], "npm run check --prefix apps/agent-workspace", "root agent:check script missing");

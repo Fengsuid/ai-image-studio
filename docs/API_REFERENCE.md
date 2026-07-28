@@ -104,8 +104,8 @@ The admin API is split by business domain under `src/routes/admin/`.
 | GET | `/api/agent-sessions/:id` | Get details of an agent session. |
 | PATCH | `/api/agent-sessions/:id` | Update an agent session. |
 | DELETE | `/api/agent-sessions/:id` | Delete an agent session. |
-| POST | `/api/agent-sessions/:id/plan` | Request or confirm an agent plan within a session. |
-| POST | `/api/agent-sessions/:id/generate` | Start a batch image generation from an agent plan. |
+| POST | `/api/agent-sessions/:id/plan` | Request a plan or confirm selected variants from the latest server-stored plan. |
+| POST | `/api/agent-sessions/:id/generate` | Start batch generation from variants covered by the latest successful plan confirmation. |
 | POST | `/api/agent-sessions/:id/export-canvas` | Export the session data to a new Canvas v2 project. |
 | POST | `/api/agent-sessions/:id/messages` | Append a new message/step to an agent session. |
 

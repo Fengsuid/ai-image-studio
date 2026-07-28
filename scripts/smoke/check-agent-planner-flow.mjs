@@ -115,7 +115,9 @@ async function cleanup() {
 function staticChecks() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
   const planner = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/planner.js"), "utf8");
-  const routes = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
+  const routes = ["routes.js", "plan-routes.js"]
+    .map((name) => fs.readFileSync(path.join(rootDir, "packages/agent-core/src", name), "utf8"))
+    .join("\n");
   const interfaceMd = fs.readFileSync(path.join(rootDir, "packages/agent-core/INTERFACE.md"), "utf8");
   const tests = fs.readFileSync(path.join(rootDir, "packages/agent-core/tests/planner.test.mjs"), "utf8");
   const app = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");

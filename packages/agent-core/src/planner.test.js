@@ -1,4 +1,4 @@
-const { buildAgentPlan, summarizeAgentPlan } = require("./planner");
+const { buildAgentPlan, buildAgentPlanWithModel, summarizeAgentPlan } = require("./planner");
 
 describe("agent planner pure functions", () => {
   it("builds a frozen-format plan without creating generation work", () => {
@@ -40,5 +40,30 @@ describe("agent planner pure functions", () => {
     expect(summary).toContain("确认前不会扣积分");
     expect(summary).toContain(plan.variants[0].title);
     expect(summary).toContain(plan.variants[1].title);
+  });
+
+  it("requires model enrichment to return the exact requested variant count", async () => {
+    const variant = (index) => ({
+      title: `方案 ${index}`,
+      angle: `distinct art direction ${index}`,
+      palette: ["blue"],
+      mood: ["calm"],
+      visualLanguage: ["soft light"],
+      publicHint: true
+    });
+    const callModel = async (count) => ({
+      output_text: JSON.stringify({ variants: Array.from({ length: count }, (_, index) => variant(index + 1)) })
+    });
+    const shortPlan = await buildAgentPlanWithModel("生成四张系列海报", { variantCount: 4 }, {
+      callModel: () => callModel(3)
+    });
+    const exactPlan = await buildAgentPlanWithModel("生成四张系列海报", { variantCount: 4 }, {
+      callModel: () => callModel(4)
+    });
+
+    expect(shortPlan.source).toBe("deterministic-agent-workspace-mvp");
+    expect(shortPlan.variants).toHaveLength(4);
+    expect(exactPlan.source).toBe("model-enriched-agent-plan");
+    expect(exactPlan.variants).toHaveLength(4);
   });
 });

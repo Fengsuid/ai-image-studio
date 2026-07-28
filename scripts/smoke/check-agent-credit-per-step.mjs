@@ -135,7 +135,9 @@ function staticChecks() {
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
   const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
   const service = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
-  const routes = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/routes.js"), "utf8");
+  const routes = ["routes.js", "plan-routes.js"]
+    .map((name) => fs.readFileSync(path.join(rootDir, "packages/agent-core/src", name), "utf8"))
+    .join("\n");
 
   assert.equal(packageJson.scripts["smoke:agent-credit-per-step"], "node scripts/smoke/check-agent-credit-per-step.mjs", "root smoke:agent-credit-per-step script missing");
   // Per-step independence: every variant in the batch insertGenerationRequest is called inside

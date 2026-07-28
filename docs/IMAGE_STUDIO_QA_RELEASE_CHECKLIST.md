@@ -1076,3 +1076,16 @@ Record the outcome in the relevant development document or release note before m
 - Online smoke: `/api/version` reports `20260726-agent-canvas-visual-v1`; internal and external `/`, `/agent`, `/canvas-v2` return 200; external asset hashes match local build (`app.895bb6d8faad.css`, agent `styles.6b03f659cc01.css`, canvas-v2 `styles.10016c7d52b0.css`); in-container `npm run smoke:public` passed.
 - Known blockers: authenticated agent smokes require admin credentials; manual online verification of `/agent` plan generation (`plan.source=model-enriched-agent-plan`) and `/canvas-v2` editor interactions pending.
 - Rollback target: revert `9061c62`+`76837c0`+`f3a873b`, restore `APP_VERSION=20260619-visual-dark-mode-v1`, or restore server backup `aiimagestduio-backup-20260726-152138`, rebuild app container, rerun public smoke.
+
+### 2026-07-28 AIS-RLS-173 Agent Plan Confirmation Integrity Release
+
+- Task covered: `AIS-RLS-173` closes the Agent confirmation-bypass and model variant-count integrity gaps found during the local project review.
+- Commit covered: this single AIS-RLS-173 release commit; the final short hash is recorded in the task output and private deployment log.
+- Files changed: `packages/agent-core/src/plan-routes.js`, the reduced `routes.js`, planner and route tests, Agent smoke source guards, `packages/agent-core/INTERFACE.md`, and `docs/API_REFERENCE.md`.
+- Acceptance coverage: `/generate` requires a successful confirmation bound to the latest server-side plan step; re-planning invalidates old confirmation; client-supplied plan payloads cannot replace the stored plan; generation is limited to confirmed variant IDs; model enrichment must return the exact requested variant count or deterministic fallback preserves that count.
+- Architecture coverage: plan/confirm/generate routing is substantively migrated into `plan-routes.js`; all changed JS/MJS files remain below 400 lines and the original `routes.js` is reduced to 334 lines without a legacy wrapper fallback.
+- Local checks: changed-file `node --check`, root Vitest `7/7` files and `81/81` tests, agent-core Node tests `17/17`, `npm run check`, `smoke:agent-planner-flow`, `smoke:agent-batch-generation`, `smoke:agent-workspace`, `smoke:agent-credit-per-step`, `smoke:agent-batch-export`, `git diff --check`, line-budget audit, anti-wrapper scan, and privacy scan passed. Credential-dependent live portions of the Agent smokes were skipped locally because admin credentials were not present.
+- Deployment note: pending production deployment from the final AIS-RLS-173 commit. No database schema or data migration is included.
+- Online smoke: pending deployment; require public smoke plus authenticated Agent plan-confirm-generate checks before task finish.
+- Known blocker: outbound GitHub and production SSH connectivity was unavailable during the first closure attempt; the task remains active until push, deployment, and online smoke succeed.
+- Rollback target: revert the AIS-RLS-173 release commit, redeploy the previous known-good Agent runtime, then rerun public and authenticated Agent planner/batch smoke.
