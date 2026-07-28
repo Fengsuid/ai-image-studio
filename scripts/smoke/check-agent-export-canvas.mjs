@@ -157,6 +157,8 @@ function staticChecks() {
   const service = fs.readFileSync(path.join(rootDir, "packages/agent-core/src/generation-service.js"), "utf8");
   const api = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/adapters/ai-image-studio-api.js"), "utf8");
   const app = fs.readFileSync(path.join(rootDir, "apps/agent-workspace/src/app/create-app.js"), "utf8");
+  const smokeSource = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const apiChecksSource = smokeSource.slice(smokeSource.indexOf("async function apiChecks()"));
 
   assert.equal(packageJson.scripts["smoke:agent-export-canvas"], "node scripts/smoke/check-agent-export-canvas.mjs", "root smoke:agent-export-canvas script missing");
   assert(route.includes("/export-canvas"), "agent session route must expose Canvas export endpoint");
@@ -172,6 +174,7 @@ function staticChecks() {
   assert(api.includes("/export-canvas"), "Agent API adapter must expose Canvas export route");
   assert(app.includes("exportAgentCanvas"), "Agent app must call Canvas export API");
   assert(app.includes("导出到 Canvas v2"), "Agent UI must expose Canvas export action");
+  assert(apiChecksSource.indexOf('action: "confirm"') < apiChecksSource.indexOf("/generate"), "Canvas export smoke must confirm the latest plan before generate");
 }
 
 function containsSensitiveOwnerInfo(value) {
@@ -254,6 +257,16 @@ async function apiChecks() {
   const plan = planResult.body?.plan || {};
   const selectedVariantIds = (plan.variants || []).slice(0, 3).map((variant) => variant.id);
   assert.equal(selectedVariantIds.length, 3, "plan should provide three selected variants for Canvas smoke");
+
+  const confirmed = await request(`/api/agent-sessions/${encodeURIComponent(sessionId)}/plan`, {
+    method: "POST",
+    jar: user.jar,
+    csrfToken: user.csrfToken,
+    expected: 200,
+    label: "POST /api/agent-sessions/:id/plan confirm before export",
+    body: { action: "confirm", selectedVariantIds, note: "export-canvas smoke confirm" }
+  });
+  assert.equal(confirmed.body?.confirmed, true, "Canvas export smoke plan confirmation missing");
 
   const generated = await request(`/api/agent-sessions/${encodeURIComponent(sessionId)}/generate`, {
     method: "POST",

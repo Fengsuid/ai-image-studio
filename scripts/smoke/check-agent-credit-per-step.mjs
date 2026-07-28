@@ -138,6 +138,8 @@ function staticChecks() {
   const routes = ["routes.js", "plan-routes.js"]
     .map((name) => fs.readFileSync(path.join(rootDir, "packages/agent-core/src", name), "utf8"))
     .join("\n");
+  const smokeSource = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
+  const apiChecksSource = smokeSource.slice(smokeSource.indexOf("async function apiChecks()"));
 
   assert.equal(packageJson.scripts["smoke:agent-credit-per-step"], "node scripts/smoke/check-agent-credit-per-step.mjs", "root smoke:agent-credit-per-step script missing");
   // Per-step independence: every variant in the batch insertGenerationRequest is called inside
@@ -166,6 +168,7 @@ function staticChecks() {
   assert(server.includes("agent_credit_charged"), "server must trace Agent per-step credit charges");
   assert(server.includes("agent_credit_refund"), "server must trace Agent per-step credit refunds");
   assert(server.includes("isAgentGenerationRequest"), "server must detect Agent requests for credit trace attribution");
+  assert(apiChecksSource.indexOf('action: "confirm"') < apiChecksSource.indexOf("/generate"), "credit smoke must confirm the latest plan before generate");
 }
 
 async function apiChecks() {
@@ -214,6 +217,13 @@ async function apiChecks() {
   });
   const plan = planResult.body?.plan || {};
   const selectedVariantIds = (plan.variants || []).slice(0, 3).map((variant) => variant.id);
+
+  const confirmed = await request(`/api/agent-sessions/${encodeURIComponent(sessionId)}/plan`, {
+    method: "POST", jar: user.jar, csrfToken: user.csrfToken,
+    expected: 200, label: "POST /plan confirm credit smoke",
+    body: { action: "confirm", selectedVariantIds, note: "credit-per-step smoke confirm" }
+  });
+  assert.equal(confirmed.body?.confirmed, true, "credit smoke plan confirmation missing");
 
   const generated = await request(`/api/agent-sessions/${encodeURIComponent(sessionId)}/generate`, {
     method: "POST", jar: user.jar, csrfToken: user.csrfToken,

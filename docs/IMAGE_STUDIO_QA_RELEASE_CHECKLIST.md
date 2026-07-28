@@ -1085,9 +1085,9 @@ Record the outcome in the relevant development document or release note before m
 - Acceptance coverage: `/generate` requires a successful confirmation bound to the latest server-side plan step; re-planning invalidates old confirmation; client-supplied plan payloads cannot replace the stored plan; generation is limited to confirmed variant IDs; model enrichment must return the exact requested variant count or deterministic fallback preserves that count.
 - Architecture coverage: plan/confirm/generate routing is substantively migrated into `plan-routes.js`; all changed JS/MJS files remain below 400 lines and the original `routes.js` is reduced to 334 lines without a legacy wrapper fallback.
 - Local checks: changed-file `node --check`, root Vitest `7/7` files and `81/81` tests, agent-core Node tests `17/17`, `npm run check`, `smoke:agent-planner-flow`, `smoke:agent-batch-generation`, `smoke:agent-workspace`, `smoke:agent-credit-per-step`, `smoke:agent-batch-export`, `git diff --check`, line-budget audit, anti-wrapper scan, and privacy scan passed. Credential-dependent live portions of the Agent smokes were skipped locally because admin credentials were not present.
-- Deployment note: pending production deployment from the final AIS-RLS-173 commit. No database schema or data migration is included.
-- Online smoke: pending deployment; require public smoke plus authenticated Agent plan-confirm-generate checks before task finish.
-- Known blocker: outbound GitHub and production SSH connectivity was unavailable during the first closure attempt; the task remains active until push, deployment, and online smoke succeed.
+- Deployment note: `8351ee2` was deployed through a verified Git archive and initially reported `APP_VERSION=20260728-agent-plan-confirmation-v1`; the runtime was subsequently superseded by the AIS-RLS-174 timeout release. No database schema or data migration is included.
+- Online smoke: external public smoke passed. Authenticated planner-flow, batch-generation, and workspace smoke passed after AIS-RLS-174; credit-per-step and export-canvas required the AIS-RLS-175 smoke-order update before final closure.
+- Known blocker: production confirmation enforcement is healthy; remaining closure is limited to rerunning the two corrected authenticated smoke scripts from AIS-RLS-175.
 - Rollback target: revert the AIS-RLS-173 release commit, redeploy the previous known-good Agent runtime, then rerun public and authenticated Agent planner/batch smoke.
 
 ### 2026-07-28 AIS-RLS-174 Agent Plan Model Timeout Fallback Release
@@ -1098,6 +1098,18 @@ Record the outcome in the relevant development document or release note before m
 - Fix coverage: `buildAgentPlanWithModel` races model enrichment against a default 12-second timeout, sends a best-effort `AbortSignal`, and returns the complete deterministic plan on timeout, abort, upstream failure, invalid JSON, or variant-count mismatch.
 - Test coverage: root Vitest adds the abort/fallback path and passes `7/7` files with `82/82` tests; agent-core Node tests add the same contract and pass `18/18`. The timeout test completes in under 500ms using an injected 25ms deadline.
 - Local checks: changed-file `node --check`, `npm test`, `npm run test --prefix packages/agent-core`, `npm run check`, `smoke:agent-planner-flow`, `smoke:agent-workspace`, `git diff --check`, line-budget audit, and privacy scan passed. All changed JS/MJS files remain below 400 lines.
-- Deployment note: deploy this commit through the tracked Git archive and update runtime version to `20260728-agent-plan-timeout-v1`; no database schema or data migration is included.
-- Online smoke requirement: external public smoke plus authenticated Agent planner-flow must complete without a client AbortError before AIS-RLS-174 and AIS-RLS-173 are finished.
+- Deployment note: `feea0fb` was deployed through a verified Git delta archive from the AIS-RLS-173 baseline and reports `APP_VERSION=20260728-agent-plan-timeout-v1`; no database schema or data migration is included.
+- Online smoke: external public smoke passed and authenticated Agent planner-flow completed successfully without the former client AbortError. Authenticated batch-generation and workspace smoke also passed on the same runtime.
 - Rollback target: revert the AIS-RLS-174 release commit, redeploy the previous Agent runtime, and rerun public plus authenticated planner-flow smoke.
+
+### 2026-07-28 AIS-RLS-175 Agent Smoke Confirmation Gate Release
+
+- Task covered: `AIS-RLS-175` aligns legacy authenticated Agent smoke flows with the AIS-RLS-173 server-side confirmation gate.
+- Commit covered: this single AIS-RLS-175 release commit; the final short hash is recorded in the task output and private deployment log.
+- Root cause: `check-agent-credit-per-step.mjs` and `check-agent-export-canvas.mjs` generated directly after planning, so the correctly enforced production API returned `409 Confirm the latest Agent plan before generation`.
+- Fix coverage: both smokes now submit `action=confirm` with the selected server-plan variant IDs, assert `confirmed=true`, and only then perform dry-run generation and their original credit/export assertions.
+- Regression guardrail: each smoke reads its own `apiChecks()` source and asserts the confirmation action appears before the first `/generate` call, preventing a future silent return to generate-before-confirm ordering.
+- Local checks: changed-file `node --check`, `smoke:agent-credit-per-step`, `smoke:agent-export-canvas`, `npm run check`, `git diff --check`, line-budget audit, skip scan, and privacy scan passed. Files are 253 and 307 lines respectively.
+- Deployment note: deploy this commit as a tracked Git delta over the AIS-RLS-174 runtime; no application behavior, database schema, or data migration changes are included.
+- Online smoke requirement: rerun authenticated credit-per-step, export-canvas, and batch-export smoke before closing AIS-RLS-173 through AIS-RLS-175.
+- Rollback target: revert the AIS-RLS-175 release commit and redeploy the previous smoke scripts; do not roll back the production confirmation gate.
