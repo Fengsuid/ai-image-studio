@@ -2,6 +2,17 @@
 
 All notable public-facing changes to this project are documented here. Entries focus on user-visible behavior and omit private deployment details.
 
+## 2026-07-30 - AIS-RLS-163 Canvas v2 Regression Window Gate
+
+### Added
+
+- Added a local Canvas v2 regression evidence ledger and an offline smoke that reports the 30-day archive deadline, days remaining, current blocking regressions, last full-green time, and whether AIS-RLS-159 may proceed.
+- Added a strict `--require-ready` mode for the future Canvas v1 archive task and deterministic `--as-of` support for reproducing gate decisions.
+
+### Changed
+
+- Replaced the purely manual Canvas v1 archive waiting rule with an auditable command backed by recorded static, entry, editor, and generation smoke results.
+
 ## 2026-07-28 - AIS-RLS-162 CI Smoke Coverage Expansion
 
 ### Added
