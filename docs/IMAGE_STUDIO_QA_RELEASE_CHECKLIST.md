@@ -1175,3 +1175,16 @@ Record the outcome in the relevant development document or release note before m
 - Local checks: changed-script syntax, current WAIT decision, simulated deadline READY decision, all four required Canvas v2 smokes (`static`, `entry`, `editor`, `generation`), and the full `npm run check` gate passed. GitHub Actions remains the final CI-environment check before Trellis closeout.
 - Deployment note: no server deployment is required; this task adds offline QA automation and documentation only.
 - Rollback target: revert the AIS-RLS-163 release commit and restore the manual AIS-RLS-159 waiting description.
+
+### 2026-07-30 AIS-RLS-164 Gallery Module Extraction Release
+
+- Task covered: `AIS-RLS-164` entity-migrates gallery list rendering, filters, cards, leaderboard, detail dispatch, caching, loading, and likes from the public app god-file into `public/app-gallery.js`.
+- Commit covered: the single AIS-RLS-164 release commit; its final short hash, package digest, runtime version, and online smoke result are recorded in the Trellis/private deployment closeout.
+- Architecture coverage: `app-gallery.js` now exposes `createController(deps)` and owns 40 substantive domain functions. `app.js` lazily initializes the controller and retains only cross-domain compatibility adapters; the gallery module does not require or forward back to the legacy entry.
+- Line budget: physical source lines changed from `app.js` 5815 → 5023 (-792) and `app-gallery.js` 28 → 1070 (+1042), exceeding both the 600-line migration and 600-line app reduction requirements.
+- Built assets: `/dist/app-gallery.a1c1a4bab780.js` and the final hashed `/dist/app.<hash>.js` are generated through `npm run frontend:build`; `public/index.html` and both frontend manifests are updated together.
+- Local checks: `node --check` for both source files, `syntax:check`, lint, `frontend:check`, `frontend:build`, `smoke:frontend-boundaries`, `smoke:public-app-module-split`, gallery experience/card-tag/detail-media/leaderboard smokes, full `npm run check`, and root Vitest 7/7 files / 82/82 tests passed.
+- Local environment gap: `npm run smoke:public -- http://localhost:3000` could not start because local MySQL rejected `root@localhost` without a password (`ER_ACCESS_DENIED_ERROR`). This is the documented local environment mismatch; authoritative public smoke is run after deployment.
+- Desktop/mobile review: the three-scenario gallery visual run had no DOM/layout warnings. Light desktop matched its baseline (0.66% diff); dark mobile and dark 1440 exceeded the old pixel threshold because filter/nav styling had changed before this extraction, while manual comparison showed the same gallery structure and cards. Baselines were not promoted.
+- Deployment result: the committed Git archive deployed successfully; `/api/version` and the new app/app-gallery hashes are correct, containers are healthy, logs are clean, and public smoke passes. Gallery-image smoke initially found two stale EvoLinkAI prompt thumbnail mappings; their `preview` fields were transactionally remapped to verified local assets while preserving the original remote `image` metadata. Both endpoints now return 200 JPEG and the full gallery-image smoke passes.
+- Rollback target: revert the AIS-RLS-164 commit, redeploy the prior known-good public bundle, and rerun public/gallery smoke.

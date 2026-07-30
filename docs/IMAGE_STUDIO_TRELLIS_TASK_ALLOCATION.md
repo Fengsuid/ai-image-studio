@@ -1,7 +1,7 @@
 # ai-image-studio Trellis 任务分配总表
 
 日期：2026-07-30
-状态：入口状态已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-07-30，207 total / 196 done / 3 blocked / 8 backlog / 0 active-review）。
+状态：入口状态已与真实 Trellis 目录 `D:\生图广场\.trelis\tasks` 同步（最新校准：2026-07-30，207 total / 197 done / 3 blocked / 7 backlog / 0 active-review）。
 主任务来源：`IMAGE_STUDIO_RELLIS_TASKS.md`
 设计来源：`IMAGE_STUDIO_UNIFIED_MASTER_PLAN.md`、`IMAGE_STUDIO_ADMIN_HOME_REDESIGN_PLAN.md`、`IMAGE_STUDIO_CANVAS_RANKING_PROMPT_DEVELOPMENT_PLAN.md`
 
@@ -29,11 +29,11 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 
 ## 2. 当前优先执行
 
-当前没有 active/review 任务。按编号与依赖顺序，先执行 `AIS-RLS-164`；其余当前可启动项为 `167`、`168`。
+当前没有 active/review 任务。按编号与依赖顺序，先执行 `AIS-RLS-165`；其余当前可启动项为 `167`、`168`。
 
 | 顺序 | Trellis 任务 | 泳道 | 原因 |
 | --- | --- | --- | --- |
-| 1 | `AIS-RLS-164` public/app.js 画廊逻辑实体化 | Frontend | 可独立推进，并解锁 `AIS-RLS-165` |
+| 1 | `AIS-RLS-165` public/app.js 生成/会话逻辑实体化 | Frontend | `AIS-RLS-164` 已完成，当前可推进，并解锁 `AIS-RLS-166` |
 | 2 | `AIS-RLS-167` 生成请求可恢复、可取消 | Backend | 可独立推进，并解锁 `AIS-RLS-169` |
 | 3 | `AIS-RLS-168` 限流状态持久化 | Backend/Security | 可独立推进 |
 
@@ -150,8 +150,9 @@ Trellis 看板只使用 `AIS-RLS-*` 作为主任务号。历史设计稿里的 `
 | `AIS-RLS-160` - `AIS-RLS-161` | Hashed-entry smoke migration and Canvas Core Vitest include | Done | P0-P1 | Test/CI | Slice Hardening | See individual task cards |
 | `AIS-RLS-162` | Expand CI check automated smoke coverage | Done | P0 | Test/CI | Quality & Stability Hardening 202607 | `AIS-RLS-161` |
 | `AIS-RLS-163` | Automate Canvas v1 30-day regression gate evidence | Done | P1 | Canvas/Test | Quality & Stability Hardening 202607 | None |
-| `AIS-RLS-164` | Extract gallery logic from public/app.js | Backlog (Ready) | P1 | Frontend | Quality & Stability Hardening 202607 | None |
-| `AIS-RLS-165` - `AIS-RLS-166` | Continue generation/session app.js extraction and final anti-god-file closure | Backlog (Dependency-gated) | P1 | Frontend | Quality & Stability Hardening 202607 | `AIS-RLS-164` then `AIS-RLS-165` |
+| `AIS-RLS-164` | Extract gallery logic from public/app.js | Done | P0 | Frontend | Quality & Stability Hardening 202607 | None |
+| `AIS-RLS-165` | Continue generation/session app.js extraction | Backlog (Ready) | P1 | Frontend | Quality & Stability Hardening 202607 | `AIS-RLS-164` |
+| `AIS-RLS-166` | Final app.js anti-god-file closure | Backlog (Dependency-gated) | P1 | Frontend | Quality & Stability Hardening 202607 | `AIS-RLS-165` |
 | `AIS-RLS-167` | Resumable and cancelable generation requests | Backlog (Ready) | P1 | Backend | Quality & Stability Hardening 202607 | None |
 | `AIS-RLS-168` | Persist rate-limit state | Backlog (Ready) | P1 | Backend/Security | Quality & Stability Hardening 202607 | None |
 | `AIS-RLS-169` | Multi-candidate generation capability assessment and design | Backlog (Dependency-gated) | P2 | Product/Architecture | Quality & Stability Hardening 202607 | `AIS-RLS-167` |

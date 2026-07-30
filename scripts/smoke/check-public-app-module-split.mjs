@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import vm from "node:vm";
 
 const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
@@ -21,6 +22,7 @@ function scriptPosition(html, scriptName) {
 
 const indexHtml = read("public/index.html");
 const appJs = read("public/app.js");
+const appGalleryJs = read("public/app-gallery.js");
 const appAuthJs = read("public/app-auth.js");
 const appSettingsJs = read("public/app-settings.js");
 const packageJson = JSON.parse(read("package.json"));
@@ -49,7 +51,7 @@ const moduleSourceChecks = {
   "public/app-motion.js": ['register("motion"', "IntersectionObserver", "--mx", "--my", "motion-reveal"],
   "public/app-session.js": ['register("session"', "renderImageSessions"],
   "public/app-generation.js": ['register("generation"', "renderResultActions"],
-  "public/app-gallery.js": ['register("gallery"', "renderLeaderboard"],
+  "public/app-gallery.js": ['register("gallery"', "createController", "renderLibrary", "promptCardHtml", "toggleGalleryLike", "openSquarePreviewById"],
   "public/app-auth.js": ['register("auth"', "createAuthController", "bindAccountEvents", "openMyWorksModal", "X-CSRF-Token"],
   "public/app-settings.js": ['register("settings"', "createSettingsController", "bindLanguageToggle", "readPreference", "writePreference"]
 };
@@ -65,11 +67,18 @@ assert(appJs.includes("window.AppModules?.session?.renderImageSessions"), "app.j
 assert(appJs.includes("window.AppModules?.motion?.observe"), "app.js should delegate motion observation through AppModules.motion");
 assert(appJs.includes("observeMotion(elements.recentMasonry)"), "app.js should observe motion after recent tile renders");
 assert(appJs.includes("observeMotion(elements.historyList)"), "app.js should observe motion after history list renders");
-assert(appJs.includes("observeMotion(elements.libraryView)"), "app.js should observe motion after prompt library renders");
-assert(appJs.includes("observeMotion(elements.leaderboardPage)"), "app.js should observe motion after leaderboard renders");
+assert(appGalleryJs.includes("observeMotion(elements.libraryView)"), "app-gallery.js should observe motion after prompt library renders");
+assert(appGalleryJs.includes("observeMotion(elements.leaderboardPage)"), "app-gallery.js should observe motion after leaderboard renders");
 assert(appJs.includes("window.AppModules?.generation?.renderResultActions"), "app.js should delegate result actions through AppModules.generation");
-assert(appJs.includes("window.AppModules?.gallery?.renderLeaderboard"), "app.js should delegate leaderboard rendering through AppModules.gallery");
-assert(appJs.includes("window.AppModules?.gallery?.createTagViewModel"), "app.js should delegate tag view models through AppModules.gallery");
+assert(appJs.includes("window.AppModules?.gallery?.createController"), "app.js should initialize the gallery controller through AppModules.gallery");
+assert(appJs.includes("requireGalleryController().renderLibrary"), "app.js should delegate library rendering through the gallery controller");
+assert(appJs.includes("requireGalleryController().renderLeaderboardPage"), "app.js should delegate leaderboard page rendering through the gallery controller");
+assert(appJs.includes("requireGalleryController().galleryTagViewModelForItem"), "app.js should delegate tag view models through the gallery controller");
+assert(appGalleryJs.includes("return renderLeaderboard({"), "app-gallery.js should own leaderboard rendering orchestration");
+assert(appGalleryJs.includes("return createTagViewModel({"), "app-gallery.js should own gallery tag view-model orchestration");
+assert(appGalleryJs.includes('api("/api/images/public?limit=120")'), "app-gallery.js should own public gallery loading");
+assert(appGalleryJs.includes("/api/gallery/leaderboard?"), "app-gallery.js should own leaderboard loading");
+assert(appGalleryJs.includes("data-like-gallery"), "app-gallery.js should own gallery like card binding");
 assert(appJs.includes("window.AppModules?.gallery?.createDetailMedia"), "app.js should delegate detail media through AppModules.gallery");
 assert(appJs.includes("window.AppModules?.auth?.create"), "app.js should initialize auth through AppModules.auth.create");
 assert(appJs.includes("requireAuthController().bindAccountEvents"), "app.js should delegate account event binding through AppModules.auth");
@@ -84,7 +93,59 @@ assert(appAuthJs.includes("id=\"authForm\""), "app-auth.js should own auth form 
 assert(appAuthJs.includes("works-bulk-actions"), "app-auth.js should own My Works markup");
 assert(appSettingsJs.includes("const i18n ="), "app-settings.js should own the i18n dictionary");
 assert(appSettingsJs.includes("safeStorageWrite(\"lang\""), "app-settings.js should persist language preferences");
-assert(appJs.split(/\r?\n/).length <= 6200, "app.js should stay below the AIS-RLS-108 line-count budget");
+assert(appJs.split(/\r?\n/).length <= 5200, "app.js should stay below the AIS-RLS-164 gallery extraction budget");
+assert(appGalleryJs.split(/\r?\n/).length >= 600, "app-gallery.js should contain at least 600 lines of substantive gallery logic");
+
+const registeredModules = {};
+const gallerySandbox = {
+  console,
+  URL,
+  URLSearchParams,
+  navigator: { onLine: true },
+  setTimeout,
+  clearTimeout,
+  CSS: { escape: (value) => String(value) },
+  ImageStudioGalleryTagViewModel: {
+    create(options) {
+      return { kindBadge: { slug: options.kind }, publicTags: options.publicTags || [] };
+    }
+  },
+  ImageStudioGalleryLeaderboard: { render: () => "<div>leaderboard</div>" }
+};
+gallerySandbox.window = gallerySandbox;
+gallerySandbox.AppModules = {
+  register(name, module) {
+    registeredModules[name] = module;
+    return module;
+  }
+};
+vm.runInNewContext(appGalleryJs, gallerySandbox, { filename: "public/app-gallery.js" });
+let openedGalleryItem = null;
+const galleryController = registeredModules.gallery?.createController?.({
+  state: {
+    galleryLeaderboardRange: "week",
+    galleryLeaderboardType: "image",
+    tagsLibrary: {},
+    publicGallery: [{ id: "gallery-1", prompt: "Gallery prompt", images: ["/image.png"], publicTags: [] }],
+    galleryLeaderboard: []
+  },
+  elements: {},
+  api: async () => ({}),
+  publicKindTagForItem: () => "text-to-image",
+  getPromptSource: () => [],
+  uniquePromptDisplayItems: (items) => items,
+  truncate: (value, length) => String(value || "").slice(0, length),
+  displayUserName: () => "Visual QA",
+  openSquarePreview: (item) => { openedGalleryItem = item; }
+});
+assert(galleryController, "app-gallery.js should create an independently testable controller");
+assert(galleryController.uniqueGalleryEntries([{ id: "a" }, { id: "a" }, { id: "b" }]).length === 2, "gallery controller should deduplicate gallery entries");
+assert(galleryController.galleryLeaderboardRequestKey() === "week:image", "gallery controller should build stable leaderboard request keys");
+assert(galleryController.sortGalleryTags({ slug: "image-to-image" }, { slug: "portrait" }) < 0, "gallery controller should pin system gallery tags");
+assert(galleryController.getSourceCount([{ sourceUrl: "https://example.com/a" }, { sourceUrl: "https://example.com/b" }]) === 1, "gallery controller should count unique prompt sources");
+assert(galleryController.galleryTagViewModelForItem({}).kindBadge.slug === "text-to-image", "gallery controller should create gallery tag view models");
+await galleryController.openSquarePreviewById("gallery-1");
+assert(openedGalleryItem?.generationId === "gallery-1", "gallery controller should dispatch gallery detail opening from a gallery id");
 assert(appSettingsJs.split(/\r?\n/).length >= 300, "app-settings.js should be a real module, not a bridge stub");
 
 assert(

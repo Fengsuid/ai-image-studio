@@ -11,6 +11,7 @@ import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
+const appGallery = fs.readFileSync(path.join(rootDir, "public/app-gallery.js"), "utf8");
 const adminUsers = fs.readFileSync(path.join(rootDir, "public/admin/users.js"), "utf8");
 const appSettings = fs.readFileSync(path.join(rootDir, "public/app-settings.js"), "utf8");
 const html = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
@@ -39,14 +40,14 @@ assert(scriptPosition(html, "image-session-list.js") >= 0, "session list renderi
 assert(scriptPosition(html, "render-stamp.js") >= 0, "render stamp logic must be split into its own module");
 assert(app.includes('navigate("leaderboard"'), "top-level navigation must open the leaderboard page");
 assert(app.includes("renderLeaderboardPage"), "leaderboard page renderer must be wired");
-assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "gallery must not inline leaderboard beside cards");
+assert(!appGallery.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "gallery must not inline leaderboard beside cards");
 assert(!app.includes("data-open-leaderboard\""), "gallery page must not show the old leaderboard CTA");
 assert(!styles.includes(".leaderboard-cta"), "gallery leaderboard CTA styles must be removed");
 assert(html.includes('data-i18n="galleryLeaderboardPage">点赞排行榜</span>'), "top nav must show the Chinese leaderboard label before i18n hydration");
 assert(appSettings.includes('galleryLeaderboardPage: "点赞排行榜"'), "leaderboard nav label must be Chinese in zh locale");
 assert(styles.includes(".leaderboard-page .gallery-leaderboard"), "leaderboard page styles must be present");
 assert(scriptPosition(html, "prompt-cover-fallback.js") >= 0, "prompt fallback cover renderer must be loaded separately");
-assert(app.includes("ImageStudioPromptCoverFallback"), "prompt cards must use fallback covers when no image exists");
+assert(appGallery.includes("ImageStudioPromptCoverFallback"), "prompt cards must use fallback covers when no image exists");
 assert(styles.includes(".prompt-cover-fallback"), "prompt fallback covers must have visible styles");
 assert(styles.includes(".prompt-cover-fallback-image"), "prompt fallback covers must render as image-like covers");
 assert(app.includes("promptCoverFallbackSrc"), "broken prompt images must have a generated fallback image source");
@@ -55,8 +56,8 @@ assert(app.includes("document.addEventListener(\"error\"") && app.includes("mark
 assert(fs.readFileSync(path.join(rootDir, "public/prompt-cover-fallback.js"), "utf8").includes("data:image/svg+xml"), "prompt fallback module must generate SVG image data URLs");
 assert(app.includes("function promptCardImageUrl"), "prompt cards must centralize card image URL selection");
 assert(app.includes('return prompt.kind === "square" ? imageVariantUrl(coverUrl) : coverUrl;'), "prompt-library cards must use the same image URL as details");
-assert(app.includes('src="${escapeHtml(cardImageUrl)}"'), "prompt card markup must render the normalized card image URL");
-assert(app.includes('data-remove-on-image-error="1"'), "prompt-library cards with broken source images must not render synthetic fallback covers");
+assert(appGallery.includes('src="${escapeHtml(cardImageUrl)}"'), "prompt card markup must render the normalized card image URL");
+assert(appGallery.includes('data-remove-on-image-error="1"'), "prompt-library cards with broken source images must not render synthetic fallback covers");
 assert(app.includes('image.closest(".prompt-card")') && app.includes("card.remove()"), "broken prompt-library image cards must be removed from the gallery grid");
 
 assert(app.includes("deleteImageSession"), "conversation delete handler must exist");

@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { readPublicCssWithImports } from "./css-imports.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
@@ -12,19 +13,17 @@ const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
 const media = fs.readFileSync(path.join(rootDir, "public/gallery-detail-media.js"), "utf8");
 const creativeRoute = fs.readFileSync(path.join(rootDir, "src/creative-route.js"), "utf8");
-const cssDir = path.join(rootDir, "public/css");
-const css = [
-  fs.readFileSync(path.join(rootDir, "public/styles.css"), "utf8"),
-  ...(fs.existsSync(cssDir)
-    ? fs.readdirSync(cssDir)
-        .filter((name) => name.endsWith(".css"))
-        .sort()
-        .map((name) => fs.readFileSync(path.join(cssDir, name), "utf8"))
-    : [])
-].join("\n");
+const css = readPublicCssWithImports(rootDir);
 
-assert(indexHtml.includes("/gallery-detail-media.js"), "index.html must load gallery-detail-media.js");
-assert(indexHtml.indexOf("/gallery-detail-media.js") < indexHtml.indexOf("/app.js"), "gallery-detail-media.js must load before app.js");
+function scriptPosition(scriptName) {
+  const plainIndex = indexHtml.indexOf(`/${scriptName}`);
+  if (plainIndex >= 0) return plainIndex;
+  const stem = scriptName.replace(/\.js$/, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return indexHtml.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
+}
+
+assert(scriptPosition("gallery-detail-media.js") >= 0, "index.html must load gallery-detail-media.js");
+assert(scriptPosition("gallery-detail-media.js") < scriptPosition("app.js"), "gallery-detail-media.js must load before app.js");
 assert(app.includes("ImageStudioGalleryDetailMedia"), "app.js must delegate selected media state to the gallery detail module");
 assert(app.includes("data-square-main-image"), "gallery detail must expose a replaceable main image");
 assert(app.includes("data-square-main-prompt"), "gallery detail must expose a replaceable main prompt");

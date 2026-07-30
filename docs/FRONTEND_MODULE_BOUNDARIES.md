@@ -26,6 +26,8 @@ Use these locations for new public frontend work:
 
 `public/app.js` may call these modules, but it should not absorb their implementation.
 
+`public/app-gallery.js` exposes a `createController(deps)` domain boundary. It owns gallery/library rendering, tag filters, card event binding, leaderboard loading, gallery detail lookup/dispatch, cached gallery metadata, and prompt/gallery like synchronization. `public/app.js` may keep small compatibility adapters for cross-domain callers, but gallery business bodies must stay in the controller.
+
 ## Admin Modules
 
 Use `AdminModules` for admin surface area:

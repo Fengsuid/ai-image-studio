@@ -2,6 +2,19 @@
 
 All notable public-facing changes to this project are documented here. Entries focus on user-visible behavior and omit private deployment details.
 
+## 2026-07-30 - AIS-RLS-164 Gallery Module Extraction
+
+### Changed
+
+- Moved gallery list rendering, filters, card interactions, leaderboard orchestration, gallery detail dispatch, cache helpers, API loading, and prompt/gallery likes from `public/app.js` into a substantive `public/app-gallery.js` controller.
+- Reduced the public app entry from 5815 to 5023 physical lines while expanding the gallery module from 28 to 1070 lines of independently testable domain logic.
+- Rebuilt the content-hashed public bundles and updated gallery-specific smoke guards to follow the new module boundary and manifest entries.
+
+### Validation
+
+- Added controller-level tests for gallery deduplication, rank keys, tag ordering, source counting, tag view models, and gallery-id detail dispatch.
+- Reviewed desktop and mobile gallery screenshots. The light desktop baseline matched; dark-mode diffs were limited to previously changed filter/navigation styling and showed no structural or interaction regression.
+
 ## 2026-07-30 - AIS-RLS-163 Canvas v2 Regression Window Gate
 
 ### Added

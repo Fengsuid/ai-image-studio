@@ -303,10 +303,10 @@
       },
       {
         "source": "/app-gallery.js",
-        "entry": "/dist/app-gallery.1371dffd2dc6.js",
-        "fileName": "app-gallery.1371dffd2dc6.js",
-        "hash": "1371dffd2dc6",
-        "bytes": 430,
+        "entry": "/dist/app-gallery.a1c1a4bab780.js",
+        "fileName": "app-gallery.a1c1a4bab780.js",
+        "hash": "a1c1a4bab780",
+        "bytes": 28055,
         "lazy": false
       },
       {
@@ -343,10 +343,10 @@
       },
       {
         "source": "/app.js",
-        "entry": "/dist/app.792e3b86b56e.js",
-        "fileName": "app.792e3b86b56e.js",
-        "hash": "792e3b86b56e",
-        "bytes": 186988,
+        "entry": "/dist/app.e27694d93659.js",
+        "fileName": "app.e27694d93659.js",
+        "hash": "e27694d93659",
+        "bytes": 160218,
         "lazy": false
       },
       {

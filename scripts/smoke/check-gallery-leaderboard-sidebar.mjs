@@ -10,6 +10,7 @@ import { readPublicCssWithImports } from "./css-imports.mjs";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexHtml = fs.readFileSync(path.join(rootDir, "public/index.html"), "utf8");
 const app = fs.readFileSync(path.join(rootDir, "public/app.js"), "utf8");
+const appGallery = fs.readFileSync(path.join(rootDir, "public/app-gallery.js"), "utf8");
 const leaderboard = fs.readFileSync(path.join(rootDir, "public/gallery-leaderboard.js"), "utf8");
 const css = readPublicCssWithImports(rootDir);
 const server = fs.readFileSync(path.join(rootDir, "server.js"), "utf8");
@@ -22,11 +23,11 @@ function scriptPosition(scriptName) {
   return indexHtml.match(new RegExp(`/dist/${stem}\\.[a-f0-9]{12}\\.js`))?.index ?? -1;
 }
 
-assert(app.includes("gallery-main-grid"), "library cards must be wrapped separately from the leaderboard");
-assert(app.includes("ImageStudioGalleryLeaderboard"), "app.js must delegate leaderboard rendering to a focused module");
+assert(appGallery.includes("gallery-main-grid"), "library cards must be wrapped separately from the leaderboard");
+assert(appGallery.includes("ImageStudioGalleryLeaderboard"), "app-gallery.js must delegate leaderboard rendering to a focused module");
 assert(app.includes("renderLeaderboardPage"), "app.js must render the standalone leaderboard page");
-assert(!app.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "library view must not inline the leaderboard beside cards");
-assert(!app.includes("bindGalleryLeaderboardControls(elements.promptGrid);"), "library view must not bind leaderboard controls inside the gallery grid");
+assert(!appGallery.includes("<div class=\"gallery-main-grid\">${cardsHtml}</div>${renderGalleryLeaderboard()}"), "library view must not inline the leaderboard beside cards");
+assert(!appGallery.includes("bindGalleryLeaderboardControls(elements.promptGrid);"), "library view must not bind leaderboard controls inside the gallery grid");
 assert(scriptPosition("gallery-leaderboard.js") >= 0, "index.html must load gallery-leaderboard.js before app.js");
 assert(scriptPosition("gallery-leaderboard.js") < scriptPosition("app.js"), "gallery-leaderboard.js must load before app.js");
 assert(/\/dist\/gallery-leaderboard\.[a-f0-9]{12}\.js/.test(indexHtml), "leaderboard module must use a content-hashed asset");
@@ -45,14 +46,14 @@ assert(leaderboard.includes("gallery-rank-copy"), "rank items must expose compac
 assert(leaderboard.includes("gallery-rank-actions"), "rank items must expose compact heart actions");
 assert(leaderboard.includes("class=\"rank-like"), "leaderboard like buttons must use compact rank-like styling");
 assert(leaderboard.includes("data-like-gallery") && leaderboard.includes("data-like-prompt"), "leaderboard likes must reuse existing gallery/prompt like handlers");
-assert(app.includes("state.promptItems = state.promptItems.map(apply);"), "gallery likes must stay synced after library rerender");
+assert(appGallery.includes("state.promptItems = state.promptItems.map(apply);"), "gallery likes must stay synced after library rerender");
 assert(app.includes('galleryLeaderboardRange: "all"'), "leaderboard must default to all-time so the first page is populated");
 assert(app.includes("const GALLERY_LEADERBOARD_LIMIT = 99;"), "leaderboard API requests must ask for up to 99 items");
-assert(app.includes("limit: String(GALLERY_LEADERBOARD_LIMIT)"), "leaderboard API limit must use the shared 99-item cap");
+assert(appGallery.includes("limit: String(GALLERY_LEADERBOARD_LIMIT)"), "leaderboard API limit must use the shared 99-item cap");
 assert(server.includes("const GALLERY_LEADERBOARD_LIMIT_MAX = 99;"), "leaderboard API must cap responses at 99 items");
 assert(galleryRoute.includes("sanitizePositiveInt(url.searchParams.get(\"limit\"), 30, GALLERY_LEADERBOARD_LIMIT_MAX)"), "leaderboard API must use the 99-item cap");
-assert(app.includes("openSquarePreviewById(id);"), "leaderboard gallery cards must fall back to API detail loading");
-assert(app.includes("getPromptById(id) || findPromptLikeItem(id)"), "leaderboard prompt cards must open from leaderboard cache before prompt library finishes loading");
+assert(appGallery.includes("openSquarePreviewById(id);"), "leaderboard gallery cards must fall back to API detail loading");
+assert(appGallery.includes("getPromptById(id) || findPromptLikeItem(id)"), "leaderboard prompt cards must open from leaderboard cache before prompt library finishes loading");
 assert(app.includes('elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");'), "setView must always sync leaderboard visibility");
 assert(app.indexOf('elements.leaderboardView?.classList.toggle("hidden", view !== "leaderboard");') > app.indexOf("if (viewChanged) {"), "visibility sync must not be skipped when the route signature is unchanged");
 

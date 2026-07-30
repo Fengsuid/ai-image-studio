@@ -188,7 +188,8 @@ async function checkHomeResources() {
     "frontend-performance.js",
     "app-router.js",
     "app-prompt-library.js",
-    "app-auth.js"
+    "app-auth.js",
+    "app-gallery.js"
   ]) {
     assert(publicScriptMatch(home.body, fileName), `/ missing ${fileName} reference`);
   }
@@ -230,6 +231,7 @@ async function checkHomeResources() {
   const promptLibraryMatch = publicScriptMatch(home.body, "app-prompt-library.js");
   const appAuthMatch = publicScriptMatch(home.body, "app-auth.js");
   const appSettingsMatch = publicScriptMatch(home.body, "app-settings.js");
+  const appGalleryMatch = publicScriptMatch(home.body, "app-gallery.js");
   const manifestResponse = await fetchJson("/frontend-build-manifest.json");
   assert(manifestResponse.status === 200, "/frontend-build-manifest.json status should be 200");
   const manifest = manifestResponse.body || {};
@@ -259,10 +261,12 @@ async function checkHomeResources() {
   const promptLibraryPath = promptLibraryMatch?.[1] || "/app-prompt-library.js";
   const appAuthPath = appAuthMatch?.[1] || "/app-auth.js";
   const appSettingsPath = appSettingsMatch?.[1] || "/app-settings.js";
+  const appGalleryPath = appGalleryMatch?.[1] || "/app-gallery.js";
   assert(/^\/dist\/app\.[a-f0-9]{12}\.js$/.test(new URL(appPath, baseUrl).pathname), "/ app.js should use content-hashed dist path");
   assert(/^\/dist\/app-router\.[a-f0-9]{12}\.js$/.test(new URL(appRouterPath, baseUrl).pathname), "/ app-router.js should use content-hashed dist path");
   assert(/^\/dist\/app-auth\.[a-f0-9]{12}\.js$/.test(new URL(appAuthPath, baseUrl).pathname), "/ app-auth.js should use content-hashed dist path");
   assert(/^\/dist\/app-settings\.[a-f0-9]{12}\.js$/.test(new URL(appSettingsPath, baseUrl).pathname), "/ app-settings.js should use content-hashed dist path");
+  assert(/^\/dist\/app-gallery\.[a-f0-9]{12}\.js$/.test(new URL(appGalleryPath, baseUrl).pathname), "/ app-gallery.js should use content-hashed dist path");
 
   log(`GET ${stylePath}`);
   const style = await fetchCssWithImports(stylePath);
@@ -353,6 +357,18 @@ async function checkHomeResources() {
     "safeStorageWrite(\"lang\""
   ]);
 
+  log(`GET ${appGalleryPath}`);
+  const appGallery = await fetchText(appGalleryPath, "application/javascript,*/*");
+  assert(appGallery.status === 200, `${appGalleryPath} status=${appGallery.status}`);
+  assert(appGallery.body.includes("createController"), `${appGalleryPath} should expose the gallery controller`);
+  assert(appGallery.body.includes("setLikeFeedback"), `${appGalleryPath} should surface prompt like failure feedback`);
+  assert(appGallery.body.includes("togglePromptLike"), `${appGalleryPath} should own prompt like interactions`);
+  assertSourceIncludes("app-gallery.js", [
+    "function createController",
+    "function setLikeFeedback",
+    "function togglePromptLike"
+  ]);
+
   log(`GET ${appRouterPath}`);
   const appRouter = await fetchText(appRouterPath, "application/javascript,*/*");
   assert(appRouter.status === 200, `${appRouterPath} status=${appRouter.status}`);
@@ -388,7 +404,6 @@ async function checkHomeResources() {
   assert(app.body.includes("appendReferences"), `${appPath} should append bottom editor uploads as references`);
   assert(app.body.includes("promptLibraryModule"), `${appPath} should delegate prompt library rendering to module`);
   assert(app.body.includes("promptLibraryMeta"), `${appPath} should track prompt library remote/fallback state`);
-  assert(app.body.includes("setLikeFeedback"), `${appPath} should surface prompt like failure feedback`);
   assertSourceIncludes("app.js", [
     "function isImageToImageItem",
     "window.history.replaceState(route",
